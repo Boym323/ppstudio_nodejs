@@ -218,7 +218,7 @@ describe("public voucher verification", () => {
     assert.deepEqual(result, { ok: false, reason: "EXPIRED" });
   });
 
-  dbTest("rejects voucher before validFrom and accepts it exactly from validFrom", async () => {
+  dbTest("odmítne voucher před začátkem kalendářního dne a přijme ho během dne", async () => {
     assert.ok(seed);
     const { verifyVoucherPublic } = await loadModules();
     const validFrom = new Date("2026-06-01T12:00:00.000Z");
@@ -229,7 +229,7 @@ describe("public voucher verification", () => {
     });
 
     const [before, atStart] = await Promise.all([
-      verifyVoucherPublic({ code: voucher.code, now: new Date("2026-06-01T11:59:59.999Z") }),
+      verifyVoucherPublic({ code: voucher.code, now: new Date("2026-05-31T21:59:59.999Z") }),
       verifyVoucherPublic({ code: voucher.code, now: validFrom }),
     ]);
 

@@ -291,7 +291,7 @@ dbTest("seznamy, filtry a statistiky nezapočítávají budoucí aktivní vouche
           status: VoucherStatus.ACTIVE,
           originalValueCzk: 1200,
           remainingValueCzk: 1200,
-          validFrom: new Date(now.getTime() + 1),
+          validFrom: new Date("2030-01-02T00:00:00.000Z"),
           validUntil,
         },
         {
@@ -300,7 +300,7 @@ dbTest("seznamy, filtry a statistiky nezapočítávají budoucí aktivní vouche
           status: VoucherStatus.ACTIVE,
           serviceNameSnapshot: "Budoucí masáž",
           servicePriceSnapshotCzk: 900,
-          validFrom: new Date(now.getTime() + 1),
+          validFrom: new Date("2030-01-02T00:00:00.000Z"),
           validUntil,
         },
         {
@@ -319,7 +319,7 @@ dbTest("seznamy, filtry a statistiky nezapočítávají budoucí aktivní vouche
           originalValueCzk: 700,
           remainingValueCzk: 700,
           validFrom: new Date(now.getTime() - 2),
-          validUntil: new Date(now.getTime() - 1),
+          validUntil: new Date("2029-12-31T21:59:59.999Z"),
         },
       ],
     });

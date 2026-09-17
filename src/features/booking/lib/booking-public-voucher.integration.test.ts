@@ -648,7 +648,7 @@ describe("public booking intended voucher", () => {
       const voucher = await createVoucher(seed, {
         code: `PP-2026-F${randomUUID().replace(/-/g, "").slice(0, 5).toUpperCase()}`,
         type: VoucherType.VALUE,
-        validFrom: new Date(Date.now() + 60 * 60 * 1000),
+        validFrom: new Date(Date.now() + 24 * 60 * 60 * 1000),
       });
       const input = buildBookingInput(seed, slot, voucher.code);
 

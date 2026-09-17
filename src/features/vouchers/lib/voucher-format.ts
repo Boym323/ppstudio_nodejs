@@ -1,5 +1,7 @@
 import { VoucherStatus, VoucherType } from "@/generated/prisma/browser";
 
+import { getVoucherPragueCalendarDate } from "./voucher-validity-date";
+
 const czkFormatter = new Intl.NumberFormat("cs-CZ", {
   maximumFractionDigits: 0,
   style: "currency",
@@ -69,10 +71,12 @@ export function getEffectiveVoucherStatus(
   },
   now: Date,
 ): VoucherStatus {
+  const currentDate = getVoucherPragueCalendarDate(now);
+
   if (
     (voucher.status === VoucherStatus.ACTIVE || voucher.status === VoucherStatus.PARTIALLY_REDEEMED) &&
     voucher.validFrom !== undefined &&
-    voucher.validFrom.getTime() > now.getTime()
+    getVoucherPragueCalendarDate(voucher.validFrom) > currentDate
   ) {
     return VoucherStatus.DRAFT;
   }
@@ -80,7 +84,7 @@ export function getEffectiveVoucherStatus(
   if (
     (voucher.status === VoucherStatus.ACTIVE || voucher.status === VoucherStatus.PARTIALLY_REDEEMED) &&
     voucher.validUntil !== null &&
-    voucher.validUntil.getTime() < now.getTime()
+    getVoucherPragueCalendarDate(voucher.validUntil) < currentDate
   ) {
     return VoucherStatus.EXPIRED;
   }

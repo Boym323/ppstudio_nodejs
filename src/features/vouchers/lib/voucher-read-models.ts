@@ -8,6 +8,7 @@ import {
   formatVoucherValue,
   getEffectiveVoucherStatus,
 } from "@/features/vouchers/lib/voucher-format";
+import { getVoucherPragueCalendarDate } from "@/features/vouchers/lib/voucher-validity-date";
 import { prisma } from "@/lib/prisma";
 
 export type VoucherListFilters = {
@@ -21,6 +22,7 @@ export type VoucherListFilters = {
 function buildVoucherSqlWhere(filters: VoucherListFilters, now: Date): Prisma.Sql {
   const conditions: Prisma.Sql[] = [];
   const query = filters.query?.trim();
+  const currentDate = getVoucherPragueCalendarDate(now);
 
   if (filters.type && filters.type !== "all") {
     conditions.push(Prisma.sql`v."type" = ${filters.type}::"VoucherType"`);
@@ -32,20 +34,20 @@ function buildVoucherSqlWhere(filters: VoucherListFilters, now: Date): Prisma.Sq
         v."status" = 'EXPIRED'::"VoucherStatus"
         OR (
           v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
-          AND v."validFrom" <= ${now}
-          AND v."validUntil" < ${now}
+          AND DATE(v."validFrom" AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Prague') <= ${currentDate}::date
+          AND DATE(v."validUntil" AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Prague') < ${currentDate}::date
         )
       )`);
     } else if (filters.status === "ACTIVE" || filters.status === "PARTIALLY_REDEEMED") {
       conditions.push(Prisma.sql`v."status" = ${filters.status}::"VoucherStatus"`);
-      conditions.push(Prisma.sql`v."validFrom" <= ${now}`);
-      conditions.push(Prisma.sql`(v."validUntil" IS NULL OR v."validUntil" >= ${now})`);
+      conditions.push(Prisma.sql`DATE(v."validFrom" AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Prague') <= ${currentDate}::date`);
+      conditions.push(Prisma.sql`(v."validUntil" IS NULL OR DATE(v."validUntil" AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Prague') >= ${currentDate}::date)`);
     } else if (filters.status === "DRAFT") {
       conditions.push(Prisma.sql`(
         v."status" = 'DRAFT'::"VoucherStatus"
         OR (
           v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
-          AND v."validFrom" > ${now}
+          AND DATE(v."validFrom" AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Prague') > ${currentDate}::date
         )
       )`);
     } else {

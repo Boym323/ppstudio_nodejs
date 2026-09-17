@@ -2,12 +2,23 @@ import { z } from "zod";
 
 const PRAGUE_TIME_ZONE = "Europe/Prague";
 const dateInputPattern = /^\d{4}-\d{2}-\d{2}$/;
+const pragueCalendarDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: PRAGUE_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
 const pragueOffsetFormatter = new Intl.DateTimeFormat("en-GB", {
   timeZone: PRAGUE_TIME_ZONE,
   timeZoneName: "longOffset",
 });
 
 type VoucherValidityBoundary = "start" | "end";
+
+/** Vrátí kalendářní datum voucheru v časové zóně studia. */
+export function getVoucherPragueCalendarDate(value: Date) {
+  return pragueCalendarDateFormatter.format(value);
+}
 
 /** Přičte měsíce a zachová poslední platný den cílového měsíce. */
 export function addVoucherValidityMonths(value: Date, months: number) {

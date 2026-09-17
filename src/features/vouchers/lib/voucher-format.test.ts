@@ -7,7 +7,7 @@ import { getEffectiveVoucherStatus } from "./voucher-format";
 
 const now = new Date("2026-08-02T12:00:00.000Z");
 
-test("getEffectiveVoucherStatus vyhodnotí platnost voucheru vůči předanému času", () => {
+test("getEffectiveVoucherStatus vyhodnotí platnost voucheru podle pražského kalendářního dne", () => {
   const baseVoucher = {
     status: VoucherStatus.ACTIVE,
     validUntil: new Date("2026-08-03T12:00:00.000Z"),
@@ -15,7 +15,7 @@ test("getEffectiveVoucherStatus vyhodnotí platnost voucheru vůči předanému 
 
   assert.equal(
     getEffectiveVoucherStatus(
-      { ...baseVoucher, validFrom: new Date("2026-08-02T12:00:00.001Z") },
+      { ...baseVoucher, validFrom: new Date("2026-08-03T00:00:00.000Z") },
       now,
     ),
     VoucherStatus.DRAFT,
@@ -25,11 +25,15 @@ test("getEffectiveVoucherStatus vyhodnotí platnost voucheru vůči předanému 
     VoucherStatus.ACTIVE,
   );
   assert.equal(
+    getEffectiveVoucherStatus({ ...baseVoucher, validFrom: new Date("2026-08-02T21:59:59.999Z") }, now),
+    VoucherStatus.ACTIVE,
+  );
+  assert.equal(
     getEffectiveVoucherStatus(
       {
         ...baseVoucher,
         validFrom: new Date("2026-08-01T12:00:00.000Z"),
-        validUntil: new Date("2026-08-02T11:59:59.999Z"),
+        validUntil: new Date("2026-08-01T21:59:59.999Z"),
       },
       now,
     ),

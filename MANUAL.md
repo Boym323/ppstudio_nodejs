@@ -394,6 +394,7 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](docs/API.md).
 - Veřejné ověření voucheru má server-side rate limit podle IP hashe (okno 10 minut, max 10 pokusů). Při překročení vrací jen obecnou hlášku o dočasném omezení; neprozrazuje interní detail ani existenci konkrétního kódu.
 - Veřejné ověření voucher nikdy neuplatňuje: nevytváří `VoucherRedemption`, nemění `remainingValueCzk` ani `Voucher.status`.
 - Stav `Propadlý` v admin seznamu vychází z aplikačního efektivního pravidla: aktivní nebo částečně čerpaný voucher po `validUntil` se zobrazuje a filtruje jako propadlý, i když DB status ještě není `EXPIRED`.
+- Platnost voucheru se pro provozní stav i veřejné ověření vyhodnocuje po pražských kalendářních dnech. Voucher s dnešním datem `Platnost od` je aktivní okamžitě; uložený čas v databázi nemění význam data.
 
 ## Lokální Spuštění
 ```bash

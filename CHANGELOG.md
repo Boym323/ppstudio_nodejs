@@ -22,6 +22,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Voucher s dnešním datem platnosti se nyní považuje za aktivní po celý pražský kalendářní den; uložený čas už nemůže administraci ani veřejné ověření chybně zobrazit jako `Rozpracovaný`.
 - Vytvoření voucheru nyní vyžaduje explicitní vzhled, vrací jednoznačnou chybu při nepovolené kombinaci typu a šablony a před generováním ověřuje rozměr master PDF podle registru šablon.
 - Datum platnosti v digitálním voucheru se nyní vykresluje nad oddělovací linkou, nikoli přes ni.
 - QR kód a ověřovací URL voucheru nyní používají kanonickou veřejnou doménu i při odděleném lokálním/E2E `NEXT_PUBLIC_APP_URL`.

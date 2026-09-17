@@ -343,7 +343,7 @@ describe("voucher domain", () => {
     assert.equal(result.ok && result.remainingValueCzk, 800);
   });
 
-  dbTest("rejects voucher before validFrom in booking validation and accepts it exactly at validFrom", async () => {
+  dbTest("odmítne voucher před začátkem kalendářního dne a přijme ho během dne", async () => {
     assert.ok(seed);
     const context = seed;
     const { createVoucher, validateVoucherForBookingInput } = await loadModules();
@@ -357,7 +357,7 @@ describe("voucher domain", () => {
       validateVoucherForBookingInput({
         code: voucher.code,
         serviceId: context.serviceId,
-        now: new Date(validFrom.getTime() - 1),
+        now: new Date("2029-12-31T21:59:59.999Z"),
       }),
       validateVoucherForBookingInput({ code: voucher.code, serviceId: context.serviceId, now: validFrom }),
     ]);
@@ -491,7 +491,7 @@ describe("voucher domain", () => {
     await Promise.all([
       prisma.voucher.update({
         where: { id: expiredVoucher.id },
-        data: { validUntil: new Date(Date.now() - 60_000) },
+        data: { validUntil: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) },
       }),
       prisma.voucher.update({
         where: { id: exhaustedVoucher.id },
@@ -517,7 +517,7 @@ describe("voucher domain", () => {
         type: VoucherType.VALUE,
         ...baseVoucherMeta,
         originalValueCzk: 800,
-        validFrom: new Date(Date.now() + 60 * 60 * 1000),
+        validFrom: new Date(Date.now() + 24 * 60 * 60 * 1000),
       },
       context.actorUserId,
     );
