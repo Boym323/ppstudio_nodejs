@@ -1,7 +1,6 @@
 import { randomInt } from "node:crypto";
 
 import { Prisma, type Prisma as PrismaNamespace } from "@/generated/prisma/client";
-import { runSerializableTransaction } from "@/lib/serializable-transaction";
 
 const VOUCHER_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const VOUCHER_CODE_RANDOM_LENGTH = 6;
@@ -58,13 +57,4 @@ export async function allocateVoucherCode(
   }
 
   throw new Error("Voucher code could not be generated safely.");
-}
-
-/**
- * Compatibility wrapper for callers that only need to reserve a code. New
- * writes must call allocateVoucherCode inside the transaction that inserts
- * Voucher or VoucherStockItem, so the advisory lock covers the insert too.
- */
-export async function generateVoucherCode(now = new Date()): Promise<string> {
-  return runSerializableTransaction((tx) => allocateVoucherCode(tx, now));
 }

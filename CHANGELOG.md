@@ -23,6 +23,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Worker-safe e-mailové importy už nenačítají serverový serializační helper přes voucherový code modul, takže kontrola importů v CI probíhá bez chyby `server-only`.
 - Admin voucherové formuláře nyní drží řízené inputy konzistentně i při hydrataci a změnách stavu, takže nevzniká React warning o přechodu mezi controlled a uncontrolled inputem.
 - Voucher s dnešním datem platnosti se nyní považuje za aktivní po celý pražský kalendářní den; uložený čas už nemůže administraci ani veřejné ověření chybně zobrazit jako `Rozpracovaný`.
 - Vytvoření voucheru nyní vyžaduje explicitní vzhled, vrací jednoznačnou chybu při nepovolené kombinaci typu a šablony a před generováním ověřuje rozměr master PDF podle registru šablon.

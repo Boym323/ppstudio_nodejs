@@ -73,7 +73,7 @@ test("voucher lookup vrací budoucí aktivní voucher jako koncept", async () =>
       code: "BUDOUCI-1234",
       type: VoucherType.VALUE,
       status: VoucherStatus.ACTIVE,
-      validFrom: new Date("2026-08-02T12:00:00.001Z"),
+      validFrom: new Date("2026-08-03T00:00:00.000Z"),
       validUntil: null,
       remainingValueCzk: 1500,
       serviceNameSnapshot: null,
