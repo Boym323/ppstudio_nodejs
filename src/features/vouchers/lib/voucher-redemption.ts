@@ -24,6 +24,7 @@ export const voucherRedemptionErrorCodes = {
   serviceMismatch: "SERVICE_MISMATCH",
   bookingStatusNotEligible: "BOOKING_STATUS_NOT_ELIGIBLE",
   concurrentRedemption: "CONCURRENT_REDEMPTION",
+  servicePriceSnapshotMissing: "SERVICE_PRICE_SNAPSHOT_MISSING",
 } as const;
 
 export class VoucherRedemptionError extends Error {
@@ -43,6 +44,27 @@ function assertRedeemable(status: VoucherStatus) {
       "Voucher cannot be redeemed in its current state.",
     );
   }
+}
+
+export function requireServiceVoucherPriceSnapshot(input: {
+  voucherId: string;
+  voucherCode: string;
+  bookingId: string;
+  servicePriceSnapshotCzk: number | null;
+}) {
+  if (input.servicePriceSnapshotCzk === null) {
+    console.error("Voucher integrity problem: SERVICE voucher has no price snapshot", {
+      voucherId: input.voucherId,
+      voucherCode: input.voucherCode,
+      bookingId: input.bookingId,
+    });
+    throw new VoucherRedemptionError(
+      voucherRedemptionErrorCodes.servicePriceSnapshotMissing,
+      "SERVICE voucher nemá uložený cenový snapshot.",
+    );
+  }
+
+  return input.servicePriceSnapshotCzk;
 }
 
 export async function redeemVoucherForBookingInTransaction(
@@ -215,7 +237,12 @@ export async function redeemVoucherForBookingInTransaction(
       booking.serviceNameSnapshot ??
       booking.service.name;
     // SERVICE voucher is a right to the service, not a value discount on the booking final price.
-    const amountCzk = currentVoucher.servicePriceSnapshotCzk ?? booking.servicePriceFromCzk ?? booking.service.priceFromCzk;
+    const amountCzk = requireServiceVoucherPriceSnapshot({
+      voucherId: currentVoucher.id,
+      voucherCode: currentVoucher.code,
+      bookingId: booking.id,
+      servicePriceSnapshotCzk: currentVoucher.servicePriceSnapshotCzk,
+    });
 
     const [updatedVoucher, redemption] = await Promise.all([
       tx.voucher.update({

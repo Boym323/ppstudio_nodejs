@@ -14,6 +14,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- SERVICE voucher lze nyní vytvořit nebo aktivovat pouze pro aktivní službu s pevnou cenou; uložený cenový snapshot je povinný a používá se i při uplatnění voucheru.
+- Chyby generování digitálního, tiskového a skladového voucherového PDF nyní vracejí bezpečné stavové odpovědi bez interních cest a stack trace a zapisují technický kontext pouze do interního logu.
 - Ceník, booking a administrace nyní popisují `priceFromCzk` jako pevnou cenu služby; tiskové PDF předtištěné série je dostupné pouze do jejího převzetí a rok voucherových kódů i sérií se určuje podle Europe/Prague.
 - Success obrazovka aktivace předtištěného voucheru nyní zobrazuje prodanou hodnotu nebo službu, částku k úhradě ze snapshotu a konkrétní údaje k opsání na fyzický voucher; platební evidence ani KPI se nemění.
 - Aktivace předtištěného voucheru nyní jasně odděluje veřejné QR ověření od ručního zadání aktivačního kódu, vyžaduje explicitní výběr služby a před nevratným potvrzením zobrazí varování.
@@ -26,6 +28,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Voucherové KPI nyní používají stejný Europe/Prague kalendářní den jako seznam voucherů, včetně hranic platnosti přes DST.
 - Výpočet výchozí platnosti voucherů nyní používá kalendářní aritmetiku v Europe/Prague nezávislou na timezone Node procesu a správně clampuje konec měsíce.
 - Worker-safe e-mailové importy už nenačítají serverový serializační helper přes voucherový code modul, takže kontrola importů v CI probíhá bez chyby `server-only`.
 - Admin voucherové formuláře nyní drží řízené inputy konzistentně i při hydrataci a změnách stavu, takže nevzniká React warning o přechodu mezi controlled a uncontrolled inputem.

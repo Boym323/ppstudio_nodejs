@@ -36,6 +36,7 @@ import {
 
 import {
   VoucherRedemptionError,
+  requireServiceVoucherPriceSnapshot,
   voucherRedemptionErrorCodes,
 } from "@/features/vouchers/lib/voucher-redemption";
 import { normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
@@ -268,8 +269,24 @@ export async function completeBookingVisitAction(
         };
       }
 
-      plannedVoucherAmountCzk =
-        voucher.servicePriceSnapshotCzk ?? booking.servicePriceFromCzk ?? booking.service.priceFromCzk ?? 0;
+      try {
+        plannedVoucherAmountCzk = requireServiceVoucherPriceSnapshot({
+          voucherId: voucher.id,
+          voucherCode: normalizedVoucherCode,
+          bookingId: booking.id,
+          servicePriceSnapshotCzk: voucher.servicePriceSnapshotCzk,
+        });
+      } catch (error) {
+        if (error instanceof VoucherRedemptionError) {
+          return {
+            status: "error",
+            formError: getVoucherRedemptionFormError(error),
+            fieldErrors: { voucherCode: getVoucherRedemptionFormError(error) },
+          };
+        }
+
+        throw error;
+      }
     }
   }
 

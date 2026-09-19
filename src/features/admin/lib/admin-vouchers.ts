@@ -10,7 +10,10 @@ import {
 } from "@/features/vouchers/lib/voucher-template-registry";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings } from "@/lib/site-settings";
-import { addVoucherValidityMonths } from "@/features/vouchers/lib/voucher-validity-date";
+import {
+  addVoucherValidityMonths,
+  getVoucherPragueCalendarDate,
+} from "@/features/vouchers/lib/voucher-validity-date";
 import { addPragueCalendarDays } from "@/features/admin/lib/kpi-date-range";
 
 export type AdminVoucherTypeFilter = "all" | "value" | "service";
@@ -163,6 +166,14 @@ export async function getAdminVouchersPageData(
 ) {
   const filters = normalizeSearchParams(searchParams);
   const soonThreshold = addPragueCalendarDays(now, 30);
+  const currentPragueDate = getVoucherPragueCalendarDate(now);
+  const soonPragueDate = getVoucherPragueCalendarDate(soonThreshold);
+  const validFromPragueDate = Prisma.sql`DATE(v."validFrom" AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Prague')`;
+  const validUntilPragueDate = Prisma.sql`DATE(v."validUntil" AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Prague')`;
+  const activeVoucherValidity = Prisma.sql`
+    ${validFromPragueDate} <= ${currentPragueDate}::date
+    AND (v."validUntil" IS NULL OR ${validUntilPragueDate} >= ${currentPragueDate}::date)
+  `;
 
   const [
     openCount,
@@ -177,23 +188,23 @@ export async function getAdminVouchersPageData(
     await Promise.all([
       countVouchers(Prisma.sql`
         WHERE v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
-          AND v."validFrom" <= ${now}
-          AND (v."validUntil" IS NULL OR v."validUntil" >= ${now})
+          AND ${activeVoucherValidity}
       `),
       countVouchers(Prisma.sql`
         WHERE v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
-          AND v."validFrom" <= ${now}
+          AND ${activeVoucherValidity}
           AND v."validUntil" IS NOT NULL
-          AND v."validUntil" >= ${now}
-          AND v."validUntil" <= ${soonThreshold}
+          AND ${validUntilPragueDate} >= ${currentPragueDate}::date
+          AND ${validUntilPragueDate} <= ${soonPragueDate}::date
       `),
       countVouchers(Prisma.sql`WHERE v."status" = 'REDEEMED'::"VoucherStatus"`),
       countVouchers(Prisma.sql`
         WHERE v."status" = 'EXPIRED'::"VoucherStatus"
           OR (
             v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
-            AND v."validFrom" <= ${now}
-            AND v."validUntil" < ${now}
+            AND ${validFromPragueDate} <= ${currentPragueDate}::date
+            AND v."validUntil" IS NOT NULL
+            AND ${validUntilPragueDate} < ${currentPragueDate}::date
           )
       `),
       countVouchers(Prisma.sql`WHERE v."status" = 'CANCELLED'::"VoucherStatus"`),
@@ -202,14 +213,12 @@ export async function getAdminVouchersPageData(
         FROM "Voucher" v
         WHERE v."type" = 'VALUE'::"VoucherType"
           AND v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
-          AND v."validFrom" <= ${now}
-          AND (v."validUntil" IS NULL OR v."validUntil" >= ${now})
+          AND ${activeVoucherValidity}
       `),
       countVouchers(Prisma.sql`
         WHERE v."type" = 'SERVICE'::"VoucherType"
           AND v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
-          AND v."validFrom" <= ${now}
-          AND (v."validUntil" IS NULL OR v."validUntil" >= ${now})
+          AND ${activeVoucherValidity}
       `),
       listVouchers({
         query: filters.q,
@@ -290,6 +299,7 @@ export async function getAdminVoucherCreatePageData(area: AdminArea) {
   const [settings, services] = await Promise.all([getSiteSettings(), prisma.service.findMany({
     where: {
       isActive: true,
+      priceFromCzk: { not: null },
     },
     orderBy: [
       { category: { sortOrder: "asc" } },

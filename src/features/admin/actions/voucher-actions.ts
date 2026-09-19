@@ -13,7 +13,11 @@ import {
   getAdminVoucherHref,
   getAdminVouchersHref,
 } from "@/features/admin/lib/admin-vouchers";
-import { createVoucher } from "@/features/vouchers/lib/voucher-management";
+import {
+  createVoucher,
+  VoucherManagementError,
+  voucherManagementErrorCodes,
+} from "@/features/vouchers/lib/voucher-management";
 import {
   cancelVoucherOperationally,
   updateVoucherOperationalDetails,
@@ -84,6 +88,21 @@ function revalidateVoucherPaths(area: AdminArea, voucherId: string) {
   revalidatePath("/admin/vouchery");
   revalidatePath("/admin/provoz/vouchery");
   revalidatePath("/vouchery/overeni");
+}
+
+function getVoucherManagementFormError(error: unknown) {
+  if (!(error instanceof VoucherManagementError)) {
+    return null;
+  }
+
+  switch (error.code) {
+    case voucherManagementErrorCodes.serviceNotFound:
+      return "Vybranou službu se nepodařilo najít.";
+    case voucherManagementErrorCodes.serviceNotActive:
+      return "Vybraná služba už není aktivní.";
+    case voucherManagementErrorCodes.servicePriceMissing:
+      return "Vybraná služba nemá nastavenou cenu a nelze ji použít pro voucher.";
+  }
 }
 
 export async function createAdminVoucherAction(
@@ -169,6 +188,15 @@ export async function createAdminVoucherAction(
     const voucher = await createVoucher(parsed.data, actorUserId);
     voucherId = voucher.id;
   } catch (error) {
+    const formError = getVoucherManagementFormError(error);
+    if (formError) {
+      return {
+        status: "error",
+        formError,
+        fieldErrors: parsed.data.type === VoucherType.SERVICE ? { serviceId: formError } : undefined,
+      };
+    }
+
     await sendOwnerSystemErrorPushover({
       title: "PP Studio - systemova chyba",
       message: "Vytvoreni voucheru selhalo neocekavanou chybou.",

@@ -133,3 +133,77 @@ dbTest("Voucher Stock: batch, receive, VALUE activation, idempotence, VOID a clo
     await prisma.adminUser.delete({ where: { id: owner.id } });
   }
 });
+
+dbTest("Voucher Stock: SERVICE activation requires a fixed price and stores the price snapshot", async () => {
+  const [{ prisma }, stock] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./voucher-stock"),
+  ]);
+  const suffix = randomUUID().slice(0, 8);
+  const owner = await prisma.adminUser.create({ data: { email: `stock-service-${suffix}@example.com`, name: "Stock service owner", role: AdminRole.OWNER } });
+  const category = await prisma.serviceCategory.create({ data: { name: `Stock service category ${suffix}`, slug: `stock-service-category-${suffix}` } });
+  const [noPriceService, fixedPriceService] = await Promise.all([
+    prisma.service.create({
+      data: {
+        categoryId: category.id,
+        name: "Služba bez ceny",
+        slug: `stock-no-price-${suffix}`,
+        durationMinutes: 60,
+        priceFromCzk: null,
+        isActive: true,
+      },
+    }),
+    prisma.service.create({
+      data: {
+        categoryId: category.id,
+        name: "Služba s cenou",
+        slug: `stock-fixed-price-${suffix}`,
+        durationMinutes: 90,
+        priceFromCzk: 1800,
+        isActive: true,
+      },
+    }),
+  ]);
+  const batch = await stock.createVoucherPrintBatch({ templateKey: "classic-v1", quantity: 2, createdByUserId: owner.id });
+
+  try {
+    const items = await prisma.voucherStockItem.findMany({ where: { batchId: batch.id }, orderBy: { sequenceNumber: "asc" } });
+    await stock.receiveVoucherPrintBatch({ batchId: batch.id, actorUserId: owner.id });
+
+    await assert.rejects(
+      () => stock.activateVoucherStockItem({
+        code: items[0]!.code,
+        type: VoucherType.SERVICE,
+        serviceId: noPriceService.id,
+        actorUserId: owner.id,
+        validFrom: new Date("2026-09-19T00:00:00.000Z"),
+        validUntil: new Date("2027-09-19T21:59:59.999Z"),
+      }),
+      (error: unknown) => error instanceof stock.VoucherStockOperationError
+        && error.code === stock.voucherStockOperationErrorCodes.servicePriceMissing,
+    );
+    assert.equal((await prisma.voucherStockItem.findUniqueOrThrow({ where: { id: items[0]!.id } })).status, VoucherStockItemStatus.AVAILABLE);
+
+    const activated = await stock.activateVoucherStockItem({
+      code: items[1]!.code,
+      type: VoucherType.SERVICE,
+      serviceId: fixedPriceService.id,
+      actorUserId: owner.id,
+      validFrom: new Date("2026-09-19T00:00:00.000Z"),
+      validUntil: new Date("2027-09-19T21:59:59.999Z"),
+    });
+    assert.equal(activated.kind, "activated");
+    const voucher = await prisma.voucher.findUniqueOrThrow({ where: { id: activated.voucherId } });
+    assert.equal(voucher.servicePriceSnapshotCzk, 1800);
+    assert.equal(voucher.originalValueCzk, 1800);
+  } finally {
+    await prisma.voucherStockAuditLog.deleteMany({ where: { batchId: batch.id } });
+    await prisma.voucherStockItem.updateMany({ where: { batchId: batch.id }, data: { voucherId: null } });
+    await prisma.voucher.deleteMany({ where: { createdByUserId: owner.id } });
+    await prisma.voucherStockItem.deleteMany({ where: { batchId: batch.id } });
+    await prisma.voucherPrintBatch.delete({ where: { id: batch.id } });
+    await prisma.service.deleteMany({ where: { id: { in: [noPriceService.id, fixedPriceService.id] } } });
+    await prisma.serviceCategory.delete({ where: { id: category.id } });
+    await prisma.adminUser.delete({ where: { id: owner.id } });
+  }
+});

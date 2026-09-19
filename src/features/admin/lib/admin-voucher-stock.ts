@@ -173,7 +173,7 @@ export async function getAdminVoucherActivationPageData(area: AdminArea, codeInp
   const [settings, services] = await Promise.all([
     getSiteSettings(),
     prisma.service.findMany({
-      where: { isActive: true },
+      where: { isActive: true, priceFromCzk: { not: null } },
       orderBy: [{ category: { sortOrder: "asc" } }, { sortOrder: "asc" }, { name: "asc" }],
       select: {
         id: true,

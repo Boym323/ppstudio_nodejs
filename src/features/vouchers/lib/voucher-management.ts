@@ -19,6 +19,22 @@ import { runSerializableTransaction } from "@/lib/serializable-transaction";
 
 const MAX_CREATE_COLLISION_RETRIES = 5;
 
+export const voucherManagementErrorCodes = {
+  serviceNotFound: "SERVICE_NOT_FOUND",
+  serviceNotActive: "SERVICE_NOT_ACTIVE",
+  servicePriceMissing: "SERVICE_PRICE_MISSING",
+} as const;
+
+export class VoucherManagementError extends Error {
+  constructor(
+    readonly code: (typeof voucherManagementErrorCodes)[keyof typeof voucherManagementErrorCodes],
+    message: string,
+  ) {
+    super(message);
+    this.name = "VoucherManagementError";
+  }
+}
+
 function nullableText(value: string | undefined) {
   return value?.trim() ? value.trim() : null;
 }
@@ -81,11 +97,29 @@ export async function createVoucher(input: CreateVoucherInput, createdByUserId: 
             publicName: true,
             priceFromCzk: true,
             durationMinutes: true,
+            isActive: true,
           },
         });
 
         if (!service) {
-          throw new Error("Selected service does not exist.");
+          throw new VoucherManagementError(
+            voucherManagementErrorCodes.serviceNotFound,
+            "Vybraná služba neexistuje.",
+          );
+        }
+
+        if (!service.isActive) {
+          throw new VoucherManagementError(
+            voucherManagementErrorCodes.serviceNotActive,
+            "Vybraná služba už není aktivní.",
+          );
+        }
+
+        if (service.priceFromCzk === null) {
+          throw new VoucherManagementError(
+            voucherManagementErrorCodes.servicePriceMissing,
+            "Vybraná služba nemá nastavenou cenu a nelze ji použít pro voucher.",
+          );
         }
 
         return tx.voucher.create({

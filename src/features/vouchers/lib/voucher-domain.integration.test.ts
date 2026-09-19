@@ -97,9 +97,12 @@ async function loadModules() {
     prisma,
     normalizeVoucherCode: voucherCodeModule.normalizeVoucherCode,
     createVoucher: voucherActionsModule.createVoucher,
+    VoucherManagementError: voucherActionsModule.VoucherManagementError,
+    voucherManagementErrorCodes: voucherActionsModule.voucherManagementErrorCodes,
     validateVoucherForBookingInput: voucherValidationModule.validateVoucherForBookingInput,
     redeemVoucherForBooking: voucherRedemptionModule.redeemVoucherForBooking,
     VoucherRedemptionError: voucherRedemptionModule.VoucherRedemptionError,
+    voucherRedemptionErrorCodes: voucherRedemptionModule.voucherRedemptionErrorCodes,
     getAdminBookingDetailData: adminBookingModule.getAdminBookingDetailData,
     applyAdminBookingStatusChange: adminBookingModule.applyAdminBookingStatusChange,
   };
@@ -317,8 +320,36 @@ describe("voucher domain", () => {
     assert.equal(voucher.serviceId, context.serviceId);
     assert.equal(voucher.serviceNameSnapshot, "Lash lifting public");
     assert.equal(voucher.servicePriceSnapshotCzk, 1200);
+    assert.equal(voucher.originalValueCzk, 1200);
     assert.equal(voucher.serviceDurationSnapshot, 60);
     assert.equal(voucher.remainingValueCzk, null);
+  });
+
+  dbTest("rejects SERVICE voucher when the selected service has no fixed price", async () => {
+    assert.ok(seed);
+    const context = seed;
+    const { prisma, createVoucher, VoucherManagementError, voucherManagementErrorCodes } = await loadModules();
+    const noPriceService = await prisma.service.create({
+      data: {
+        categoryId: context.categoryId,
+        name: "Služba bez ceny",
+        slug: `voucher-no-price-${randomUUID().slice(0, 8)}`,
+        durationMinutes: 60,
+        priceFromCzk: null,
+        isActive: true,
+      },
+    });
+
+    try {
+      await assert.rejects(
+        () => createVoucher({ type: VoucherType.SERVICE, ...baseVoucherMeta, serviceId: noPriceService.id }, context.actorUserId),
+        (error: unknown) => error instanceof VoucherManagementError
+          && error.code === voucherManagementErrorCodes.servicePriceMissing,
+      );
+      assert.equal(await prisma.voucher.count({ where: { createdByUserId: context.actorUserId, serviceId: noPriceService.id } }), 0);
+    } finally {
+      await prisma.service.delete({ where: { id: noPriceService.id } });
+    }
   });
 
   dbTest("validates VALUE voucher for booking", async () => {
@@ -894,6 +925,41 @@ describe("voucher domain", () => {
       await prisma.voucherRedemption.deleteMany({ where: { bookingId: booking.id } });
       await prisma.booking.delete({ where: { id: booking.id } });
       await prisma.availabilitySlot.delete({ where: { id: slot.id } });
+    }
+  });
+
+  dbTest("rejects SERVICE redemption without a price snapshot instead of using the current service price", async () => {
+    assert.ok(seed);
+    const context = seed;
+    const { prisma, redeemVoucherForBooking, VoucherRedemptionError, voucherRedemptionErrorCodes } = await loadModules();
+    const voucher = await prisma.voucher.create({
+      data: {
+        code: `PP-CORRUPT-${randomUUID().slice(0, 8).toUpperCase()}`,
+        type: VoucherType.SERVICE,
+        status: VoucherStatus.ACTIVE,
+        serviceId: context.serviceId,
+        serviceNameSnapshot: "Lash lifting public",
+        servicePriceSnapshotCzk: null,
+        validFrom: new Date("2026-01-01T00:00:00.000Z"),
+        validUntil: new Date("2030-01-01T00:00:00.000Z"),
+      },
+    });
+
+    try {
+      await assert.rejects(
+        () => redeemVoucherForBooking({
+          voucherCode: voucher.code,
+          bookingId: context.bookingIds[0],
+          redeemedByUserId: context.actorUserId,
+          note: undefined,
+        }),
+        (error: unknown) => error instanceof VoucherRedemptionError
+          && error.code === voucherRedemptionErrorCodes.servicePriceSnapshotMissing,
+      );
+      assert.equal(await prisma.voucherRedemption.count({ where: { voucherId: voucher.id } }), 0);
+      assert.equal((await prisma.voucher.findUniqueOrThrow({ where: { id: voucher.id } })).status, VoucherStatus.ACTIVE);
+    } finally {
+      await prisma.voucher.delete({ where: { id: voucher.id } });
     }
   });
 

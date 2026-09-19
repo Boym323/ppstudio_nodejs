@@ -30,6 +30,8 @@ async function loadModules() {
     listVouchers: voucherReadModelsModule.listVouchers,
     getAdminVoucherDetailData: adminVouchersModule.getAdminVoucherDetailData,
     getAdminVouchersPageData: adminVouchersModule.getAdminVouchersPageData,
+    getAdminVoucherCreatePageData: adminVouchersModule.getAdminVoucherCreatePageData,
+    getAdminVoucherActivationPageData: (await import("@/features/admin/lib/admin-voucher-stock")).getAdminVoucherActivationPageData,
   };
 }
 
@@ -353,5 +355,161 @@ dbTest("seznamy, filtry a statistiky nezapočítávají budoucí aktivní vouche
     assert.equal(page.stats.find((stat) => stat.label === "Zbývá k uplatnění")?.value, expectedRemainingParts.join(" + "));
   } finally {
     await prisma.voucher.deleteMany({ where: { code: { in: codes } } });
+  }
+});
+
+dbTest("voucherové SERVICE selecty nabízejí jen aktivní služby s pevnou cenou", async () => {
+  const { prisma, getAdminVoucherCreatePageData, getAdminVoucherActivationPageData } = await loadModules();
+  const suffix = randomUUID().slice(0, 8);
+  const category = await prisma.serviceCategory.create({ data: { name: `Voucher selector category ${suffix}`, slug: `voucher-selector-category-${suffix}` } });
+  const [fixedActive, noPriceActive, fixedInactive] = await Promise.all([
+    prisma.service.create({
+      data: {
+        categoryId: category.id,
+        name: "Aktivní služba s cenou",
+        slug: `voucher-selector-fixed-${suffix}`,
+        durationMinutes: 60,
+        priceFromCzk: 1200,
+        isActive: true,
+      },
+    }),
+    prisma.service.create({
+      data: {
+        categoryId: category.id,
+        name: "Aktivní služba bez ceny",
+        slug: `voucher-selector-no-price-${suffix}`,
+        durationMinutes: 60,
+        priceFromCzk: null,
+        isActive: true,
+      },
+    }),
+    prisma.service.create({
+      data: {
+        categoryId: category.id,
+        name: "Neaktivní služba s cenou",
+        slug: `voucher-selector-inactive-${suffix}`,
+        durationMinutes: 60,
+        priceFromCzk: 900,
+        isActive: false,
+      },
+    }),
+  ]);
+
+  try {
+    const [createPage, activationPage] = await Promise.all([
+      getAdminVoucherCreatePageData("owner"),
+      getAdminVoucherActivationPageData("owner"),
+    ]);
+    const createServiceIds = createPage.services.map((service) => service.id);
+    const activationServiceIds = activationPage.services.map((service) => service.id);
+
+    assert.equal(createServiceIds.includes(fixedActive.id), true);
+    assert.equal(createServiceIds.includes(noPriceActive.id), false);
+    assert.equal(createServiceIds.includes(fixedInactive.id), false);
+    assert.equal(activationServiceIds.includes(fixedActive.id), true);
+    assert.equal(activationServiceIds.includes(noPriceActive.id), false);
+    assert.equal(activationServiceIds.includes(fixedInactive.id), false);
+  } finally {
+    await prisma.service.deleteMany({ where: { id: { in: [fixedActive.id, noPriceActive.id, fixedInactive.id] } } });
+    await prisma.serviceCategory.delete({ where: { id: category.id } });
+  }
+});
+
+dbTest("voucher KPI používají stejný Europe/Prague kalendářní den jako seznam", async () => {
+  const { prisma, listVouchers, getAdminVouchersPageData } = await loadModules();
+  const suffix = randomUUID().slice(0, 8).toUpperCase();
+  const now = new Date("2026-09-19T08:00:00.000Z");
+  const before = await getAdminVouchersPageData("owner", { q: `KPI-BASELINE-${suffix}` }, now);
+  const codes = ["SAME-DAY", "FUTURE", "EXPIRED"].map((kind) => `PP-KPI-TZ-${kind}-${suffix}`);
+
+  try {
+    await prisma.voucher.createMany({
+      data: [
+        {
+          code: codes[0],
+          type: VoucherType.VALUE,
+          status: VoucherStatus.ACTIVE,
+          originalValueCzk: 500,
+          remainingValueCzk: 500,
+          validFrom: new Date("2026-09-19T12:00:00.000Z"),
+          validUntil: new Date("2026-09-19T20:00:00.000Z"),
+        },
+        {
+          code: codes[1],
+          type: VoucherType.VALUE,
+          status: VoucherStatus.ACTIVE,
+          originalValueCzk: 600,
+          remainingValueCzk: 600,
+          validFrom: new Date("2026-09-20T00:00:00.000Z"),
+          validUntil: new Date("2026-09-20T20:00:00.000Z"),
+        },
+        {
+          code: codes[2],
+          type: VoucherType.VALUE,
+          status: VoucherStatus.ACTIVE,
+          originalValueCzk: 700,
+          remainingValueCzk: 700,
+          validFrom: new Date("2026-09-17T12:00:00.000Z"),
+          validUntil: new Date("2026-09-18T20:00:00.000Z"),
+        },
+      ],
+    });
+
+    const [active, draft, expired, page] = await Promise.all([
+      listVouchers({ query: suffix, status: VoucherStatus.ACTIVE, now }),
+      listVouchers({ query: suffix, status: VoucherStatus.DRAFT, now }),
+      listVouchers({ query: suffix, status: VoucherStatus.EXPIRED, now }),
+      getAdminVouchersPageData("owner", { q: suffix }, now),
+    ]);
+    const stat = (label: string, source = page) => Number(source.stats.find((item) => item.label === label)?.value ?? 0);
+
+    assert.deepEqual(active.map((voucher) => voucher.code), [codes[0]]);
+    assert.deepEqual(draft.map((voucher) => voucher.code), [codes[1]]);
+    assert.deepEqual(expired.map((voucher) => voucher.code), [codes[2]]);
+    assert.equal(stat("Otevřené vouchery") - stat("Otevřené vouchery", before), 1);
+    assert.equal(stat("Brzy expirují") - stat("Brzy expirují", before), 1);
+    assert.equal(stat("Uzavřené") - stat("Uzavřené", before), 1);
+  } finally {
+    await prisma.voucher.deleteMany({ where: { code: { in: codes } } });
+  }
+});
+
+dbTest("voucher KPI zachovají stejné datumové hranice při jarním a podzimním DST", async () => {
+  const { prisma, listVouchers, getAdminVouchersPageData } = await loadModules();
+  const cases = [
+    { label: "SPRING", now: new Date("2026-03-29T08:00:00.000Z"), validUntil: new Date("2026-03-29T20:00:00.000Z") },
+    { label: "AUTUMN", now: new Date("2026-10-25T08:00:00.000Z"), validUntil: new Date("2026-10-25T20:00:00.000Z") },
+  ];
+
+  for (const item of cases) {
+    const suffix = `${item.label}-${randomUUID().slice(0, 8).toUpperCase()}`;
+    const code = `PP-KPI-DST-${suffix}`;
+    const before = await getAdminVouchersPageData("owner", { q: `KPI-DST-BASELINE-${suffix}` }, item.now);
+
+    try {
+      await prisma.voucher.create({
+        data: {
+          code,
+          type: VoucherType.VALUE,
+          status: VoucherStatus.ACTIVE,
+          originalValueCzk: 800,
+          remainingValueCzk: 800,
+          validFrom: new Date(item.now.getTime() + 4 * 60 * 60 * 1000),
+          validUntil: item.validUntil,
+        },
+      });
+
+      const [active, page] = await Promise.all([
+        listVouchers({ query: suffix, status: VoucherStatus.ACTIVE, now: item.now }),
+        getAdminVouchersPageData("owner", { q: suffix }, item.now),
+      ]);
+      const stat = (label: string, source = page) => Number(source.stats.find((entry) => entry.label === label)?.value ?? 0);
+
+      assert.deepEqual(active.map((voucher) => voucher.code), [code]);
+      assert.equal(stat("Otevřené vouchery") - stat("Otevřené vouchery", before), 1);
+      assert.equal(stat("Brzy expirují") - stat("Brzy expirují", before), 1);
+    } finally {
+      await prisma.voucher.deleteMany({ where: { code } });
+    }
   }
 });

@@ -43,6 +43,7 @@ export const voucherStockOperationErrorCodes = {
   itemAlreadyActivated: "ITEM_ALREADY_ACTIVATED",
   itemVoided: "ITEM_VOIDED",
   serviceNotActive: "SERVICE_NOT_ACTIVE",
+  servicePriceMissing: "SERVICE_PRICE_MISSING",
   invalidValidityRange: "INVALID_VALIDITY_RANGE",
   integrityError: "INTEGRITY_ERROR",
   voidReasonRequired: "VOID_REASON_REQUIRED",
@@ -439,8 +440,15 @@ export async function activateVoucherStockItem(input: ActivateVoucherStockItemOp
         select: { id: true, name: true, publicName: true, priceFromCzk: true, durationMinutes: true, isActive: true },
       });
 
-      if (!service?.isActive) {
+      if (!service || !service.isActive) {
         throw new VoucherStockOperationError(voucherStockOperationErrorCodes.serviceNotActive, "Vybraná služba už není aktivní.");
+      }
+
+      if (service.priceFromCzk === null) {
+        throw new VoucherStockOperationError(
+          voucherStockOperationErrorCodes.servicePriceMissing,
+          "Vybraná služba nemá nastavenou cenu a nelze ji použít pro voucher.",
+        );
       }
     }
 
@@ -481,11 +489,11 @@ export async function activateVoucherStockItem(input: ActivateVoucherStockItemOp
             type: VoucherType.SERVICE,
             templateKey: stockItem.batch.templateKey,
             status: VoucherStatus.ACTIVE,
-            originalValueCzk: service?.priceFromCzk ?? null,
+            originalValueCzk: service!.priceFromCzk,
             remainingValueCzk: null,
             serviceId: service?.id,
             serviceNameSnapshot: service?.publicName ?? service?.name,
-            servicePriceSnapshotCzk: service?.priceFromCzk ?? null,
+            servicePriceSnapshotCzk: service!.priceFromCzk,
             serviceDurationSnapshot: service?.durationMinutes,
             validFrom,
             validUntil,

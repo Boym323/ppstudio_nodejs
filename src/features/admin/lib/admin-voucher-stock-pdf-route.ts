@@ -8,6 +8,7 @@ import {
 import { canDownloadVoucherStockPdf } from "@/features/admin/lib/admin-voucher-stock-paths";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
+import { handleVoucherPdfError } from "@/features/admin/lib/admin-voucher-pdf-error";
 
 type VoucherStockPdfRouteParams = Promise<{ batchId: string }>;
 
@@ -68,11 +69,19 @@ export function createAdminVoucherStockPdfRoute(dependencies: VoucherStockPdfRou
       });
     }
 
-    const pdfBytes = await generatePdf({
-      batchNumber: batch.batchNumber,
-      templateKey: batch.templateKey,
-      items: batch.items,
-    });
+    let pdfBytes: Uint8Array;
+    try {
+      pdfBytes = await generatePdf({
+        batchNumber: batch.batchNumber,
+        templateKey: batch.templateKey,
+        items: batch.items,
+      });
+    } catch (error) {
+      return handleVoucherPdfError(error, {
+        batchId,
+        templateKey: batch.templateKey,
+      });
+    }
 
     return new NextResponse(Buffer.from(pdfBytes), {
       status: 200,

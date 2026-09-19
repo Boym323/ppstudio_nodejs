@@ -53,6 +53,8 @@ function domainErrorMessage(error: unknown) {
       return "Znehodnocený voucher nelze aktivovat.";
     case voucherStockOperationErrorCodes.serviceNotActive:
       return "Vybraná služba už není aktivní.";
+    case voucherStockOperationErrorCodes.servicePriceMissing:
+      return "Vybraná služba nemá nastavenou cenu a nelze ji použít pro voucher.";
     case voucherStockOperationErrorCodes.templateNotAllowed:
       return "Tento vzhled nepodporuje vybraný typ voucheru.";
     case voucherStockOperationErrorCodes.invalidValidityRange:

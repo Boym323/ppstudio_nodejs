@@ -89,6 +89,8 @@ export function getVoucherRedemptionFormError(error: VoucherRedemptionError) {
       return "Voucher lze skutečně uplatnit pouze při dokončení návštěvy. Použijte akci „Dokončit návštěvu“.";
     case voucherRedemptionErrorCodes.concurrentRedemption:
       return "Voucher se mezitím změnil. Obnovte detail rezervace a zkuste to znovu.";
+    case voucherRedemptionErrorCodes.servicePriceSnapshotMissing:
+      return "Voucher nemá uloženou historickou cenu a nelze ho bezpečně uplatnit.";
     default:
       return "Voucher se nepodařilo uplatnit. Zkontrolujte kód a zkuste to znovu.";
   }

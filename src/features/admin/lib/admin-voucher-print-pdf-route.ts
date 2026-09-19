@@ -7,17 +7,28 @@ import {
   generateVoucherPrintPdf,
 } from "@/features/vouchers/lib/voucher-pdf";
 import { getSession } from "@/lib/auth/session";
+import { handleVoucherPdfError } from "@/features/admin/lib/admin-voucher-pdf-error";
 
 type VoucherPrintPdfRouteParams = Promise<{
   voucherId: string;
 }>;
 
-export function createAdminVoucherPrintPdfRoute() {
+type VoucherPrintPdfRouteDependencies = {
+  getSession?: typeof getSession;
+  getVoucher?: typeof getVoucherDetail;
+  generatePdf?: typeof generateVoucherPrintPdf;
+};
+
+export function createAdminVoucherPrintPdfRoute(dependencies: VoucherPrintPdfRouteDependencies = {}) {
+  const getSessionFn = dependencies.getSession ?? getSession;
+  const getVoucher = dependencies.getVoucher ?? getVoucherDetail;
+  const generatePdf = dependencies.generatePdf ?? generateVoucherPrintPdf;
+
   return async function AdminVoucherPrintPdfRoute(
     _request: Request,
     { params }: { params: VoucherPrintPdfRouteParams },
   ) {
-    const session = await getSession();
+    const session = await getSessionFn();
 
     if (!session) {
       return new NextResponse("Nejste přihlášeni.", { status: 401 });
@@ -28,13 +39,18 @@ export function createAdminVoucherPrintPdfRoute() {
     }
 
     const { voucherId } = await params;
-    const voucher = await getVoucherDetail(voucherId);
+    const voucher = await getVoucher(voucherId);
 
     if (!voucher) {
       return new NextResponse("Voucher nebyl nalezen.", { status: 404 });
     }
 
-    const pdfBytes = await generateVoucherPrintPdf(voucher);
+    let pdfBytes: Uint8Array;
+    try {
+      pdfBytes = await generatePdf(voucher);
+    } catch (error) {
+      return handleVoucherPdfError(error, { voucherId, templateKey: voucher.templateKey });
+    }
 
     return new NextResponse(Buffer.from(pdfBytes), {
       status: 200,
