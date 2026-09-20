@@ -56,8 +56,8 @@ if (coverage) {
 
 const command = coverage ? "c8" : process.execPath;
 const args = coverage
-  ? [process.execPath, "--import", "./src/test/register-server-only.mjs", "--import", "tsx", "--test", "--test-isolation=process", `--test-concurrency=${testConcurrency}`, ...files]
-  : ["--import", "./src/test/register-server-only.mjs", "--import", "tsx", "--test", "--test-isolation=process", `--test-concurrency=${testConcurrency}`, ...files];
+  ? [process.execPath, "--experimental-test-module-mocks", "--import", "./src/test/register-server-only.mjs", "--import", "tsx", "--test", "--test-isolation=process", `--test-concurrency=${testConcurrency}`, ...files]
+  : ["--experimental-test-module-mocks", "--import", "./src/test/register-server-only.mjs", "--import", "tsx", "--test", "--test-isolation=process", `--test-concurrency=${testConcurrency}`, ...files];
 const result = spawnSync(command, args, { stdio: "inherit" });
 
 if (result.error) throw result.error;

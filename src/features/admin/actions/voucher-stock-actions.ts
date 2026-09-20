@@ -40,53 +40,37 @@ function resolveArea(role: AdminRole, value: string): AdminArea {
   return role === AdminRole.SALON ? "salon" : value === "salon" ? "salon" : "owner";
 }
 
+type VoucherStockOperationErrorCode =
+  (typeof voucherStockOperationErrorCodes)[keyof typeof voucherStockOperationErrorCodes];
+
+const voucherStockDomainMessages: Record<VoucherStockOperationErrorCode, string> = {
+  [voucherStockOperationErrorCodes.batchNotFound]: "Tisková série nebyla nalezena.",
+  [voucherStockOperationErrorCodes.itemNotFound]: "Předtištěný voucher nebyl nalezen.",
+  [voucherStockOperationErrorCodes.invalidQuantity]: "Počet kusů musí být celé číslo od 1 do 500.",
+  [voucherStockOperationErrorCodes.invalidTemplate]: "Vybraný vzhled voucheru neexistuje.",
+  [voucherStockOperationErrorCodes.templateUnavailable]: "Vybraný vzhled není dostupný pro nové tiskové série.",
+  [voucherStockOperationErrorCodes.templateNotAllowed]: "Tento vzhled nepodporuje vybraný typ voucheru.",
+  [voucherStockOperationErrorCodes.batchAlreadyReceived]: "Tisková série už byla převzata.",
+  [voucherStockOperationErrorCodes.batchClosed]: "Uzavřená tisková série už nejde měnit.",
+  [voucherStockOperationErrorCodes.itemNotAvailable]: "Voucher není dostupný k aktivaci.",
+  [voucherStockOperationErrorCodes.itemAlreadyActivated]: "Aktivovaný voucher nelze znehodnotit.",
+  [voucherStockOperationErrorCodes.itemVoided]: "Znehodnocený voucher nelze aktivovat.",
+  [voucherStockOperationErrorCodes.serviceNotActive]: "Vybraná služba už není aktivní.",
+  [voucherStockOperationErrorCodes.servicePriceMissing]: "Vybraná služba nemá nastavenou cenu a nelze ji použít pro voucher.",
+  [voucherStockOperationErrorCodes.invalidValidityRange]: "Platnost do musí být po datu aktivace.",
+  [voucherStockOperationErrorCodes.integrityError]: "Voucher má nekonzistentní data. Obnovte stránku nebo kontaktujte správce.",
+  [voucherStockOperationErrorCodes.transientConflict]: "Operaci se kvůli souběžné změně nepodařilo dokončit. Zkuste ji prosím znovu.",
+  [voucherStockOperationErrorCodes.operationFailed]: "Operaci se nepodařilo dokončit. Zkuste ji prosím znovu.",
+  [voucherStockOperationErrorCodes.voidReasonRequired]: "Důvod znehodnocení je povinný.",
+  [voucherStockOperationErrorCodes.itemNotReceived]: "Položku lze znehodnotit až po převzetí série.",
+};
+
 function domainErrorMessage(error: unknown) {
   if (!(error instanceof VoucherStockOperationError)) {
     return null;
   }
 
-  switch (error.code) {
-    case voucherStockOperationErrorCodes.itemNotFound:
-      return "Předtištěný voucher nebyl nalezen.";
-    case voucherStockOperationErrorCodes.itemNotAvailable:
-      return "Voucher není dostupný k aktivaci.";
-    case voucherStockOperationErrorCodes.itemVoided:
-      return "Znehodnocený voucher nelze aktivovat.";
-    case voucherStockOperationErrorCodes.serviceNotActive:
-      return "Vybraná služba už není aktivní.";
-    case voucherStockOperationErrorCodes.servicePriceMissing:
-      return "Vybraná služba nemá nastavenou cenu a nelze ji použít pro voucher.";
-    case voucherStockOperationErrorCodes.templateNotAllowed:
-      return "Tento vzhled nepodporuje vybraný typ voucheru.";
-    case voucherStockOperationErrorCodes.invalidValidityRange:
-      return "Platnost do musí být po datu aktivace.";
-    case voucherStockOperationErrorCodes.batchNotFound:
-      return "Tisková série nebyla nalezena.";
-    case voucherStockOperationErrorCodes.batchClosed:
-      return "Uzavřená tisková série už nejde měnit.";
-    case voucherStockOperationErrorCodes.batchAlreadyReceived:
-      return "Tisková série už byla převzata.";
-    case voucherStockOperationErrorCodes.invalidQuantity:
-      return "Počet kusů musí být celé číslo od 1 do 500.";
-    case voucherStockOperationErrorCodes.invalidTemplate:
-      return "Vybraný vzhled voucheru neexistuje.";
-    case voucherStockOperationErrorCodes.templateUnavailable:
-      return "Vybraný vzhled není dostupný pro nové tiskové série.";
-    case voucherStockOperationErrorCodes.itemAlreadyActivated:
-      return "Aktivovaný voucher nelze znehodnotit.";
-    case voucherStockOperationErrorCodes.itemNotReceived:
-      return "Položku lze znehodnotit až po převzetí série.";
-    case voucherStockOperationErrorCodes.integrityError:
-      return "Voucher má nekonzistentní data. Obnovte stránku nebo kontaktujte správce.";
-    case voucherStockOperationErrorCodes.voidReasonRequired:
-      return "Důvod znehodnocení je povinný.";
-    case voucherStockOperationErrorCodes.transientConflict:
-      return "Operaci se kvůli souběžné změně nepodařilo dokončit. Zkuste ji prosím znovu.";
-    case voucherStockOperationErrorCodes.operationFailed:
-      return "Operaci se nepodařilo dokončit. Zkuste ji prosím znovu.";
-    default:
-      return null;
-  }
+  return voucherStockDomainMessages[error.code];
 }
 
 function logUnexpectedVoucherStockActionError(operation: string, formData: FormData, error: unknown) {
