@@ -60,6 +60,59 @@ test("overlay data používají snapshot SERVICE názvu včetně diakritiky", as
   assert.equal(data.value, "Korejský Lashlifting");
 });
 
+test("dlouhý název služby se vejde do dvou řádků a při overflowu dostane ellipsis", async () => {
+  const { fitVoucherText } = await import("./voucher-pdf-core");
+  const measure = (value: string, size: number) => Array.from(value).length * size;
+  const wrap = (value: string, size: number, maxWidth: number) => {
+    const maxCharacters = Math.max(1, Math.floor(maxWidth / size));
+    const characters = Array.from(value);
+    const lines: string[] = [];
+
+    for (let index = 0; index < characters.length; index += maxCharacters) {
+      lines.push(characters.slice(index, index + maxCharacters).join(""));
+    }
+
+    return lines;
+  };
+
+  const normal = fitVoucherText("Lash lifting", measure, wrap, 180, 14.5, 8.5, 2);
+  const long = fitVoucherText("Velmi dlouhá služba s českou diakritikou pro výrazné prodloužení řas a relaxační péči", measure, wrap, 180, 14.5, 8.5, 2);
+  const extreme = fitVoucherText("SuperdlouhéSlovoBezMezerKteréSeMusíBezpečněZkrátit", measure, wrap, 180, 14.5, 8.5, 2);
+
+  assert.equal(normal.overflowed, false);
+  assert.equal(long.overflowed, true);
+  assert.equal(extreme.overflowed, true);
+  assert.ok(long.size >= 8.5);
+  assert.ok(extreme.size >= 8.5);
+  assert.ok(long.lines.length <= 2);
+  assert.ok(extreme.lines.length <= 2);
+  assert.match(long.lines.at(-1) ?? "", /…$/);
+  assert.match(extreme.lines.at(-1) ?? "", /…$/);
+});
+
+test("PRINT renderer zvládne běžné, dlouhé, extrémní i diakritické SERVICE názvy", async () => {
+  const { generateVoucherPrintPdf } = await import("./voucher-pdf-core");
+  const names = [
+    "Lash lifting",
+    "Velmi dlouhá služba pro výrazné prodloužení řas",
+    "SuperdlouhéSlovoBezMezerKteréSeMusíBezpečněZkrátit",
+    "Korejský lifting řas a úprava obočí",
+  ];
+
+  for (const serviceNameSnapshot of names) {
+    const bytes = await generateVoucherPrintPdf(buildVoucherFixture({
+      type: VoucherType.SERVICE,
+      originalValueCzk: null,
+      remainingValueCzk: null,
+      serviceNameSnapshot,
+      servicePriceSnapshotCzk: 1590,
+    }));
+
+    const pdf = await PDFDocument.load(bytes);
+    assert.equal(pdf.getPageCount(), 1);
+  }
+});
+
 test("overlay ignoruje osobní a interní voucherová pole", async () => {
   const { buildVoucherPdfOverlayData } = await import("./voucher-pdf-core");
   const data = buildVoucherPdfOverlayData(buildVoucherFixture());
@@ -86,6 +139,9 @@ test("generuje PRINT PDF přes master s bleedem a TrimBoxem", async () => {
   assert.deepEqual(roundBox(page.getSize()), roundBox({ width: mm(216), height: mm(105) }));
   assert.deepEqual(roundBox(page.getBleedBox()), roundBox({ x: 0, y: 0, width: mm(216), height: mm(105) }));
   assert.deepEqual(roundBox(page.getTrimBox()), roundBox({ x: mm(3), y: mm(3), width: mm(210), height: mm(99) }));
+  const content = getPageOverlayContent(page).toString("latin1");
+  assert.match(content, /\bk\s/);
+  assert.doesNotMatch(content, /\brg\s/);
   assert.equal(Buffer.from(pdfBytes).subarray(0, 4).toString("utf8"), "%PDF");
 });
 

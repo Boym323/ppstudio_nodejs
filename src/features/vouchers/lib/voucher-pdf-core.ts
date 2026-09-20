@@ -3,7 +3,7 @@ import path from "node:path";
 
 import fontkit from "@pdf-lib/fontkit";
 import { VoucherType } from "@/generated/prisma/browser";
-import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { PDFDocument, cmyk, type PDFFont, type PDFPage } from "pdf-lib";
 import QRCode from "qrcode";
 
 import { formatVoucherValue } from "@/features/vouchers/lib/voucher-format";
@@ -134,17 +134,11 @@ export async function generateVoucherPrintPdf(voucher: VoucherPdfData, options: 
   pdf.setCreator("PP Studio administrace");
   pdf.setProducer("PP Studio administrace");
 
-  const [regularLatinBytes, regularLatinExtBytes, boldLatinBytes, boldLatinExtBytes, qrPngBytes] = await Promise.all([
+  const [regularLatinBytes, regularLatinExtBytes, boldLatinBytes, boldLatinExtBytes] = await Promise.all([
     readFile(fontRegularLatinPath),
     readFile(fontRegularLatinExtPath),
     readFile(fontBoldLatinPath),
     readFile(fontBoldLatinExtPath),
-    QRCode.toBuffer(buildVoucherVerificationUrl(voucher.code), {
-      type: "png",
-      margin: 4,
-      scale: 10,
-      color: { dark: "#171311", light: "#ffffff" },
-    }),
   ]);
 
   const regularFont = createFontPair(
@@ -155,9 +149,9 @@ export async function generateVoucherPrintPdf(voucher: VoucherPdfData, options: 
     await pdf.embedFont(boldLatinBytes, { subset: true }),
     await pdf.embedFont(boldLatinExtBytes, { subset: true }),
   );
-  const qrImage = await pdf.embedPng(qrPngBytes);
+  const qrCode = QRCode.create(buildVoucherVerificationUrl(voucher.code), { errorCorrectionLevel: "M" });
 
-  drawVoucherOverlay(page, voucher, template, regularFont, boldFont, qrImage);
+  drawVoucherOverlay(page, voucher, template, regularFont, boldFont, qrCode);
   setPrintPageBoxes(page, template);
 
   return pdf.save();
@@ -195,17 +189,11 @@ export async function generateVoucherStockPrintPage(
   pdf.setCreator("PP Studio administrace");
   pdf.setProducer("PP Studio administrace");
 
-  const [regularLatinBytes, regularLatinExtBytes, boldLatinBytes, boldLatinExtBytes, qrPngBytes] = await Promise.all([
+  const [regularLatinBytes, regularLatinExtBytes, boldLatinBytes, boldLatinExtBytes] = await Promise.all([
     readFile(fontRegularLatinPath),
     readFile(fontRegularLatinExtPath),
     readFile(fontBoldLatinPath),
     readFile(fontBoldLatinExtPath),
-    QRCode.toBuffer(buildVoucherVerificationUrl(stockItem.code), {
-      type: "png",
-      margin: 4,
-      scale: 10,
-      color: { dark: "#171311", light: "#ffffff" },
-    }),
   ]);
   const regularFont = createFontPair(
     await pdf.embedFont(regularLatinBytes, { subset: true }),
@@ -215,9 +203,9 @@ export async function generateVoucherStockPrintPage(
     await pdf.embedFont(boldLatinBytes, { subset: true }),
     await pdf.embedFont(boldLatinExtBytes, { subset: true }),
   );
-  const qrImage = await pdf.embedPng(qrPngBytes);
+  const qrCode = QRCode.create(buildVoucherVerificationUrl(stockItem.code), { errorCorrectionLevel: "M" });
 
-  drawVoucherCodeAndQrOverlay(page, stockItem.code, template, regularFont, boldFont, qrImage);
+  drawVoucherCodeAndQrOverlay(page, stockItem.code, template, regularFont, boldFont, qrCode);
   setPrintPageBoxes(page, template);
 
   return pdf.save();
@@ -344,7 +332,7 @@ function drawVoucherOverlay(
   template: VoucherTemplateDefinition,
   regularFont: FontPair,
   boldFont: FontPair,
-  qrImage: Parameters<PDFPage["drawImage"]>[0],
+  qrCode: ReturnType<typeof QRCode.create>,
 ) {
   const layout = template.layout;
   const overlay = buildVoucherPdfOverlayData(voucher);
@@ -352,7 +340,7 @@ function drawVoucherOverlay(
   const valueArea = voucher.type === VoucherType.VALUE ? layout.valueArea : layout.serviceArea;
   const valueTypography = valueArea.typography;
   const valueFont = valueTypography.fontWeight === "bold" ? boldFont : regularFont;
-  const textColor = rgb(0.04, 0.08, 0.12);
+  const textColor = cmyk(0, 0.2, 0.2, 0.9);
   const valueFit = fitText(
     value,
     valueFont,
@@ -391,7 +379,7 @@ function drawVoucherOverlay(
     { fontPair: validityFont, size: validitySize, color: textColor },
   );
 
-  drawVoucherCodeAndQrOverlay(page, voucher.code, template, regularFont, boldFont, qrImage);
+  drawVoucherCodeAndQrOverlay(page, voucher.code, template, regularFont, boldFont, qrCode);
 }
 
 function drawVoucherCodeAndQrOverlay(
@@ -400,7 +388,7 @@ function drawVoucherCodeAndQrOverlay(
   template: VoucherTemplateDefinition,
   regularFont: FontPair,
   boldFont: FontPair,
-  qrImage: Parameters<PDFPage["drawImage"]>[0],
+  qrCode: ReturnType<typeof QRCode.create>,
 ) {
   const codeArea = template.layout.codeArea;
   const codeFont = codeArea.typography.fontWeight === "bold" ? boldFont : regularFont;
@@ -416,15 +404,48 @@ function drawVoucherCodeAndQrOverlay(
     code,
     getTextX(code, codeArea, codeFont, codeSize, 2),
     mm(codeArea.baselineMm),
-    { fontPair: codeFont, size: codeSize, color: rgb(0.04, 0.08, 0.12) },
+    { fontPair: codeFont, size: codeSize, color: cmyk(0, 0.2, 0.2, 0.9) },
   );
 
-  page.drawImage(qrImage, {
-    x: mm(template.layout.qrArea.xMm),
-    y: mm(template.layout.qrArea.yMm),
-    width: mm(template.layout.qrArea.widthMm),
-    height: mm(template.layout.qrArea.heightMm),
+  drawVoucherQr(page, qrCode, template);
+}
+
+function drawVoucherQr(page: PDFPage, qrCode: ReturnType<typeof QRCode.create>, template: VoucherTemplateDefinition) {
+  const area = template.layout.qrArea;
+  const x = mm(area.xMm);
+  const y = mm(area.yMm);
+  const width = mm(area.widthMm);
+  const height = mm(area.heightMm);
+  const quietZoneModules = 4;
+  const totalModules = qrCode.modules.size + quietZoneModules * 2;
+  const moduleSize = Math.min(width, height) / totalModules;
+  const qrWidth = moduleSize * totalModules;
+  const qrX = x + (width - qrWidth) / 2;
+  const qrY = y + (height - qrWidth) / 2;
+
+  page.drawRectangle({
+    x,
+    y,
+    width,
+    height,
+    color: cmyk(0, 0, 0, 0),
   });
+
+  for (let row = 0; row < qrCode.modules.size; row += 1) {
+    for (let column = 0; column < qrCode.modules.size; column += 1) {
+      if (!qrCode.modules.get(row, column)) {
+        continue;
+      }
+
+      page.drawRectangle({
+        x: qrX + (column + quietZoneModules) * moduleSize,
+        y: qrY + (qrCode.modules.size - row - 1 + quietZoneModules) * moduleSize,
+        width: moduleSize,
+        height: moduleSize,
+        color: cmyk(0, 0, 0, 1),
+      });
+    }
+  }
 }
 
 function getTextX(
@@ -451,16 +472,57 @@ function setPrintPageBoxes(page: PDFPage, template: VoucherTemplateDefinition) {
 }
 
 function fitText(text: string, fontPair: FontPair, maxWidth: number, preferredSize: number, minimumSize: number, maxLines: number) {
-  for (let size = preferredSize; size >= minimumSize; size -= 0.25) {
-    const lines = wrapText(text, fontPair, size, maxWidth);
+  return fitVoucherText(
+    text,
+    (value, size) => measureText(value, fontPair, size),
+    (value, size, width) => wrapText(value, fontPair, size, width),
+    maxWidth,
+    preferredSize,
+    minimumSize,
+    maxLines,
+  );
+}
 
-    if (lines.length <= maxLines && lines.every((line) => measureText(line, fontPair, size) <= maxWidth)) {
-      return { size, lines };
+export function fitVoucherText(
+  text: string,
+  measure: (value: string, size: number) => number,
+  wrap: (value: string, size: number, maxWidth: number) => string[],
+  maxWidth: number,
+  preferredSize: number,
+  minimumSize: number,
+  maxLines: number,
+) {
+  for (let size = preferredSize; size >= minimumSize; size -= 0.25) {
+    const lines = wrap(text, size, maxWidth);
+
+    if (lines.length <= maxLines && lines.every((line) => measure(line, size) <= maxWidth)) {
+      return { size, lines, overflowed: false };
     }
   }
 
   const size = minimumSize;
-  return { size, lines: wrapText(text, fontPair, size, maxWidth).slice(0, maxLines) };
+  const lines = wrap(text, size, maxWidth).slice(0, maxLines);
+  const lastLineIndex = lines.length - 1;
+
+  if (lastLineIndex >= 0) {
+    lines[lastLineIndex] = addEllipsis(lines[lastLineIndex], measure, size, maxWidth);
+  }
+
+  return { size, lines, overflowed: true };
+}
+
+function addEllipsis(text: string, measure: (value: string, size: number) => number, size: number, maxWidth: number) {
+  const ellipsis = "…";
+  const characters = Array.from(text.trimEnd());
+
+  for (let length = characters.length; length >= 0; length -= 1) {
+    const candidate = `${characters.slice(0, length).join("").trimEnd()}${ellipsis}`;
+    if (measure(candidate, size) <= maxWidth) {
+      return candidate;
+    }
+  }
+
+  return ellipsis;
 }
 
 function fitSingleLine(text: string, fontPair: FontPair, maxWidth: number, preferredSize: number, minimumSize: number) {

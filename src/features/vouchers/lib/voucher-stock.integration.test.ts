@@ -16,6 +16,75 @@ process.env.EMAIL_DELIVERY_MODE ??= "log";
 
 const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
 
+type BatchProfile = {
+  transactionAttempts: number;
+  roundTrips: number;
+  allocatorQueries: number;
+};
+
+function instrumentBatchTransactions(
+  prisma: { $transaction: unknown },
+  profile: BatchProfile,
+) {
+  const client = prisma as {
+    $transaction: (...args: unknown[]) => Promise<unknown>;
+  };
+  const originalTransaction = client.$transaction;
+
+  Object.defineProperty(client, "$transaction", {
+    configurable: true,
+    writable: true,
+    value: async function (operation: (tx: unknown) => Promise<unknown>, options?: unknown) {
+      profile.transactionAttempts += 1;
+      return originalTransaction.call(this, async (tx: Record<string, unknown>) => {
+        const wrapped = new Proxy(tx, {
+          get(target, property, receiver) {
+            if (property === "$queryRaw" || property === "$executeRaw") {
+              const raw = Reflect.get(target, property, receiver) as (...args: unknown[]) => Promise<unknown>;
+              return (...args: unknown[]) => {
+                profile.roundTrips += 1;
+                return raw.apply(target, args);
+              };
+            }
+
+            const model = Reflect.get(target, property, receiver);
+            if (!model || typeof model !== "object" || !["voucher", "voucherStockItem", "voucherPrintBatch", "voucherStockAuditLog"].includes(String(property))) {
+              return model;
+            }
+
+            return new Proxy(model, {
+              get(modelTarget, method, modelReceiver) {
+                const value = Reflect.get(modelTarget, method, modelReceiver);
+                if (typeof value !== "function") {
+                  return value;
+                }
+
+                return (...args: unknown[]) => {
+                  profile.roundTrips += 1;
+                  if (method === "findMany") {
+                    profile.allocatorQueries += 1;
+                  }
+                  return value.apply(modelTarget, args);
+                };
+              },
+            });
+          },
+        });
+
+        return operation(wrapped);
+      }, options);
+    },
+  });
+
+  return () => {
+    Object.defineProperty(client, "$transaction", {
+      configurable: true,
+      writable: true,
+      value: originalTransaction,
+    });
+  };
+}
+
 dbTest("Voucher Stock: code i batch používají rok Europe/Prague po novoročním přelomu", async () => {
   const [{ prisma }, stock] = await Promise.all([
     import("@/lib/prisma"),
@@ -344,6 +413,82 @@ dbTest("Voucher Stock: souběžné batch creation zachová unikátní série, k�
     await prisma.voucherStockAuditLog.deleteMany({ where: { batchId: { in: persistedBatchIds } } });
     await prisma.voucherStockItem.deleteMany({ where: { batchId: { in: persistedBatchIds } } });
     await prisma.voucherPrintBatch.deleteMany({ where: { id: { in: persistedBatchIds } } });
+    await prisma.adminUser.delete({ where: { id: owner.id } });
+  }
+});
+
+dbTest("Voucher Stock: quantity 25/50/100/500 proběhne atomicky s dávkovým allocatorem", async () => {
+  const [{ prisma }, stock] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./voucher-stock"),
+  ]);
+  const suffix = randomUUID().slice(0, 8);
+  const owner = await prisma.adminUser.create({ data: { email: `stock-large-${suffix}@example.com`, name: "Stock large owner", role: AdminRole.OWNER } });
+
+  try {
+    for (const quantity of [25, 50, 100, 500]) {
+      const profile: BatchProfile = { transactionAttempts: 0, roundTrips: 0, allocatorQueries: 0 };
+      const restoreInstrumentation = instrumentBatchTransactions(prisma, profile);
+      const startedAt = performance.now();
+      let batch: Awaited<ReturnType<typeof stock.createVoucherPrintBatch>>;
+
+      try {
+        batch = await stock.createVoucherPrintBatch({
+          templateKey: "classic-v1",
+          quantity,
+          createdByUserId: owner.id,
+          now: new Date("2026-09-20T10:00:00.000Z"),
+        });
+      } finally {
+        restoreInstrumentation();
+      }
+
+      const durationMs = Math.round(performance.now() - startedAt);
+      const [items, auditCount, crossTableCollisions] = await Promise.all([
+        prisma.voucherStockItem.findMany({ where: { batchId: batch.id }, select: { code: true } }),
+        prisma.voucherStockAuditLog.count({ where: { batchId: batch.id, operation: "CREATE_VOUCHER_PRINT_BATCH" } }),
+        prisma.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`
+          SELECT COUNT(*)::bigint AS count
+          FROM "VoucherStockItem" stock
+          INNER JOIN "Voucher" voucher ON voucher."code" = stock."code"
+          WHERE stock."batchId" = ${batch.id}
+        `),
+      ]);
+
+      assert.equal(batch.quantity, quantity);
+      assert.equal(items.length, quantity);
+      assert.equal(new Set(items.map((item) => item.code)).size, quantity);
+      assert.equal(auditCount, 1);
+      assert.equal(Number(crossTableCollisions[0]?.count ?? 0), 0);
+      assert.equal(profile.transactionAttempts, 1);
+      assert.equal(profile.allocatorQueries, 2);
+      assert.equal(profile.roundTrips, 7);
+      console.info("Voucher large batch profile", {
+        quantity,
+        durationMs,
+        transactionAttempts: profile.transactionAttempts,
+        roundTrips: profile.roundTrips,
+        p2034: 0,
+        p2028: 0,
+        controlledConflicts: 0,
+        createdItems: items.length,
+        duplicates: 0,
+        invariants: "PASS",
+      });
+
+      await prisma.voucherStockAuditLog.deleteMany({ where: { batchId: batch.id } });
+      await prisma.voucherStockItem.deleteMany({ where: { batchId: batch.id } });
+      await prisma.voucherPrintBatch.delete({ where: { id: batch.id } });
+    }
+  } finally {
+    const remainingBatches = await prisma.voucherPrintBatch.findMany({
+      where: { createdByUserId: owner.id },
+      select: { id: true },
+    });
+    const remainingBatchIds = remainingBatches.map((batch) => batch.id);
+    await prisma.voucherStockAuditLog.deleteMany({ where: { batchId: { in: remainingBatchIds } } });
+    await prisma.voucherStockItem.deleteMany({ where: { batchId: { in: remainingBatchIds } } });
+    await prisma.voucherPrintBatch.deleteMany({ where: { id: { in: remainingBatchIds } } });
     await prisma.adminUser.delete({ where: { id: owner.id } });
   }
 });

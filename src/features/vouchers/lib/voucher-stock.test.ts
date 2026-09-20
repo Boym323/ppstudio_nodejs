@@ -15,6 +15,13 @@ function serializableConflict() {
   });
 }
 
+function transactionTimeout() {
+  return new Prisma.PrismaClientKnownRequestError("transaction timeout", {
+    code: "P2028",
+    clientVersion: "test",
+  });
+}
+
 function skipRetryDelay(t: test.TestContext) {
   t.mock.method(global, "setTimeout", ((callback: () => void) => {
     queueMicrotask(callback);
@@ -54,8 +61,8 @@ function createBatchTransaction(options: { batchLock?: boolean; codeLock?: boole
 
       throw new Error(`unexpected query ${queryNumber}`);
     },
-    voucher: { findUnique: async () => null },
-    voucherStockItem: { findUnique: async () => null },
+    voucher: { findUnique: async () => null, findMany: async () => [] },
+    voucherStockItem: { findUnique: async () => null, findMany: async () => [] },
     voucherPrintBatch: {
       create: async () => ({ id: "batch-test" }),
     },
@@ -105,6 +112,24 @@ test("batch create po vyčerpání P2034 vrátí controlled TRANSIENT_CONFLICT",
   mockTransaction(t, prisma, async () => {
     attempts += 1;
     throw serializableConflict();
+  });
+
+  await assert.rejects(
+    () => stock.createVoucherPrintBatch({ templateKey: "classic-v1", quantity: 1, createdByUserId: "admin-test" }),
+    (error: unknown) => error instanceof stock.VoucherStockOperationError
+      && error.code === stock.voucherStockOperationErrorCodes.transientConflict,
+  );
+  assert.equal(attempts, stock.MAX_BATCH_TRANSACTION_ATTEMPTS);
+});
+
+test("batch create po P2028 nepropustí raw Prisma chybu", async (t) => {
+  skipRetryDelay(t);
+  t.mock.method(console, "warn", () => undefined);
+  const { prisma, stock } = await loadStockTestContext();
+  let attempts = 0;
+  mockTransaction(t, prisma, async () => {
+    attempts += 1;
+    throw transactionTimeout();
   });
 
   await assert.rejects(

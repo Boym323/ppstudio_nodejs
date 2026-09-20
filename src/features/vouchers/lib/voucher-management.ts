@@ -15,14 +15,19 @@ import {
   type RedeemVoucherInput,
   type ValidateVoucherCodeInput,
 } from "@/features/vouchers/schemas/voucher-schemas";
-import { runSerializableTransaction } from "@/lib/serializable-transaction";
+import {
+  isTransientTransactionConflict,
+  runSerializableTransaction,
+  waitForTransientRetry,
+} from "@/lib/serializable-transaction";
 
-const MAX_CREATE_COLLISION_RETRIES = 5;
+const MAX_CREATE_TRANSACTION_ATTEMPTS = 8;
 
 export const voucherManagementErrorCodes = {
   serviceNotFound: "SERVICE_NOT_FOUND",
   serviceNotActive: "SERVICE_NOT_ACTIVE",
   servicePriceMissing: "SERVICE_PRICE_MISSING",
+  transientConflict: "TRANSIENT_CONFLICT",
 } as const;
 
 export class VoucherManagementError extends Error {
@@ -48,6 +53,10 @@ function isUniqueCodeCollision(error: unknown) {
   );
 }
 
+function isInteractiveTransactionTimeout(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2028";
+}
+
 export async function createVoucher(input: CreateVoucherInput, createdByUserId: string | null) {
   const parsed = createVoucherSchema.parse(input);
   const template = getVoucherTemplate(parsed.templateKey);
@@ -58,10 +67,10 @@ export async function createVoucher(input: CreateVoucherInput, createdByUserId: 
 
   const now = new Date();
 
-  for (let attempt = 0; attempt < MAX_CREATE_COLLISION_RETRIES; attempt += 1) {
+  for (let attempt = 0; attempt < MAX_CREATE_TRANSACTION_ATTEMPTS; attempt += 1) {
     try {
       return await runSerializableTransaction(async (tx) => {
-        const code = await allocateVoucherCode(tx, now);
+        const code = await allocateVoucherCode(tx, now, { failFast: true });
 
         if (parsed.type === VoucherType.VALUE) {
           return tx.voucher.create({
@@ -145,17 +154,28 @@ export async function createVoucher(input: CreateVoucherInput, createdByUserId: 
             createdByUserId,
           },
         });
-      });
+      }, { maxRetries: 0 });
     } catch (error) {
-      if (isUniqueCodeCollision(error)) {
+      if (!isTransientTransactionConflict(error) && !isInteractiveTransactionTimeout(error) && !isUniqueCodeCollision(error)) {
+        throw error;
+      }
+
+      if (attempt + 1 < MAX_CREATE_TRANSACTION_ATTEMPTS) {
+        await waitForTransientRetry(attempt + 1);
         continue;
       }
 
-      throw error;
+      throw new VoucherManagementError(
+        voucherManagementErrorCodes.transientConflict,
+        "Operaci se kvůli souběžné změně nepodařilo dokončit. Zkuste ji prosím znovu.",
+      );
     }
   }
 
-  throw new Error("Voucher could not be created with a unique code.");
+  throw new VoucherManagementError(
+    voucherManagementErrorCodes.transientConflict,
+    "Operaci se kvůli souběžné změně nepodařilo dokončit. Zkuste ji prosím znovu.",
+  );
 }
 
 export async function validateVoucherCode(input: ValidateVoucherCodeInput) {

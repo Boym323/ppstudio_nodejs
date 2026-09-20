@@ -257,6 +257,51 @@ describe("voucher domain", () => {
     assert.equal(normalizeVoucherCode(" pp–2026 – a7k9x2 "), "PP-2026-A7K9X2");
   });
 
+  dbTest("ordinary createVoucher zvládne 2-way a 12-way souběh bez raw Prisma chyby", async () => {
+    assert.ok(seed);
+    const context = seed;
+    const { prisma, createVoucher, VoucherManagementError, voucherManagementErrorCodes } = await loadModules();
+
+    for (const requestCount of [2, 12]) {
+      const results = await Promise.allSettled(
+        Array.from({ length: requestCount }, () => createVoucher({
+          type: VoucherType.VALUE,
+          ...baseVoucherMeta,
+          originalValueCzk: 1500,
+        }, context.actorUserId)),
+      );
+      const successful = results
+        .filter((result): result is PromiseFulfilledResult<Awaited<ReturnType<typeof createVoucher>>> => result.status === "fulfilled")
+        .map((result) => result.value);
+      const failures = results.filter((result): result is PromiseRejectedResult => result.status === "rejected");
+      const controlledFailures = failures.filter(
+        (failure) => failure.reason instanceof VoucherManagementError
+          && failure.reason.code === voucherManagementErrorCodes.transientConflict,
+      );
+      const rawFailures = failures.filter(
+        (failure) => !(failure.reason instanceof VoucherManagementError),
+      );
+
+      assert.equal(rawFailures.length, 0, rawFailures.map((failure) => String(failure.reason)).join("\n"));
+      assert.equal(successful.length + controlledFailures.length, requestCount);
+      assert.equal(new Set(successful.map((voucher) => voucher.code)).size, successful.length);
+
+      const persisted = await prisma.voucher.findMany({
+        where: { id: { in: successful.map((voucher) => voucher.id) } },
+        select: { id: true, code: true },
+      });
+      assert.equal(persisted.length, successful.length);
+      assert.equal(new Set(persisted.map((voucher) => voucher.code)).size, persisted.length);
+
+      console.info("Ordinary voucher concurrency", {
+        requestCount,
+        success: successful.length,
+        controlledFailures: controlledFailures.length,
+        rawFailures: rawFailures.length,
+      });
+    }
+  });
+
   dbTest("creates VALUE voucher with remaining value", async () => {
     assert.ok(seed);
     const context = seed;
@@ -959,6 +1004,72 @@ describe("voucher domain", () => {
       assert.equal(await prisma.voucherRedemption.count({ where: { voucherId: voucher.id } }), 0);
       assert.equal((await prisma.voucher.findUniqueOrThrow({ where: { id: voucher.id } })).status, VoucherStatus.ACTIVE);
     } finally {
+      await prisma.voucher.delete({ where: { id: voucher.id } });
+    }
+  });
+
+  dbTest("booking detail nepoužije aktuální cenu pro corrupt SERVICE voucher", async () => {
+    assert.ok(seed);
+    const context = seed;
+    const {
+      prisma,
+      getAdminBookingDetailData,
+      redeemVoucherForBooking,
+      VoucherRedemptionError,
+      voucherRedemptionErrorCodes,
+    } = await loadModules();
+    const voucher = await prisma.voucher.create({
+      data: {
+        code: `PP-CORRUPT-READ-${randomUUID().slice(0, 8).toUpperCase()}`,
+        type: VoucherType.SERVICE,
+        status: VoucherStatus.ACTIVE,
+        serviceId: context.serviceId,
+        serviceNameSnapshot: "Lash lifting public",
+        servicePriceSnapshotCzk: null,
+        validFrom: new Date("2026-01-01T00:00:00.000Z"),
+        validUntil: new Date("2030-01-01T00:00:00.000Z"),
+        createdByUserId: context.actorUserId,
+      },
+    });
+
+    try {
+      await prisma.service.update({ where: { id: context.serviceId }, data: { priceFromCzk: 1590 } });
+      await prisma.booking.update({
+        where: { id: context.bookingIds[0] },
+        data: {
+          servicePriceFromCzk: 1590,
+          intendedVoucherId: voucher.id,
+          intendedVoucherCodeSnapshot: voucher.code,
+          intendedVoucherValidatedAt: new Date(),
+        },
+      });
+
+      const detail = await getAdminBookingDetailData("owner", context.bookingIds[0]);
+      assert.ok(detail?.voucher.intendedVoucher);
+      assert.equal(detail.voucher.paymentSummary.totalPriceCzk, 1590);
+      assert.equal(detail.voucher.intendedVoucher.defaultRedeemAmountCzk, null);
+
+      await assert.rejects(
+        () => redeemVoucherForBooking({
+          voucherCode: voucher.code,
+          bookingId: context.bookingIds[0],
+          redeemedByUserId: context.actorUserId,
+          note: undefined,
+        }),
+        (error: unknown) => error instanceof VoucherRedemptionError
+          && error.code === voucherRedemptionErrorCodes.servicePriceSnapshotMissing,
+      );
+    } finally {
+      await prisma.booking.update({
+        where: { id: context.bookingIds[0] },
+        data: {
+          servicePriceFromCzk: 1200,
+          intendedVoucherId: null,
+          intendedVoucherCodeSnapshot: null,
+          intendedVoucherValidatedAt: null,
+        },
+      });
+      await prisma.service.update({ where: { id: context.serviceId }, data: { priceFromCzk: 1200 } });
       await prisma.voucher.delete({ where: { id: voucher.id } });
     }
   });

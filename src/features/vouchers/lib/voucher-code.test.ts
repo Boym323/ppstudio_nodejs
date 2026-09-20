@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { TransientTransactionConflictError } from "@/lib/transient-transaction-conflict";
 
-import { allocateVoucherCode } from "./voucher-code";
+import { allocateVoucherCode, allocateVoucherCodes } from "./voucher-code";
 
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
 process.env.ADMIN_SESSION_SECRET ??= "test-secret-value-with-at-least-32-chars";
@@ -12,13 +12,21 @@ process.env.ADMIN_OWNER_EMAIL ??= "owner@example.com";
 function createTransaction(options: {
   voucherFindUnique?: () => Promise<{ id: string } | null>;
   stockFindUnique?: () => Promise<{ id: string } | null>;
+  voucherFindMany?: () => Promise<Array<{ code: string }>>;
+  stockFindMany?: () => Promise<Array<{ code: string }>>;
   queryRaw?: () => Promise<Array<{ locked: boolean }>>;
 } = {}) {
   return {
     $executeRaw: async () => 1,
     $queryRaw: options.queryRaw ?? (async () => [{ locked: true }]),
-    voucher: { findUnique: options.voucherFindUnique ?? (async () => null) },
-    voucherStockItem: { findUnique: options.stockFindUnique ?? (async () => null) },
+    voucher: {
+      findUnique: options.voucherFindUnique ?? (async () => null),
+      findMany: options.voucherFindMany ?? (async () => []),
+    },
+    voucherStockItem: {
+      findUnique: options.stockFindUnique ?? (async () => null),
+      findMany: options.stockFindMany ?? (async () => []),
+    },
   } as never;
 }
 
@@ -101,4 +109,30 @@ test("allocator ve fail-fast režimu vrátí typed transient lock conflict", asy
     (error: unknown) => error instanceof TransientTransactionConflictError
       && error.kind === "advisory_lock_busy",
   );
+});
+
+test("dávkový allocator drží jeden lock a kontroluje obě tabulky jedním párem dotazů", async () => {
+  let lockCalls = 0;
+  let voucherQueries = 0;
+  let stockQueries = 0;
+  const codes = await allocateVoucherCodes(createTransaction({
+    queryRaw: async () => {
+      lockCalls += 1;
+      return [{ locked: true }];
+    },
+    voucherFindMany: async () => {
+      voucherQueries += 1;
+      return [];
+    },
+    stockFindMany: async () => {
+      stockQueries += 1;
+      return [];
+    },
+  }), 100, new Date("2026-09-20T10:00:00.000Z"), { failFast: true });
+
+  assert.equal(codes.length, 100);
+  assert.equal(new Set(codes).size, 100);
+  assert.equal(lockCalls, 1);
+  assert.equal(voucherQueries, 1);
+  assert.equal(stockQueries, 1);
 });

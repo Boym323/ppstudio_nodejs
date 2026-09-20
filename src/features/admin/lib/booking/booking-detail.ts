@@ -586,7 +586,7 @@ export async function getAdminBookingDetailData(
                     booking.intendedVoucher.remainingValueCzk ?? 0,
                     paymentSummary.remainingAmountCzk ?? 0,
                   )
-                : booking.intendedVoucher.servicePriceSnapshotCzk ?? effectivePriceCzk,
+                : booking.intendedVoucher.servicePriceSnapshotCzk,
           }
         : null,
       redemptions: booking.voucherRedemptions.map((redemption) => ({

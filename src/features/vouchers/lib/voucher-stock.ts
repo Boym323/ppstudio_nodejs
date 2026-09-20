@@ -7,7 +7,7 @@ import {
   VoucherType,
 } from "@/generated/prisma/client";
 
-import { allocateVoucherCode, normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
+import { allocateVoucherCodes, normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import {
   getVoucherTemplate,
   isVoucherTemplateAllowedForType,
@@ -35,6 +35,10 @@ import {
 
 const BATCH_NUMBER_ALLOCATION_LOCK = "ppstudio:voucher-print-batch-number-v1";
 export const MAX_BATCH_TRANSACTION_ATTEMPTS = 8;
+
+function isInteractiveTransactionTimeout(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2028";
+}
 
 export const voucherStockOperationErrorCodes = {
   batchNotFound: "BATCH_NOT_FOUND",
@@ -167,7 +171,7 @@ export async function createVoucherPrintBatch(input: VoucherStockBatchCreateInpu
         return batch;
       }, { maxRetries: 0 });
     } catch (error) {
-      if (!isTransientTransactionConflict(error)) {
+      if (!isTransientTransactionConflict(error) && !isInteractiveTransactionTimeout(error)) {
         throw error;
       }
 
@@ -199,23 +203,14 @@ export async function createVoucherPrintBatch(input: VoucherStockBatchCreateInpu
 }
 
 async function createStockItems(tx: Prisma.TransactionClient, quantity: number, now: Date) {
-  const items: Array<{
-    sequenceNumber: number;
-    code: string;
-    status: VoucherStockItemStatus;
-    createdAt: Date;
-  }> = [];
+  const codes = await allocateVoucherCodes(tx, quantity, now, { failFast: true });
 
-  for (let sequenceNumber = 1; sequenceNumber <= quantity; sequenceNumber += 1) {
-    items.push({
-      sequenceNumber,
-      code: await allocateVoucherCode(tx, now, { failFast: true }),
-      status: VoucherStockItemStatus.PENDING_PRINT,
-      createdAt: now,
-    });
-  }
-
-  return items;
+  return codes.map((code, index) => ({
+    sequenceNumber: index + 1,
+    code,
+    status: VoucherStockItemStatus.PENDING_PRINT,
+    createdAt: now,
+  }));
 }
 
 export async function receiveVoucherPrintBatch(input: { batchId: string; actorUserId: string; now?: Date }) {

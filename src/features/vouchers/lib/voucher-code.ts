@@ -78,3 +78,65 @@ export async function allocateVoucherCode(
 
   throw new Error("Voucher code could not be generated safely.");
 }
+
+/**
+ * Přidělí více kódů pod jedním transaction-scoped lockem.
+ * Voucher a VoucherStockItem nemají společný unikátní index, proto se volné
+ * kandidáty ověřují v obou tabulkách dávkovými dotazy.
+ */
+export async function allocateVoucherCodes(
+  tx: PrismaNamespace.TransactionClient,
+  quantity: number,
+  now = new Date(),
+  options: { failFast?: boolean } = {},
+): Promise<string[]> {
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    throw new Error("Voucher code allocation quantity must be a positive integer.");
+  }
+
+  await lockVoucherCodeAllocation(tx, options.failFast ?? false);
+  const year = getVoucherPragueCalendarYear(now);
+  const allocated: string[] = [];
+  const allocatedSet = new Set<string>();
+
+  for (let attempt = 0; attempt < MAX_GENERATION_ATTEMPTS && allocated.length < quantity; attempt += 1) {
+    const remaining = quantity - allocated.length;
+    const candidates: string[] = [];
+    const candidateSet = new Set<string>();
+
+    while (candidates.length < Math.max(remaining, 16)) {
+      const candidate = buildVoucherCode(year);
+      if (!candidateSet.has(candidate) && !allocatedSet.has(candidate)) {
+        candidateSet.add(candidate);
+        candidates.push(candidate);
+      }
+    }
+
+    const [existingVouchers, existingStockItems] = await Promise.all([
+      tx.voucher.findMany({
+        where: { code: { in: candidates } },
+        select: { code: true },
+      }),
+      tx.voucherStockItem.findMany({
+        where: { code: { in: candidates } },
+        select: { code: true },
+      }),
+    ]);
+    const occupiedCodes = new Set([
+      ...existingVouchers.map((voucher) => voucher.code),
+      ...existingStockItems.map((stockItem) => stockItem.code),
+    ]);
+
+    for (const candidate of candidates) {
+      if (!occupiedCodes.has(candidate)) {
+        allocated.push(candidate);
+        allocatedSet.add(candidate);
+        if (allocated.length === quantity) {
+          return allocated;
+        }
+      }
+    }
+  }
+
+  throw new Error("Voucher codes could not be generated safely.");
+}

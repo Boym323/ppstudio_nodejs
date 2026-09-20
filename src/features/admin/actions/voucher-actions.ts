@@ -102,6 +102,8 @@ function getVoucherManagementFormError(error: unknown) {
       return "Vybraná služba už není aktivní.";
     case voucherManagementErrorCodes.servicePriceMissing:
       return "Vybraná služba nemá nastavenou cenu a nelze ji použít pro voucher.";
+    case voucherManagementErrorCodes.transientConflict:
+      return "Voucher se kvůli souběžné změně nepodařilo vytvořit. Zkuste to prosím znovu.";
   }
 }
 
