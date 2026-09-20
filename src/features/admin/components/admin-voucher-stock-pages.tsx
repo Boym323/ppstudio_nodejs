@@ -234,13 +234,13 @@ function StockItemRow({ area, batchId, item }: { area: AdminArea; batchId: strin
           {item.voucherHref ? <Link href={item.voucherHref} className={secondaryButtonClassName}>Otevřít voucher</Link> : null}
         </div>
       </div>
-      {item.status === VoucherStockItemStatus.PENDING_PRINT || item.status === VoucherStockItemStatus.AVAILABLE ? (
+      {item.status === VoucherStockItemStatus.AVAILABLE ? (
         <form action={voidVoucherStockItemAction} className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
           <input type="hidden" name="area" value={area} /><input type="hidden" name="batchId" value={batchId} /><input type="hidden" name="stockItemId" value={item.id} />
           <label className="min-w-0 flex-1"><span className="text-[11px] uppercase tracking-[0.18em] text-white/42">Důvod znehodnocení</span><input name="reason" required minLength={3} placeholder="Vadný tisk, poškozený…" className={inputClassName} /></label>
           <button type="submit" className={secondaryButtonClassName}>Znehodnotit</button>
         </form>
-      ) : item.voidReason ? <p className="mt-2 text-xs text-white/48">Důvod: {item.voidReason}</p> : null}
+      ) : item.status === VoucherStockItemStatus.PENDING_PRINT ? <p className="mt-2 text-xs text-white/48">Položku lze znehodnotit až po převzetí série.</p> : item.voidReason ? <p className="mt-2 text-xs text-white/48">Důvod: {item.voidReason}</p> : null}
     </article>
   );
 }

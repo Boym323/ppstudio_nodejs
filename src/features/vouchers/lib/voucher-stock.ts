@@ -57,7 +57,9 @@ export const voucherStockOperationErrorCodes = {
   invalidValidityRange: "INVALID_VALIDITY_RANGE",
   integrityError: "INTEGRITY_ERROR",
   transientConflict: "TRANSIENT_CONFLICT",
+  operationFailed: "OPERATION_FAILED",
   voidReasonRequired: "VOID_REASON_REQUIRED",
+  itemNotReceived: "ITEM_NOT_RECEIVED",
 } as const;
 
 export class VoucherStockOperationError extends Error {
@@ -171,7 +173,19 @@ export async function createVoucherPrintBatch(input: VoucherStockBatchCreateInpu
         return batch;
       }, { maxRetries: 0 });
     } catch (error) {
-      if (!isTransientTransactionConflict(error) && !isInteractiveTransactionTimeout(error)) {
+      if (isInteractiveTransactionTimeout(error)) {
+        console.warn("Voucher print batch transaction timed out", {
+          operation: "createVoucherPrintBatch",
+          attempt: attempt + 1,
+          prismaCode: "P2028",
+        });
+        throw new VoucherStockOperationError(
+          voucherStockOperationErrorCodes.operationFailed,
+          "Operaci se nepodařilo dokončit. Zkuste ji prosím znovu.",
+        );
+      }
+
+      if (!isTransientTransactionConflict(error)) {
         throw error;
       }
 
@@ -282,6 +296,13 @@ export async function voidVoucherStockItem(input: {
 
     if (!item) {
       throw new VoucherStockOperationError(voucherStockOperationErrorCodes.itemNotFound, "Předtištěný voucher nebyl nalezen.");
+    }
+
+    if (item.status === VoucherStockItemStatus.PENDING_PRINT) {
+      throw new VoucherStockOperationError(
+        voucherStockOperationErrorCodes.itemNotReceived,
+        "Položku lze znehodnotit až po převzetí série.",
+      );
     }
 
     if (item.status === VoucherStockItemStatus.ACTIVATED) {

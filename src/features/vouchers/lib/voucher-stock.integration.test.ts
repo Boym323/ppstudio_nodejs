@@ -128,6 +128,12 @@ dbTest("Voucher Stock: batch, receive, VALUE activation, idempotence, VOID a clo
     assert.deepEqual(createdItems.map((item) => item.sequenceNumber), [1, 2, 3]);
     assert.equal(new Set(createdItems.map((item) => item.code)).size, 3);
     assert.equal(createdItems.every((item) => item.status === VoucherStockItemStatus.PENDING_PRINT), true);
+    await assert.rejects(
+      () => stock.voidVoucherStockItem({ stockItemId: createdItems[2].id, actorUserId: owner.id, reason: "Vadný tisk" }),
+      (error: unknown) => error instanceof stock.VoucherStockOperationError
+        && error.code === stock.voucherStockOperationErrorCodes.itemNotReceived,
+    );
+    assert.equal((await prisma.voucherStockItem.findUniqueOrThrow({ where: { id: createdItems[2].id } })).status, VoucherStockItemStatus.PENDING_PRINT);
 
     const normalVoucher = await createVoucher({
       type: VoucherType.VALUE,

@@ -65,10 +65,14 @@ function domainErrorMessage(error: unknown) {
       return "Uzavřená tisková série už nejde měnit.";
     case voucherStockOperationErrorCodes.itemAlreadyActivated:
       return "Aktivovaný voucher nelze znehodnotit.";
+    case voucherStockOperationErrorCodes.itemNotReceived:
+      return "Položku lze znehodnotit až po převzetí série.";
     case voucherStockOperationErrorCodes.voidReasonRequired:
       return "Důvod znehodnocení je povinný.";
     case voucherStockOperationErrorCodes.transientConflict:
       return "Operaci se kvůli souběžné změně nepodařilo dokončit. Zkuste ji prosím znovu.";
+    case voucherStockOperationErrorCodes.operationFailed:
+      return "Operaci se nepodařilo dokončit. Zkuste ji prosím znovu.";
     default:
       return error.message;
   }

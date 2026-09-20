@@ -28,6 +28,7 @@ export const voucherManagementErrorCodes = {
   serviceNotActive: "SERVICE_NOT_ACTIVE",
   servicePriceMissing: "SERVICE_PRICE_MISSING",
   transientConflict: "TRANSIENT_CONFLICT",
+  operationFailed: "OPERATION_FAILED",
 } as const;
 
 export class VoucherManagementError extends Error {
@@ -156,7 +157,19 @@ export async function createVoucher(input: CreateVoucherInput, createdByUserId: 
         });
       }, { maxRetries: 0 });
     } catch (error) {
-      if (!isTransientTransactionConflict(error) && !isInteractiveTransactionTimeout(error) && !isUniqueCodeCollision(error)) {
+      if (isInteractiveTransactionTimeout(error)) {
+        console.warn("Voucher creation transaction timed out", {
+          operation: "createVoucher",
+          attempt: attempt + 1,
+          prismaCode: "P2028",
+        });
+        throw new VoucherManagementError(
+          voucherManagementErrorCodes.operationFailed,
+          "Operaci se nepodařilo dokončit. Zkuste ji prosím znovu.",
+        );
+      }
+
+      if (!isTransientTransactionConflict(error) && !isUniqueCodeCollision(error)) {
         throw error;
       }
 

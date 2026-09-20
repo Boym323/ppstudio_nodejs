@@ -16,6 +16,8 @@ Formát je inspirovaný Keep a Changelog.
 
 - Voucherové master PDF se nyní načítají pouze z explicitně registrovaných trusted assetů bez dynamického filesystem tracingu; souběžné vytváření tiskových sérií používá fail-fast advisory locky, bounded retry s jitterem a po vyčerpání vrací řízenou chybu bez částečných zápisů.
 - Běžné vytváření voucherů nyní používá fail-fast code-allocation lock a bounded retry mimo interaktivní transakci; tiskové série přidělují kódy jedním lockem a dávkovou kontrolou obou kolizních tabulek, takže quantity 500 zůstává v současném timeout budgetu.
+- Retry vytváření voucheru a tiskové série nyní pokrývá pouze potvrzené transientní konflikty; Prisma timeout P2028 se bez opakování zaloguje na serveru a administrace dostane bezpečnou provozní chybu.
+- Export velkých tiskových sérií znovu používá načtený master a fonty v jediném výsledném PDF, takže 500stránkový export nevytváří stovky mezilehlých PDF dokumentů.
 - PRINT overlay nyní kreslí dynamický text i QR v CMYK-safe vektorové podobě; geometrie 216 × 105 mm s 3mm bleedem a TrimBoxem 210 × 99 mm zůstává beze změny. Tato změna nedeklaruje PDF/X compliance.
 - SERVICE voucher lze nyní vytvořit nebo aktivovat pouze pro aktivní službu s pevnou cenou; uložený cenový snapshot je povinný a používá se i při uplatnění voucheru.
 - Chyby generování digitálního, tiskového a skladového voucherového PDF nyní vracejí bezpečné stavové odpovědi bez interních cest a stack trace a zapisují technický kontext pouze do interního logu.
@@ -31,6 +33,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Jednotlivý předtištěný voucher nelze znehodnotit před převzetím série, takže opakovaně stažené deterministické PDF nemůže obsahovat individuálně znehodnocený kód.
+- Vývojový checklist šablon voucherů už neobsahuje zastaralé zkrácení jen na master, preview a registry definici.
 - Název SERVICE voucheru se při overflowu už tiše neuřízne: po zmenšení na minimální velikost použije poslední viditelný řádek s ellipsis. Corrupt SERVICE voucher bez cenového snapshotu už v booking detailu nepoužívá aktuální cenu služby jako částku k uplatnění.
 - Voucherové KPI nyní používají stejný Europe/Prague kalendářní den jako seznam voucherů, včetně hranic platnosti přes DST.
 - Výpočet výchozí platnosti voucherů nyní používá kalendářní aritmetiku v Europe/Prague nezávislou na timezone Node procesu a správně clampuje konec měsíce.

@@ -122,8 +122,7 @@ test("batch create po vyčerpání P2034 vrátí controlled TRANSIENT_CONFLICT",
   assert.equal(attempts, stock.MAX_BATCH_TRANSACTION_ATTEMPTS);
 });
 
-test("batch create po P2028 nepropustí raw Prisma chybu", async (t) => {
-  skipRetryDelay(t);
+test("batch create po P2028 neprovede retry a vrátí controlled operation error", async (t) => {
   t.mock.method(console, "warn", () => undefined);
   const { prisma, stock } = await loadStockTestContext();
   let attempts = 0;
@@ -135,9 +134,10 @@ test("batch create po P2028 nepropustí raw Prisma chybu", async (t) => {
   await assert.rejects(
     () => stock.createVoucherPrintBatch({ templateKey: "classic-v1", quantity: 1, createdByUserId: "admin-test" }),
     (error: unknown) => error instanceof stock.VoucherStockOperationError
-      && error.code === stock.voucherStockOperationErrorCodes.transientConflict,
+      && error.code === stock.voucherStockOperationErrorCodes.operationFailed
+      && !/P2028|Prisma/i.test(error.message),
   );
-  assert.equal(attempts, stock.MAX_BATCH_TRANSACTION_ATTEMPTS);
+  assert.equal(attempts, 1);
 });
 
 test("batch create při busy batch locku rollbackne pokus a retryuje mimo transakci", async (t) => {
@@ -171,10 +171,13 @@ test("batch create při busy code locku skončí po bounded exhaustion controlle
   assert.equal(attempts, stock.MAX_BATCH_TRANSACTION_ATTEMPTS);
 });
 
-test("batch create neopatruje unexpected ani validační chybu jako transient retry", async (t) => {
+test("batch create neopatruje unexpected Prisma ani validační chybu jako transient retry", async (t) => {
   const { prisma, stock } = await loadStockTestContext();
   let attempts = 0;
-  const unexpected = new Error("unexpected database failure");
+  const unexpected = new Prisma.PrismaClientKnownRequestError("unexpected database failure", {
+    code: "P2002",
+    clientVersion: "test",
+  });
   mockTransaction(t, prisma, async () => {
     attempts += 1;
     throw unexpected;

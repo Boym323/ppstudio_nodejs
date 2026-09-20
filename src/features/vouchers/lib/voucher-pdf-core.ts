@@ -217,22 +217,39 @@ export async function generateVoucherBatchPrintPdf(
 ) {
   const registry = options.registry ?? voucherTemplateRegistry;
   const template = requireVoucherTemplate(batch.templateKey, registry);
+  const masterAssetReader = getVoucherMasterAssetReader(template.masterAssetKey);
+
+  if (!masterAssetReader) {
+    throw new VoucherTemplateError(template.key, {
+      message: `Voucher template "${template.key}" has no registered master asset.`,
+    });
+  }
+
+  const [masterBytes, regularLatinBytes, regularLatinExtBytes, boldLatinBytes, boldLatinExtBytes] = await Promise.all([
+    masterAssetReader(),
+    readFile(fontRegularLatinPath),
+    readFile(fontRegularLatinExtPath),
+    readFile(fontBoldLatinPath),
+    readFile(fontBoldLatinExtPath),
+  ]);
+  const masterPdf = await PDFDocument.load(masterBytes);
+  validateMasterPageSize(masterPdf, template);
   const pdf = await PDFDocument.create();
+  pdf.registerFontkit(fontkit);
+  const regularFont = createFontPair(
+    await pdf.embedFont(regularLatinBytes, { subset: true }),
+    await pdf.embedFont(regularLatinExtBytes, { subset: true }),
+  );
+  const boldFont = createFontPair(
+    await pdf.embedFont(boldLatinBytes, { subset: true }),
+    await pdf.embedFont(boldLatinExtBytes, { subset: true }),
+  );
 
   for (const item of batch.items) {
-    const pageBytes = await generateVoucherStockPrintPage({ ...item, templateKey: batch.templateKey }, options);
-    const [printPage] = await pdf.embedPdf(pageBytes, [0]);
-    const page = pdf.addPage([
-      mm(template.layout.printPage.widthMm),
-      mm(template.layout.printPage.heightMm),
-    ]);
-
-    page.drawPage(printPage, {
-      x: 0,
-      y: 0,
-      width: mm(template.layout.printPage.widthMm),
-      height: mm(template.layout.printPage.heightMm),
-    });
+    const [page] = await pdf.copyPages(masterPdf, [0]);
+    pdf.addPage(page);
+    const qrCode = QRCode.create(buildVoucherVerificationUrl(item.code), { errorCorrectionLevel: "M" });
+    drawVoucherCodeAndQrOverlay(page, item.code, template, regularFont, boldFont, qrCode);
     setPrintPageBoxes(page, template);
   }
 
