@@ -1,5 +1,7 @@
 import { VoucherType } from "@/generated/prisma/browser";
 
+import { type VoucherMasterAssetKey } from "./voucher-master-assets";
+
 export type VoucherTemplateTextArea = {
   xMm: number;
   yMm: number;
@@ -42,7 +44,7 @@ export type VoucherTemplateLayout = {
 export type VoucherTemplateDefinition = {
   key: string;
   label: string;
-  masterPath: string;
+  masterAssetKey: VoucherMasterAssetKey;
   previewPath: string;
   activeForNewVouchers: boolean;
   allowedTypes: readonly VoucherType[];
@@ -76,7 +78,7 @@ export class VoucherTemplateError extends Error {
 const classicV1: VoucherTemplateDefinition = {
   key: "classic-v1",
   label: "Klasický",
-  masterPath: "public/brand/vouchers/classic-v1.pdf",
+  masterAssetKey: "classic-v1",
   previewPath: "public/brand/vouchers/classic-v1-preview.png",
   activeForNewVouchers: true,
   allowedTypes: [VoucherType.VALUE, VoucherType.SERVICE],

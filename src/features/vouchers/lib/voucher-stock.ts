@@ -25,10 +25,16 @@ import {
 } from "@/features/vouchers/schemas/voucher-schemas";
 import { getSiteSettings } from "@/lib/site-settings";
 import { prisma } from "@/lib/prisma";
-import { runSerializableTransaction } from "@/lib/serializable-transaction";
+import {
+  getTransientTransactionConflictKind,
+  isTransientTransactionConflict,
+  runSerializableTransaction,
+  TransientTransactionConflictError,
+  waitForTransientRetry,
+} from "@/lib/serializable-transaction";
 
 const BATCH_NUMBER_ALLOCATION_LOCK = "ppstudio:voucher-print-batch-number-v1";
-const MAX_BATCH_CREATE_RETRIES = 3;
+export const MAX_BATCH_TRANSACTION_ATTEMPTS = 8;
 
 export const voucherStockOperationErrorCodes = {
   batchNotFound: "BATCH_NOT_FOUND",
@@ -46,6 +52,7 @@ export const voucherStockOperationErrorCodes = {
   servicePriceMissing: "SERVICE_PRICE_MISSING",
   invalidValidityRange: "INVALID_VALIDITY_RANGE",
   integrityError: "INTEGRITY_ERROR",
+  transientConflict: "TRANSIENT_CONFLICT",
   voidReasonRequired: "VOID_REASON_REQUIRED",
 } as const;
 
@@ -67,19 +74,17 @@ type VoucherStockBatchCreateInput = {
   registry?: VoucherTemplateRegistry;
 };
 
-function isUniqueConstraint(error: unknown, field: string) {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError
-    && error.code === "P2002"
-    && Array.isArray(error.meta?.target)
-    && error.meta.target.includes(field)
-  );
-}
-
 async function lockBatchNumberAllocation(tx: Prisma.TransactionClient) {
-  await tx.$executeRaw(Prisma.sql`
-    SELECT pg_advisory_xact_lock(hashtext(${BATCH_NUMBER_ALLOCATION_LOCK}))
+  const rows = await tx.$queryRaw<Array<{ locked: boolean }>>(Prisma.sql`
+    SELECT pg_try_advisory_xact_lock(hashtext(${BATCH_NUMBER_ALLOCATION_LOCK})) AS "locked"
   `);
+
+  if (!rows[0]?.locked) {
+    throw new TransientTransactionConflictError(
+      "advisory_lock_busy",
+      "Voucher print batch number allocation lock is currently busy.",
+    );
+  }
 }
 
 async function allocateBatchNumber(tx: Prisma.TransactionClient, year: number) {
@@ -131,7 +136,7 @@ export async function createVoucherPrintBatch(input: VoucherStockBatchCreateInpu
 
   const now = input.now ?? new Date();
 
-  for (let attempt = 0; attempt < MAX_BATCH_CREATE_RETRIES; attempt += 1) {
+  for (let attempt = 0; attempt < MAX_BATCH_TRANSACTION_ATTEMPTS; attempt += 1) {
     try {
       return await runSerializableTransaction(async (tx) => {
         const batchNumber = await allocateBatchNumber(tx, getVoucherPragueCalendarYear(now));
@@ -142,9 +147,7 @@ export async function createVoucherPrintBatch(input: VoucherStockBatchCreateInpu
             quantity,
             status: VoucherPrintBatchStatus.PENDING_PRINT,
             createdByUserId: input.createdByUserId,
-            items: {
-              create: await createStockItems(tx, quantity, now),
-            },
+            items: { create: await createStockItems(tx, quantity, now) },
           },
         });
 
@@ -162,17 +165,37 @@ export async function createVoucherPrintBatch(input: VoucherStockBatchCreateInpu
         });
 
         return batch;
-      });
+      }, { maxRetries: 0 });
     } catch (error) {
-      if (isUniqueConstraint(error, "batchNumber") || isUniqueConstraint(error, "code")) {
+      if (!isTransientTransactionConflict(error)) {
+        throw error;
+      }
+
+      const attempts = attempt + 1;
+      const category = getTransientTransactionConflictKind(error) ?? "serialization_failure";
+
+      if (attempts < MAX_BATCH_TRANSACTION_ATTEMPTS) {
+        await waitForTransientRetry(attempts);
         continue;
       }
 
-      throw error;
+      console.warn("Voucher print batch transient conflict exhausted", {
+        operation: "createVoucherPrintBatch",
+        attempts,
+        category,
+      });
+
+      throw new VoucherStockOperationError(
+        voucherStockOperationErrorCodes.transientConflict,
+        "Operaci se kvůli souběžné změně nepodařilo dokončit. Zkuste ji prosím znovu.",
+      );
     }
   }
 
-  throw new Error("Voucher print batch could not be created safely.");
+  throw new VoucherStockOperationError(
+    voucherStockOperationErrorCodes.transientConflict,
+    "Operaci se kvůli souběžné změně nepodařilo dokončit. Zkuste ji prosím znovu.",
+  );
 }
 
 async function createStockItems(tx: Prisma.TransactionClient, quantity: number, now: Date) {
@@ -186,7 +209,7 @@ async function createStockItems(tx: Prisma.TransactionClient, quantity: number, 
   for (let sequenceNumber = 1; sequenceNumber <= quantity; sequenceNumber += 1) {
     items.push({
       sequenceNumber,
-      code: await allocateVoucherCode(tx, now),
+      code: await allocateVoucherCode(tx, now, { failFast: true }),
       status: VoucherStockItemStatus.PENDING_PRINT,
       createdAt: now,
     });

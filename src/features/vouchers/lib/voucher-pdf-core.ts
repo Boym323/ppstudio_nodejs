@@ -16,6 +16,7 @@ import {
   type VoucherTemplateDefinition,
 } from "@/features/vouchers/lib/voucher-template-registry";
 import { siteConfig } from "@/config/site";
+import { getVoucherMasterAssetReader } from "@/features/vouchers/lib/voucher-master-assets";
 
 type VoucherPdfData = NonNullable<Awaited<ReturnType<typeof getVoucherDetail>>>;
 type VoucherStockPdfData = Pick<VoucherPdfData, "templateKey" | "code">;
@@ -113,8 +114,15 @@ export async function generateVoucherPdf(voucher: VoucherPdfData, options?: Vouc
 export async function generateVoucherPrintPdf(voucher: VoucherPdfData, options: VoucherPdfOptions = {}) {
   const registry = options.registry ?? voucherTemplateRegistry;
   const template = requireVoucherTemplate(voucher.templateKey, registry);
-  const masterPath = path.join(process.cwd(), template.masterPath);
-  const masterBytes = await readFile(masterPath);
+  const masterAssetReader = getVoucherMasterAssetReader(template.masterAssetKey);
+
+  if (!masterAssetReader) {
+    throw new VoucherTemplateError(template.key, {
+      message: `Voucher template "${template.key}" has no registered master asset.`,
+    });
+  }
+
+  const masterBytes = await masterAssetReader();
   const pdf = await PDFDocument.load(masterBytes);
   validateMasterPageSize(pdf, template);
   const page = pdf.getPage(0);
@@ -167,8 +175,15 @@ export async function generateVoucherStockPrintPage(
 ) {
   const registry = options.registry ?? voucherTemplateRegistry;
   const template = requireVoucherTemplate(stockItem.templateKey, registry);
-  const masterPath = path.join(process.cwd(), template.masterPath);
-  const masterBytes = await readFile(masterPath);
+  const masterAssetReader = getVoucherMasterAssetReader(template.masterAssetKey);
+
+  if (!masterAssetReader) {
+    throw new VoucherTemplateError(template.key, {
+      message: `Voucher template "${template.key}" has no registered master asset.`,
+    });
+  }
+
+  const masterBytes = await masterAssetReader();
   const pdf = await PDFDocument.load(masterBytes);
   validateMasterPageSize(pdf, template);
   const page = pdf.getPage(0);

@@ -67,6 +67,8 @@ function domainErrorMessage(error: unknown) {
       return "Aktivovaný voucher nelze znehodnotit.";
     case voucherStockOperationErrorCodes.voidReasonRequired:
       return "Důvod znehodnocení je povinný.";
+    case voucherStockOperationErrorCodes.transientConflict:
+      return "Operaci se kvůli souběžné změně nepodařilo dokončit. Zkuste ji prosím znovu.";
     default:
       return error.message;
   }

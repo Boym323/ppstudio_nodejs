@@ -14,6 +14,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Voucherové master PDF se nyní načítají pouze z explicitně registrovaných trusted assetů bez dynamického filesystem tracingu; souběžné vytváření tiskových sérií používá fail-fast advisory locky, bounded retry s jitterem a po vyčerpání vrací řízenou chybu bez částečných zápisů.
 - SERVICE voucher lze nyní vytvořit nebo aktivovat pouze pro aktivní službu s pevnou cenou; uložený cenový snapshot je povinný a používá se i při uplatnění voucheru.
 - Chyby generování digitálního, tiskového a skladového voucherového PDF nyní vracejí bezpečné stavové odpovědi bez interních cest a stack trace a zapisují technický kontext pouze do interního logu.
 - Ceník, booking a administrace nyní popisují `priceFromCzk` jako pevnou cenu služby; tiskové PDF předtištěné série je dostupné pouze do jejího převzetí a rok voucherových kódů i sérií se určuje podle Europe/Prague.

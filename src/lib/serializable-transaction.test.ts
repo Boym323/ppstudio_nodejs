@@ -69,6 +69,36 @@ test("runSerializableTransaction uspěje na první pokus", async (t) => {
   assert.equal(calls, 1);
 });
 
+test("transient backoff roste exponenciálně, přidává jitter a je omezený", async () => {
+  const { getTransientRetryDelayMs, TRANSIENT_RETRY_MAX_DELAY_MS } = await import("./serializable-transaction");
+  const delays = [1, 2, 3, 4, 5].map((retryNumber) => getTransientRetryDelayMs(retryNumber, 0.5));
+
+  assert.deepEqual(delays, [275, 300, 350, 450, 500]);
+  assert.ok(delays.every((delay) => delay <= TRANSIENT_RETRY_MAX_DELAY_MS));
+  assert.ok(delays[0]! > getTransientRetryDelayMs(1, 0));
+});
+
+test("klasifikace rozlišuje transient konflikty od ostatních chyb", async () => {
+  const {
+    getTransientTransactionConflictKind,
+    TransientTransactionConflictError,
+  } = await import("./serializable-transaction");
+
+  assert.equal(getTransientTransactionConflictKind(serializableConflict()), "serialization_failure");
+  assert.equal(
+    getTransientTransactionConflictKind(new Prisma.PrismaClientKnownRequestError("Raw query failed. Code: `40P01`", {
+      code: "P2010",
+      clientVersion: "test",
+    })),
+    "deadlock",
+  );
+  assert.equal(
+    getTransientTransactionConflictKind(new TransientTransactionConflictError("advisory_lock_busy")),
+    "advisory_lock_busy",
+  );
+  assert.equal(getTransientTransactionConflictKind(new Error("P2028 transaction timeout")), null);
+});
+
 test("runSerializableTransaction zopakuje P2034 a následně uspěje", async (t) => {
   let calls = 0;
   const { prisma, runSerializableTransaction } = await loadTransactionHelper();

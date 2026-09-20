@@ -2,6 +2,7 @@ import { randomInt } from "node:crypto";
 
 import { Prisma, type Prisma as PrismaNamespace } from "@/generated/prisma/client";
 import { getVoucherPragueCalendarYear } from "@/features/vouchers/lib/voucher-validity-date";
+import { TransientTransactionConflictError } from "@/lib/transient-transaction-conflict";
 
 const VOUCHER_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const VOUCHER_CODE_RANDOM_LENGTH = 6;
@@ -26,17 +27,35 @@ function buildVoucherCode(year: number): string {
   return `PP-${year}-${suffix}`;
 }
 
-async function lockVoucherCodeAllocation(tx: PrismaNamespace.TransactionClient) {
-  await tx.$executeRaw(Prisma.sql`
-    SELECT pg_advisory_xact_lock(hashtext(${VOUCHER_CODE_ALLOCATION_LOCK}))
+async function lockVoucherCodeAllocation(
+  tx: PrismaNamespace.TransactionClient,
+  failFast: boolean,
+) {
+  if (!failFast) {
+    await tx.$executeRaw(Prisma.sql`
+      SELECT pg_advisory_xact_lock(hashtext(${VOUCHER_CODE_ALLOCATION_LOCK}))
+    `);
+    return;
+  }
+
+  const rows = await tx.$queryRaw<Array<{ locked: boolean }>>(Prisma.sql`
+    SELECT pg_try_advisory_xact_lock(hashtext(${VOUCHER_CODE_ALLOCATION_LOCK})) AS "locked"
   `);
+
+  if (!rows[0]?.locked) {
+    throw new TransientTransactionConflictError(
+      "advisory_lock_busy",
+      "Voucher code allocation lock is currently busy.",
+    );
+  }
 }
 
 export async function allocateVoucherCode(
   tx: PrismaNamespace.TransactionClient,
   now = new Date(),
+  options: { failFast?: boolean } = {},
 ): Promise<string> {
-  await lockVoucherCodeAllocation(tx);
+  await lockVoucherCodeAllocation(tx, options.failFast ?? false);
   const year = getVoucherPragueCalendarYear(now);
 
   for (let attempt = 0; attempt < MAX_GENERATION_ATTEMPTS; attempt += 1) {

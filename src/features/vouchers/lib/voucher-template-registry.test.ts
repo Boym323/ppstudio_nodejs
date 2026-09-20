@@ -1,3 +1,5 @@
+import { access } from "node:fs/promises";
+import path from "node:path";
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -9,17 +11,31 @@ import {
   getVoucherTemplate,
   isVoucherTemplateAllowedForType,
   requireVoucherTemplate,
+  voucherTemplateRegistry,
 } from "./voucher-template-registry";
+import { getVoucherMasterAssetReader } from "./voucher-master-assets";
 
 test("registry obsahuje classic-v1 s českým názvem a oběma typy", () => {
   const template = requireVoucherTemplate("classic-v1");
 
   assert.equal(template.label, "Klasický");
-  assert.equal(template.masterPath, "public/brand/vouchers/classic-v1.pdf");
+  assert.equal(template.masterAssetKey, "classic-v1");
   assert.deepEqual(template.allowedTypes, [VoucherType.VALUE, VoucherType.SERVICE]);
   assert.equal(template.activeForNewVouchers, true);
   assert.equal(isVoucherTemplateAllowedForType(template, VoucherType.VALUE), true);
   assert.equal(isVoucherTemplateAllowedForType(template, VoucherType.SERVICE), true);
+});
+
+test("registry a trusted asset map mají dostupný master i preview pro všechny templates", async () => {
+  for (const template of voucherTemplateRegistry.templates) {
+    const reader = getVoucherMasterAssetReader(template.masterAssetKey);
+    assert.ok(reader, `missing master asset reader for ${template.masterAssetKey}`);
+    assert.equal((await reader!()).subarray(0, 4).toString("utf8"), "%PDF");
+    await access(path.join(process.cwd(), template.previewPath));
+  }
+
+  assert.equal(getVoucherMasterAssetReader("unknown-template"), undefined);
+  assert.equal(getVoucherMasterAssetReader("../../etc/passwd"), undefined);
 });
 
 test("registry odmítá neplatný key a vrací aktivní templates", () => {

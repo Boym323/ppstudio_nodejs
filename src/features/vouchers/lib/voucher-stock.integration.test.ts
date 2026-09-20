@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 
 import { AdminRole, VoucherStockItemStatus, VoucherType } from "@/generated/prisma/browser";
+import { Prisma } from "@/generated/prisma/client";
 
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
 process.env.ADMIN_SESSION_SECRET ??= "test-secret-value-with-at-least-32-chars";
@@ -204,6 +205,145 @@ dbTest("Voucher Stock: SERVICE activation requires a fixed price and stores the 
     await prisma.voucherPrintBatch.delete({ where: { id: batch.id } });
     await prisma.service.deleteMany({ where: { id: { in: [noPriceService.id, fixedPriceService.id] } } });
     await prisma.serviceCategory.delete({ where: { id: category.id } });
+    await prisma.adminUser.delete({ where: { id: owner.id } });
+  }
+});
+
+dbTest("Voucher code invariant chrání cross-table kolize a legitimní aktivace", async () => {
+  const { prisma } = await import("@/lib/prisma");
+
+  const [codeCollisions, invalidActivatedLinks, unexpectedLinks, duplicateVoucherCodes, duplicateStockCodes, duplicateVoucherLinks] = await Promise.all([
+    prisma.$queryRaw<Array<{ voucherId: string; stockItemId: string }>>(Prisma.sql`
+      SELECT v."id" AS "voucherId", s."id" AS "stockItemId"
+      FROM "Voucher" v
+      JOIN "VoucherStockItem" s ON s."code" = v."code"
+      WHERE NOT (s."status" = 'ACTIVATED' AND s."voucherId" = v."id")
+    `),
+    prisma.$queryRaw<Array<{ stockItemId: string }>>(Prisma.sql`
+      SELECT s."id" AS "stockItemId"
+      FROM "VoucherStockItem" s
+      LEFT JOIN "Voucher" v ON v."id" = s."voucherId"
+      WHERE s."status" = 'ACTIVATED'
+        AND (s."voucherId" IS NULL OR v."id" IS NULL OR v."code" <> s."code")
+    `),
+    prisma.$queryRaw<Array<{ stockItemId: string }>>(Prisma.sql`
+      SELECT "id" AS "stockItemId"
+      FROM "VoucherStockItem"
+      WHERE "status" IN ('AVAILABLE', 'PENDING_PRINT', 'VOID')
+        AND "voucherId" IS NOT NULL
+    `),
+    prisma.$queryRaw<Array<{ code: string }>>(Prisma.sql`
+      SELECT "code"
+      FROM "Voucher"
+      GROUP BY "code"
+      HAVING COUNT(*) > 1
+    `),
+    prisma.$queryRaw<Array<{ code: string }>>(Prisma.sql`
+      SELECT "code"
+      FROM "VoucherStockItem"
+      GROUP BY "code"
+      HAVING COUNT(*) > 1
+    `),
+    prisma.$queryRaw<Array<{ voucherId: string }>>(Prisma.sql`
+      SELECT "voucherId"
+      FROM "VoucherStockItem"
+      WHERE "voucherId" IS NOT NULL
+      GROUP BY "voucherId"
+      HAVING COUNT(*) > 1
+    `),
+  ]);
+
+  assert.deepEqual(codeCollisions, []);
+  assert.deepEqual(invalidActivatedLinks, []);
+  assert.deepEqual(unexpectedLinks, []);
+  assert.deepEqual(duplicateVoucherCodes, []);
+  assert.deepEqual(duplicateStockCodes, []);
+  assert.deepEqual(duplicateVoucherLinks, []);
+
+  const activatedItems = await prisma.voucherStockItem.findMany({
+    where: { status: VoucherStockItemStatus.ACTIVATED },
+    select: { code: true, voucherId: true, voucher: { select: { id: true, code: true } } },
+  });
+
+  for (const item of activatedItems) {
+    assert.ok(item.voucherId);
+    assert.ok(item.voucher);
+    assert.equal(item.voucher.id, item.voucherId);
+    assert.equal(item.voucher.code, item.code);
+  }
+});
+
+dbTest("Voucher Stock: souběžné batch creation zachová unikátní série, kódy a audit", async () => {
+  const [{ prisma }, stock] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./voucher-stock"),
+  ]);
+  const suffix = randomUUID().slice(0, 8);
+  const owner = await prisma.adminUser.create({ data: { email: `stock-concurrency-${suffix}@example.com`, name: "Stock concurrency owner", role: AdminRole.OWNER } });
+  const now = new Date("2026-09-20T10:00:00.000Z");
+
+  try {
+    for (const requestCount of [2, 12, 50]) {
+      const results = await Promise.allSettled(
+        Array.from({ length: requestCount }, () => stock.createVoucherPrintBatch({
+          templateKey: "classic-v1",
+          quantity: 1,
+          createdByUserId: owner.id,
+          now,
+        })),
+      );
+      const failures = results.filter((result): result is PromiseRejectedResult => result.status === "rejected");
+      const batches = results
+        .filter((result): result is PromiseFulfilledResult<Awaited<ReturnType<typeof stock.createVoucherPrintBatch>>> => result.status === "fulfilled")
+        .map((result) => result.value);
+      const controlledFailures = failures.filter((failure) => failure.reason instanceof stock.VoucherStockOperationError);
+      const rawFailures = failures.filter((failure) => !(failure.reason instanceof stock.VoucherStockOperationError));
+
+      assert.equal(rawFailures.length, 0, rawFailures.map((failure) => String(failure.reason)).join("\n"));
+      if (requestCount < 50) {
+        assert.equal(controlledFailures.length, 0, failures.map((failure) => String(failure.reason)).join("\n"));
+      }
+      assert.equal(batches.length + controlledFailures.length, requestCount);
+      console.info("Voucher batch concurrency", {
+        requestCount,
+        success: batches.length,
+        controlledFailures: controlledFailures.length,
+        rawFailures: rawFailures.length,
+      });
+    }
+
+    const persistedBatches = await prisma.voucherPrintBatch.findMany({
+      where: { createdByUserId: owner.id },
+      select: { id: true, batchNumber: true, quantity: true },
+    });
+    const persistedBatchIds = persistedBatches.map((batch) => batch.id);
+    const items = await prisma.voucherStockItem.findMany({
+      where: { batchId: { in: persistedBatchIds } },
+      select: { batchId: true, code: true },
+    });
+    const auditLogs = await prisma.voucherStockAuditLog.findMany({
+      where: {
+        batchId: { in: persistedBatchIds },
+        operation: "CREATE_VOUCHER_PRINT_BATCH",
+      },
+      select: { batchId: true },
+    });
+
+    assert.equal(new Set(persistedBatches.map((batch) => batch.batchNumber)).size, persistedBatches.length);
+    assert.equal(items.length, persistedBatches.reduce((sum, batch) => sum + batch.quantity, 0));
+    assert.equal(new Set(items.map((item) => item.code)).size, items.length);
+    assert.equal(auditLogs.length, persistedBatches.length);
+    assert.equal(new Set(auditLogs.map((log) => log.batchId)).size, persistedBatches.length);
+    assert.equal(
+      (await prisma.voucherStockAuditLog.count({ where: { batchId: { in: persistedBatchIds }, operation: "CREATE_VOUCHER_PRINT_BATCH" } })),
+      persistedBatches.length,
+    );
+  } finally {
+    const persistedBatches = await prisma.voucherPrintBatch.findMany({ where: { createdByUserId: owner.id }, select: { id: true } });
+    const persistedBatchIds = persistedBatches.map((batch) => batch.id);
+    await prisma.voucherStockAuditLog.deleteMany({ where: { batchId: { in: persistedBatchIds } } });
+    await prisma.voucherStockItem.deleteMany({ where: { batchId: { in: persistedBatchIds } } });
+    await prisma.voucherPrintBatch.deleteMany({ where: { id: { in: persistedBatchIds } } });
     await prisma.adminUser.delete({ where: { id: owner.id } });
   }
 });
