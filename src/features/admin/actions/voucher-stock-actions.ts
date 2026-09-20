@@ -15,6 +15,7 @@ import {
   type CreateVoucherPrintBatchState,
   type VoucherStockActivationState,
   type VoucherStockLookupState,
+  type VoucherStockMutationActionState,
 } from "@/features/admin/actions/voucher-stock-action-state";
 import {
   activateVoucherStockItem,
@@ -63,10 +64,20 @@ function domainErrorMessage(error: unknown) {
       return "Tisková série nebyla nalezena.";
     case voucherStockOperationErrorCodes.batchClosed:
       return "Uzavřená tisková série už nejde měnit.";
+    case voucherStockOperationErrorCodes.batchAlreadyReceived:
+      return "Tisková série už byla převzata.";
+    case voucherStockOperationErrorCodes.invalidQuantity:
+      return "Počet kusů musí být celé číslo od 1 do 500.";
+    case voucherStockOperationErrorCodes.invalidTemplate:
+      return "Vybraný vzhled voucheru neexistuje.";
+    case voucherStockOperationErrorCodes.templateUnavailable:
+      return "Vybraný vzhled není dostupný pro nové tiskové série.";
     case voucherStockOperationErrorCodes.itemAlreadyActivated:
       return "Aktivovaný voucher nelze znehodnotit.";
     case voucherStockOperationErrorCodes.itemNotReceived:
       return "Položku lze znehodnotit až po převzetí série.";
+    case voucherStockOperationErrorCodes.integrityError:
+      return "Voucher má nekonzistentní data. Obnovte stránku nebo kontaktujte správce.";
     case voucherStockOperationErrorCodes.voidReasonRequired:
       return "Důvod znehodnocení je povinný.";
     case voucherStockOperationErrorCodes.transientConflict:
@@ -74,8 +85,33 @@ function domainErrorMessage(error: unknown) {
     case voucherStockOperationErrorCodes.operationFailed:
       return "Operaci se nepodařilo dokončit. Zkuste ji prosím znovu.";
     default:
-      return error.message;
+      return null;
   }
+}
+
+function logUnexpectedVoucherStockActionError(operation: string, formData: FormData, error: unknown) {
+  console.error("Voucher Stock admin action failed", {
+    operation,
+    batchId: readFormString(formData, "batchId") || undefined,
+    stockItemId: readFormString(formData, "stockItemId") || undefined,
+    area: readFormString(formData, "area") || undefined,
+    error,
+  });
+}
+
+function voucherStockMutationErrorState(
+  operation: string,
+  formData: FormData,
+  error: unknown,
+  fallbackMessage: string,
+): VoucherStockMutationActionState {
+  const message = domainErrorMessage(error);
+  if (message) {
+    return { status: "error", formError: message };
+  }
+
+  logUnexpectedVoucherStockActionError(operation, formData, error);
+  return { status: "error", formError: fallbackMessage };
 }
 
 const createBatchSchema = z.object({
@@ -203,32 +239,56 @@ export async function activateVoucherStockItemAction(
   }
 }
 
-export async function receiveVoucherPrintBatchAction(formData: FormData) {
+export async function receiveVoucherPrintBatchAction(
+  _previousState: VoucherStockMutationActionState,
+  formData: FormData,
+): Promise<VoucherStockMutationActionState> {
   const session = await requireRole([AdminRole.OWNER]);
   const batchId = readFormString(formData, "batchId");
-  await receiveVoucherPrintBatch({ batchId, actorUserId: session.sub });
-  revalidatePath(getAdminVoucherStockHref("owner"));
-  revalidatePath(getAdminVoucherStockBatchHref("owner", batchId));
+  try {
+    await receiveVoucherPrintBatch({ batchId, actorUserId: session.sub });
+    revalidatePath(getAdminVoucherStockHref("owner"));
+    revalidatePath(getAdminVoucherStockBatchHref("owner", batchId));
+    return { status: "success" };
+  } catch (error) {
+    return voucherStockMutationErrorState("receiveVoucherPrintBatch", formData, error, "Sérii se teď nepodařilo převzít. Zkuste to prosím znovu.");
+  }
 }
 
-export async function closeVoucherPrintBatchAction(formData: FormData) {
+export async function closeVoucherPrintBatchAction(
+  _previousState: VoucherStockMutationActionState,
+  formData: FormData,
+): Promise<VoucherStockMutationActionState> {
   const session = await requireRole([AdminRole.OWNER]);
   const batchId = readFormString(formData, "batchId");
-  await closeVoucherPrintBatch({ batchId, actorUserId: session.sub });
-  revalidatePath(getAdminVoucherStockHref("owner"));
-  revalidatePath(getAdminVoucherStockBatchHref("owner", batchId));
+  try {
+    await closeVoucherPrintBatch({ batchId, actorUserId: session.sub });
+    revalidatePath(getAdminVoucherStockHref("owner"));
+    revalidatePath(getAdminVoucherStockBatchHref("owner", batchId));
+    return { status: "success" };
+  } catch (error) {
+    return voucherStockMutationErrorState("closeVoucherPrintBatch", formData, error, "Sérii se teď nepodařilo uzavřít. Zkuste to prosím znovu.");
+  }
 }
 
-export async function voidVoucherStockItemAction(formData: FormData) {
+export async function voidVoucherStockItemAction(
+  _previousState: VoucherStockMutationActionState,
+  formData: FormData,
+): Promise<VoucherStockMutationActionState> {
   const session = await requireRole([AdminRole.OWNER, AdminRole.SALON]);
   const area = resolveArea(session.role, readFormString(formData, "area"));
   const stockItemId = readFormString(formData, "stockItemId");
-  await voidVoucherStockItem({
-    stockItemId,
-    actorUserId: session.sub,
-    reason: readFormString(formData, "reason"),
-  });
-  const batchId = readFormString(formData, "batchId");
-  revalidatePath(getAdminVoucherStockHref(area));
-  revalidatePath(getAdminVoucherStockBatchHref(area, batchId));
+  try {
+    await voidVoucherStockItem({
+      stockItemId,
+      actorUserId: session.sub,
+      reason: readFormString(formData, "reason"),
+    });
+    const batchId = readFormString(formData, "batchId");
+    revalidatePath(getAdminVoucherStockHref(area));
+    revalidatePath(getAdminVoucherStockBatchHref(area, batchId));
+    return { status: "success" };
+  } catch (error) {
+    return voucherStockMutationErrorState("voidVoucherStockItem", formData, error, "Položku se teď nepodařilo znehodnotit. Zkuste to prosím znovu.");
+  }
 }

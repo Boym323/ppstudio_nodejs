@@ -34,3 +34,10 @@ export type CreateVoucherPrintBatchState = {
 };
 
 export const initialCreateVoucherPrintBatchState: CreateVoucherPrintBatchState = { status: "idle" };
+
+export type VoucherStockMutationActionState =
+  | { status: "idle" }
+  | { status: "success" }
+  | { status: "error"; formError: string };
+
+export const initialVoucherStockMutationActionState: VoucherStockMutationActionState = { status: "idle" };

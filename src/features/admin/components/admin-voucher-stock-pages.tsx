@@ -17,6 +17,7 @@ import {
   initialCreateVoucherPrintBatchState,
   initialVoucherStockActivationState,
   initialVoucherStockLookupState,
+  initialVoucherStockMutationActionState,
 } from "@/features/admin/actions/voucher-stock-action-state";
 import { AdminPageShell, AdminPanel } from "@/features/admin/components/admin-page-shell";
 import { AdminStatePill } from "@/features/admin/components/admin-state-pill";
@@ -173,6 +174,8 @@ export function AdminVoucherStockCreatePage({ data }: { data: AdminVoucherStockC
 }
 
 export function AdminVoucherStockBatchDetailPage({ data }: { data: AdminVoucherStockBatchDetailData }) {
+  const [receiveState, receiveAction, receivePending] = useActionState(receiveVoucherPrintBatchAction, initialVoucherStockMutationActionState);
+  const [closeState, closeAction, closePending] = useActionState(closeVoucherPrintBatchAction, initialVoucherStockMutationActionState);
   const canReceive = data.area === "owner" && data.status === VoucherPrintBatchStatus.PENDING_PRINT;
   const canClose = data.area === "owner" && data.status !== VoucherPrintBatchStatus.CLOSED;
 
@@ -184,12 +187,12 @@ export function AdminVoucherStockBatchDetailPage({ data }: { data: AdminVoucherS
           <div className="flex flex-wrap gap-2">
             {data.area === "owner" && canDownloadVoucherStockPdf(data.status) ? <a href={data.pdfHref} className={primaryButtonClassName}>Stáhnout tiskové PDF</a> : null}
             {data.area === "owner" && !canDownloadVoucherStockPdf(data.status) ? <p className="max-w-xs text-sm leading-5 text-white/56">{voucherStockPdfUnavailableMessage}</p> : null}
-            {canReceive ? <form action={receiveVoucherPrintBatchAction}><input type="hidden" name="batchId" value={data.id} /><button className={primaryButtonClassName}>Označit jako převzaté</button></form> : null}
-            {canClose ? <form action={closeVoucherPrintBatchAction} onSubmit={(event) => {
+            {canReceive ? <form action={receiveAction}><input type="hidden" name="batchId" value={data.id} /><button disabled={receivePending} className={primaryButtonClassName}>{receivePending ? "Přebírám…" : "Označit jako převzaté"}</button>{receiveState.status === "error" ? <p className="mt-2 max-w-xs text-sm text-red-200">{receiveState.formError}</p> : null}</form> : null}
+            {canClose ? <form action={closeAction} onSubmit={(event) => {
               const remaining = data.counts.pendingPrint + data.counts.available;
               const confirmed = window.confirm(`Opravdu chcete uzavřít a zneplatnit tuto sérii? ${remaining} dosud neaktivovaných kusů bude znehodnoceno. Aktivované kusy zůstanou zachovány. Tuto akci nelze vrátit.`);
               if (!confirmed) event.preventDefault();
-            }}><input type="hidden" name="batchId" value={data.id} /><button className={secondaryButtonClassName} title="Neaktivované kusy budou znehodnoceny a sérii už nelze znovu otevřít.">Uzavřít a zneplatnit sérii</button></form> : null}
+            }}><input type="hidden" name="batchId" value={data.id} /><button disabled={closePending} className={secondaryButtonClassName} title="Neaktivované kusy budou znehodnoceny a sérii už nelze znovu otevřít.">{closePending ? "Uzavírám…" : "Uzavřít a zneplatnit sérii"}</button>{closeState.status === "error" ? <p className="mt-2 max-w-xs text-sm text-red-200">{closeState.formError}</p> : null}</form> : null}
           </div>
         </div>
         <AdminVoucherTabs area={data.area} active="stock" />
@@ -225,6 +228,8 @@ export function AdminVoucherStockBatchDetailPage({ data }: { data: AdminVoucherS
 }
 
 function StockItemRow({ area, batchId, item }: { area: AdminArea; batchId: string; item: AdminVoucherStockBatchDetailData["items"][number] }) {
+  const [state, formAction, pending] = useActionState(voidVoucherStockItemAction, initialVoucherStockMutationActionState);
+
   return (
     <article className="rounded-[1rem] border border-white/8 bg-white/[0.025] p-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -235,10 +240,11 @@ function StockItemRow({ area, batchId, item }: { area: AdminArea; batchId: strin
         </div>
       </div>
       {item.status === VoucherStockItemStatus.AVAILABLE ? (
-        <form action={voidVoucherStockItemAction} className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
+        <form action={formAction} className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
           <input type="hidden" name="area" value={area} /><input type="hidden" name="batchId" value={batchId} /><input type="hidden" name="stockItemId" value={item.id} />
           <label className="min-w-0 flex-1"><span className="text-[11px] uppercase tracking-[0.18em] text-white/42">Důvod znehodnocení</span><input name="reason" required minLength={3} placeholder="Vadný tisk, poškozený…" className={inputClassName} /></label>
-          <button type="submit" className={secondaryButtonClassName}>Znehodnotit</button>
+          <button type="submit" disabled={pending} className={secondaryButtonClassName}>{pending ? "Znehodnocuji…" : "Znehodnotit"}</button>
+          {state.status === "error" ? <p className="text-sm text-red-200 sm:self-center">{state.formError}</p> : null}
         </form>
       ) : item.status === VoucherStockItemStatus.PENDING_PRINT ? <p className="mt-2 text-xs text-white/48">Položku lze znehodnotit až po převzetí série.</p> : item.voidReason ? <p className="mt-2 text-xs text-white/48">Důvod: {item.voidReason}</p> : null}
     </article>

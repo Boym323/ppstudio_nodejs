@@ -36,6 +36,31 @@ test("voucher email action boundary keeps queueing behind the authorized action"
   assert.doesNotMatch(source, /export async function queueVoucherEmailLog/);
 });
 
+test("Voucher Stock mutace vracejí bezpečný action state pro domain i runtime chyby", async () => {
+  const source = await readFeatureFile("admin/actions/voucher-stock-actions.ts");
+
+  for (const action of ["receiveVoucherPrintBatchAction", "closeVoucherPrintBatchAction", "voidVoucherStockItemAction"]) {
+    assert.match(source, new RegExp(`export async function ${action}\\([\\s\\S]*?try \\{`));
+  }
+
+  for (const code of [
+    "batchNotFound",
+    "batchClosed",
+    "itemNotReceived",
+    "integrityError",
+    "transientConflict",
+    "operationFailed",
+  ]) {
+    assert.match(source, new RegExp(`case voucherStockOperationErrorCodes\\.${code}:`));
+  }
+
+  assert.match(source, /return null;/);
+  assert.doesNotMatch(source, /default:\s*return error\.message/);
+  assert.match(source, /Voucher Stock admin action failed/);
+  assert.match(source, /Položku lze znehodnotit až po převzetí série\./);
+  assert.match(source, /Voucher má nekonzistentní data\. Obnovte stránku nebo kontaktujte správce\./);
+});
+
 test("internal DB mutation helpers are server-only modules", async () => {
   const [paymentMutationSource, voucherQueueSource] = await Promise.all([
     readFeatureFile("booking/payments/lib/booking-payment-mutations.ts"),

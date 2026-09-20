@@ -14,6 +14,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Voucher Stock receive/close/void akce nyní převádějí očekávané domain chyby na bezpečný action state; neznámé chyby ani integrity fallback už klientovi nezobrazují raw `error.message`.
 - Voucherové master PDF se nyní načítají pouze z explicitně registrovaných trusted assetů bez dynamického filesystem tracingu; souběžné vytváření tiskových sérií používá fail-fast advisory locky, bounded retry s jitterem a po vyčerpání vrací řízenou chybu bez částečných zápisů.
 - Běžné vytváření voucherů nyní používá fail-fast code-allocation lock a bounded retry mimo interaktivní transakci; tiskové série přidělují kódy jedním lockem a dávkovou kontrolou obou kolizních tabulek, takže quantity 500 zůstává v současném timeout budgetu.
 - Retry vytváření voucheru a tiskové série nyní pokrývá pouze potvrzené transientní konflikty; Prisma timeout P2028 se bez opakování zaloguje na serveru a administrace dostane bezpečnou provozní chybu.
