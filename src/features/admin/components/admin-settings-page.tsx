@@ -24,6 +24,7 @@ export function AdminSettingsPage({
       id: string;
       key: string;
       label: string;
+      previewUrl: string;
     }>;
     contactPhotoMediaId: string | null;
     homePortraitMediaId: string | null;

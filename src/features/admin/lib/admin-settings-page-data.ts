@@ -4,7 +4,12 @@ import { getOwnerCalendarFeedAdminState } from "@/features/calendar/lib/calendar
 import { listPublishedVoucherTemplates } from "@/features/vouchers/lib/voucher-template-repository";
 
 export function getAdminVoucherTemplateOptions(templates: readonly { id: string; key: string; label: string }[]) {
-  return templates.map((template) => ({ id: template.id, key: template.key, label: template.label }));
+  return templates.map((template) => ({
+    id: template.id,
+    key: template.key,
+    label: template.label,
+    previewUrl: `/api/admin/voucher-templates/${template.id}/preview`,
+  }));
 }
 
 export async function getAdminSettingsPageData(email: string) {

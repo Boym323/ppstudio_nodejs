@@ -19,6 +19,7 @@ type VoucherTemplateOption = {
   id: string;
   key: string;
   label: string;
+  previewUrl: string;
 };
 
 export function AdminVoucherSettingsForm({
@@ -50,6 +51,7 @@ export function AdminVoucherSettingsForm({
               <input type="hidden" name="voucherDefaultTemplateId" value={voucherTemplates[0].id} />
               <div className="mt-2 overflow-hidden rounded-[1rem] border border-[var(--color-accent)]/45 bg-black/20">
                 <AdminVoucherTemplatePreview
+                  src={voucherTemplates[0].previewUrl}
                   alt={`Náhled šablony ${voucherTemplates[0].label}`}
                   className="h-auto w-full"
                 />
@@ -68,7 +70,7 @@ export function AdminVoucherSettingsForm({
                     required
                     className="sr-only"
                   />
-                  <AdminVoucherTemplatePreview alt={`Náhled šablony ${template.label}`} className="h-auto w-full rounded-lg" />
+                  <AdminVoucherTemplatePreview src={template.previewUrl} alt={`Náhled šablony ${template.label}`} className="h-auto w-full rounded-lg" />
                   <span className="mt-2 block px-1 text-sm text-white/82">{template.label}</span>
                 </label>
               ))}

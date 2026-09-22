@@ -36,6 +36,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Náhled výchozí voucherové šablony v nastavení nyní načítá privátní master PDF přes autorizovaný admin endpoint místo trvalého fallbacku „Náhled šablony není dostupný“.
 - CI nyní připraví izolované testovací databáze včetně OWNER účtu, SiteSettings a `classic-v1` voucherové šablony; integrační a E2E testy tak neběží nad neúplným fixture stavem.
 - Voucher Template bootstrap nyní bezpečně backfilluje historické řádky na `classic-v1`, při selhání uklízí pouze nově vytvořený master a OWNER administrace vystavuje celý lifecycle šablony bez runtime legacy fallbacku.
 - Změny voucherových šablon nyní zapisují doménovou mutaci a audit atomicky, master se přepíná s bezpečným DB commit pointem, audit DELETE_DRAFT zachovává snapshot a souběžná deaktivace/publikace/nová issuance znovu ověřují aktuální stav.

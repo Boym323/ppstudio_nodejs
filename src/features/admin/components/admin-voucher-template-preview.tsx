@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -31,5 +30,5 @@ export function AdminVoucherTemplatePreview({
     );
   }
 
-  return <Image src={src} alt={alt} width={840} height={410} className={className} onError={() => setFailed(true)} />;
+  return <iframe src={src} title={alt} className={cn("aspect-[840/410] w-full border-0", className)} onError={() => setFailed(true)} />;
 }
