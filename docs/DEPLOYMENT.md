@@ -6,6 +6,17 @@ Stručný architektonický a provozní přehled nasazení na Proxmox/LXC je v ko
 
 ## Databázová preflight kontrola
 
+## Voucher Template Manager rollout
+
+Rollout musí držet následující pořadí; nový web ani worker nesmí mezi migrací a bootstrapem obsluhovat staré řádky s `Voucher.templateId IS NULL`:
+
+1. Připrav a nasaď nový code/artifact, ale web a worker zatím nespouštěj (nebo ponech běžet předchozí verzi bez přijímání nových voucherových zápisů).
+2. Zálohuj PostgreSQL **i celý `MEDIA_STORAGE_ROOT`**; samotná databáze nestačí k obnově master PDF.
+3. Spusť `npx prisma migrate deploy`.
+4. Spusť `npm run voucher:templates:bootstrap` pod provozním účtem s přístupem do private storage. Bootstrap vytvoří nebo načte publikovaný `classic-v1`, backfilluje legitimní historické vouchery na `VoucherTemplate.id` a explicitně ověří, že počet řádků s `templateId IS NULL` je nula.
+5. Teprve po úspěšném bootstrapu spusť nebo restartuj nový web a worker. Až poté je možné provozovat vytváření voucherů.
+6. U tiskárny kontroluj geometrii ColorPoint (trim 210 × 99 mm, bleed 3 mm). Výstup není deklarován jako PDF/X-4 VERIFIED bez externího validačního nástroje.
+
 - Před releasem s migrací `20260710110000_availability_slot_capacity_one` ověř `AvailabilitySlot` dotazem `WHERE "capacity" <> 1`. Migrace se při nálezu bezpečně zastaví; hodnoty neopravuj hromadně bez kontroly souběžných rezervací.
 
 ## Artefakty a zavislosti
@@ -472,7 +483,7 @@ sudo /var/www/ppstudio/deploy/deploy.sh
 - Pokud je databáze v divergentním stavu a `prisma migrate dev` by nabízelo reset, neprováděj ho naslepo. Pro tuto migraci lze bezpečně použít `npx prisma db execute --file prisma/migrations/20260421113000_public_pricing_metadata/migration.sql` a až potom ověřit build.
 - Migrace `20260419140000_site_settings_singleton` přidává tabulku `SiteSettings`; po deployi ověř, že se `/admin/nastaveni` otevře bez chyby a že owner workflow `Nastavení` bezpečně založí výchozí singleton záznam i na prázdné DB.
 - Migrace `20260419230000_media_storage_v1` přidává tabulku `MediaAsset` a enumy pro lokální media storage; po deployi ověř zápis souboru do upload rootu a načtení přes `/media/public/*` nebo legacy `/media/*`.
-- Migrace `20260428133959_voucher_pdf_logo_settings` zůstává historicky v migrační historii a její nullable reference `SiteSettings.voucherPdfLogoMediaId` se nemaže kvůli kompatibilitě; aktuální `/admin/nastaveni` už logo PDF nenabízí. Pro nový voucher PDF workflow ověř migraci `20260916191934_voucher_templates_v1` a master asset `public/brand/vouchers/classic-v1.pdf`.
+- Migrace `20260428133959_voucher_pdf_logo_settings` zůstává historicky v migrační historii a její nullable reference `SiteSettings.voucherPdfLogoMediaId` se nemaže kvůli kompatibilitě; aktuální `/admin/nastaveni` už logo PDF nenabízí. Voucher workflow zavádí jediná migrace `20260922120000_voucher_system_v1`; seed `classic-v1.pdf` je neveřejný bootstrap asset a po bootstrapu renderer používá pouze privátní master z `MEDIA_STORAGE_ROOT`.
 - Admin workflow kategorií služeb nevyžaduje novou DB migraci; navazuje na existující model `ServiceCategory`.
 - Přepracované admin workflow služeb a kategorií nevyžaduje novou DB migraci; změna je čistě v read modelech, server actions a UI vrstvách.
 - Nový layout sekce `Kategorie služeb` také nevyžaduje novou DB migraci; změna zůstává čistě v komponentách, read modelu a server actions nad existujícím `ServiceCategory`.

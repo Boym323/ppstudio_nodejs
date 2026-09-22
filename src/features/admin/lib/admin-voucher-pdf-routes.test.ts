@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { AdminRole, VoucherPrintBatchStatus } from "@/generated/prisma/browser";
-import { VoucherTemplateError } from "@/features/vouchers/lib/voucher-template-registry";
+import { VoucherTemplateError } from "@/features/vouchers/lib/voucher-template-error";
 import type { getVoucherDetail } from "@/features/vouchers/lib/voucher-read-models";
 
 process.env.NEXT_PUBLIC_APP_URL ??= "https://example.com";

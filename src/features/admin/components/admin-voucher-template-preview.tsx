@@ -10,13 +10,13 @@ export function AdminVoucherTemplatePreview({
   alt,
   className,
 }: {
-  src: string;
+  src?: string;
   alt: string;
   className?: string;
 }) {
   const [failed, setFailed] = useState(false);
 
-  if (failed) {
+  if (failed || !src) {
     return (
       <div
         role="img"

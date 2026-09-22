@@ -16,17 +16,17 @@ import {
 import { AdminVoucherTemplatePreview } from "./admin-voucher-template-preview";
 
 type VoucherTemplateOption = {
+  id: string;
   key: string;
   label: string;
-  previewPath: string;
 };
 
 export function AdminVoucherSettingsForm({
-  voucherDefaultTemplateKey,
+  voucherDefaultTemplateId,
   voucherDefaultValidityMonths,
   voucherTemplates,
 }: {
-  voucherDefaultTemplateKey: string;
+  voucherDefaultTemplateId: string | null;
   voucherDefaultValidityMonths: number;
   voucherTemplates: VoucherTemplateOption[];
 }) {
@@ -43,14 +43,13 @@ export function AdminVoucherSettingsForm({
         <SettingsField
           label="Výchozí vzhled voucheru"
           hint="Nastavení ovlivní pouze nově vytvořené vouchery. Historické vouchery si drží vlastní šablonu."
-          error={serverState.fieldErrors?.voucherDefaultTemplateKey}
+          error={serverState.fieldErrors?.voucherDefaultTemplateId}
         >
-          {voucherTemplates.length === 1 ? (
+          {voucherTemplates.length === 1 && voucherTemplates[0].id === voucherDefaultTemplateId ? (
             <>
-              <input type="hidden" name="voucherDefaultTemplateKey" value={voucherTemplates[0].key} />
+              <input type="hidden" name="voucherDefaultTemplateId" value={voucherTemplates[0].id} />
               <div className="mt-2 overflow-hidden rounded-[1rem] border border-[var(--color-accent)]/45 bg-black/20">
                 <AdminVoucherTemplatePreview
-                  src={voucherTemplates[0].previewPath}
                   alt={`Náhled šablony ${voucherTemplates[0].label}`}
                   className="h-auto w-full"
                 />
@@ -63,12 +62,13 @@ export function AdminVoucherSettingsForm({
                 <label key={template.key} className="cursor-pointer rounded-[1rem] border border-white/10 bg-black/20 p-2 has-[:checked]:border-[var(--color-accent)]/60">
                   <input
                     type="radio"
-                    name="voucherDefaultTemplateKey"
-                    value={template.key}
-                    defaultChecked={template.key === voucherDefaultTemplateKey}
+                    name="voucherDefaultTemplateId"
+                    value={template.id}
+                    defaultChecked={template.id === voucherDefaultTemplateId}
+                    required
                     className="sr-only"
                   />
-                  <AdminVoucherTemplatePreview src={template.previewPath} alt={`Náhled šablony ${template.label}`} className="h-auto w-full rounded-lg" />
+                  <AdminVoucherTemplatePreview alt={`Náhled šablony ${template.label}`} className="h-auto w-full rounded-lg" />
                   <span className="mt-2 block px-1 text-sm text-white/82">{template.label}</span>
                 </label>
               ))}
@@ -96,7 +96,7 @@ export function AdminVoucherSettingsForm({
         </SettingsField>
       </div>
 
-      <SettingsFormFooter note="Výchozí vzhled se uloží ke každému novému voucheru jako přesný template key." />
+      <SettingsFormFooter note="Výchozí vzhled se uloží ke každému novému voucheru jako přesná template reference." />
     </form>
   );
 }

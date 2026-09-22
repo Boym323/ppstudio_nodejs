@@ -211,7 +211,7 @@ export function createAdminVoucherStockRoute(area: AdminArea) {
 export function createAdminVoucherStockCreateRoute() {
   return async function AdminVoucherStockCreateRoute() {
     await requireAdminSectionAccess("owner", "vouchery");
-    return <AdminVoucherStockCreatePage data={getAdminVoucherStockCreatePageData()} />;
+    return <AdminVoucherStockCreatePage data={await getAdminVoucherStockCreatePageData()} />;
   };
 }
 

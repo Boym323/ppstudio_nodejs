@@ -1,24 +1,16 @@
 import { ensureSiteSettings } from "@/lib/site-settings";
 import { prisma } from "@/lib/prisma";
 import { getOwnerCalendarFeedAdminState } from "@/features/calendar/lib/calendar-feed-service";
-import {
-  getActiveVoucherTemplatesForNewVouchers,
-  voucherTemplateRegistry,
-  type VoucherTemplateRegistry,
-} from "@/features/vouchers/lib/voucher-template-registry";
+import { listPublishedVoucherTemplates } from "@/features/vouchers/lib/voucher-template-repository";
 
-export function getAdminVoucherTemplateOptions(registry: VoucherTemplateRegistry = voucherTemplateRegistry) {
-  return getActiveVoucherTemplatesForNewVouchers(registry).map((template) => ({
-    key: template.key,
-    label: template.label,
-    previewPath: `/${template.previewPath.replace(/^public\//, "")}`,
-  }));
+export function getAdminVoucherTemplateOptions(templates: readonly { id: string; key: string; label: string }[]) {
+  return templates.map((template) => ({ id: template.id, key: template.key, label: template.label }));
 }
 
 export async function getAdminSettingsPageData(email: string) {
   const settings = await ensureSiteSettings();
   const selectedMediaIds = [...new Set([settings.contactPhotoMediaId, settings.homePortraitMediaId, settings.aboutPortraitMediaId].filter((id): id is string => Boolean(id)))];
-  const [calendarFeed, ownerNotificationSettings, mediaAssets] = await Promise.all([
+  const [calendarFeed, ownerNotificationSettings, mediaAssets, voucherTemplates] = await Promise.all([
     getOwnerCalendarFeedAdminState(),
     prisma.adminUser.findFirst({
       where: {
@@ -45,6 +37,7 @@ export async function getAdminSettingsPageData(email: string) {
       },
     }),
     selectedMediaIds.length ? prisma.mediaAsset.findMany({ where: { id: { in: selectedMediaIds }, deletionRequestedAt: null }, select: { id: true, title: true, fileName: true, altText: true, visibility: true, isPublished: true, thumbnailUrl: true, optimizedUrl: true, url: true } }) : Promise.resolve([]),
+    listPublishedVoucherTemplates(),
   ]);
 
   const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
@@ -63,9 +56,9 @@ export async function getAdminSettingsPageData(email: string) {
     phone: settings.phone,
     contactEmail: settings.contactEmail,
     instagramUrl: settings.instagramUrl,
-    voucherDefaultTemplateKey: settings.voucherDefaultTemplateKey,
+    voucherDefaultTemplateId: settings.voucherDefaultTemplateId,
     voucherDefaultValidityMonths: settings.voucherDefaultValidityMonths,
-    voucherTemplates: getAdminVoucherTemplateOptions(),
+    voucherTemplates: getAdminVoucherTemplateOptions(voucherTemplates),
     contactPhotoMediaId: settings.contactPhotoMediaId ?? null,
     homePortraitMediaId: settings.homePortraitMediaId ?? null,
     aboutPortraitMediaId: settings.aboutPortraitMediaId ?? null,

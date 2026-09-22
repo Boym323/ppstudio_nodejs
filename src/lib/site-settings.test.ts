@@ -87,6 +87,6 @@ test("výchozí SiteSettings obsahují defaultní template a platnost voucheru",
   const { getSiteSettings } = await import("@/lib/site-settings");
   const settings = await getSiteSettings();
 
-  assert.equal(settings.voucherDefaultTemplateKey, "classic-v1");
+  assert.equal(settings.voucherDefaultTemplateId, null);
   assert.equal(settings.voucherDefaultValidityMonths, 12);
 });

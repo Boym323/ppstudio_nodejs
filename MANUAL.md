@@ -27,6 +27,10 @@ Tento soubor je průběžný uživatelský a provozní manuál projektu.
 - Pokud přibude nová chyba a její fix, doplň ji do Troubleshooting.
 
 ## Build a nasazení
+
+## Šablony voucherů
+
+OWNER spravuje šablony v `/admin/vouchery/sablony`. Draft lze nahrát a upravit v milimetrech; publikovanou šablonu nelze změnit, pro další grafickou verzi vytvoř novou verzi. Před prvním použitím po nasazení spusť `npm run voucher:templates:bootstrap`. Zálohuj vždy databázi i `MEDIA_STORAGE_ROOT`, protože obsahuje privátní PDF mastery. Neaktivní šablony se nesmí používat pro nové vouchery, ale zůstávají potřebné pro historický tisk a e-mail.
 - Doporučený produkční rollout script je [`deploy/release.sh`](deploy/release.sh).
 - Spouštěj z rootu repozitáře:
   - `cd /var/www/ppstudio`

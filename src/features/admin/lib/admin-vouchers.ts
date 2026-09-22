@@ -2,13 +2,8 @@ import { Prisma, type VoucherStatus, type VoucherType } from "@/generated/prisma
 
 import { type AdminArea } from "@/config/navigation";
 import { getVoucherDetail, listVouchers } from "@/features/vouchers/lib/voucher-read-models";
-import {
-  getActiveVoucherTemplatesForNewVouchers,
-  requireVoucherTemplate,
-  voucherTemplateRegistry,
-  type VoucherTemplateRegistry,
-} from "@/features/vouchers/lib/voucher-template-registry";
 import { prisma } from "@/lib/prisma";
+import { getVoucherTemplateById, listPublishedVoucherTemplates } from "@/features/vouchers/lib/voucher-template-repository";
 import { getSiteSettings } from "@/lib/site-settings";
 import {
   addVoucherValidityMonths,
@@ -118,11 +113,10 @@ function formatDateInputValue(value: Date) {
 
 export function buildVoucherCreateInitialValues(
   today: Date,
-  settings: Pick<Awaited<ReturnType<typeof getSiteSettings>>, "voucherDefaultTemplateKey" | "voucherDefaultValidityMonths">,
-  registry: VoucherTemplateRegistry = voucherTemplateRegistry,
+  settings: Pick<Awaited<ReturnType<typeof getSiteSettings>>, "voucherDefaultTemplateId" | "voucherDefaultValidityMonths">,
+  templates: readonly { id: string; key: string; allowedTypes: readonly string[] }[],
 ) {
-  const templates = getActiveVoucherTemplatesForNewVouchers(registry);
-  const defaultTemplate = templates.find((template) => template.key === settings.voucherDefaultTemplateKey) ?? templates[0];
+  const defaultTemplate = templates.find((template) => template.id === settings.voucherDefaultTemplateId && template.allowedTypes.includes("VALUE"));
 
   return {
     type: "VALUE" as const,
@@ -275,9 +269,10 @@ export async function getAdminVoucherDetailData(area: AdminArea, voucherId: stri
     return null;
   }
 
+  const template = voucher.templateId ? await getVoucherTemplateById(voucher.templateId) : null;
   return {
     ...voucher,
-    templateLabel: requireVoucherTemplate(voucher.templateKey).label,
+    templateLabel: template?.label ?? "Chybějící šablona",
     area,
     listHref: getAdminVouchersHref(area),
     detailHref: getAdminVoucherHref(area, voucher.id),
@@ -296,7 +291,7 @@ export async function getAdminVoucherDetailData(area: AdminArea, voucherId: stri
 
 export async function getAdminVoucherCreatePageData(area: AdminArea) {
   const today = new Date();
-  const [settings, services] = await Promise.all([getSiteSettings(), prisma.service.findMany({
+  const [settings, services, persistedTemplates] = await Promise.all([getSiteSettings(), prisma.service.findMany({
     where: {
       isActive: true,
       priceFromCzk: { not: null },
@@ -319,14 +314,20 @@ export async function getAdminVoucherCreatePageData(area: AdminArea) {
         },
       },
     },
-  })]);
-  const templates = getActiveVoucherTemplatesForNewVouchers();
+  }), listPublishedVoucherTemplates()]);
+  const templates = persistedTemplates;
+  const defaultTemplate = templates.find((template) => template.id === settings.voucherDefaultTemplateId);
 
   return {
     area,
     listHref: getAdminVouchersHref(area),
     services,
     templates,
-    initialValues: buildVoucherCreateInitialValues(today, settings),
+    initialValues: {
+      type: "VALUE" as const,
+      templateKey: defaultTemplate?.allowedTypes.includes("VALUE") ? defaultTemplate.key : "",
+      validFrom: formatDateInputValue(today),
+      validUntil: formatDateInputValue(addVoucherValidityMonths(today, settings.voucherDefaultValidityMonths)),
+    },
   };
 }

@@ -2,7 +2,7 @@ import { AdminRole } from "@/generated/prisma/browser";
 import { NextResponse } from "next/server";
 
 import { getVoucherDetail } from "@/features/vouchers/lib/voucher-read-models";
-import { buildVoucherPdfFilename, generateVoucherDigitalPdf } from "@/features/vouchers/lib/voucher-pdf";
+import { buildVoucherPdfFilename, generatePersistedVoucherDigitalPdf } from "@/features/vouchers/lib/voucher-pdf";
 import { getSession } from "@/lib/auth/session";
 import { handleVoucherPdfError } from "@/features/admin/lib/admin-voucher-pdf-error";
 
@@ -13,13 +13,13 @@ type VoucherPdfRouteParams = Promise<{
 type VoucherPdfRouteDependencies = {
   getSession?: typeof getSession;
   getVoucher?: typeof getVoucherDetail;
-  generatePdf?: typeof generateVoucherDigitalPdf;
+  generatePdf?: typeof generatePersistedVoucherDigitalPdf;
 };
 
 export function createAdminVoucherPdfRoute(dependencies: VoucherPdfRouteDependencies = {}) {
   const getSessionFn = dependencies.getSession ?? getSession;
   const getVoucher = dependencies.getVoucher ?? getVoucherDetail;
-  const generatePdf = dependencies.generatePdf ?? generateVoucherDigitalPdf;
+  const generatePdf = dependencies.generatePdf ?? generatePersistedVoucherDigitalPdf;
 
   return async function AdminVoucherPdfRoute(
     _request: Request,

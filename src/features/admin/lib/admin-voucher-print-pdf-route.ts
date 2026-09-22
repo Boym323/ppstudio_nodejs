@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { getVoucherDetail } from "@/features/vouchers/lib/voucher-read-models";
 import {
   buildVoucherPrintPdfFilename,
-  generateVoucherPrintPdf,
+  generatePersistedVoucherPrintPdf,
 } from "@/features/vouchers/lib/voucher-pdf";
 import { getSession } from "@/lib/auth/session";
 import { handleVoucherPdfError } from "@/features/admin/lib/admin-voucher-pdf-error";
@@ -16,13 +16,13 @@ type VoucherPrintPdfRouteParams = Promise<{
 type VoucherPrintPdfRouteDependencies = {
   getSession?: typeof getSession;
   getVoucher?: typeof getVoucherDetail;
-  generatePdf?: typeof generateVoucherPrintPdf;
+  generatePdf?: typeof generatePersistedVoucherPrintPdf;
 };
 
 export function createAdminVoucherPrintPdfRoute(dependencies: VoucherPrintPdfRouteDependencies = {}) {
   const getSessionFn = dependencies.getSession ?? getSession;
   const getVoucher = dependencies.getVoucher ?? getVoucherDetail;
-  const generatePdf = dependencies.generatePdf ?? generateVoucherPrintPdf;
+  const generatePdf = dependencies.generatePdf ?? generatePersistedVoucherPrintPdf;
 
   return async function AdminVoucherPrintPdfRoute(
     _request: Request,

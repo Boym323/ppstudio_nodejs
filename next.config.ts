@@ -37,6 +37,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+  outputFileTracingIncludes: {
+    "/*": ["src/features/vouchers/bootstrap-assets/**/*"],
+  },
   allowedDevOrigins: ["192.168.0.143", "ppstudio.cz", "www.ppstudio.cz","192.168.0.150"],
   deploymentId:
     process.env.NEXT_DEPLOYMENT_ID

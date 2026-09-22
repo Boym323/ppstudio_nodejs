@@ -10,7 +10,7 @@ import {
   createVoucherTemplateRegistry,
   requireVoucherTemplate,
   VoucherTemplateError,
-} from "@/features/vouchers/lib/voucher-template-registry";
+} from "@/features/vouchers/lib/voucher-template-test-registry";
 
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
 process.env.NEXT_PUBLIC_APP_URL ??= "https://ppstudio.cz";
@@ -24,11 +24,11 @@ process.env.ADMIN_STAFF_PASSWORD ??= "change-me-staff";
 process.env.EMAIL_DELIVERY_MODE ??= "log";
 
 test("classic-v1 master existuje ve správné cestě", async () => {
-  await access("public/brand/vouchers/classic-v1.pdf");
+  await access("src/features/vouchers/bootstrap-assets/classic-v1.pdf");
 });
 
 test("overlay data obsahují českou VALUE částku a verification URL", async () => {
-  const { buildVoucherPdfOverlayData } = await import("./voucher-pdf-core");
+  const { buildVoucherPdfOverlayData } = await import("./voucher-pdf-test-renderers");
   const data = buildVoucherPdfOverlayData(
     buildVoucherFixture({
       originalValueCzk: 1500,
@@ -46,7 +46,7 @@ test("overlay data obsahují českou VALUE částku a verification URL", async (
 });
 
 test("overlay data používají snapshot SERVICE názvu včetně diakritiky", async () => {
-  const { buildVoucherPdfOverlayData } = await import("./voucher-pdf-core");
+  const { buildVoucherPdfOverlayData } = await import("./voucher-pdf-test-renderers");
   const data = buildVoucherPdfOverlayData(
     buildVoucherFixture({
       type: VoucherType.SERVICE,
@@ -61,7 +61,7 @@ test("overlay data používají snapshot SERVICE názvu včetně diakritiky", as
 });
 
 test("dlouhý název služby se vejde do dvou řádků a při overflowu dostane ellipsis", async () => {
-  const { fitVoucherText } = await import("./voucher-pdf-core");
+  const { fitVoucherText } = await import("./voucher-pdf-test-renderers");
   const measure = (value: string, size: number) => Array.from(value).length * size;
   const wrap = (value: string, size: number, maxWidth: number) => {
     const maxCharacters = Math.max(1, Math.floor(maxWidth / size));
@@ -91,7 +91,7 @@ test("dlouhý název služby se vejde do dvou řádků a při overflowu dostane 
 });
 
 test("PRINT renderer zvládne běžné, dlouhé, extrémní i diakritické SERVICE názvy", async () => {
-  const { generateVoucherPrintPdf } = await import("./voucher-pdf-core");
+  const { generateVoucherPrintPdf } = await import("./voucher-pdf-test-renderers");
   const names = [
     "Lash lifting",
     "Velmi dlouhá služba pro výrazné prodloužení řas",
@@ -114,14 +114,14 @@ test("PRINT renderer zvládne běžné, dlouhé, extrémní i diakritické SERVI
 });
 
 test("overlay ignoruje osobní a interní voucherová pole", async () => {
-  const { buildVoucherPdfOverlayData } = await import("./voucher-pdf-core");
+  const { buildVoucherPdfOverlayData } = await import("./voucher-pdf-test-renderers");
   const data = buildVoucherPdfOverlayData(buildVoucherFixture());
 
   assert.doesNotMatch(JSON.stringify(data), /Marie Kupující|Obdarovaná|Soukromé věnování|Neveřejná poznámka/);
 });
 
 test("neznámý templateKey se při renderu odmítne bez fallbacku", async () => {
-  const { generateVoucherPrintPdf } = await import("./voucher-pdf-core");
+  const { generateVoucherPrintPdf } = await import("./voucher-pdf-test-renderers");
 
   await assert.rejects(
     () => generateVoucherPrintPdf(buildVoucherFixture({ templateKey: "classic-v2" })),
@@ -130,7 +130,7 @@ test("neznámý templateKey se při renderu odmítne bez fallbacku", async () =>
 });
 
 test("generuje PRINT PDF přes master s bleedem a TrimBoxem", async () => {
-  const { generateVoucherPrintPdf, mm } = await import("./voucher-pdf-core");
+  const { generateVoucherPrintPdf, mm } = await import("./voucher-pdf-test-renderers");
   const pdfBytes = await generateVoucherPrintPdf(buildVoucherFixture());
   const pdf = await PDFDocument.load(pdfBytes);
   const page = pdf.getPage(0);
@@ -146,7 +146,7 @@ test("generuje PRINT PDF přes master s bleedem a TrimBoxem", async () => {
 });
 
 test("odmítne master s rozměrem odlišným od layoutu šablony", async () => {
-  const { generateVoucherPrintPdf } = await import("./voucher-pdf-core");
+  const { generateVoucherPrintPdf } = await import("./voucher-pdf-test-renderers");
   const classic = requireVoucherTemplate("classic-v1");
   const invalidSizeTemplate = {
     ...classic,
@@ -171,7 +171,7 @@ test("odmítne master s rozměrem odlišným od layoutu šablony", async () => {
 });
 
 test("generuje DIGITAL PDF vektorovým ořezem PRINT varianty", async () => {
-  const { generateVoucherDigitalPdf, mm } = await import("./voucher-pdf-core");
+  const { generateVoucherDigitalPdf, mm } = await import("./voucher-pdf-test-renderers");
   const pdfBytes = await generateVoucherDigitalPdf(buildVoucherFixture());
   const pdf = await PDFDocument.load(pdfBytes);
   const page = pdf.getPage(0);
@@ -183,8 +183,29 @@ test("generuje DIGITAL PDF vektorovým ořezem PRINT varianty", async () => {
   assert.equal(Buffer.from(pdfBytes).subarray(0, 4).toString("utf8"), "%PDF");
 });
 
+test("historický voucher po backfillu má PRINT, DIGITAL i e-mailovou přílohu", async () => {
+  const { generateVoucherPrintPdf, generateVoucherDigitalPdf } = await import("./voucher-pdf-test-renderers");
+  const { buildVoucherEmailTemplate } = await import("./voucher-email-template");
+  const voucher = buildVoucherFixture({ templateId: "classic-template" });
+  const printPdf = await generateVoucherPrintPdf(voucher);
+  const digitalPdf = await generateVoucherDigitalPdf(voucher);
+  const email = await buildVoucherEmailTemplate({
+    subject: "Dárkový poukaz PP Studio",
+    voucher,
+    salon: { name: "PP Studio", addressLine: "Sadová 2, Zlín", phone: "+420 732 856 036", email: "info@ppstudio.cz" },
+    verificationUrl: "https://ppstudio.cz/vouchery/overeni?code=PP-2026-A7K9X2",
+    pdfFilename: "voucher-PP-2026-A7K9X2.pdf",
+    pdfBytes: digitalPdf,
+  });
+
+  assert.equal((await PDFDocument.load(printPdf)).getPageCount(), 1);
+  assert.equal((await PDFDocument.load(digitalPdf)).getPageCount(), 1);
+  assert.equal(email.attachments[0]?.contentType, "application/pdf");
+  assert.equal(Buffer.from(email.attachments[0]?.content ?? []).subarray(0, 4).toString("utf8"), "%PDF");
+});
+
 test("renderer používá layout druhé template včetně QR a validity souřadnic", async () => {
-  const { generateVoucherPrintPdf, mm } = await import("./voucher-pdf-core");
+  const { generateVoucherPrintPdf, mm } = await import("./voucher-pdf-test-renderers");
   const classic = requireVoucherTemplate("classic-v1");
   const mockTemplate = {
     ...classic,
@@ -210,7 +231,7 @@ test("renderer používá layout druhé template včetně QR a validity souřadn
 });
 
 test("historickou inactive template lze renderovat, ale není aktivní pro nové vouchery", async () => {
-  const { generateVoucherDigitalPdf } = await import("./voucher-pdf-core");
+  const { generateVoucherDigitalPdf } = await import("./voucher-pdf-test-renderers");
   const classic = requireVoucherTemplate("classic-v1");
   const inactiveTemplate = { ...classic, key: "test-template-inactive-v1", activeForNewVouchers: false };
   const registry = createVoucherTemplateRegistry([classic, inactiveTemplate]);
@@ -225,7 +246,7 @@ test("historickou inactive template lze renderovat, ale není aktivní pro nové
 });
 
 test("předtištěná stránka vykreslí pouze kód a QR a batch PDF má jednu stránku na kus", async () => {
-  const { generateVoucherBatchPrintPdf, generateVoucherStockPrintPage, mm } = await import("./voucher-pdf-core");
+  const { generateVoucherBatchPrintPdf, generateVoucherStockPrintPage, mm } = await import("./voucher-pdf-test-renderers");
   const items = [
     { code: "PP-2026-STOCK1" },
     { code: "PP-2026-STOCK2" },
@@ -296,6 +317,7 @@ function buildBaseVoucherFixture() {
     code: "PP-2026-A7K9X2",
     type: VoucherType.VALUE as VoucherType,
     templateKey: "classic-v1",
+    templateId: null as string | null,
     status: VoucherStatus.ACTIVE as VoucherStatus,
     effectiveStatus: VoucherStatus.ACTIVE as VoucherStatus,
     typeLabel: "Hodnotový poukaz",

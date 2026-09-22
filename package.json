@@ -57,6 +57,7 @@
     "admin:recover-owner": "tsx scripts/recover-admin-owner.ts",
     "db:clear-booking-data": "node scripts/clear-booking-data.mjs",
     "media:audit": "tsx scripts/media-audit.ts"
+    ,"voucher:templates:bootstrap": "node --env-file=.env ./node_modules/tsx/dist/cli.mjs scripts/bootstrap-voucher-templates.ts"
   },
   "dependencies": {
     "@fontsource/noto-sans": "^5.3.0",
@@ -79,6 +80,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-email": "6.9.3",
+    "react-rnd": "^10.5.3",
     "recharts": "^3.10.1",
     "server-only": "^0.0.1",
     "sharp": "^0.35.3",

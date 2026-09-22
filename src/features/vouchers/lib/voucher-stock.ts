@@ -9,12 +9,6 @@ import {
 
 import { allocateVoucherCodes, normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import {
-  getVoucherTemplate,
-  isVoucherTemplateAllowedForType,
-  voucherTemplateRegistry,
-  type VoucherTemplateRegistry,
-} from "@/features/vouchers/lib/voucher-template-registry";
-import {
   addVoucherValidityMonths,
   getVoucherPragueDateBoundary,
   getVoucherPragueCalendarYear,
@@ -77,7 +71,6 @@ type VoucherStockBatchCreateInput = {
   quantity: number;
   createdByUserId: string;
   now?: Date;
-  registry?: VoucherTemplateRegistry;
 };
 
 async function lockBatchNumberAllocation(tx: Prisma.TransactionClient) {
@@ -116,40 +109,37 @@ export async function createVoucherPrintBatch(input: VoucherStockBatchCreateInpu
     );
   }
 
-  const registry = input.registry ?? voucherTemplateRegistry;
-  const template = registry.get(input.templateKey);
-
-  if (!template) {
-    throw new VoucherStockOperationError(
-      voucherStockOperationErrorCodes.invalidTemplate,
-      "Vybraný vzhled voucheru neexistuje.",
-    );
-  }
-
-  if (!template.activeForNewVouchers) {
-    throw new VoucherStockOperationError(
-      voucherStockOperationErrorCodes.templateUnavailable,
-      "Vybraný vzhled není dostupný pro nové tiskové série.",
-    );
-  }
-
-  if (template.allowedTypes.length === 0) {
-    throw new VoucherStockOperationError(
-      voucherStockOperationErrorCodes.templateNotAllowed,
-      "Vybraný vzhled nepodporuje žádný aktivovatelný typ voucheru.",
-    );
-  }
-
   const now = input.now ?? new Date();
 
   for (let attempt = 0; attempt < MAX_BATCH_TRANSACTION_ATTEMPTS; attempt += 1) {
     try {
       return await runSerializableTransaction(async (tx) => {
+        const template = await tx.voucherTemplate.findUnique({ where: { key: input.templateKey } });
+        if (!template) {
+          throw new VoucherStockOperationError(
+            voucherStockOperationErrorCodes.invalidTemplate,
+            "Vybraný vzhled voucheru neexistuje.",
+          );
+        }
+        if (template.status !== "PUBLISHED") {
+          throw new VoucherStockOperationError(
+            voucherStockOperationErrorCodes.templateUnavailable,
+            "Vybraný vzhled není dostupný pro nové tiskové série.",
+          );
+        }
+        if (template.allowedTypes.length === 0) {
+          throw new VoucherStockOperationError(
+            voucherStockOperationErrorCodes.templateNotAllowed,
+            "Vybraný vzhled nepodporuje žádný aktivovatelný typ voucheru.",
+          );
+        }
+
         const batchNumber = await allocateBatchNumber(tx, getVoucherPragueCalendarYear(now));
         const batch = await tx.voucherPrintBatch.create({
           data: {
             batchNumber,
             templateKey: template.key,
+            templateId: template.id,
             quantity,
             status: VoucherPrintBatchStatus.PENDING_PRINT,
             createdByUserId: input.createdByUserId,
@@ -450,12 +440,21 @@ export async function activateVoucherStockItem(input: ActivateVoucherStockItemOp
       throw new VoucherStockOperationError(voucherStockOperationErrorCodes.itemNotAvailable, "Voucher zatím není připravený k aktivaci.");
     }
 
-    const template = getVoucherTemplate(stockItem.batch.templateKey);
+    const template = stockItem.batch.templateId
+      ? await tx.voucherTemplate.findUnique({ where: { id: stockItem.batch.templateId } })
+      : null;
     if (!template) {
-      throw new VoucherStockOperationError(voucherStockOperationErrorCodes.invalidTemplate, "Historický vzhled voucheru už není v registru.");
+      throw new VoucherStockOperationError(voucherStockOperationErrorCodes.invalidTemplate, "Historický vzhled voucheru už není dostupný.");
     }
 
-    if (!isVoucherTemplateAllowedForType(template, parsed.type)) {
+    if (template.status !== "PUBLISHED") {
+      throw new VoucherStockOperationError(
+        voucherStockOperationErrorCodes.templateUnavailable,
+        "Vybraný vzhled už není dostupný pro novou aktivaci.",
+      );
+    }
+
+    if (!template.allowedTypes.includes(parsed.type)) {
       throw new VoucherStockOperationError(voucherStockOperationErrorCodes.templateNotAllowed, "Tento vzhled nepodporuje vybraný typ voucheru.");
     }
 
@@ -515,6 +514,7 @@ export async function activateVoucherStockItem(input: ActivateVoucherStockItemOp
             code,
             type: VoucherType.VALUE,
             templateKey: stockItem.batch.templateKey,
+            templateId: stockItem.batch.templateId,
             status: VoucherStatus.ACTIVE,
             originalValueCzk: parsed.originalValueCzk,
             remainingValueCzk: parsed.originalValueCzk,
@@ -527,6 +527,7 @@ export async function activateVoucherStockItem(input: ActivateVoucherStockItemOp
             code,
             type: VoucherType.SERVICE,
             templateKey: stockItem.batch.templateKey,
+            templateId: stockItem.batch.templateId,
             status: VoucherStatus.ACTIVE,
             originalValueCzk: service!.priceFromCzk,
             remainingValueCzk: null,

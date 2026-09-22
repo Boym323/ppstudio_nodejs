@@ -26,10 +26,7 @@ import {
 } from "@/features/vouchers/lib/voucher-operations";
 import { optionalVoucherValidityDate } from "@/features/vouchers/lib/voucher-validity-date";
 import { createVoucherSchema } from "@/features/vouchers/schemas/voucher-schemas";
-import {
-  getVoucherTemplate,
-  isVoucherTemplateAllowedForType,
-} from "@/features/vouchers/lib/voucher-template-registry";
+import { getVoucherTemplateByKey, isVoucherTemplateAllowedForType } from "@/features/vouchers/lib/voucher-template-repository";
 import { requireRole } from "@/lib/auth/session";
 import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
@@ -102,6 +99,8 @@ function getVoucherManagementFormError(error: unknown) {
       return "Vybraná služba už není aktivní.";
     case voucherManagementErrorCodes.servicePriceMissing:
       return "Vybraná služba nemá nastavenou cenu a nelze ji použít pro voucher.";
+    case voucherManagementErrorCodes.templateUnavailable:
+      return "Vybraný vzhled voucheru už není dostupný.";
     case voucherManagementErrorCodes.transientConflict:
       return "Voucher se kvůli souběžné změně nepodařilo vytvořit. Zkuste to prosím znovu.";
     case voucherManagementErrorCodes.operationFailed:
@@ -152,8 +151,8 @@ export async function createAdminVoucherAction(
     };
   }
 
-  const template = getVoucherTemplate(parsed.data.templateKey);
-  if (!template || !template.activeForNewVouchers || !isVoucherTemplateAllowedForType(template, parsed.data.type)) {
+  const template = await getVoucherTemplateByKey(parsed.data.templateKey);
+  if (!template || template.status !== "PUBLISHED" || !isVoucherTemplateAllowedForType(template, parsed.data.type)) {
     return {
       status: "error",
       formError: "Vybraný vzhled voucheru už není dostupný.",

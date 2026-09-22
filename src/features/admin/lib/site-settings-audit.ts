@@ -11,15 +11,18 @@ export async function updateSiteSettingsWithAudit({
   operation,
   data,
   snapshots,
+  validate,
 }: {
   actorUserId: string;
   operation: SiteSettingsChangeOperation;
   data: Prisma.SiteSettingsUncheckedUpdateInput;
   snapshots: (current: SiteSettings) => { before: AuditSnapshot; after: AuditSnapshot };
+  validate?: (tx: Prisma.TransactionClient, current: SiteSettings) => Promise<void>;
 }) {
   await ensureSiteSettings();
   return runSerializableTransaction(async (tx) => {
     const current = await tx.siteSettings.findUniqueOrThrow({ where: { id: SITE_SETTINGS_ID } });
+    await validate?.(tx, current);
     const selected = snapshots(current);
     const auditChange = buildAuditChange(selected.before, selected.after);
     if (!auditChange) return current;

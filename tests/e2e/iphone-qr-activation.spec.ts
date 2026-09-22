@@ -21,12 +21,14 @@ async function loginAdmin(page: Page, email: string, password: string) {
 
 async function createStockItem(runId: string, ownerEmail: string, status: VoucherStockItemStatus) {
   const owner = await prisma.adminUser.findUniqueOrThrow({ where: { email: ownerEmail }, select: { id: true } });
+  const classicTemplate = await prisma.voucherTemplate.findUniqueOrThrow({ where: { key: "classic-v1" }, select: { id: true, key: true } });
   const suffix = `${runId.replace(/[^a-z0-9]/gi, "").slice(-8)}${status.slice(0, 2)}`.toUpperCase();
   const code = `PP-2026-${suffix}`;
   const batch = await prisma.voucherPrintBatch.create({
     data: {
       batchNumber: `2026-E2E-${suffix}`,
       templateKey: "classic-v1",
+      templateId: classicTemplate.id,
       quantity: 1,
       status: status === VoucherStockItemStatus.PENDING_PRINT ? VoucherPrintBatchStatus.PENDING_PRINT : VoucherPrintBatchStatus.RECEIVED,
       createdByUserId: owner.id,
@@ -51,6 +53,8 @@ async function createStockItem(runId: string, ownerEmail: string, status: Vouche
       data: {
         code,
         type: VoucherType.VALUE,
+        templateKey: classicTemplate.key,
+        templateId: classicTemplate.id,
         status: VoucherStatus.ACTIVE,
         originalValueCzk: 1500,
         remainingValueCzk: 1500,

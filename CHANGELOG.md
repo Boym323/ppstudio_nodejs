@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Přidáno
 
+- Základ persistentní domény `VoucherTemplate`: verzované drafty, audit lifecycle, trusted Noto Sans registry, validace layoutu v milimetrech a privátní storage masterů s SHA-256 kontrolou.
 - Vouchery používají verzované master PDF šablony s uloženým `templateKey`; administrace nabízí nastavení výchozího vzhledu a výchozí platnosti nových voucherů.
 - OWNER může v `/admin/vouchery/predtistene` připravit číslovanou tiskovou sérii předtištěných voucherů; po příjmu ji OWNER nebo SALON aktivuje až při prodeji, přičemž kód a QR zůstávají stejné napříč evidencí, voucherem i veřejným ověřením.
 - Přihlášený OWNER nebo SALON nyní může dostupný předtištěný voucher otevřený přes veřejné QR ověření rovnou přejít do standardní aktivace; anonymní návštěvník dál vidí pouze veřejný stav.
@@ -34,6 +35,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Voucher Template bootstrap nyní bezpečně backfilluje historické řádky na `classic-v1`, při selhání uklízí pouze nově vytvořený master a OWNER administrace vystavuje celý lifecycle šablony bez runtime legacy fallbacku.
+- Změny voucherových šablon nyní zapisují doménovou mutaci a audit atomicky, master se přepíná s bezpečným DB commit pointem, audit DELETE_DRAFT zachovává snapshot a souběžná deaktivace/publikace/nová issuance znovu ověřují aktuální stav.
 - Jednotlivý předtištěný voucher nelze znehodnotit před převzetím série, takže opakovaně stažené deterministické PDF nemůže obsahovat individuálně znehodnocený kód.
 - Vývojový checklist šablon voucherů už neobsahuje zastaralé zkrácení jen na master, preview a registry definici.
 - Název SERVICE voucheru se při overflowu už tiše neuřízne: po zmenšení na minimální velikost použije poslední viditelný řádek s ellipsis. Corrupt SERVICE voucher bez cenového snapshotu už v booking detailu nepoužívá aktuální cenu služby jako částku k uplatnění.

@@ -12,7 +12,7 @@ import { buildVoucherEmailTemplate } from "@/features/vouchers/lib/voucher-email
 import {
   buildVoucherPdfFilename,
   buildVoucherVerificationUrl,
-  generateVoucherDigitalPdf,
+  generatePersistedVoucherDigitalPdf,
 } from "@/features/vouchers/lib/voucher-pdf-core";
 import { getVoucherDetail } from "@/features/vouchers/lib/voucher-read-models";
 import {
@@ -666,7 +666,7 @@ export async function renderEmailTemplate(
         throw new Error("Voucher pro e-mail nebyl nalezen.");
       }
 
-      const pdfBytes = await generateVoucherDigitalPdf(voucher);
+      const pdfBytes = await generatePersistedVoucherDigitalPdf(voucher);
       const verificationUrl = buildVoucherVerificationUrl(voucher.code);
       const voucherEmail = await buildVoucherEmailTemplate({
         subject: safeSubject,

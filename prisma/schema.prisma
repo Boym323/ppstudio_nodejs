@@ -170,6 +170,23 @@ enum VoucherType {
   SERVICE
 }
 
+enum VoucherTemplateStatus {
+  DRAFT
+  PUBLISHED
+  INACTIVE
+}
+
+enum VoucherTemplateAuditOperation {
+  CREATE_DRAFT
+  UPDATE_DRAFT
+  UPLOAD_MASTER
+  VALIDATE
+  PUBLISH
+  DEACTIVATE
+  CLONE_VERSION
+  DELETE_DRAFT
+}
+
 enum VoucherStatus {
   DRAFT
   ACTIVE
@@ -269,6 +286,10 @@ model AdminUser {
   activatedVoucherStockItems     VoucherStockItem[]        @relation("VoucherStockItemActivatedBy")
   voidedVoucherStockItems        VoucherStockItem[]        @relation("VoucherStockItemVoidedBy")
   voucherStockAuditLogs           VoucherStockAuditLog[]    @relation("VoucherStockAuditLogActor")
+  createdVoucherTemplates        VoucherTemplate[]         @relation("VoucherTemplateCreatedBy")
+  publishedVoucherTemplates      VoucherTemplate[]         @relation("VoucherTemplatePublishedBy")
+  inactivatedVoucherTemplates    VoucherTemplate[]         @relation("VoucherTemplateInactivatedBy")
+  voucherTemplateAuditLogs       VoucherTemplateAuditLog[] @relation("VoucherTemplateAuditActor")
 }
 
 model AdminUserAuditEvent {
@@ -635,6 +656,7 @@ model Voucher {
   code                    String              @unique
   type                    VoucherType
   templateKey             String              @default("classic-v1")
+  templateId              String?
   status                  VoucherStatus       @default(DRAFT)
   purchaserName           String?
   purchaserEmail          String?
@@ -665,6 +687,7 @@ model Voucher {
   redemptions             VoucherRedemption[]
   changeLogs              VoucherChangeLog[]
   stockItem               VoucherStockItem?     @relation("VoucherStockItemVoucher")
+  template                VoucherTemplate?      @relation("VoucherTemplateVouchers", fields: [templateId], references: [id], onDelete: Restrict)
 
   @@index([code])
   @@index([status, validUntil])
@@ -673,12 +696,14 @@ model Voucher {
   @@index([createdByUserId])
   @@index([cancelledByUserId])
   @@index([updatedByUserId])
+  @@index([templateId])
 }
 
 model VoucherPrintBatch {
   id                String                  @id @default(cuid())
   batchNumber       String                  @unique
   templateKey       String
+  templateId        String?
   quantity          Int
   status            VoucherPrintBatchStatus @default(PENDING_PRINT)
   createdAt         DateTime                @default(now())
@@ -692,12 +717,69 @@ model VoucherPrintBatch {
   closedByUser     AdminUser?              @relation("VoucherPrintBatchClosedBy", fields: [closedByUserId], references: [id], onDelete: SetNull)
   items             VoucherStockItem[]
   auditLogs         VoucherStockAuditLog[]
+  template          VoucherTemplate?         @relation("VoucherTemplatePrintBatches", fields: [templateId], references: [id], onDelete: Restrict)
 
   @@index([status, createdAt])
   @@index([templateKey])
+  @@index([templateId])
   @@index([createdByUserId])
   @@index([receivedByUserId])
   @@index([closedByUserId])
+}
+
+model VoucherTemplate {
+  id                  String                     @id @default(cuid())
+  key                 String                     @unique
+  familyKey           String
+  version             Int
+  label               String
+  status              VoucherTemplateStatus     @default(DRAFT)
+  allowedTypes        VoucherType[]
+  layout              Json
+  storageProvider     MediaStorageProvider      @default(LOCAL)
+  masterStoragePath   String?
+  previewStoragePath  String?
+  masterSha256        String?
+  createdByUserId     String?
+  publishedByUserId   String?
+  publishedAt         DateTime?
+  inactivatedByUserId String?
+  inactivatedAt       DateTime?
+  clonedFromId        String?
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+  createdByUser       AdminUser?                 @relation("VoucherTemplateCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  publishedByUser     AdminUser?                 @relation("VoucherTemplatePublishedBy", fields: [publishedByUserId], references: [id], onDelete: SetNull)
+  inactivatedByUser   AdminUser?                 @relation("VoucherTemplateInactivatedBy", fields: [inactivatedByUserId], references: [id], onDelete: SetNull)
+  clonedFrom          VoucherTemplate?           @relation("VoucherTemplateVersions", fields: [clonedFromId], references: [id], onDelete: Restrict)
+  versions            VoucherTemplate[]          @relation("VoucherTemplateVersions")
+  vouchers            Voucher[]                  @relation("VoucherTemplateVouchers")
+  printBatches        VoucherPrintBatch[]        @relation("VoucherTemplatePrintBatches")
+  auditLogs           VoucherTemplateAuditLog[]
+  defaultForSiteSettings SiteSettings[]          @relation("SiteSettingsVoucherDefaultTemplate")
+
+  @@unique([familyKey, version])
+  @@index([status, createdAt])
+  @@index([familyKey])
+  @@index([createdByUserId])
+}
+
+model VoucherTemplateAuditLog {
+  id          String                       @id @default(cuid())
+  templateId  String?
+  templateKey String
+  familyKey   String
+  version     Int
+  label       String
+  actorUserId String?
+  operation   VoucherTemplateAuditOperation
+  metadata    Json?
+  createdAt   DateTime                     @default(now())
+  template    VoucherTemplate?             @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  actorUser   AdminUser?                   @relation("VoucherTemplateAuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([templateId, createdAt])
+  @@index([actorUserId, createdAt])
 }
 
 model VoucherStockItem {
@@ -1001,7 +1083,7 @@ model SiteSettings {
   emailSenderEmail         String
   emailFooterText          String?
   voucherPdfLogoMediaId    String?
-  voucherDefaultTemplateKey String              @default("classic-v1")
+  voucherDefaultTemplateId String?
   voucherDefaultValidityMonths Int              @default(12)
   contactPhotoMediaId      String?
   homePortraitMediaId      String?
@@ -1011,6 +1093,7 @@ model SiteSettings {
   updatedAt                DateTime                @updatedAt
   updatedByUser            AdminUser?              @relation("SiteSettingsUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
   voucherPdfLogoMedia      MediaAsset?             @relation("SiteSettingsVoucherPdfLogo", fields: [voucherPdfLogoMediaId], references: [id], onDelete: SetNull)
+  voucherDefaultTemplate   VoucherTemplate?        @relation("SiteSettingsVoucherDefaultTemplate", fields: [voucherDefaultTemplateId], references: [id], onDelete: Restrict)
   contactPhotoMedia        MediaAsset?             @relation("SiteSettingsContactPhoto", fields: [contactPhotoMediaId], references: [id], onDelete: SetNull)
   homePortraitMedia        MediaAsset?             @relation("SiteSettingsHomePortrait", fields: [homePortraitMediaId], references: [id], onDelete: SetNull)
   aboutPortraitMedia       MediaAsset?             @relation("SiteSettingsAboutPortrait", fields: [aboutPortraitMediaId], references: [id], onDelete: SetNull)
@@ -1018,6 +1101,7 @@ model SiteSettings {
 
   @@index([updatedByUserId])
   @@index([voucherPdfLogoMediaId])
+  @@index([voucherDefaultTemplateId])
   @@index([contactPhotoMediaId])
   @@index([homePortraitMediaId])
   @@index([aboutPortraitMediaId])

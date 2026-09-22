@@ -13,7 +13,6 @@ import {
 import { type AdminVoucherCreatePageData } from "@/features/admin/lib/admin-vouchers";
 import { cn } from "@/lib/utils";
 
-import { AdminVoucherTemplatePreview } from "./admin-voucher-template-preview";
 
 type AdminVoucherFormProps = {
   data: AdminVoucherCreatePageData;
@@ -45,7 +44,7 @@ export function AdminVoucherForm({ data }: AdminVoucherFormProps) {
   );
   const selectedTemplateKey = availableTemplates.some((template) => template.key === templateKey)
     ? templateKey
-    : availableTemplates[0]?.key ?? "";
+    : "";
 
   useEffect(() => {
     // Na pomalejším mobilním WebKitu může uživatel vyplnit pole před hydratací.
@@ -284,20 +283,26 @@ function TemplateChooser({
 
   if (templates.length === 1) {
     const template = templates[0];
+    const selected = selectedKey === template.key;
 
     return (
-      <div className="mb-4 overflow-hidden rounded-[1rem] border border-[var(--color-accent)]/35 bg-black/20">
-        <AdminVoucherTemplatePreview
-          src={`/${template.previewPath.replace(/^public\//, "")}`}
-          alt={`Náhled šablony ${template.label}`}
-          className="h-auto w-full"
-        />
+      <button
+        type="button"
+        onClick={() => onSelect(template.key)}
+        aria-pressed={selected}
+        className={cn(
+          "mb-4 w-full overflow-hidden rounded-[1rem] border text-left transition",
+          selected
+            ? "border-[var(--color-accent)]/35 bg-black/20"
+            : "border-red-300/30 bg-red-400/5 hover:border-red-300/55",
+        )}
+      >
         <div className="flex items-center justify-between gap-3 border-t border-white/8 px-3 py-2">
           <span className="text-sm text-white/82">Vzhled: {template.label}</span>
-          {selectedKey === template.key ? <span className="text-xs text-[var(--color-accent-soft)]">Vybráno</span> : null}
+          <span className="text-xs text-[var(--color-accent-soft)]">{selected ? "Vybráno" : "Vyberte"}</span>
         </div>
         {error ? <p className="px-3 pb-3 text-sm text-red-300">{error}</p> : null}
-      </div>
+      </button>
     );
   }
 
@@ -318,11 +323,6 @@ function TemplateChooser({
                 : "border-white/10 bg-black/20 hover:border-white/20",
             )}
           >
-            <AdminVoucherTemplatePreview
-              src={`/${template.previewPath.replace(/^public\//, "")}`}
-              alt={`Náhled šablony ${template.label}`}
-              className="h-auto w-full"
-            />
             <span className="block px-3 py-2 text-sm text-white/82">{template.label}</span>
           </button>
         ))}

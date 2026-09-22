@@ -18,12 +18,12 @@ export function AdminSettingsPage({
     phone: string;
     contactEmail: string;
     instagramUrl: string | null;
-    voucherDefaultTemplateKey: string;
+    voucherDefaultTemplateId: string | null;
     voucherDefaultValidityMonths: number;
     voucherTemplates: Array<{
+      id: string;
       key: string;
       label: string;
-      previewPath: string;
     }>;
     contactPhotoMediaId: string | null;
     homePortraitMediaId: string | null;
@@ -113,7 +113,7 @@ export function AdminSettingsPage({
           description="Výchozí vzhled a platnost pro nově vytvořené vouchery."
         >
           <AdminVoucherSettingsForm
-            voucherDefaultTemplateKey={settings.voucherDefaultTemplateKey}
+            voucherDefaultTemplateId={settings.voucherDefaultTemplateId}
             voucherDefaultValidityMonths={settings.voucherDefaultValidityMonths}
             voucherTemplates={settings.voucherTemplates}
           />

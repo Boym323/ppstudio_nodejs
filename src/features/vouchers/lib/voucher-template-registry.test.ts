@@ -12,8 +12,8 @@ import {
   isVoucherTemplateAllowedForType,
   requireVoucherTemplate,
   voucherTemplateRegistry,
-} from "./voucher-template-registry";
-import { getVoucherMasterAssetReader } from "./voucher-master-assets";
+} from "./voucher-template-test-registry";
+import { getVoucherMasterAssetReader } from "./voucher-template-test-registry";
 
 test("registry obsahuje classic-v1 s českým názvem a oběma typy", () => {
   const template = requireVoucherTemplate("classic-v1");

@@ -3,8 +3,9 @@ import { NextResponse } from "next/server";
 
 import {
   buildVoucherStockPdfFilename,
-  generateVoucherBatchPrintPdf,
+  generateResolvedVoucherBatchPrintPdf,
 } from "@/features/vouchers/lib/voucher-pdf";
+import { requireVoucherTemplateById, resolveVoucherTemplate } from "@/features/vouchers/lib/voucher-template-repository";
 import { canDownloadVoucherStockPdf } from "@/features/admin/lib/admin-voucher-stock-paths";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/session";
@@ -15,6 +16,7 @@ type VoucherStockPdfRouteParams = Promise<{ batchId: string }>;
 type VoucherStockPdfBatch = {
   batchNumber: string;
   templateKey: string;
+  templateId?: string | null;
   status: VoucherPrintBatchStatus;
   items: Array<{ code: string }>;
 };
@@ -22,7 +24,7 @@ type VoucherStockPdfBatch = {
 type VoucherStockPdfRouteDependencies = {
   getSession?: typeof getSession;
   findBatch?: (batchId: string) => Promise<VoucherStockPdfBatch | null>;
-  generatePdf?: typeof generateVoucherBatchPrintPdf;
+  generatePdf?: (batch: { batchNumber: string; templateKey: string; templateId?: string | null; items: Array<{ code: string }> }) => Promise<Uint8Array>;
 };
 
 export function createAdminVoucherStockPdfRoute(dependencies: VoucherStockPdfRouteDependencies = {}) {
@@ -32,6 +34,7 @@ export function createAdminVoucherStockPdfRoute(dependencies: VoucherStockPdfRou
     select: {
       batchNumber: true,
       templateKey: true,
+      templateId: true,
       status: true,
       items: {
         orderBy: { sequenceNumber: "asc" },
@@ -39,7 +42,10 @@ export function createAdminVoucherStockPdfRoute(dependencies: VoucherStockPdfRou
       },
     },
   }));
-  const generatePdf = dependencies.generatePdf ?? generateVoucherBatchPrintPdf;
+  const generatePdf = dependencies.generatePdf ?? (async (batch) => {
+    if (!batch.templateId) throw new Error("Tisková série nemá přiřazenou šablonu.");
+    return generateResolvedVoucherBatchPrintPdf({ batchNumber: batch.batchNumber, items: batch.items }, await resolveVoucherTemplate(await requireVoucherTemplateById(batch.templateId)));
+  });
 
   return async function AdminVoucherStockPdfRoute(
     _request: Request,
@@ -74,6 +80,7 @@ export function createAdminVoucherStockPdfRoute(dependencies: VoucherStockPdfRou
       pdfBytes = await generatePdf({
         batchNumber: batch.batchNumber,
         templateKey: batch.templateKey,
+        templateId: batch.templateId,
         items: batch.items,
       });
     } catch (error) {

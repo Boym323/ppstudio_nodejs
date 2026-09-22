@@ -3,7 +3,8 @@ import test from "node:test";
 
 import { Prisma } from "@/generated/prisma/client";
 
-process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
+import { mockVoucherPrisma, mockVoucherTemplateRepository } from "./voucher-template-test-fixtures";
+
 process.env.ADMIN_SESSION_SECRET ??= "test-secret-value-with-at-least-32-chars";
 process.env.ADMIN_OWNER_EMAIL ??= "owner@example.com";
 process.env.NEXT_PUBLIC_APP_URL ??= "http://localhost:3000";
@@ -61,6 +62,7 @@ function createBatchTransaction(options: { batchLock?: boolean; codeLock?: boole
 
       throw new Error(`unexpected query ${queryNumber}`);
     },
+    voucherTemplate: { findUnique: async () => ({ id: "template-test", key: "classic-v1", status: "PUBLISHED", allowedTypes: ["VALUE", "SERVICE"] }) },
     voucher: { findUnique: async () => null, findMany: async () => [] },
     voucherStockItem: { findUnique: async () => null, findMany: async () => [] },
     voucherPrintBatch: {
@@ -72,7 +74,14 @@ function createBatchTransaction(options: { batchLock?: boolean; codeLock?: boole
   } as unknown as Prisma.TransactionClient;
 }
 
-async function loadStockTestContext() {
+async function loadStockTestContext(t: test.TestContext) {
+  mockVoucherPrisma(t);
+  mockVoucherTemplateRepository(t);
+  t.mock.module("@/lib/site-settings", {
+    exports: {
+      getSiteSettings: async () => ({ voucherDefaultValidityMonths: 12 }),
+    },
+  });
   const [{ prisma }, stock] = await Promise.all([
     import("@/lib/prisma"),
     import("./voucher-stock"),
@@ -83,7 +92,7 @@ async function loadStockTestContext() {
 
 test("batch create po P2034 retry uspěje v jedné bounded smyčce", async (t) => {
   skipRetryDelay(t);
-  const { prisma, stock } = await loadStockTestContext();
+  const { prisma, stock } = await loadStockTestContext(t);
   let attempts = 0;
   mockTransaction(t, prisma, async (operation) => {
     attempts += 1;
@@ -107,7 +116,7 @@ test("batch create po P2034 retry uspěje v jedné bounded smyčce", async (t) =
 test("batch create po vyčerpání P2034 vrátí controlled TRANSIENT_CONFLICT", async (t) => {
   skipRetryDelay(t);
   t.mock.method(console, "warn", () => undefined);
-  const { prisma, stock } = await loadStockTestContext();
+  const { prisma, stock } = await loadStockTestContext(t);
   let attempts = 0;
   mockTransaction(t, prisma, async () => {
     attempts += 1;
@@ -124,7 +133,7 @@ test("batch create po vyčerpání P2034 vrátí controlled TRANSIENT_CONFLICT",
 
 test("batch create po P2028 neprovede retry a vrátí controlled operation error", async (t) => {
   t.mock.method(console, "warn", () => undefined);
-  const { prisma, stock } = await loadStockTestContext();
+  const { prisma, stock } = await loadStockTestContext(t);
   let attempts = 0;
   mockTransaction(t, prisma, async () => {
     attempts += 1;
@@ -142,7 +151,7 @@ test("batch create po P2028 neprovede retry a vrátí controlled operation error
 
 test("batch create při busy batch locku rollbackne pokus a retryuje mimo transakci", async (t) => {
   skipRetryDelay(t);
-  const { prisma, stock } = await loadStockTestContext();
+  const { prisma, stock } = await loadStockTestContext(t);
   let attempts = 0;
   mockTransaction(t, prisma, async (operation) => {
     attempts += 1;
@@ -156,7 +165,7 @@ test("batch create při busy batch locku rollbackne pokus a retryuje mimo transa
 test("batch create při busy code locku skončí po bounded exhaustion controlled chybou", async (t) => {
   skipRetryDelay(t);
   t.mock.method(console, "warn", () => undefined);
-  const { prisma, stock } = await loadStockTestContext();
+  const { prisma, stock } = await loadStockTestContext(t);
   let attempts = 0;
   mockTransaction(t, prisma, async (operation) => {
     attempts += 1;
@@ -172,7 +181,7 @@ test("batch create při busy code locku skončí po bounded exhaustion controlle
 });
 
 test("batch create neopatruje unexpected Prisma ani validační chybu jako transient retry", async (t) => {
-  const { prisma, stock } = await loadStockTestContext();
+  const { prisma, stock } = await loadStockTestContext(t);
   let attempts = 0;
   const unexpected = new Prisma.PrismaClientKnownRequestError("unexpected database failure", {
     code: "P2002",
@@ -204,7 +213,7 @@ test("batch create bez konfliktu použije jeden transaction attempt a žádný d
     delays += 1;
     return {} as NodeJS.Timeout;
   }) as unknown as typeof setTimeout);
-  const { prisma, stock } = await loadStockTestContext();
+  const { prisma, stock } = await loadStockTestContext(t);
   mockTransaction(t, prisma, async (operation) => {
     attempts += 1;
     return operation(createBatchTransaction());
@@ -213,4 +222,21 @@ test("batch create bez konfliktu použije jeden transaction attempt a žádný d
   await stock.createVoucherPrintBatch({ templateKey: "classic-v1", quantity: 1, createdByUserId: "admin-test" });
   assert.equal(attempts, 1);
   assert.equal(delays, 0);
+});
+
+test("batch create odmítne template deaktivovanou mezi preflightem a transakcí", async (t) => {
+  const { prisma, stock } = await loadStockTestContext(t);
+  let created = false;
+  mockTransaction(t, prisma, async (operation) => operation({
+    ...createBatchTransaction(),
+    voucherTemplate: { findUnique: async () => ({ id: "template-test", key: "classic-v1", status: "INACTIVE", allowedTypes: ["VALUE", "SERVICE"] }) },
+    voucherPrintBatch: { create: async () => { created = true; return { id: "unexpected" }; } },
+  } as unknown as Prisma.TransactionClient));
+
+  await assert.rejects(
+    () => stock.createVoucherPrintBatch({ templateKey: "classic-v1", quantity: 1, createdByUserId: "admin-test" }),
+    (error: unknown) => error instanceof stock.VoucherStockOperationError
+      && error.code === stock.voucherStockOperationErrorCodes.templateUnavailable,
+  );
+  assert.equal(created, false);
 });

@@ -2,7 +2,7 @@ import { Prisma, VoucherPrintBatchStatus, VoucherStockItemStatus } from "@/gener
 
 import { type AdminArea } from "@/config/navigation";
 import { findVoucherStockItemByCode } from "@/features/vouchers/lib/voucher-stock";
-import { getActiveVoucherTemplatesForNewVouchers, getVoucherTemplate } from "@/features/vouchers/lib/voucher-template-registry";
+import { listPublishedVoucherTemplates } from "@/features/vouchers/lib/voucher-template-repository";
 import { normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import { addVoucherValidityMonths } from "@/features/vouchers/lib/voucher-validity-date";
 import {
@@ -85,6 +85,7 @@ export async function getAdminVoucherStockPageData(
       createdByUser: { select: { id: true, name: true } },
       receivedByUser: { select: { id: true, name: true } },
       closedByUser: { select: { id: true, name: true } },
+      template: { select: { id: true, key: true, label: true, allowedTypes: true } },
       items: { select: { status: true } },
     },
   });
@@ -96,7 +97,7 @@ export async function getAdminVoucherStockPageData(
     canCreate: area === "owner",
     batches: batches.map((batch) => ({
       ...batch,
-      templateLabel: getVoucherTemplate(batch.templateKey)?.label ?? batch.templateKey,
+      templateLabel: batch.template?.label ?? batch.templateKey,
       counts: countItems(batch.items),
       detailHref: getAdminVoucherStockBatchHref(area, batch.id),
     })),
@@ -119,6 +120,7 @@ export async function getAdminVoucherStockBatchDetailData(
       createdByUser: { select: { id: true, name: true, email: true } },
       receivedByUser: { select: { id: true, name: true, email: true } },
       closedByUser: { select: { id: true, name: true, email: true } },
+      template: { select: { id: true, key: true, label: true, allowedTypes: true } },
       items: {
         where: {
           ...(query ? { code: { contains: query, mode: "insensitive" } } : {}),
@@ -143,8 +145,8 @@ export async function getAdminVoucherStockBatchDetailData(
   return {
     ...batch,
     area,
-    templateLabel: getVoucherTemplate(batch.templateKey)?.label ?? batch.templateKey,
-    template: getVoucherTemplate(batch.templateKey) ?? null,
+    templateLabel: batch.template?.label ?? batch.templateKey,
+    template: batch.template,
     counts: countItems(allItems),
     filters: { q: query, status: itemStatus },
     listHref: getAdminVoucherStockHref(area),
@@ -198,9 +200,10 @@ export async function getAdminVoucherActivationPageData(area: AdminArea, codeInp
   };
 }
 
-export function getAdminVoucherStockCreatePageData() {
+export async function getAdminVoucherStockCreatePageData() {
+  const templates = await listPublishedVoucherTemplates();
   return {
-    templates: getActiveVoucherTemplatesForNewVouchers().filter((template) => template.allowedTypes.length > 0),
+    templates: templates.filter((template) => template.allowedTypes.length > 0),
     listHref: getAdminVoucherStockHref("owner"),
   };
 }
@@ -208,4 +211,4 @@ export function getAdminVoucherStockCreatePageData() {
 export type AdminVoucherStockPageData = Awaited<ReturnType<typeof getAdminVoucherStockPageData>>;
 export type AdminVoucherStockBatchDetailData = NonNullable<Awaited<ReturnType<typeof getAdminVoucherStockBatchDetailData>>>;
 export type AdminVoucherActivationPageData = Awaited<ReturnType<typeof getAdminVoucherActivationPageData>>;
-export type AdminVoucherStockCreatePageData = ReturnType<typeof getAdminVoucherStockCreatePageData>;
+export type AdminVoucherStockCreatePageData = Awaited<ReturnType<typeof getAdminVoucherStockCreatePageData>>;

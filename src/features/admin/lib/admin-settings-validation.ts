@@ -3,7 +3,7 @@ import { z } from "zod";
 import { isSafeEmailHeaderValue } from "@/lib/email/header";
 
 export const updateVoucherSettingsSchema = z.object({
-  voucherDefaultTemplateKey: z.string().trim().min(1, "Vyberte výchozí vzhled voucheru.").max(128),
+  voucherDefaultTemplateId: z.string().trim().min(1, "Vyberte výchozí vzhled voucheru.").max(128),
   voucherDefaultValidityMonths: z.coerce
     .number()
     .int("Použijte celé měsíce.")

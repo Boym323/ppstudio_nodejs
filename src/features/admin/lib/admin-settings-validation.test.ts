@@ -3,21 +3,21 @@ import test from "node:test";
 
 import { updateVoucherSettingsSchema } from "./admin-settings-validation";
 
-test("voucher settings schema přijme aktivní key a platnost v povoleném rozsahu", () => {
+test("voucher settings schema přijme aktivní template ID a platnost v povoleném rozsahu", () => {
   const parsed = updateVoucherSettingsSchema.parse({
-    voucherDefaultTemplateKey: "test-template-v1",
+    voucherDefaultTemplateId: "template-test-1",
     voucherDefaultValidityMonths: "12",
   });
 
   assert.deepEqual(parsed, {
-    voucherDefaultTemplateKey: "test-template-v1",
+    voucherDefaultTemplateId: "template-test-1",
     voucherDefaultValidityMonths: 12,
   });
 });
 
-test("voucher settings schema odmítne prázdný key a neplatnou platnost", () => {
+test("voucher settings schema odmítne prázdné ID a neplatnou platnost", () => {
   const parsed = updateVoucherSettingsSchema.safeParse({
-    voucherDefaultTemplateKey: "",
+    voucherDefaultTemplateId: "",
     voucherDefaultValidityMonths: "61",
   });
 

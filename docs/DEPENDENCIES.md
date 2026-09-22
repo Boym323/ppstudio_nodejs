@@ -2,6 +2,9 @@
 
 ## Recovery a přístupy
 
+- `react-rnd` (MIT, `10.5.3`) je použit pouze v OWNER Layout Toolu pro drag/resize zón voucheru; renderer zůstává serverový a PDF-native.
+- Voucher Template Manager nepřidává storage SDK: používá existující lokální storage abstraction nad `MEDIA_STORAGE_ROOT`, `pdf-lib`, `@pdf-lib/fontkit`, `qrcode` a trusted `@fontsource/noto-sans`.
+
 - Mobilní ergonomie administrace nepřidává závislost; používá stávající React komponenty, Tailwind utility a CSS `env(safe-area-inset-bottom)`.
 
 - Sjednocení veřejných media route nepřidává závislost; používá stávající Next.js Route Handler API, Prisma repository a lokální media storage adapter.

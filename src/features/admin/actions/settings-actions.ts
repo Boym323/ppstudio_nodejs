@@ -31,10 +31,7 @@ import { isPublicMediaAsset } from "@/features/media/lib/public-media-asset";
 import { isValidDateKey } from "@/features/admin/lib/admin-slots/time";
 import { persistAutoLunchDayMode } from "@/features/admin/lib/admin-auto-lunch";
 import { runSerializableTransaction } from "@/lib/serializable-transaction";
-import {
-  getActiveVoucherTemplatesForNewVouchers,
-  getVoucherTemplate,
-} from "@/features/vouchers/lib/voucher-template-registry";
+import { getVoucherTemplateById } from "@/features/vouchers/lib/voucher-template-repository";
 
 import { type UpdateBookingSettingsActionState } from "./update-booking-settings-action-state";
 import { type UpdateCalendarFeedActionState } from "./update-calendar-feed-action-state";
@@ -274,7 +271,7 @@ export async function updateVoucherSettingsAction(
   formData: FormData,
 ): Promise<UpdateVoucherSettingsActionState> {
   const parsed = updateVoucherSettingsSchema.safeParse({
-    voucherDefaultTemplateKey: readFormString(formData, "voucherDefaultTemplateKey"),
+    voucherDefaultTemplateId: readFormString(formData, "voucherDefaultTemplateId"),
     voucherDefaultValidityMonths: readFormString(formData, "voucherDefaultValidityMonths"),
   });
 
@@ -285,21 +282,20 @@ export async function updateVoucherSettingsAction(
       status: "error",
       formError: "Zkontrolujte prosím nastavení voucherů.",
       fieldErrors: {
-        voucherDefaultTemplateKey: fieldErrors.voucherDefaultTemplateKey?.[0],
+        voucherDefaultTemplateId: fieldErrors.voucherDefaultTemplateId?.[0],
         voucherDefaultValidityMonths: fieldErrors.voucherDefaultValidityMonths?.[0],
       },
     };
   }
 
-  const activeTemplates = getActiveVoucherTemplatesForNewVouchers();
-  const template = getVoucherTemplate(parsed.data.voucherDefaultTemplateKey);
+  const template = await getVoucherTemplateById(parsed.data.voucherDefaultTemplateId);
 
-  if (!template || !template.activeForNewVouchers || !activeTemplates.some((item) => item.key === template.key)) {
+  if (!template || template.status !== "PUBLISHED" || !template.allowedTypes.includes("VALUE")) {
     return {
       status: "error",
       formError: "Výchozí vzhled voucheru není dostupný pro nové vouchery.",
       fieldErrors: {
-        voucherDefaultTemplateKey: "Vyberte aktivní vzhled voucheru.",
+        voucherDefaultTemplateId: "Vyberte aktivní vzhled voucheru.",
       },
     };
   }
@@ -308,25 +304,46 @@ export async function updateVoucherSettingsAction(
   if (!actorUserId) return { status: "error", formError: "Aktuální OWNER účet nebyl nalezen." };
 
   const currentSettings = await ensureSiteSettings();
-  const savedSettings = await updateSiteSettingsWithAudit({
-    actorUserId,
-    operation: SiteSettingsChangeOperation.UPDATE_VOUCHER_POLICY,
-    data: parsed.data,
-    snapshots: (current) => ({
-      before: {
-        voucherDefaultTemplateKey: current.voucherDefaultTemplateKey,
-        voucherDefaultValidityMonths: current.voucherDefaultValidityMonths,
+  let savedSettings;
+  try {
+    savedSettings = await updateSiteSettingsWithAudit({
+      actorUserId,
+      operation: SiteSettingsChangeOperation.UPDATE_VOUCHER_POLICY,
+      data: { voucherDefaultTemplateId: template.id, voucherDefaultValidityMonths: parsed.data.voucherDefaultValidityMonths },
+      snapshots: (current) => ({
+        before: {
+          voucherDefaultTemplateId: current.voucherDefaultTemplateId,
+          voucherDefaultValidityMonths: current.voucherDefaultValidityMonths,
+        },
+        after: { voucherDefaultTemplateId: template.id, voucherDefaultValidityMonths: parsed.data.voucherDefaultValidityMonths },
+      }),
+      validate: async (tx) => {
+        const currentTemplate = await tx.voucherTemplate.findUnique({
+          where: { id: template.id },
+          select: { status: true, allowedTypes: true },
+        });
+        if (!currentTemplate || currentTemplate.status !== "PUBLISHED" || !currentTemplate.allowedTypes.includes("VALUE")) {
+          throw new Error("Výchozí vzhled voucheru se během ukládání stal nedostupným.");
+        }
       },
-      after: parsed.data,
-    }),
-  });
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Výchozí vzhled voucheru se během ukládání stal nedostupným.") {
+      return {
+        status: "error",
+        formError: "Výchozí vzhled voucheru už není dostupný. Obnovte stránku a vyberte jiný.",
+        fieldErrors: { voucherDefaultTemplateId: "Vyberte aktivní vzhled voucheru." },
+      };
+    }
+    throw error;
+  }
   await persistSiteSettingsSnapshot(savedSettings);
 
   revalidateSettingsPaths();
 
   return {
     status: "success",
-    successMessage: currentSettings.voucherDefaultTemplateKey === parsed.data.voucherDefaultTemplateKey
+    successMessage: currentSettings.voucherDefaultTemplateId === template.id
       && currentSettings.voucherDefaultValidityMonths === parsed.data.voucherDefaultValidityMonths
       ? "Nastavení voucherů zůstalo beze změny."
       : "Nastavení voucherů jsou uložená.",

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { VoucherTemplateError } from "@/features/vouchers/lib/voucher-template-registry";
+import { VoucherTemplateError } from "@/features/vouchers/lib/voucher-template-error";
 
 type VoucherPdfErrorContext = {
   templateKey?: string | null;
