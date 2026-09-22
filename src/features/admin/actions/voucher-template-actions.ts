@@ -14,7 +14,7 @@ import {
   replaceVoucherTemplateMaster,
   updateVoucherTemplateDraft,
 } from "@/features/vouchers/lib/voucher-template-domain";
-import type { VoucherTemplateLayoutV1 } from "@/features/vouchers/lib/voucher-template-layout";
+import { voucherTemplateLayoutSchema, type VoucherTemplateLayoutV1 } from "@/features/vouchers/lib/voucher-template-layout";
 import { generateResolvedVoucherDigitalPdf } from "@/features/vouchers/lib/voucher-pdf";
 import { requireVoucherTemplateById, resolveVoucherTemplate } from "@/features/vouchers/lib/voucher-template-repository";
 import { requireRole } from "@/lib/auth/session";
@@ -38,6 +38,8 @@ export async function uploadVoucherTemplateMasterAction(formData: FormData) {
 
 export async function saveVoucherTemplateLayoutAction(templateId: string, layout: VoucherTemplateLayoutV1) {
   const session = await requireRole([AdminRole.OWNER]);
+  const parsed = voucherTemplateLayoutSchema.safeParse(layout);
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Layout šablony obsahuje neplatné hodnoty.");
   const { requireVoucherTemplateById } = await import("@/features/vouchers/lib/voucher-template-repository");
   const template = await requireVoucherTemplateById(templateId);
   await updateVoucherTemplateDraft(templateId, { layout, allowedTypes: template.allowedTypes, label: template.label, actorUserId: session.sub });

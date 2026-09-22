@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { defaultVoucherTemplateLayout } from "@/features/vouchers/lib/voucher-template-defaults";
+
 process.env.NEXT_PUBLIC_APP_URL ??= "https://ppstudio.cz";
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
 process.env.ADMIN_SESSION_SECRET ??= "test-secret-value-with-at-least-32-chars";
@@ -11,6 +13,7 @@ test("template lifecycle actions vyžadují OWNER a volají domain operace", asy
   const calls: Array<[string, string, string?]> = [];
   const revalidated: string[] = [];
   const redirects: string[] = [];
+  let savedLayout: typeof defaultVoucherTemplateLayout | undefined;
 
   t.mock.module("@/lib/auth/session", {
     exports: {
@@ -31,7 +34,7 @@ test("template lifecycle actions vyžadují OWNER a volají domain operace", asy
       deleteVoucherTemplateDraft: async (id: string, actor: string) => { calls.push(["delete", id, actor]); },
       publishVoucherTemplate: async (id: string, actor: string) => { calls.push(["publish", id, actor]); },
       replaceVoucherTemplateMaster: async () => undefined,
-      updateVoucherTemplateDraft: async () => undefined,
+      updateVoucherTemplateDraft: async (_id: string, input: { layout: typeof defaultVoucherTemplateLayout }) => { savedLayout = input.layout; },
     },
   });
   t.mock.module("@/features/vouchers/lib/voucher-template-repository", {
@@ -49,6 +52,17 @@ test("template lifecycle actions vyžadují OWNER a volají domain operace", asy
   await actions.deactivateVoucherTemplateAction("template-1");
   await actions.cloneVoucherTemplateVersionAction("template-1");
   await actions.deleteVoucherTemplateDraftAction("template-1");
+  const editedLayout = { ...defaultVoucherTemplateLayout, serviceArea: { ...defaultVoucherTemplateLayout.serviceArea, typography: { ...defaultVoucherTemplateLayout.serviceArea.typography, preferredFontSizePt: 12, minFontSizePt: 7, fontWeight: "regular" as const, alignment: "center" as const } } };
+  await actions.saveVoucherTemplateLayoutAction("template-1", editedLayout);
+  assert.equal(savedLayout?.serviceArea.typography.preferredFontSizePt, 12);
+  assert.equal(savedLayout?.serviceArea.typography.minFontSizePt, 7);
+  assert.equal(savedLayout?.serviceArea.typography.fontWeight, "regular");
+  assert.equal(savedLayout?.serviceArea.typography.alignment, "center");
+  const invalidLayout = { ...editedLayout, serviceArea: { ...editedLayout.serviceArea, typography: { ...editedLayout.serviceArea.typography, minFontSizePt: 13 } } };
+  await assert.rejects(
+    () => actions.saveVoucherTemplateLayoutAction("template-1", invalidLayout),
+    /Minimální velikost písma nesmí být vyšší než preferovaná\./,
+  );
 
   assert.deepEqual(calls, [
     ["publish", "template-1", "owner-1"],
@@ -64,6 +78,7 @@ test("template lifecycle actions vyžadují OWNER a volají domain operace", asy
     "/admin/vouchery/sablony",
     "/admin/vouchery/sablony",
     "/admin/vouchery/sablony",
+    "/admin/vouchery/sablony/template-1",
   ]);
 
   role = "SALON";

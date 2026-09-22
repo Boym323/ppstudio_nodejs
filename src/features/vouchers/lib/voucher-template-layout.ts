@@ -22,5 +22,29 @@ export const voucherTemplateLayoutSchema = z.object({
 });
 
 export type VoucherTemplateLayoutV1 = z.infer<typeof voucherTemplateLayoutSchema>;
+export type VoucherTemplateTextAreaKey = "valueArea" | "serviceArea" | "validityArea" | "codeArea";
+export type VoucherTemplateTypographyPatch = Partial<VoucherTemplateLayoutV1[VoucherTemplateTextAreaKey]["typography"]>;
+
+export function isVoucherTemplateTextAreaKey(key: keyof VoucherTemplateLayoutV1): key is VoucherTemplateTextAreaKey {
+  return key !== "printPage" && key !== "trim" && key !== "qrArea";
+}
+
+export function updateTypography(
+  layout: VoucherTemplateLayoutV1,
+  selected: VoucherTemplateTextAreaKey,
+  patch: VoucherTemplateTypographyPatch,
+): VoucherTemplateLayoutV1 {
+  return {
+    ...layout,
+    [selected]: {
+      ...layout[selected],
+      typography: {
+        ...layout[selected].typography,
+        ...patch,
+      },
+    },
+  };
+}
+
 export function pdfBottomToBrowserTop(yMm: number, heightMm: number) { return VOUCHER_PRINT_GEOMETRY.heightMm - yMm - heightMm; }
 export function browserTopToPdfBottom(topMm: number, heightMm: number) { return VOUCHER_PRINT_GEOMETRY.heightMm - topMm - heightMm; }

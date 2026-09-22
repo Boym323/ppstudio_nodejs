@@ -4,13 +4,13 @@ import { AdminRole } from "@/generated/prisma/client";
 import {
   cloneVoucherTemplateVersionAction,
   deleteVoucherTemplateDraftAction,
-  deactivateVoucherTemplateAction,
   publishVoucherTemplateAction,
   sendTestVoucherTemplateEmailAction,
   uploadVoucherTemplateMasterAction,
 } from "@/features/admin/actions/voucher-template-actions";
 import { AdminPageShell } from "@/features/admin/components/admin-page-shell";
 import { AdminVoucherTabs } from "@/features/admin/components/admin-voucher-stock-pages";
+import { DeactivateVoucherTemplateForm } from "@/features/admin/components/deactivate-voucher-template-form";
 import { VoucherTemplateLayoutEditor } from "@/features/admin/components/voucher-template-layout-editor";
 import { voucherTemplateLayoutSchema } from "@/features/vouchers/lib/voucher-template-layout";
 import { requireVoucherTemplateById } from "@/features/vouchers/lib/voucher-template-repository";
@@ -27,7 +27,6 @@ export default async function VoucherTemplateDetailPage({ params }: { params: Pr
 
   const templateId = template.id;
   const cloneAction = cloneVoucherTemplateVersionAction.bind(null, templateId);
-  const deactivateAction = deactivateVoucherTemplateAction.bind(null, templateId);
   const deleteAction = deleteVoucherTemplateDraftAction.bind(null, templateId);
   const previewUrl = template.previewStoragePath && template.masterSha256
     ? `/api/admin/voucher-templates/${template.id}/preview?v=${template.updatedAt.getTime()}`
@@ -53,9 +52,7 @@ export default async function VoucherTemplateDetailPage({ params }: { params: Pr
               </form>
             ) : null}
             {template.status === "PUBLISHED" ? (
-              <form action={deactivateAction}>
-                <button className="rounded-xl border border-amber-300/40 px-4 py-2 font-semibold text-amber-100">Deaktivovat</button>
-              </form>
+              <DeactivateVoucherTemplateForm templateId={templateId} />
             ) : null}
             {template.status !== "DRAFT" ? (
               <form action={cloneAction}>

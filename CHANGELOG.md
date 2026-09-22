@@ -15,6 +15,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Voucher Template Layout Editor nyní umožňuje OWNERům upravovat typografii textových oblastí včetně velikosti, minimální velikosti, řádkování, řezu a zarovnání; hodnoty se validují a ukládají do draft layoutu.
 - OWNER má ve voucherové sekci přímou záložku Šablony a Template Manager ji používá jako aktivní navigaci; SALON zůstává u záložek Vydané a Předtištěné.
 - Voucher Stock receive/close/void akce nyní převádějí očekávané domain chyby na bezpečný action state; neznámé chyby ani integrity fallback už klientovi nezobrazují raw `error.message`.
 - Voucherové master PDF se nyní načítají pouze z explicitně registrovaných trusted assetů bez dynamického filesystem tracingu; souběžné vytváření tiskových sérií používá fail-fast advisory locky, bounded retry s jitterem a po vyčerpání vrací řízenou chybu bez částečných zápisů.
@@ -36,6 +37,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Deaktivace výchozí voucherové šablony nyní zobrazí očekávanou ochrannou hlášku přímo ve formuláři místo neobsloužené chyby v prohlížeči.
 - Bootstrap classic-v1 nyní validuje publikovaný master, atomicky doplní privátní PNG preview a při chybě uklidí rozpracované assety; publish bez skutečně dekódovatelného PNG preview a preview render s neomezeným canvasem jsou odmítnuty.
 - Voucher Template Manager po uploadu masteru nyní atomicky uloží také PNG preview první stránky do privátního storage; autorizovaný OWNER endpoint vrací skutečné PNG a editor i `/admin/nastaveni` ho zobrazují pod interaktivním overlayem s bezpečným cache bustingem.
 - Náhled výchozí voucherové šablony v nastavení nyní načítá privátní PNG preview přes autorizovaný admin endpoint místo trvalého fallbacku „Náhled šablony není dostupný“.
