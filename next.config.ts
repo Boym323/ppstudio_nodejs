@@ -40,6 +40,8 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/*": ["src/features/vouchers/bootstrap-assets/**/*"],
   },
+  // PDF preview rendering needs the native Skia binding and PDF.js Node runtime.
+  serverExternalPackages: ["@napi-rs/canvas", "pdfjs-dist"],
   allowedDevOrigins: ["192.168.0.143", "ppstudio.cz", "www.ppstudio.cz","192.168.0.150"],
   deploymentId:
     process.env.NEXT_DEPLOYMENT_ID

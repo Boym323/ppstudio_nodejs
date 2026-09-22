@@ -29,6 +29,9 @@ export default async function VoucherTemplateDetailPage({ params }: { params: Pr
   const cloneAction = cloneVoucherTemplateVersionAction.bind(null, templateId);
   const deactivateAction = deactivateVoucherTemplateAction.bind(null, templateId);
   const deleteAction = deleteVoucherTemplateDraftAction.bind(null, templateId);
+  const previewUrl = template.previewStoragePath && template.masterSha256
+    ? `/api/admin/voucher-templates/${template.id}/preview?v=${template.updatedAt.getTime()}`
+    : undefined;
 
   return (
     <AdminPageShell eyebrow="Vouchery" title={template.label} description={`${template.key} · ${template.status}`}>
@@ -78,7 +81,7 @@ export default async function VoucherTemplateDetailPage({ params }: { params: Pr
             </form>
           ) : null}
         </section>
-        {template.status === "DRAFT" ? <VoucherTemplateLayoutEditor templateId={template.id} initialLayout={voucherTemplateLayoutSchema.parse(template.layout)} /> : <pre className="overflow-auto rounded-lg bg-black/20 p-3 text-xs text-white/75">{JSON.stringify(template.layout, null, 2)}</pre>}
+        {template.status === "DRAFT" ? <VoucherTemplateLayoutEditor templateId={template.id} initialLayout={voucherTemplateLayoutSchema.parse(template.layout)} previewSrc={previewUrl} /> : <pre className="overflow-auto rounded-lg bg-black/20 p-3 text-xs text-white/75">{JSON.stringify(template.layout, null, 2)}</pre>}
       </div>
     </AdminPageShell>
   );

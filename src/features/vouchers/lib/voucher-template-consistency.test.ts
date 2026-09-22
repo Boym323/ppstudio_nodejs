@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { defaultVoucherTemplateLayout } from "./voucher-template-defaults";
+import { validVoucherTemplatePreviewPng } from "./voucher-template-test-fixtures";
 
 process.env.NEXT_PUBLIC_APP_URL ??= "https://ppstudio.cz";
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
@@ -13,6 +14,7 @@ test("master upload má bezpečný commit point a publish odmítne změněný ma
     template: Record<string, unknown>;
     auditFail: boolean;
     updateFail: boolean;
+    previewWriteFail: boolean;
     oldDeleteFail: boolean;
     publishRace: boolean;
     deleted: string[];
@@ -28,9 +30,11 @@ test("master upload má bezpečný commit point a publish odmítne změněný ma
       layout: defaultVoucherTemplateLayout,
       masterStoragePath: "voucher-templates/template-1/master-old.pdf",
       masterSha256: "old-hash",
+      previewStoragePath: "voucher-templates/template-1/preview-old.png",
     },
     auditFail: false,
     updateFail: false,
+    previewWriteFail: false,
     oldDeleteFail: false,
     publishRace: false,
     deleted: [],
@@ -48,9 +52,11 @@ test("master upload má bezpečný commit point a publish odmítne změněný ma
       layout: defaultVoucherTemplateLayout,
       masterStoragePath: "voucher-templates/template-1/master-old.pdf",
       masterSha256: "old-hash",
+      previewStoragePath: "voucher-templates/template-1/preview-old.png",
     };
     state.auditFail = false;
     state.updateFail = false;
+    state.previewWriteFail = false;
     state.oldDeleteFail = false;
     state.publishRace = false;
     state.deleted = [];
@@ -90,16 +96,22 @@ test("master upload má bezpečný commit point a publish odmítne změněný ma
         if (path) state.deleted.push(path);
         if (path?.includes("master-old") && state.oldDeleteFail) throw new Error("old cleanup failed");
       },
-      readVoucherTemplateMaster: async () => Buffer.from("master"),
+      readVoucherTemplateMaster: async () => Buffer.from("%PDF-master"),
+      readVoucherTemplatePreview: async () => validVoucherTemplatePreviewPng,
       sha256: () => "old-hash",
       voucherTemplateMasterExists: async () => true,
       writeVoucherTemplateMaster: async () => ({ storagePath: "voucher-templates/template-1/master-new.pdf", sha256: "new-hash" }),
+      writeVoucherTemplatePreview: async () => {
+        if (state.previewWriteFail) throw new Error("preview write failed");
+        return { storagePath: "voucher-templates/template-1/preview-new.png" };
+      },
     },
   });
   t.mock.module("@/features/vouchers/lib/voucher-template-preflight", { exports: { preflightVoucherTemplateMaster: async () => ({ errors: [] }) } });
+  t.mock.module("@/features/vouchers/lib/voucher-template-preview", { exports: { renderVoucherTemplatePreview: async () => Buffer.from("png") } });
   t.mock.module("@/features/vouchers/lib/voucher-template-repository", {
     exports: {
-      resolveVoucherTemplate: async (template: typeof state.template) => ({ ...template, masterBytes: Buffer.from("master") }),
+      resolveVoucherTemplate: async (template: typeof state.template) => ({ ...template, masterBytes: Buffer.from("%PDF-master") }),
     },
   });
   t.mock.module("@/features/vouchers/lib/voucher-template-publish-preflight", { exports: { preflightVoucherTemplateForPublish: async () => ({ ok: true, errors: [] }) } });
@@ -109,20 +121,27 @@ test("master upload má bezpečný commit point a publish odmítne změněný ma
   state.updateFail = true;
   await assert.rejects(() => domain.replaceVoucherTemplateMaster("template-1", Buffer.from("%PDF-master"), "owner-1"), /db update failed/);
   assert.equal(state.template.masterStoragePath, "voucher-templates/template-1/master-old.pdf");
+  assert.deepEqual(state.deleted, ["voucher-templates/template-1/master-new.pdf", "voucher-templates/template-1/preview-new.png"]);
+
+  reset();
+  state.previewWriteFail = true;
+  await assert.rejects(() => domain.replaceVoucherTemplateMaster("template-1", Buffer.from("%PDF-master"), "owner-1"), /preview write failed/);
+  assert.equal(state.template.masterStoragePath, "voucher-templates/template-1/master-old.pdf");
   assert.deepEqual(state.deleted, ["voucher-templates/template-1/master-new.pdf"]);
 
   reset();
   state.oldDeleteFail = true;
   const switched = await domain.replaceVoucherTemplateMaster("template-1", Buffer.from("%PDF-master"), "owner-1");
   assert.equal(switched.masterStoragePath, "voucher-templates/template-1/master-new.pdf");
+  assert.equal(switched.previewStoragePath, "voucher-templates/template-1/preview-new.png");
   assert.equal(state.template.masterStoragePath, "voucher-templates/template-1/master-new.pdf");
-  assert.deepEqual(state.deleted, ["voucher-templates/template-1/master-old.pdf"]);
+  assert.deepEqual(state.deleted, ["voucher-templates/template-1/master-old.pdf", "voucher-templates/template-1/preview-old.png"]);
 
   reset();
   state.auditFail = true;
   await assert.rejects(() => domain.replaceVoucherTemplateMaster("template-1", Buffer.from("%PDF-master"), "owner-1"), /audit failed/);
   assert.equal(state.template.masterStoragePath, "voucher-templates/template-1/master-old.pdf");
-  assert.deepEqual(state.deleted, ["voucher-templates/template-1/master-new.pdf"]);
+  assert.deepEqual(state.deleted, ["voucher-templates/template-1/master-new.pdf", "voucher-templates/template-1/preview-new.png"]);
 
   reset();
   state.publishRace = true;

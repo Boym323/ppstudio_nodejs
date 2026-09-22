@@ -13,7 +13,8 @@ export function AdminVoucherTemplatePreview({
   alt: string;
   className?: string;
 }) {
-  const [failed, setFailed] = useState(false);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const failed = Boolean(src && failedSrc === src);
 
   if (failed || !src) {
     return (
@@ -30,5 +31,5 @@ export function AdminVoucherTemplatePreview({
     );
   }
 
-  return <iframe src={src} title={alt} className={cn("aspect-[840/410] w-full border-0", className)} onError={() => setFailed(true)} />;
+  return <img src={src} alt={alt} className={cn("aspect-[216/105] w-full object-contain", className)} onError={() => setFailedSrc(src)} />;
 }

@@ -39,3 +39,8 @@ export function mockVoucherTemplateRepository(t: test.TestContext) {
 export function mockVoucherPrisma(t: test.TestContext) {
   t.mock.module("@/lib/prisma", { exports: { prisma: unitPrisma } });
 }
+
+export const validVoucherTemplatePreviewPng = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVQImWP4////fwAJ+wP9CNHoHgAAAABJRU5ErkJggg==",
+  "base64",
+);

@@ -4,7 +4,16 @@ import path from "node:path";
 import { AdminRole, Prisma, VoucherTemplateStatus, VoucherType } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { defaultVoucherTemplateLayout } from "./voucher-template-defaults";
-import { deleteVoucherTemplateAsset, writeVoucherTemplateMaster } from "./voucher-template-storage";
+import { preflightVoucherTemplateMaster } from "./voucher-template-preflight";
+import { renderVoucherTemplatePreview } from "./voucher-template-preview";
+import {
+  deleteVoucherTemplateAsset,
+  readVoucherTemplateMaster,
+  sha256,
+  voucherTemplateMasterExists,
+  writeVoucherTemplateMaster,
+  writeVoucherTemplatePreview,
+} from "./voucher-template-storage";
 
 const CLASSIC_TEMPLATE_KEY = "classic-v1";
 const BOOTSTRAP_LOCK = "ppstudio:voucher-template-bootstrap:classic-v1";
@@ -13,6 +22,11 @@ export type VoucherTemplateBootstrapDependencies = {
   db?: typeof prisma;
   readMaster?: () => Promise<Buffer>;
   writeMaster?: typeof writeVoucherTemplateMaster;
+  writePreview?: typeof writeVoucherTemplatePreview;
+  readStoredMaster?: typeof readVoucherTemplateMaster;
+  masterExists?: typeof voucherTemplateMasterExists;
+  preflightMaster?: typeof preflightVoucherTemplateMaster;
+  renderPreview?: typeof renderVoucherTemplatePreview;
   deleteAsset?: typeof deleteVoucherTemplateAsset;
 };
 
@@ -22,16 +36,32 @@ function isClassicUniqueConflict(error: unknown) {
     && (String(error.meta?.target ?? "").includes("key") || String(error.meta?.target ?? "").includes("familyKey"));
 }
 
-async function bootstrapOnce(
-  dependencies: VoucherTemplateBootstrapDependencies,
-) {
+function assertPdfSignature(master: Buffer) {
+  if (!master.subarray(0, 5).equals(Buffer.from("%PDF-"))) {
+    throw new Error("Bootstrap nalezl neplatný master PDF.");
+  }
+}
+
+async function validateMaster(master: Buffer, preflightMaster: typeof preflightVoucherTemplateMaster) {
+  assertPdfSignature(master);
+  const preflight = await preflightMaster(master);
+  if (preflight.errors.length) {
+    throw new Error(preflight.errors[0] ?? "Bootstrap nalezl neplatný master PDF.");
+  }
+}
+
+async function bootstrapOnce(dependencies: VoucherTemplateBootstrapDependencies) {
   const db = dependencies.db ?? prisma;
   const readMaster = dependencies.readMaster ?? (() => readFile(path.join(process.cwd(), "src", "features", "vouchers", "bootstrap-assets", "classic-v1.pdf")));
   const writeMaster = dependencies.writeMaster ?? writeVoucherTemplateMaster;
+  const writePreview = dependencies.writePreview ?? writeVoucherTemplatePreview;
+  const readStoredMaster = dependencies.readStoredMaster ?? readVoucherTemplateMaster;
+  const masterExists = dependencies.masterExists ?? voucherTemplateMasterExists;
+  const preflightMaster = dependencies.preflightMaster ?? preflightVoucherTemplateMaster;
+  const renderPreview = dependencies.renderPreview ?? renderVoucherTemplatePreview;
   const deleteAsset = dependencies.deleteAsset ?? deleteVoucherTemplateAsset;
-  let createdTemplate = false;
+  const stagedAssets: string[] = [];
   let createdTemplateId: string | null = null;
-  let createdStoragePath: string | null = null;
 
   try {
     return await db.$transaction(async (tx) => {
@@ -45,8 +75,11 @@ async function bootstrapOnce(
       }
 
       let template = await tx.voucherTemplate.findUnique({ where: { key: CLASSIC_TEMPLATE_KEY } });
+      let owner: { id: string } | null = null;
+      let fresh = false;
+
       if (!template) {
-        const owner = await tx.adminUser.findFirst({ where: { role: AdminRole.OWNER, isActive: true }, select: { id: true } });
+        owner = await tx.adminUser.findFirst({ where: { role: AdminRole.OWNER, isActive: true }, select: { id: true } });
         if (!owner) throw new Error("Bootstrap vyžaduje aktivního OWNER uživatele.");
 
         template = await tx.voucherTemplate.create({
@@ -61,25 +94,70 @@ async function bootstrapOnce(
             createdByUserId: owner.id,
           },
         });
-        createdTemplate = true;
         createdTemplateId = template.id;
+        fresh = true;
+      }
 
-        const stored = await writeMaster(template.id, await readMaster());
-        createdStoragePath = stored.storagePath;
+      if (fresh) {
+        const master = await readMaster();
+        await validateMaster(master, preflightMaster);
+        const preview = await renderPreview(master);
+
+        const storedMaster = await writeMaster(template.id, master);
+        stagedAssets.push(storedMaster.storagePath);
+        const storedPreview = await writePreview(template.id, preview);
+        stagedAssets.push(storedPreview.storagePath);
+
         template = await tx.voucherTemplate.update({
           where: { id: template.id },
           data: {
             status: VoucherTemplateStatus.PUBLISHED,
-            masterStoragePath: stored.storagePath,
-            masterSha256: stored.sha256,
-            publishedByUserId: owner.id,
+            masterStoragePath: storedMaster.storagePath,
+            masterSha256: storedMaster.sha256,
+            previewStoragePath: storedPreview.storagePath,
+            publishedByUserId: owner!.id,
             publishedAt: new Date(),
           },
         });
-      }
+      } else {
+        if (template.status !== VoucherTemplateStatus.PUBLISHED || !template.masterStoragePath || !template.masterSha256) {
+          throw new Error("Bootstrap nalezl classic-v1 bez publikovaného a platného masteru.");
+        }
 
-      if (template.status !== VoucherTemplateStatus.PUBLISHED || !template.masterStoragePath || !template.masterSha256) {
-        throw new Error("Bootstrap nalezl classic-v1 bez publikovaného a platného masteru.");
+        if (!(await masterExists(template.masterStoragePath))) {
+          throw new Error("Bootstrap nalezl chybějící master classic-v1.");
+        }
+        let master: Buffer;
+        try {
+          master = await readStoredMaster(template.masterStoragePath);
+        } catch {
+          throw new Error("Bootstrap nedokázal načíst master classic-v1.");
+        }
+        if (sha256(master) !== template.masterSha256) {
+          throw new Error("Bootstrap nalezl nesouhlasící kontrolní součet masteru classic-v1.");
+        }
+        await validateMaster(master, preflightMaster);
+
+        if (!template.previewStoragePath) {
+          const preview = await renderPreview(master);
+          const storedPreview = await writePreview(template.id, preview);
+          stagedAssets.push(storedPreview.storagePath);
+
+          const updated = await tx.voucherTemplate.updateMany({
+            where: {
+              id: template.id,
+              status: VoucherTemplateStatus.PUBLISHED,
+              masterStoragePath: template.masterStoragePath,
+              masterSha256: template.masterSha256,
+              previewStoragePath: null,
+            },
+            data: { previewStoragePath: storedPreview.storagePath },
+          });
+          if (updated.count !== 1) {
+            throw new Error("Bootstrap nemohl atomicky doplnit preview classic-v1.");
+          }
+          template = { ...template, previewStoragePath: storedPreview.storagePath };
+        }
       }
 
       const legacyVouchers = await tx.voucher.findMany({ where: { templateId: null }, select: { templateKey: true } });
@@ -105,8 +183,7 @@ async function bootstrapOnce(
 
       const remainingNulls = await tx.voucher.count({ where: { templateId: null } });
       if (remainingNulls !== 0) throw new Error(`Bootstrap skončil s ${remainingNulls} voucher řádky bez templateId.`);
-      if (createdTemplate) {
-        const owner = await tx.adminUser.findFirst({ where: { role: AdminRole.OWNER, isActive: true }, select: { id: true } });
+      if (fresh) {
         await tx.voucherTemplateAuditLog.create({
           data: {
             templateId: template.id,
@@ -114,7 +191,7 @@ async function bootstrapOnce(
             familyKey: template.familyKey,
             version: template.version,
             label: template.label,
-            actorUserId: owner?.id ?? null,
+            actorUserId: owner!.id,
             operation: "PUBLISH",
             metadata: { bootstrap: true, backfilledVouchers: backfilled.count },
           },
@@ -124,12 +201,12 @@ async function bootstrapOnce(
       return { backfilledVouchers: backfilled.count, remainingNulls };
     });
   } catch (error) {
-    if (createdStoragePath) {
-      await deleteAsset(createdStoragePath).catch((cleanupError) => {
-        console.error("Bootstrap cleanup masteru selhal", { cleanupError });
+    for (const storagePath of stagedAssets) {
+      await deleteAsset(storagePath).catch((cleanupError) => {
+        console.error("Bootstrap cleanup assetu selhal", { storagePath, cleanupError });
       });
     }
-    if (createdTemplate && createdTemplateId) {
+    if (createdTemplateId) {
       await db.voucherTemplate.delete({ where: { id: createdTemplateId } }).catch((cleanupError) => {
         console.error("Bootstrap cleanup DB šablony selhal", { cleanupError });
       });

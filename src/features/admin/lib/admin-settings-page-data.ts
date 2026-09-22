@@ -3,12 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { getOwnerCalendarFeedAdminState } from "@/features/calendar/lib/calendar-feed-service";
 import { listPublishedVoucherTemplates } from "@/features/vouchers/lib/voucher-template-repository";
 
-export function getAdminVoucherTemplateOptions(templates: readonly { id: string; key: string; label: string }[]) {
+export function getAdminVoucherTemplateOptions(templates: readonly { id: string; key: string; label: string; masterSha256?: string | null; updatedAt?: Date }[]) {
   return templates.map((template) => ({
     id: template.id,
     key: template.key,
     label: template.label,
-    previewUrl: `/api/admin/voucher-templates/${template.id}/preview`,
+    previewUrl: template.masterSha256
+      ? `/api/admin/voucher-templates/${template.id}/preview?v=${template.updatedAt?.getTime() ?? encodeURIComponent(template.masterSha256)}`
+      : `/api/admin/voucher-templates/${template.id}/preview`,
   }));
 }
 

@@ -82,10 +82,10 @@ test("domain lifecycle hlídá default, zachová historii a nepovolí hard-delet
   assert.equal(clone.key, "classic-v2");
   assert.equal((audits.at(-1) as { operation: string }).operation, "CLONE_VERSION");
 
-  currentTemplate = { ...(currentTemplate ?? {}), id: "draft-1", status: "DRAFT", masterStoragePath: "voucher-templates/draft-1/master-test.pdf", previewStoragePath: null };
+  currentTemplate = { ...(currentTemplate ?? {}), id: "draft-1", status: "DRAFT", masterStoragePath: "voucher-templates/draft-1/master-test.pdf", previewStoragePath: "voucher-templates/draft-1/preview-test.png" };
   await domain.deleteVoucherTemplateDraft("draft-1", "owner-1");
   assert.equal((audits.at(-1) as { operation: string }).operation, "DELETE_DRAFT");
-  assert.deepEqual(deletedAssets, ["voucher-templates/draft-1/master-test.pdf", null]);
+  assert.deepEqual(deletedAssets, ["voucher-templates/draft-1/master-test.pdf", "voucher-templates/draft-1/preview-test.png"]);
 
   currentTemplate = { ...(currentTemplate ?? {}), id: "published-1", status: "PUBLISHED" };
   await assert.rejects(

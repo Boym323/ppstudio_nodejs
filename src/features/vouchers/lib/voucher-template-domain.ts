@@ -5,21 +5,18 @@ import { voucherTemplateLayoutSchema, type VoucherTemplateLayoutV1 } from "./vou
 import {
   deleteVoucherTemplateAsset,
   readVoucherTemplateMaster,
+  readVoucherTemplatePreview,
   sha256,
   voucherTemplateMasterExists,
   writeVoucherTemplateMaster,
+  writeVoucherTemplatePreview,
 } from "./voucher-template-storage";
 import { preflightVoucherTemplateMaster } from "./voucher-template-preflight";
+import { renderVoucherTemplatePreview } from "./voucher-template-preview";
+import { validateVoucherTemplatePreviewPng } from "./voucher-template-preview-validation";
+import { VoucherTemplateDomainError } from "./voucher-template-errors";
 
-export class VoucherTemplateDomainError extends Error {
-  constructor(
-    readonly code: "NOT_FOUND" | "FORBIDDEN" | "IMMUTABLE" | "INVALID_STATE" | "DEFAULT_GUARD" | "MASTER_INVALID",
-    message: string,
-  ) {
-    super(message);
-    this.name = "VoucherTemplateDomainError";
-  }
-}
+export { VoucherTemplateDomainError } from "./voucher-template-errors";
 
 export function templateKey(familyKey: string, version: number) {
   const family = familyKey.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -136,9 +133,14 @@ export async function replaceVoucherTemplateMaster(id: string, master: Buffer, a
   const preflight = await preflightVoucherTemplateMaster(master);
   if (preflight.errors.length) throw new VoucherTemplateDomainError("MASTER_INVALID", preflight.errors[0] ?? "Master PDF není platný.");
 
-  const prepared = await writeVoucherTemplateMaster(id, master);
+  const preview = await renderVoucherTemplatePreview(master);
+  let preparedMaster: Awaited<ReturnType<typeof writeVoucherTemplateMaster>> | null = null;
+  let preparedPreview: Awaited<ReturnType<typeof writeVoucherTemplatePreview>> | null = null;
 
   try {
+    preparedMaster = await writeVoucherTemplateMaster(id, master);
+    preparedPreview = await writeVoucherTemplatePreview(id, preview);
+
     const result = await runSerializableTransaction(async (tx) => {
       const switched = await tx.voucherTemplate.updateMany({
         where: {
@@ -147,8 +149,13 @@ export async function replaceVoucherTemplateMaster(id: string, master: Buffer, a
           version: template.version,
           masterStoragePath: template.masterStoragePath,
           masterSha256: template.masterSha256,
+          previewStoragePath: template.previewStoragePath,
         },
-        data: { masterStoragePath: prepared.storagePath, masterSha256: prepared.sha256 },
+        data: {
+          masterStoragePath: preparedMaster!.storagePath,
+          masterSha256: preparedMaster!.sha256,
+          previewStoragePath: preparedPreview!.storagePath,
+        },
       });
 
       if (switched.count !== 1) {
@@ -164,11 +171,19 @@ export async function replaceVoucherTemplateMaster(id: string, master: Buffer, a
     } catch (cleanupError) {
       console.warn("Úklid starého masteru šablony selhal po úspěšném přepnutí", { templateId: id, cleanupError });
     }
+    try {
+      await deleteVoucherTemplateAsset(template.previewStoragePath);
+    } catch (cleanupError) {
+      console.warn("Úklid starého preview šablony selhal po úspěšném přepnutí", { templateId: id, cleanupError });
+    }
 
     return result;
   } catch (error) {
-    await deleteVoucherTemplateAsset(prepared.storagePath).catch((cleanupError) => {
+    await deleteVoucherTemplateAsset(preparedMaster?.storagePath).catch((cleanupError) => {
       console.error("Úklid nového masteru po neúspěšném přepnutí selhal", { templateId: id, cleanupError });
+    });
+    await deleteVoucherTemplateAsset(preparedPreview?.storagePath).catch((cleanupError) => {
+      console.error("Úklid nového preview po neúspěšném přepnutí selhal", { templateId: id, cleanupError });
     });
     throw error;
   }
@@ -178,7 +193,27 @@ export async function publishVoucherTemplate(id: string, actorUserId: string) {
   const template = await requireVoucherTemplate(id);
   if (template.status !== "DRAFT") throw new VoucherTemplateDomainError("INVALID_STATE", "Publikovat lze jen draft.");
   if (!template.masterStoragePath || !template.masterSha256 || !(await voucherTemplateMasterExists(template.masterStoragePath))) throw new VoucherTemplateDomainError("MASTER_INVALID", "Master šablony chybí.");
-  if (sha256(await readVoucherTemplateMaster(template.masterStoragePath)) !== template.masterSha256) throw new VoucherTemplateDomainError("MASTER_INVALID", "Kontrolní součet masteru nesouhlasí.");
+  let master: Buffer;
+  try {
+    master = await readVoucherTemplateMaster(template.masterStoragePath);
+  } catch {
+    throw new VoucherTemplateDomainError("MASTER_INVALID", "Master šablony není dostupný.");
+  }
+  if (!master.subarray(0, 5).equals(Buffer.from("%PDF-"))) throw new VoucherTemplateDomainError("MASTER_INVALID", "Master musí být platný PDF soubor.");
+  if (sha256(master) !== template.masterSha256) throw new VoucherTemplateDomainError("MASTER_INVALID", "Kontrolní součet masteru nesouhlasí.");
+  const masterPreflight = await preflightVoucherTemplateMaster(master);
+  if (masterPreflight.errors.length) throw new VoucherTemplateDomainError("MASTER_INVALID", masterPreflight.errors[0] ?? "Master PDF není platný.");
+  if (!template.previewStoragePath) throw new VoucherTemplateDomainError("MASTER_INVALID", "Náhled šablony chybí nebo není dostupný.");
+  let preview: Buffer;
+  try {
+    preview = await readVoucherTemplatePreview(template.previewStoragePath);
+  } catch {
+    throw new VoucherTemplateDomainError("MASTER_INVALID", "Náhled šablony není dostupný.");
+  }
+  const previewValidation = await validateVoucherTemplatePreviewPng(preview);
+  if (!previewValidation.ok) {
+    throw new VoucherTemplateDomainError("MASTER_INVALID", "Náhled šablony není platný PNG soubor.");
+  }
   voucherTemplateLayoutSchema.parse(template.layout);
 
   const [{ resolveVoucherTemplate }, { preflightVoucherTemplateForPublish }] = await Promise.all([
@@ -196,8 +231,9 @@ export async function publishVoucherTemplate(id: string, actorUserId: string) {
       || current.version !== template.version
       || current.masterStoragePath !== template.masterStoragePath
       || current.masterSha256 !== template.masterSha256
+      || current.previewStoragePath !== template.previewStoragePath
     ) {
-      throw new VoucherTemplateDomainError("INVALID_STATE", "Master nebo layout se během preflightu změnil; spusťte preflight znovu.");
+      throw new VoucherTemplateDomainError("INVALID_STATE", "Master, preview nebo layout se během preflightu změnil; spusťte preflight znovu.");
     }
 
     const published = await tx.voucherTemplate.updateMany({
@@ -207,6 +243,7 @@ export async function publishVoucherTemplate(id: string, actorUserId: string) {
         version: template.version,
         masterStoragePath: template.masterStoragePath,
         masterSha256: template.masterSha256,
+        previewStoragePath: template.previewStoragePath,
       },
       data: { status: VoucherTemplateStatus.PUBLISHED, publishedByUserId: actorUserId, publishedAt: new Date() },
     });

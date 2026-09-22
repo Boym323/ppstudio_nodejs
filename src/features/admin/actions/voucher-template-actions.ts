@@ -33,6 +33,7 @@ export async function uploadVoucherTemplateMasterAction(formData: FormData) {
   if (!templateId || !(file instanceof File) || file.size === 0 || file.size > 8 * 1024 * 1024 || (file.type && file.type !== "application/pdf")) throw new Error("Vyberte PDF master do 8 MB.");
   await replaceVoucherTemplateMaster(templateId, Buffer.from(await file.arrayBuffer()), session.sub);
   revalidatePath(`/admin/vouchery/sablony/${templateId}`);
+  revalidatePath("/admin/nastaveni");
 }
 
 export async function saveVoucherTemplateLayoutAction(templateId: string, layout: VoucherTemplateLayoutV1) {
