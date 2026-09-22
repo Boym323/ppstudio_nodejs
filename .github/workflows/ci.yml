@@ -129,6 +129,7 @@ jobs:
         run: |
           npx prisma migrate deploy
           npm run db:generate
+          npm run ci:prepare-voucher-fixtures
 
       - name: Test unit layer with coverage and DB integrations
         run: npm run test:ci
@@ -279,6 +280,7 @@ jobs:
         run: |
           npx prisma migrate deploy
           npm run db:generate
+          npm run ci:prepare-voucher-fixtures
 
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
@@ -338,6 +340,7 @@ jobs:
         run: |
           npx prisma migrate deploy
           npm run db:generate
+          npm run ci:prepare-voucher-fixtures
 
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
@@ -405,6 +408,7 @@ jobs:
         run: |
           npx prisma migrate deploy
           npm run db:generate
+          npm run ci:prepare-voucher-fixtures
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps ${{ matrix.browser.engine }}
@@ -472,6 +476,7 @@ jobs:
         run: |
           npx prisma migrate deploy
           npm run db:generate
+          npm run ci:prepare-voucher-fixtures
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps ${{ matrix.browser.engine }}
