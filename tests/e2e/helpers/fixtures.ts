@@ -918,9 +918,10 @@ export async function cleanupE2eData(runId: string) {
   });
   await prisma.voucher.deleteMany({
     where: {
-      internalNote: {
-        contains: runId,
-      },
+      OR: [
+        { internalNote: { contains: runId } },
+        ...(serviceIds.length > 0 ? [{ serviceId: { in: serviceIds } }] : []),
+      ],
     },
   });
 

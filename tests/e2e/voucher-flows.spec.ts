@@ -22,7 +22,23 @@ test.describe("administrační toky voucherů", () => {
   let fixtures: E2eFixture[] = [];
 
   test.afterEach(async () => {
-    await Promise.all(fixtures.map((fixture) => cleanupE2eData(fixture.runId)));
+    await Promise.all(
+      fixtures.map(async (fixture) => {
+        await cleanupE2eData(fixture.runId);
+        expect(
+          await prisma.voucher.count({
+            where: {
+              OR: [
+                { internalNote: { contains: fixture.runId } },
+                { purchaserName: { contains: fixture.runId } },
+              ],
+            },
+          }),
+        ).toBe(0);
+        expect(await prisma.service.count({ where: { slug: { contains: fixture.runId } } })).toBe(0);
+        expect(await prisma.serviceCategory.count({ where: { slug: { contains: fixture.runId } } })).toBe(0);
+      }),
+    );
     fixtures = [];
   });
 
@@ -93,6 +109,9 @@ test.describe("administrační toky voucherů", () => {
     await serviceButton.click();
     await expect(serviceButton).toHaveAttribute("aria-pressed", "true");
     await page.getByRole("textbox", { name: "Kupující", exact: true }).fill(`E2E služba ${fixture.runId}`);
+    await page
+      .getByLabel("Poznámka jen pro administraci")
+      .fill(`E2E voucher service ${fixture.runId}`);
     await page.getByRole("button", { name: "Vytvořit voucher" }).click();
     await expect(page).toHaveURL(/\/admin\/vouchery\/[^/]+$/);
     await expect(page.getByRole("heading", { name: "Detail voucheru" })).toBeVisible();
