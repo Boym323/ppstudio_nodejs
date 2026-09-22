@@ -42,12 +42,13 @@ const dateFormatter = new Intl.DateTimeFormat("cs-CZ", { day: "numeric", month: 
 const dateTimeFormatter = new Intl.DateTimeFormat("cs-CZ", { day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
 const moneyFormatter = new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0, style: "currency", currency: "CZK" });
 
-export function AdminVoucherTabs({ area, active }: { area: AdminArea; active: "issued" | "stock" }) {
+export function AdminVoucherTabs({ area, active }: { area: AdminArea; active: "issued" | "stock" | "templates" }) {
   const baseHref = area === "owner" ? "/admin/vouchery" : "/admin/provoz/vouchery";
   return (
     <nav className="flex flex-wrap gap-2" aria-label="Vouchery">
       <Link href={baseHref} className={tabClassName(active === "issued")}>Vydané</Link>
       <Link href={`${baseHref}/predtistene`} className={tabClassName(active === "stock")}>Předtištěné</Link>
+      {area === "owner" ? <Link href="/admin/vouchery/sablony" className={tabClassName(active === "templates")}>Šablony</Link> : null}
     </nav>
   );
 }

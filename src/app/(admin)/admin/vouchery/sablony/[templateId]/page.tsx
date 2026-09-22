@@ -10,6 +10,7 @@ import {
   uploadVoucherTemplateMasterAction,
 } from "@/features/admin/actions/voucher-template-actions";
 import { AdminPageShell } from "@/features/admin/components/admin-page-shell";
+import { AdminVoucherTabs } from "@/features/admin/components/admin-voucher-stock-pages";
 import { VoucherTemplateLayoutEditor } from "@/features/admin/components/voucher-template-layout-editor";
 import { voucherTemplateLayoutSchema } from "@/features/vouchers/lib/voucher-template-layout";
 import { requireVoucherTemplateById } from "@/features/vouchers/lib/voucher-template-repository";
@@ -32,6 +33,7 @@ export default async function VoucherTemplateDetailPage({ params }: { params: Pr
   return (
     <AdminPageShell eyebrow="Vouchery" title={template.label} description={`${template.key} · ${template.status}`}>
       <div className="space-y-5">
+        <AdminVoucherTabs area="owner" active="templates" />
         <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
           <p className="text-sm text-white/70">Master: {template.masterStoragePath ? "nahrán" : "chybí"}</p>
           <div className="mt-4 flex flex-wrap gap-2">
