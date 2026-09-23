@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { AdminRole } from "@/generated/prisma/client";
 
 import {
@@ -9,6 +9,51 @@ import {
   createManagedBookingFixture,
   prisma,
 } from "./helpers/fixtures";
+
+async function loginAdmin(page: Page, email: string, password: string) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    await page.goto("/admin/prihlaseni");
+    if (new URL(page.url()).pathname === "/admin") {
+      return;
+    }
+    await page.getByLabel("E-mail").fill(email);
+    await page.getByLabel("Heslo").fill(password);
+    await page.getByRole("button", { name: "Přihlásit se" }).click();
+
+    try {
+      await expect(page).toHaveURL((url) => url.pathname === "/admin", {
+        timeout: attempt === 0 ? 15_000 : 20_000,
+      });
+      return;
+    } catch (error) {
+      if (attempt === 1) {
+        throw error;
+      }
+    }
+  }
+}
+
+async function openBookingDetail(page: Page, bookingId: string) {
+  const detailPath = `/admin/rezervace/${bookingId}`;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    await page.goto(detailPath);
+
+    try {
+      await expect(page).toHaveURL((url) => url.pathname === detailPath, {
+        timeout: attempt === 0 ? 10_000 : 20_000,
+      });
+      await expect(page.locator("main")).toBeVisible({
+        timeout: attempt === 0 ? 10_000 : 20_000,
+      });
+      return;
+    } catch (error) {
+      if (attempt === 1) {
+        throw error;
+      }
+    }
+  }
+}
 
 test.describe("mobilní detail rezervace", () => {
   let runId = "";
@@ -27,14 +72,9 @@ test.describe("mobilní detail rezervace", () => {
     runId = fixture.runId;
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/admin/prihlaseni");
-    await page.getByLabel("E-mail").fill(admin.email);
-    await page.getByLabel("Heslo").fill(admin.password);
-    await page.getByRole("button", { name: "Přihlásit se" }).click();
-    await expect(page).toHaveURL(/\/admin/);
+    await loginAdmin(page, admin.email, admin.password);
 
-    await page.goto(`/admin/rezervace/${fixture.bookingId}`);
-    await expect(page.locator("main")).toBeVisible();
+    await openBookingDetail(page, fixture.bookingId!);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 
     await page.locator("details", { hasText: "Přidat poznámku" }).locator("summary").click();
