@@ -9,11 +9,13 @@ import { renderVoucherTemplatePreview } from "./voucher-template-preview";
 import {
   deleteVoucherTemplateAsset,
   readVoucherTemplateMaster,
+  readVoucherTemplatePreview,
   sha256,
   voucherTemplateMasterExists,
   writeVoucherTemplateMaster,
   writeVoucherTemplatePreview,
 } from "./voucher-template-storage";
+import { validateVoucherTemplatePreviewPng } from "./voucher-template-preview-validation";
 
 const CLASSIC_TEMPLATE_KEY = "classic-v1";
 const BOOTSTRAP_LOCK = "ppstudio:voucher-template-bootstrap:classic-v1";
@@ -24,9 +26,11 @@ export type VoucherTemplateBootstrapDependencies = {
   writeMaster?: typeof writeVoucherTemplateMaster;
   writePreview?: typeof writeVoucherTemplatePreview;
   readStoredMaster?: typeof readVoucherTemplateMaster;
+  readStoredPreview?: typeof readVoucherTemplatePreview;
   masterExists?: typeof voucherTemplateMasterExists;
   preflightMaster?: typeof preflightVoucherTemplateMaster;
   renderPreview?: typeof renderVoucherTemplatePreview;
+  validatePreview?: typeof validateVoucherTemplatePreviewPng;
   deleteAsset?: typeof deleteVoucherTemplateAsset;
 };
 
@@ -56,15 +60,18 @@ async function bootstrapOnce(dependencies: VoucherTemplateBootstrapDependencies)
   const writeMaster = dependencies.writeMaster ?? writeVoucherTemplateMaster;
   const writePreview = dependencies.writePreview ?? writeVoucherTemplatePreview;
   const readStoredMaster = dependencies.readStoredMaster ?? readVoucherTemplateMaster;
+  const readStoredPreview = dependencies.readStoredPreview ?? readVoucherTemplatePreview;
   const masterExists = dependencies.masterExists ?? voucherTemplateMasterExists;
   const preflightMaster = dependencies.preflightMaster ?? preflightVoucherTemplateMaster;
   const renderPreview = dependencies.renderPreview ?? renderVoucherTemplatePreview;
+  const validatePreview = dependencies.validatePreview ?? validateVoucherTemplatePreviewPng;
   const deleteAsset = dependencies.deleteAsset ?? deleteVoucherTemplateAsset;
   const stagedAssets: string[] = [];
   let createdTemplateId: string | null = null;
+  let repairedPreviewToCleanup: string | null = null;
 
   try {
-    return await db.$transaction(async (tx) => {
+    const result = await db.$transaction(async (tx) => {
       // Serializuje i první vytvoření classic-v1, takže dva bootstrap procesy
       // neuvidí současně prázdný namespace a nesoutěží o unique key.
       if (typeof tx.$queryRaw === "function") {
@@ -138,7 +145,18 @@ async function bootstrapOnce(dependencies: VoucherTemplateBootstrapDependencies)
         }
         await validateMaster(master, preflightMaster);
 
-        if (!template.previewStoragePath) {
+        let previewIsValid = false;
+        if (template.previewStoragePath) {
+          try {
+            const existingPreview = await readStoredPreview(template.previewStoragePath);
+            previewIsValid = (await validatePreview(existingPreview)).ok;
+          } catch {
+            previewIsValid = false;
+          }
+        }
+
+        if (!previewIsValid) {
+          const previousPreviewStoragePath = template.previewStoragePath;
           const preview = await renderPreview(master);
           const storedPreview = await writePreview(template.id, preview);
           stagedAssets.push(storedPreview.storagePath);
@@ -149,13 +167,14 @@ async function bootstrapOnce(dependencies: VoucherTemplateBootstrapDependencies)
               status: VoucherTemplateStatus.PUBLISHED,
               masterStoragePath: template.masterStoragePath,
               masterSha256: template.masterSha256,
-              previewStoragePath: null,
+              previewStoragePath: previousPreviewStoragePath,
             },
             data: { previewStoragePath: storedPreview.storagePath },
           });
           if (updated.count !== 1) {
-            throw new Error("Bootstrap nemohl atomicky doplnit preview classic-v1.");
+            throw new Error("Bootstrap nemohl atomicky opravit preview classic-v1.");
           }
+          repairedPreviewToCleanup = previousPreviewStoragePath;
           template = { ...template, previewStoragePath: storedPreview.storagePath };
         }
       }
@@ -200,6 +219,17 @@ async function bootstrapOnce(dependencies: VoucherTemplateBootstrapDependencies)
 
       return { backfilledVouchers: backfilled.count, remainingNulls };
     });
+
+    if (repairedPreviewToCleanup) {
+      await deleteAsset(repairedPreviewToCleanup).catch((cleanupError) => {
+        console.warn("Bootstrap cleanup starého preview selhal po úspěšném přepnutí", {
+          storagePath: repairedPreviewToCleanup,
+          cleanupError,
+        });
+      });
+    }
+
+    return result;
   } catch (error) {
     for (const storagePath of stagedAssets) {
       await deleteAsset(storagePath).catch((cleanupError) => {

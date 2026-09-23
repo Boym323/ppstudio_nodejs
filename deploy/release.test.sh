@@ -191,8 +191,29 @@ test_line="$(grep -n 'npm run test:release' "${SCRIPT_DIR}/release.sh" | tail -1
 build_line="$(grep -n 'npm run build' "${SCRIPT_DIR}/release.sh" | tail -1 | cut -d: -f1)"
 stop_line="$(grep -n 'run_timed_step "zastavení a ověření writerů" stop_release_writers' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
 migrate_line="$(grep -n 'npx prisma migrate deploy (writeři jsou ověřeně zastavení)' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
+bootstrap_line="$(grep -n 'run_timed_step "voucher template bootstrap" run_voucher_template_bootstrap' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
 activate_line="$(grep -n 'activate_release "\${release_dir}"' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
-[[ "${typecheck_line}" -lt "${test_line}" && "${test_line}" -lt "${build_line}" && "${build_line}" -lt "${stop_line}" && "${stop_line}" -lt "${migrate_line}" && "${migrate_line}" -lt "${activate_line}" ]]
+activate_swap_line="$(grep -n 'set_release_link "\${CURRENT_RELEASE_LINK}" "\${release_dir}"' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
+activate_start_line="$(grep -n 'if start_release_services && wait_for_web_listener' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
+[[ "${typecheck_line}" -lt "${test_line}" && "${test_line}" -lt "${build_line}" && "${build_line}" -lt "${stop_line}" && "${stop_line}" -lt "${migrate_line}" && "${migrate_line}" -lt "${bootstrap_line}" && "${bootstrap_line}" -lt "${activate_line}" && "${activate_swap_line}" -lt "${activate_start_line}" ]]
+
+# Bootstrap je fail-closed krok: jeho neúspěch nesmí pokračovat do aktivace.
+ACTIVATE_CALLED=0
+npm() {
+  if [[ "$1" == "run" && "$2" == "voucher:templates:bootstrap" ]]; then
+    return 1
+  fi
+  return 0
+}
+activate_release() {
+  ACTIVATE_CALLED=1
+}
+if run_voucher_template_bootstrap; then
+  echo "Selhání bootstrapu bylo neočekávaně ignorováno." >&2
+  exit 1
+fi
+[[ "${ACTIVATE_CALLED}" -eq 0 ]]
+unset -f npm activate_release
 
 WEB_ACTIVE=1
 WORKER_ACTIVE=1

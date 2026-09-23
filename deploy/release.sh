@@ -319,6 +319,11 @@ start_release_services() {
   sudo systemctl start "${WORKER_UNIT_NAME}" || return 1
 }
 
+run_voucher_template_bootstrap() {
+  log "npm run voucher:templates:bootstrap (po migraci, před aktivací release)"
+  npm run voucher:templates:bootstrap
+}
+
 assert_release_writers_stopped() {
   local unit_name
 
@@ -725,6 +730,9 @@ run_release() {
   cd "${release_dir}"
   log "npx prisma migrate deploy (writeři jsou ověřeně zastavení)"
   run_timed_step "Prisma migrate deploy" npx prisma migrate deploy
+
+  log "Povinný voucher template bootstrap (nový release, stejný env a private storage)"
+  run_timed_step "voucher template bootstrap" run_voucher_template_bootstrap
 
   cd "${REPO_DIR}"
   run_timed_step "aktivace release" activate_release "${release_dir}"

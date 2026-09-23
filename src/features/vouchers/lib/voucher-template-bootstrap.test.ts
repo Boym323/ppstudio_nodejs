@@ -22,6 +22,8 @@ function createDb(options: {
   existing?: boolean;
   previewStoragePath?: string | null;
   failAfterTransaction?: boolean;
+  previewUpdateConflict?: boolean;
+  advisoryLock?: boolean;
 } = {}) {
   type FakeTemplate = {
     id: string;
@@ -103,18 +105,41 @@ function createDb(options: {
       },
       updateMany: async ({ where, data }: { where: Partial<FakeTemplate>; data: Partial<FakeTemplate> }) => {
         updateCount += 1;
+        if (options.previewUpdateConflict && Object.prototype.hasOwnProperty.call(where, "previewStoragePath")) return { count: 0 };
         if (!template || Object.entries(where).some(([key, value]) => template?.[key as keyof FakeTemplate] !== value)) return { count: 0 };
         template = { ...template, ...data };
         return { count: 1 };
       },
     },
   };
+  let advisoryLockHeld = false;
+  const advisoryLockWaiters: Array<() => void> = [];
+  const acquireAdvisoryLock = async () => {
+    if (advisoryLockHeld) await new Promise<void>((resolve) => advisoryLockWaiters.push(resolve));
+    advisoryLockHeld = true;
+  };
+  const releaseAdvisoryLock = () => {
+    const next = advisoryLockWaiters.shift();
+    if (next) next();
+    else advisoryLockHeld = false;
+  };
   const db = {
     voucherTemplate: { delete: async () => { deletedTemplate = true; template = null; } },
     $transaction: async (callback: (tx: typeof transaction) => Promise<unknown>) => {
       const before = { template: template ? { ...template } : null, vouchers: vouchers.map((voucher) => ({ ...voucher })), settings: { ...settings }, auditCount, updateCount };
+      let ownsAdvisoryLock = false;
+      const tx = options.advisoryLock
+        ? {
+            ...transaction,
+            $queryRaw: async () => {
+              await acquireAdvisoryLock();
+              ownsAdvisoryLock = true;
+              return [];
+            },
+          }
+        : transaction;
       try {
-        const result = await callback(transaction);
+        const result = await callback(tx);
         if (options.failAfterTransaction) throw new Error("simulated DB failure");
         return result;
       } catch (error) {
@@ -124,6 +149,8 @@ function createDb(options: {
         auditCount = before.auditCount;
         updateCount = before.updateCount;
         throw error;
+      } finally {
+        if (ownsAdvisoryLock) releaseAdvisoryLock();
       }
     },
   } as unknown as NonNullable<VoucherTemplateBootstrapDependencies["db"]>;
@@ -149,9 +176,11 @@ function dependencies(
     db: context.db,
     readMaster: async () => master,
     readStoredMaster: async () => master,
+    readStoredPreview: async () => png,
     masterExists: async () => true,
     preflightMaster: async () => ({ errors: [] } as never),
     renderPreview: async () => png,
+    validatePreview: async () => ({ ok: true, format: "png", width: 1, height: 1 }),
     writeMaster: async () => {
       masterWrites += 1;
       return { storagePath: "voucher-templates/classic-template/master-new.pdf", sha256: masterSha256 };
@@ -183,8 +212,8 @@ test("fresh bootstrap vytvoří publikovaný master i PNG preview, audit, backfi
   assert.deepEqual(prepared.deleted, []);
 });
 
-test("existující PUBLISHED classic-v1 doplní preview bez změny masteru a published metadat", async () => {
-  const context = createDb({ existing: true });
+test("existující validní preview se znovu negeneruje a metadata zůstanou beze změny", async () => {
+  const context = createDb({ existing: true, previewStoragePath: "voucher-templates/classic-template/preview-valid.png" });
   const before = { ...context.getTemplate()! };
   const prepared = dependencies(context);
 
@@ -194,10 +223,47 @@ test("existující PUBLISHED classic-v1 doplní preview bez změny masteru a pub
   assert.equal(after.masterSha256, before.masterSha256);
   assert.equal(after.publishedAt?.toISOString(), before.publishedAt?.toISOString());
   assert.equal(after.publishedByUserId, before.publishedByUserId);
-  assert.equal(after.previewStoragePath, "voucher-templates/classic-template/preview-1.png");
+  assert.equal(after.previewStoragePath, before.previewStoragePath);
   assert.equal(prepared.getMasterWrites(), 0);
-  assert.equal(prepared.getPreviewWrites(), 1);
+  assert.equal(prepared.getPreviewWrites(), 0);
   assert.deepEqual(prepared.deleted, []);
+});
+
+test("existující preview s chybějícím souborem se opraví a starý pointer se uklidí až po commitu", async () => {
+  const context = createDb({ existing: true, previewStoragePath: "voucher-templates/classic-template/preview-missing.png" });
+  const prepared = dependencies(context, { readStoredPreview: async () => { throw new Error("preview missing"); } });
+
+  await bootstrapVoucherTemplates(prepared.deps);
+
+  assert.equal(context.getTemplate()?.previewStoragePath, "voucher-templates/classic-template/preview-1.png");
+  assert.equal(prepared.getPreviewWrites(), 1);
+  assert.deepEqual(prepared.deleted, ["voucher-templates/classic-template/preview-missing.png"]);
+});
+
+test("existující corrupt preview se opraví validovaným masterem", async () => {
+  const context = createDb({ existing: true, previewStoragePath: "voucher-templates/classic-template/preview-corrupt.png" });
+  const prepared = dependencies(context, {
+    validatePreview: async () => ({ ok: false, reason: "decode-failed" }),
+  });
+
+  await bootstrapVoucherTemplates(prepared.deps);
+
+  assert.equal(context.getTemplate()?.previewStoragePath, "voucher-templates/classic-template/preview-1.png");
+  assert.equal(prepared.getPreviewWrites(), 1);
+  assert.deepEqual(prepared.deleted, ["voucher-templates/classic-template/preview-corrupt.png"]);
+});
+
+test("selhání preview CAS po zápisu uklidí pouze nové preview a zachová starý pointer", async () => {
+  const oldPreview = "voucher-templates/classic-template/preview-corrupt.png";
+  const context = createDb({ existing: true, previewStoragePath: oldPreview, previewUpdateConflict: true });
+  const prepared = dependencies(context, {
+    validatePreview: async () => ({ ok: false, reason: "decode-failed" }),
+  });
+
+  await assert.rejects(() => bootstrapVoucherTemplates(prepared.deps), /atomicky opravit preview/);
+
+  assert.equal(context.getTemplate()?.previewStoragePath, oldPreview);
+  assert.deepEqual(prepared.deleted, ["voucher-templates/classic-template/preview-1.png"]);
 });
 
 test("druhý bootstrap je idempotentní a preview znovu nezapisuje", async () => {
@@ -238,6 +304,39 @@ test("po zápisu assetů a DB chybě bootstrap uklidí master i preview a vrát�
     "voucher-templates/classic-template/master-new.pdf",
     "voucher-templates/classic-template/preview-1.png",
   ]);
+});
+
+test("souběžný bootstrap sdílí advisory lock a druhá operace je idempotentní", async () => {
+  const context = createDb({ advisoryLock: true });
+  const prepared = dependencies(context);
+  let firstWriteStartedResolve: (() => void) | null = null;
+  let releaseFirstWrite: () => void = () => { throw new Error("releaseFirstWrite nebyl připraven"); };
+  const firstWriteStarted = new Promise<void>((resolve) => { firstWriteStartedResolve = resolve; });
+  const allowFirstWrite = new Promise<void>((resolve) => { releaseFirstWrite = () => resolve(); });
+  let writes = 0;
+  prepared.deps.writeMaster = async () => {
+    writes += 1;
+    if (writes === 1) {
+      firstWriteStartedResolve?.();
+      await allowFirstWrite;
+    }
+    return { storagePath: `voucher-templates/classic-template/master-${writes}.pdf`, sha256: masterSha256 };
+  };
+
+  const first = bootstrapVoucherTemplates(prepared.deps);
+  await firstWriteStarted;
+  const second = bootstrapVoucherTemplates(prepared.deps);
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  releaseFirstWrite();
+  await Promise.all([first, second]);
+
+  assert.equal(context.getTemplate()?.key, "classic-v1");
+  assert.equal(context.getTemplate()?.status, "PUBLISHED");
+  assert.equal(context.getVouchers()[0]?.templateId, "classic-template");
+  assert.equal(writes, 1);
+  assert.equal(prepared.getPreviewWrites(), 1);
+  assert.equal(context.getAuditCount(), 1);
+  assert.deepEqual(prepared.deleted, []);
 });
 
 test("master SHA mismatch bootstrap zastaví a publikovaný master nepřepíše", async () => {

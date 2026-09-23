@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.30.0] - 2026-09-23
+
 ### Přidáno
 
 - Základ persistentní domény `VoucherTemplate`: verzované drafty, audit lifecycle, trusted Noto Sans registry, validace layoutu v milimetrech a privátní storage masterů s SHA-256 kontrolou.
@@ -40,6 +42,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Publikace draftu voucherové šablony nyní používá `updatedAt` jako optimistic concurrency token, takže změna layoutu nebo `allowedTypes` během preflightu publikaci bezpečně odmítne bez vytvoření auditního záznamu.
+- Release workflow nyní po migraci povinně a idempotentně spouští voucherový bootstrap z nového release před jeho aktivací; neúspěšný bootstrap release uzavře fail-closed.
+- Voucherový bootstrap nyní validuje i existující privátní preview PNG, neplatný nebo chybějící derivative opraví z validovaného masteru a při kolizi uklidí pouze nově vytvořený asset.
 - Dlouhý SERVICE preview v Template Layout Editoru nyní používá skutečné Canvas měření, wrapuje se do `maxLines` a při fittingu neklesne pod minimální velikost písma.
 - Technické badge ve Voucher Template Layout Editoru jsou nyní oddělené od clipovaného preview contentu a nepřekrývají SERVICE, VALIDITY ani další textové oblasti.
 - Deaktivace výchozí voucherové šablony nyní zobrazí očekávanou ochrannou hlášku přímo ve formuláři místo neobsloužené chyby v prohlížeči.

@@ -66,10 +66,11 @@ Dělá:
    - `npm run lint`
    - `npm run build`
 6. po úspěšném buildu zastaví web i worker a ověří, že žádný z nich neběží jako writer
-7. aplikuje `npx prisma migrate deploy` a teprve po úspěchu atomicky přepne `current`
-8. spustí web i worker nad stejným releasem
-9. nejdřív přes `/api/health/live` tiše vyčká na otevření webového endpointu, potom ověří DB readiness `/api/health` a homepage smoke test
-10. při selhání migrace nový release neaktivuje; při selhání startu nebo kontrol vrátí symlink, ale služby ponechá fail-closed zastavené, dokud není ručně potvrzena kompatibilita schématu
+7. aplikuje `npx prisma migrate deploy`
+8. z adresáře nového release spustí povinný idempotentní `npm run voucher:templates:bootstrap` se stejným env, private storage a dependencies jako nový runtime
+9. teprve po úspěchu bootstrapu atomicky přepne `current` a spustí web i worker nad stejným releasem
+10. nejdřív přes `/api/health/live` tiše vyčká na otevření webového endpointu, potom ověří DB readiness `/api/health` a homepage smoke test
+11. při selhání migrace nebo bootstrapu nový release neaktivuje; při selhání startu nebo kontrol vrátí symlink, ale služby ponechá fail-closed zastavené, dokud není ručně potvrzena kompatibilita schématu
 
 ### Media Library v2 – staged upgrade
 

@@ -244,6 +244,7 @@ export async function publishVoucherTemplate(id: string, actorUserId: string) {
         masterStoragePath: template.masterStoragePath,
         masterSha256: template.masterSha256,
         previewStoragePath: template.previewStoragePath,
+        updatedAt: template.updatedAt,
       },
       data: { status: VoucherTemplateStatus.PUBLISHED, publishedByUserId: actorUserId, publishedAt: new Date() },
     });
