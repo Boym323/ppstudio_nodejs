@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "@fontsource/noto-sans/400.css";
+@import "@fontsource/noto-sans/700.css";
 
 :root {
   --site-header-height: 64px;

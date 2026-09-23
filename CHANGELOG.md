@@ -16,6 +16,9 @@ Formát je inspirovaný Keep a Changelog.
 ### Změněno
 
 - Voucher Template Layout Editor nyní umožňuje OWNERům upravovat typografii textových oblastí včetně velikosti, minimální velikosti, řádkování, řezu a zarovnání; hodnoty se validují a ukládají do draft layoutu.
+- Voucher Template Layout Editor nyní zobrazuje ve VALUE, SERVICE, VALIDITY a CODE oblastech lokální preview fixture texty s live typografií, fittingem, baseline pozicí a přepínačem běžného/dlouhého SERVICE názvu; preview data se do layoutu neukládají.
+- Live preview Voucher Template Layout Editoru nyní vykresluje fitted text skutečným Canvasem v Noto Sans podle společné `baselineMm` transformace; víceřádkový SERVICE kopíruje baseline posledního řádku a `lineHeightMm` PDF rendereru.
+- Voucher Template Layout Editor nyní odděluje lokální preview režimy VALUE, SERVICE a STOCK, takže se alternativní VALUE/SERVICE obsah ani badge vzájemně nepřekrývají; režim se do layoutu neukládá.
 - OWNER má ve voucherové sekci přímou záložku Šablony a Template Manager ji používá jako aktivní navigaci; SALON zůstává u záložek Vydané a Předtištěné.
 - Voucher Stock receive/close/void akce nyní převádějí očekávané domain chyby na bezpečný action state; neznámé chyby ani integrity fallback už klientovi nezobrazují raw `error.message`.
 - Voucherové master PDF se nyní načítají pouze z explicitně registrovaných trusted assetů bez dynamického filesystem tracingu; souběžné vytváření tiskových sérií používá fail-fast advisory locky, bounded retry s jitterem a po vyčerpání vrací řízenou chybu bez částečných zápisů.
