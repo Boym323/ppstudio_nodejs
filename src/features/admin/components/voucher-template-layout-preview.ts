@@ -92,22 +92,25 @@ export function getVoucherTemplatePreviewText(
  */
 export function fitVoucherTemplatePreviewText(text: string, area: VoucherTemplatePreviewArea, textMeasurer?: VoucherTemplatePreviewTextMeasurer | null): VoucherTemplatePreviewFit {
   const maxWidthMm = Math.max(1, area.widthMm - PREVIEW_HORIZONTAL_PADDING_MM);
+  const maxLines = Math.max(1, Math.floor(area.maxLines));
+  const minimumFontSizePt = Math.max(0.1, area.typography.minFontSizePt);
+  const preferredFontSizePt = Math.max(minimumFontSizePt, area.typography.preferredFontSizePt);
 
-  for (let size = area.typography.preferredFontSizePt; size >= area.typography.minFontSizePt - 0.001; size = roundSize(size - FIT_STEP_PT)) {
+  for (let size = preferredFontSizePt; size >= minimumFontSizePt - 0.001; size = roundSize(size - FIT_STEP_PT)) {
     const fontSizePt = roundSize(size);
     const lines = wrapPreviewText(text, fontSizePt, maxWidthMm, area.typography, textMeasurer);
     const lineHeightMm = getPreviewLineHeightMm(area.typography.lineHeightMm, fontSizePt);
 
-    if (lines.length <= area.maxLines && lines.every((line) => measurePreviewTextWidthMm(line, fontSizePt, area.typography, textMeasurer) <= maxWidthMm) && lines.length * lineHeightMm <= area.heightMm + 0.001) {
+    if (lines.length <= maxLines && lines.every((line) => measurePreviewTextWidthMm(line, fontSizePt, area.typography, textMeasurer) <= maxWidthMm) && lines.length * lineHeightMm <= area.heightMm + 0.001) {
       return { fontSizePt, lines, overflowed: false, lineHeightMm };
     }
 
-    if (fontSizePt === area.typography.minFontSizePt) break;
+    if (fontSizePt === minimumFontSizePt) break;
   }
 
-  const fontSizePt = area.typography.minFontSizePt;
+  const fontSizePt = minimumFontSizePt;
   const lineHeightMm = getPreviewLineHeightMm(area.typography.lineHeightMm, fontSizePt);
-  const lines = wrapPreviewText(text, fontSizePt, maxWidthMm, area.typography, textMeasurer).slice(0, area.maxLines);
+  const lines = wrapPreviewText(text, fontSizePt, maxWidthMm, area.typography, textMeasurer).slice(0, maxLines);
   const lastLineIndex = lines.length - 1;
 
   if (lastLineIndex >= 0) {
@@ -129,8 +132,9 @@ export function createVoucherTemplatePreviewTextMeasurer(scale = 1): VoucherTemp
     const fontSizePx = getVoucherTemplatePreviewFontSizePx(fontSizePt, scale);
     const font = `${typography.fontWeight === "bold" ? 700 : 400} ${fontSizePx}px ${fontFamily}`;
 
-    if (document.fonts && !document.fonts.check(font)) return null;
-
+    // The editor only renders this measurer after document.fonts.ready. Do not
+    // fall back merely because FontFaceSet.check() reports a transient miss:
+    // fitting must use the same Canvas font metrics as PreviewCanvas.
     context.font = font;
     const metrics = context.measureText(text);
 

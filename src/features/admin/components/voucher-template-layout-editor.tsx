@@ -138,11 +138,13 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, preview
                       const heightMm = ref.offsetHeight / SCALE;
                       update(key, { xMm: pos.x / SCALE, yMm: browserTopToPdfBottom(pos.y / SCALE, heightMm), widthMm, heightMm });
                     }}
-                    className={`relative overflow-hidden border ${selected === key ? "border-amber-300 bg-amber-300/20" : inactiveAlternative ? "border-white/20 bg-transparent" : "border-cyan-200/70 bg-cyan-200/10"}`}
+                    className={`relative overflow-visible border ${selected === key ? "border-amber-300 bg-amber-300/20" : inactiveAlternative ? "border-white/20 bg-transparent" : "border-cyan-200/70 bg-cyan-200/10"}`}
                   >
-                    {activeContent ? <span className="pointer-events-none absolute right-1 top-1 z-20 rounded bg-black/65 px-1 py-0.5 text-[9px] font-bold leading-none tracking-[0.08em] text-white/90">{labels[key]}</span> : null}
-                    {key === "qrArea" ? <PreviewQrPlaceholder /> : textPreview && baselinePx !== null ? <PreviewCanvas area={item as VoucherTemplateLayoutV1["valueArea"]} preview={textPreview} baselinePx={baselinePx} fontMetricsVersion={fontMetricsVersion} /> : null}
-                    {baselinePx === null ? null : <span className="pointer-events-none absolute left-0 right-0 z-20 border-t border-red-300" style={{ top: `${baselinePx}px` }} />}
+                    {activeContent ? <span className="pointer-events-none absolute -top-4 right-1 z-20 rounded bg-black/65 px-1 py-0.5 text-[9px] font-bold leading-none tracking-[0.08em] text-white/90">{labels[key]}</span> : null}
+                    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                      {key === "qrArea" ? <PreviewQrPlaceholder /> : textPreview && baselinePx !== null ? <PreviewCanvas area={item as VoucherTemplateLayoutV1["valueArea"]} preview={textPreview} baselinePx={baselinePx} fontMetricsVersion={fontMetricsVersion} /> : null}
+                      {baselinePx === null ? null : <span className="pointer-events-none absolute left-0 right-0 z-20 border-t border-red-300" style={{ top: `${baselinePx}px` }} />}
+                    </div>
                   </Rnd>
                 );
               })}

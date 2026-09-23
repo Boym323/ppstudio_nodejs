@@ -37,6 +37,40 @@ test("preview fitting zmenšuje písmo k minimu a podporuje více řádků", () 
   assert.ok(fit.lines.length > 1 || fit.overflowed);
 });
 
+test("SERVICE long se při dostatečné šířce vejde do povoleného počtu řádků", () => {
+  const area = { ...defaultVoucherTemplateLayout.serviceArea, maxLines: 2 };
+  const fit = fitVoucherTemplatePreviewText("ANTI AGE TREATMENT S INTENZIVNÍ MASÁŽÍ", area);
+
+  assert.equal(fit.overflowed, false);
+  assert.ok(fit.lines.length <= area.maxLines);
+  assert.ok(fit.fontSizePt >= area.typography.minFontSizePt);
+});
+
+test("SERVICE long při užší šířce wrapuje podle měření a shrinkuje bez překročení minima", () => {
+  const area = { ...defaultVoucherTemplateLayout.serviceArea, widthMm: 52, maxLines: 2 };
+  const calls: Array<{ text: string; fontSizePt: number; fontWeight: string }> = [];
+  const textMeasurer = (text: string, fontSizePt: number, typography: { fontFamilyKey: string; fontWeight: "regular" | "bold" }) => {
+    calls.push({ text, fontSizePt, fontWeight: typography.fontWeight });
+    return { widthMm: text.length * fontSizePt * 0.16 };
+  };
+  const fit = fitVoucherTemplatePreviewText("ANTI AGE TREATMENT S INTENZIVNÍ MASÁŽÍ", area, textMeasurer);
+  const availableWidthMm = area.widthMm - 2;
+
+  assert.equal(fit.overflowed, false);
+  assert.equal(fit.lines.length, 2);
+  assert.ok(fit.fontSizePt >= area.typography.minFontSizePt);
+  assert.ok(fit.lines.every((line) => textMeasurer(line, fit.fontSizePt, area.typography).widthMm <= availableWidthMm));
+  assert.ok(calls.some((call) => call.fontWeight === area.typography.fontWeight));
+});
+
+test("fitting nikdy nevrátí více než maxLines ani velikost pod minimum", () => {
+  const area = { ...defaultVoucherTemplateLayout.serviceArea, widthMm: 24, maxLines: 1 };
+  const fit = fitVoucherTemplatePreviewText("ANTI AGE TREATMENT S INTENZIVNÍ MASÁŽÍ", area);
+
+  assert.ok(fit.lines.length <= area.maxLines);
+  assert.ok(fit.fontSizePt >= area.typography.minFontSizePt);
+});
+
 test("preview fitting reaguje na řez písma a baseline pozici", () => {
   const regular = fitVoucherTemplatePreviewText("WWWWWWWW", {
     ...defaultVoucherTemplateLayout.codeArea,
@@ -65,6 +99,18 @@ test("Canvas i červená linka používají stejnou baselinePx", () => {
 
   assert.equal(getVoucherTemplatePreviewLineBaselinePx(baselinePx, 2, 1, 4, 3), baselinePx);
   assert.equal(getVoucherTemplatePreviewLineBaselinePx(baselinePx, 2, 0, 4, 3), baselinePx - 12);
+});
+
+test("dvouřádkový fitting kotví poslední řádek na baseline a předchozí podle lineHeight", () => {
+  const area = defaultVoucherTemplateLayout.serviceArea;
+  const baselinePx = getVoucherTemplatePreviewBaselineTopPx(area, 3);
+  const firstLine = getVoucherTemplatePreviewLineBaselinePx(baselinePx, 2, 0, area.typography.lineHeightMm, 3);
+  const lastLine = getVoucherTemplatePreviewLineBaselinePx(baselinePx, 2, 1, area.typography.lineHeightMm, 3);
+
+  assert.equal(lastLine, baselinePx);
+  assert.equal(firstLine, baselinePx - area.typography.lineHeightMm * 3);
+  assert.ok(firstLine >= 0);
+  assert.ok(lastLine <= area.heightMm * 3);
 });
 
 test("pt se pro Canvas převádí na fyzické px podle SCALE", () => {
@@ -110,7 +156,11 @@ test("preview režim, scénář, fixture text i Canvas stav jsou lokální a sav
   assert.match(source, /baselinePx=\{baselinePx\}/);
   assert.match(source, /getVoucherTemplatePreviewFontSizePx\(preview\.fit\.fontSizePt, SCALE\)/);
   assert.match(source, /className="pointer-events-none absolute inset-0 z-10"/);
+  assert.match(source, /className="pointer-events-none absolute inset-0 overflow-hidden"/);
+  assert.match(source, /className="pointer-events-none absolute -top-4 right-1 z-20/);
+  assert.match(source, /relative overflow-visible border/);
   assert.match(source, /context\.textAlign = area\.typography\.alignment/);
   assert.match(source, /context\.font = .*getVoucherTemplatePreviewFontSizePx\(preview\.fit\.fontSizePt, SCALE\)/);
+  assert.match(source, /document\.fonts\.ready/);
   assert.doesNotMatch(source, /function PreviewText\(/);
 });

@@ -40,6 +40,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Dlouhý SERVICE preview v Template Layout Editoru nyní používá skutečné Canvas měření, wrapuje se do `maxLines` a při fittingu neklesne pod minimální velikost písma.
+- Technické badge ve Voucher Template Layout Editoru jsou nyní oddělené od clipovaného preview contentu a nepřekrývají SERVICE, VALIDITY ani další textové oblasti.
 - Deaktivace výchozí voucherové šablony nyní zobrazí očekávanou ochrannou hlášku přímo ve formuláři místo neobsloužené chyby v prohlížeči.
 - Bootstrap classic-v1 nyní validuje publikovaný master, atomicky doplní privátní PNG preview a při chybě uklidí rozpracované assety; publish bez skutečně dekódovatelného PNG preview a preview render s neomezeným canvasem jsou odmítnuty.
 - Voucher Template Manager po uploadu masteru nyní atomicky uloží také PNG preview první stránky do privátního storage; autorizovaný OWNER endpoint vrací skutečné PNG a editor i `/admin/nastaveni` ho zobrazují pod interaktivním overlayem s bezpečným cache bustingem.
