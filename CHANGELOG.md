@@ -6,6 +6,14 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Změněno
+
+- Voucher Template Editor má přepracovanou pracovní plochu s klidnějším overlayem, českými názvy oblastí, segmented preview režimy, přepínatelnými vodítky a hierarchicky rozdělenými základními a pokročilými vlastnostmi; editor zachovává drag, resize, snap, typografii a ukládání layoutu.
+- Detail a vytvoření voucherové šablony používají jasnější hierarchii akcí, stav PDF masteru a bezpečné overflow menu pro méně časté operace.
+- Voucher Template Editor nyní automaticky využívá dostupný prostor canvasu, zobrazuje resize handles jen u aktivní oblasti, formátuje číselné hodnoty bez floating-point artefaktů a nabízí kompaktnější toggle ovládání vodítek a spadávky.
+- Resize voucherových oblastí nyní používá pouze čtyři rohové handles; QR oblast drží čtvercový poměr stran včetně ručních rozměrů a textové oblasti lze měnit nezávisle v obou osách.
+- Toggle `Vodítka` nyní skutečně řídí render středových os a `Spadávka` řídí viditelný 3mm bleed overlay; oba pracovní overlaye zůstávají mimo uložený layout a PDF export.
+
 ## [3.30.0] - 2026-09-23
 
 ### Přidáno
