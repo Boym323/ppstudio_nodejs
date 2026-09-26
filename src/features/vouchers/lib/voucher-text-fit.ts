@@ -44,7 +44,8 @@ export function fitVoucherTextToArea(
   const minimumFontSizePt = Math.max(0.1, area.typography.minFontSizePt);
   const preferredFontSizePt = Math.max(minimumFontSizePt, area.typography.preferredFontSizePt);
 
-  for (let size = preferredFontSizePt; size >= minimumFontSizePt - 0.001; size = roundSize(size - FIT_STEP_PT)) {
+  let size = preferredFontSizePt;
+  while (size >= minimumFontSizePt - 0.001) {
     const fontSizePt = roundSize(size);
     const lines = wrapVoucherText(text, fontSizePt, maxWidthMm, measureTextWidthMm);
     const lineHeightMm = getVoucherTextLineHeightMm(area.typography.lineHeightMm, fontSizePt);
@@ -57,7 +58,8 @@ export function fitVoucherTextToArea(
       return { fontSizePt, lines, overflowed: false, lineHeightMm, maxWidthMm };
     }
 
-    if (fontSizePt === minimumFontSizePt) break;
+    if (fontSizePt <= minimumFontSizePt + 0.001) break;
+    size = Math.max(minimumFontSizePt, roundSize(fontSizePt - FIT_STEP_PT));
   }
 
   const fontSizePt = minimumFontSizePt;
