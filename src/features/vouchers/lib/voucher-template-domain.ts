@@ -107,7 +107,7 @@ export async function createVoucherTemplateDraft(input: {
 
 export async function updateVoucherTemplateDraft(
   id: string,
-  input: { layout: VoucherTemplateLayoutV1; allowedTypes: VoucherType[]; label: string; actorUserId: string },
+  input: { layout: VoucherTemplateLayoutV1; allowedTypes: VoucherType[]; label: string; actorUserId: string; expectedUpdatedAt?: Date },
 ) {
   const layout = voucherTemplateLayoutSchema.parse(input.layout);
 
@@ -116,10 +116,23 @@ export async function updateVoucherTemplateDraft(
     if (!template) throw new VoucherTemplateDomainError("NOT_FOUND", "Šablona voucheru nebyla nalezena.");
     if (template.status !== "DRAFT") throw new VoucherTemplateDomainError("IMMUTABLE", "Publikovanou šablonu nelze měnit.");
 
-    const result = await tx.voucherTemplate.update({
-      where: { id },
-      data: { layout, allowedTypes: input.allowedTypes, label: input.label.trim() },
-    });
+    let result;
+    if (input.expectedUpdatedAt) {
+      const updated = await tx.voucherTemplate.updateMany({
+        where: { id, status: VoucherTemplateStatus.DRAFT, updatedAt: input.expectedUpdatedAt },
+        data: { layout, allowedTypes: input.allowedTypes, label: input.label.trim() },
+      });
+      if (updated.count !== 1) {
+        throw new VoucherTemplateDomainError("INVALID_STATE", "Draft byl mezitím změněn v jiném okně. Obnovte stránku a úpravy zopakujte.");
+      }
+      result = await tx.voucherTemplate.findUniqueOrThrow({ where: { id } });
+    } else {
+      result = await tx.voucherTemplate.update({
+        where: { id },
+        data: { layout, allowedTypes: input.allowedTypes, label: input.label.trim() },
+      });
+    }
+
     await audit(tx, id, input.actorUserId, "UPDATE_DRAFT");
     return result;
   }, { maxRetries: 0 });
