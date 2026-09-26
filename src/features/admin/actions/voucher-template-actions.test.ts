@@ -34,12 +34,15 @@ test("template lifecycle actions vyžadují OWNER a volají domain operace", asy
       deleteVoucherTemplateDraft: async (id: string, actor: string) => { calls.push(["delete", id, actor]); },
       publishVoucherTemplate: async (id: string, actor: string) => { calls.push(["publish", id, actor]); },
       replaceVoucherTemplateMaster: async () => undefined,
-      updateVoucherTemplateDraft: async (_id: string, input: { layout: typeof defaultVoucherTemplateLayout }) => { savedLayout = input.layout; },
+      updateVoucherTemplateDraft: async (_id: string, input: { layout: typeof defaultVoucherTemplateLayout }) => {
+        savedLayout = input.layout;
+        return { updatedAt: new Date("2026-09-26T06:00:00.000Z") };
+      },
     },
   });
   t.mock.module("@/features/vouchers/lib/voucher-template-repository", {
     exports: {
-      requireVoucherTemplateById: async () => ({ id: "draft-1", status: "DRAFT", key: "classic-v1", label: "Klasický" }),
+      requireVoucherTemplateById: async () => ({ id: "draft-1", status: "DRAFT", key: "classic-v1", label: "Klasický", allowedTypes: ["VALUE", "SERVICE"] }),
       resolveVoucherTemplate: async () => ({ id: "draft-1" }),
     },
   });
@@ -53,7 +56,8 @@ test("template lifecycle actions vyžadují OWNER a volají domain operace", asy
   await actions.cloneVoucherTemplateVersionAction("template-1");
   await actions.deleteVoucherTemplateDraftAction("template-1");
   const editedLayout = { ...defaultVoucherTemplateLayout, serviceArea: { ...defaultVoucherTemplateLayout.serviceArea, typography: { ...defaultVoucherTemplateLayout.serviceArea.typography, preferredFontSizePt: 12, minFontSizePt: 7, fontWeight: "regular" as const, alignment: "center" as const } } };
-  await actions.saveVoucherTemplateLayoutAction("template-1", editedLayout);
+  const saveResult = await actions.saveVoucherTemplateLayoutAction("template-1", editedLayout);
+  assert.equal(saveResult.updatedAt, "2026-09-26T06:00:00.000Z");
   assert.equal(savedLayout?.serviceArea.typography.preferredFontSizePt, 12);
   assert.equal(savedLayout?.serviceArea.typography.minFontSizePt, 7);
   assert.equal(savedLayout?.serviceArea.typography.fontWeight, "regular");
