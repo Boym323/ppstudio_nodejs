@@ -16,6 +16,7 @@ import {
   type VoucherTemplateLayoutV1,
   type VoucherTemplateTypographyPatch,
 } from "@/features/vouchers/lib/voucher-template-layout";
+import { VOUCHER_TEXT_HORIZONTAL_INSET_MM } from "@/features/vouchers/lib/voucher-text-fit";
 
 import {
   createVoucherTemplatePreviewTextMeasurer,
@@ -26,7 +27,6 @@ import {
   getVoucherTemplatePreviewText,
   isVoucherTemplatePreviewAreaVisible,
   VOUCHER_TEMPLATE_PREVIEW_FONT_FAMILIES,
-  VOUCHER_TEMPLATE_PREVIEW_HORIZONTAL_PADDING_MM,
   type ServicePreviewScenario,
   type VoucherTemplatePreviewMode,
 } from "./voucher-template-layout-preview";
@@ -201,12 +201,13 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, preview
                   const item = layout[key];
                   const baseline = "baselineMm" in item ? item.baselineMm : null;
                   const previewVisible = isVoucherTemplatePreviewAreaVisible(key, previewMode);
-                  const textPreview = fontsReady && isVoucherTemplateTextAreaKey(key) && previewVisible ? (() => { const text = getVoucherTemplatePreviewText(key, serviceScenario); const fit = fitVoucherTemplatePreviewText(text, item as VoucherTemplateLayoutV1["valueArea"], previewTextMeasurer); return { text, fit }; })() : null;
+                  const horizontalInsetMm = isVoucherTemplateTextAreaKey(key) ? VOUCHER_TEXT_HORIZONTAL_INSET_MM[key] : 0;
+                  const textPreview = fontsReady && isVoucherTemplateTextAreaKey(key) && previewVisible ? (() => { const text = getVoucherTemplatePreviewText(key, serviceScenario); const fit = fitVoucherTemplatePreviewText(text, item as VoucherTemplateLayoutV1["valueArea"], previewTextMeasurer, horizontalInsetMm); return { text, fit }; })() : null;
                   const baselinePx = baseline === null ? null : getVoucherTemplatePreviewBaselineTopPx(item as VoucherTemplateLayoutV1["valueArea"], canvasScale);
                   const isSelected = selected === key;
                   return <Rnd key={key} bounds="parent" size={{ width: item.widthMm * canvasScale, height: item.heightMm * canvasScale }} position={{ x: item.xMm * canvasScale, y: pdfBottomToBrowserTop(item.yMm, item.heightMm) * canvasScale }} lockAspectRatio={isAspectRatioLocked(key)} minWidth={minimumSizeMm(key) * canvasScale} minHeight={minimumSizeMm(key) * canvasScale} enableResizing={isSelected ? cornerResizeEnable : false} dragGrid={[canvasScale / 2, canvasScale / 2]} resizeGrid={[canvasScale / 2, canvasScale / 2]} onClick={() => selectArea(key)} onDragStart={() => { selectArea(key); setIsInteracting(true); }} onResizeStart={(_, direction) => { resizeStartRef.current = { key, area: item, direction }; selectArea(key); setIsInteracting(true); }} onResize={(_, direction, ref, __, pos) => applyResize(key, direction, ref, pos)} onDragStop={(_, data) => { setIsInteracting(false); update(key, { xMm: snapToHalfMm(data.x / canvasScale), yMm: snapToHalfMm(browserTopToPdfBottom(data.y / canvasScale, item.heightMm)) }); }} onResizeStop={(_, direction, ref, __, pos) => { setIsInteracting(false); applyResize(key, direction, ref, pos); resizeStartRef.current = null; }} resizeHandleStyles={cornerHandleStyles} className={`group relative cursor-move overflow-visible border transition-colors ${isSelected ? "z-20 border-[var(--color-accent-soft)] bg-[rgba(190,160,120,0.08)] outline outline-1 outline-offset-2 outline-[var(--color-accent)]/70" : "border-white/8 bg-transparent opacity-35 hover:border-white/40 hover:opacity-80"}`}>
                     {isSelected ? <span className="pointer-events-none absolute -top-6 left-0 z-20 rounded-md border border-[var(--color-accent)]/50 bg-[#1c1714] px-1.5 py-1 text-[9px] font-bold leading-none tracking-[0.08em] text-[var(--color-accent-soft)]">{labels[key]}</span> : <span className="pointer-events-none absolute -top-5 left-0 z-20 rounded-md border border-white/10 bg-black/75 px-1.5 py-1 text-[9px] font-bold leading-none tracking-[0.08em] text-white/70 opacity-0 transition-opacity group-hover:opacity-100">{shortLabels[key]}</span>}
-                    <div className="pointer-events-none absolute inset-0 overflow-hidden">{key === "qrArea" ? <PreviewQrPlaceholder /> : textPreview && baselinePx !== null ? <PreviewCanvas area={item as VoucherTemplateLayoutV1["valueArea"]} preview={textPreview} baselinePx={baselinePx} fontMetricsVersion={fontMetricsVersion} scale={canvasScale} /> : null}{isSelected && baselinePx !== null ? <span className="pointer-events-none absolute left-0 right-0 z-20 border-t border-[var(--color-accent-soft)]/70" style={{ top: `${baselinePx}px` }} /> : null}</div>
+                    <div className="pointer-events-none absolute inset-0 overflow-hidden">{key === "qrArea" ? <PreviewQrPlaceholder /> : textPreview && baselinePx !== null ? <PreviewCanvas area={item as VoucherTemplateLayoutV1["valueArea"]} preview={textPreview} baselinePx={baselinePx} fontMetricsVersion={fontMetricsVersion} scale={canvasScale} horizontalInsetMm={horizontalInsetMm} /> : null}{isSelected && baselinePx !== null ? <span className="pointer-events-none absolute left-0 right-0 z-20 border-t border-[var(--color-accent-soft)]/70" style={{ top: `${baselinePx}px` }} /> : null}</div>
                   </Rnd>;
                 })}
               </div>
@@ -239,7 +240,7 @@ function ToggleButton({ label, checked, onClick }: { label: string; checked: boo
 const handleStyle = { width: 8, height: 8, borderRadius: 3, background: "#dbc2a5", border: "1px solid #171311", boxShadow: "0 0 0 1px rgba(135,105,65,.55)" };
 const cornerHandleStyles = { topLeft: { ...handleStyle, cursor: "nwse-resize" }, topRight: { ...handleStyle, cursor: "nesw-resize" }, bottomLeft: { ...handleStyle, cursor: "nesw-resize" }, bottomRight: { ...handleStyle, cursor: "nwse-resize" } };
 
-function PreviewCanvas({ area, preview, baselinePx, fontMetricsVersion, scale }: { area: VoucherTemplateLayoutV1["valueArea"]; preview: { text: string; fit: ReturnType<typeof fitVoucherTemplatePreviewText> }; baselinePx: number; fontMetricsVersion: number; scale: number }) {
+function PreviewCanvas({ area, preview, baselinePx, fontMetricsVersion, scale, horizontalInsetMm }: { area: VoucherTemplateLayoutV1["valueArea"]; preview: { text: string; fit: ReturnType<typeof fitVoucherTemplatePreviewText> }; baselinePx: number; fontMetricsVersion: number; scale: number; horizontalInsetMm: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fontFamily = VOUCHER_TEMPLATE_PREVIEW_FONT_FAMILIES[area.typography.fontFamilyKey] ?? '"Noto Sans", sans-serif';
   useEffect(() => {
@@ -260,9 +261,9 @@ function PreviewCanvas({ area, preview, baselinePx, fontMetricsVersion, scale }:
     context.textBaseline = "alphabetic";
     context.textAlign = area.typography.alignment;
     context.fillStyle = "#2e241f";
-    const x = area.typography.alignment === "center" ? widthPx / 2 : VOUCHER_TEMPLATE_PREVIEW_HORIZONTAL_PADDING_MM * scale / 2;
+    const x = area.typography.alignment === "center" ? widthPx / 2 : horizontalInsetMm * scale;
     preview.fit.lines.forEach((line, index) => { const lineBaselinePx = getVoucherTemplatePreviewLineBaselinePx(baselinePx, preview.fit.lines.length, index, preview.fit.lineHeightMm, scale); context.fillText(line, x, lineBaselinePx); });
-  }, [area, baselinePx, fontFamily, fontMetricsVersion, preview, scale]);
+  }, [area, baselinePx, fontFamily, fontMetricsVersion, horizontalInsetMm, preview, scale]);
   return <canvas ref={canvasRef} aria-hidden="true" className="pointer-events-none absolute inset-0 z-10" data-preview-text={preview.text} />;
 }
 
