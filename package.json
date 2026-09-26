@@ -58,7 +58,7 @@
     "db:clear-booking-data": "node scripts/clear-booking-data.mjs",
     "media:audit": "tsx scripts/media-audit.ts",
     "ci:prepare-voucher-fixtures": "tsx scripts/prepare-ci-voucher-fixtures.ts",
-    "voucher:templates:bootstrap": "node --env-file=.env ./node_modules/tsx/dist/cli.mjs scripts/bootstrap-voucher-templates.ts"
+    "voucher:templates:bootstrap": "node --conditions=react-server --env-file=.env --import tsx scripts/bootstrap-voucher-templates.ts"
   },
   "dependencies": {
     "@fontsource/noto-sans": "^5.3.0",

@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Produkční release spouští voucher template bootstrap se serverovým `react-server` resolver condition, takže standalone Node běh správně načte server-only moduly.
 - Nové vouchery a tiskové série mohou používat pouze publikované šablony s uloženým markerem aktuální strict validace; historické publikované šablony zůstávají dostupné pro staré doklady a aktivaci již převzatého STOCK.
 - Render policy voucheru se ukládá jako `STRICT_V1`; pouze historické řádky bez markeru zůstávají v režimu HISTORICAL bez závislosti na issuedAt nebo stavu šablony.
 - SERVICE voucher nyní ve všech výpočtech doplatku pokrývá aktuální cenu stejné rezervované služby, zatímco účetní přehledy zachovávají uložený redemption amount; historické VALUE vouchery se při renderu vejdou bezpečným zmenšením písma bez zkrácení částky a nové vydání zůstává strict.

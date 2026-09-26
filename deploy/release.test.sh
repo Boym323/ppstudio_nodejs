@@ -186,6 +186,11 @@ START_FAIL=""; CURL_FAIL=1; expect_rollback
 
 # Typecheck, bezpečný test i build musí předcházet zastavení runtime. Migrace
 # smí následovat až po stopu + ověření writerů a před aktivací/startem.
+bootstrap_command="$(node -p 'require("./package.json").scripts["voucher:templates:bootstrap"]')"
+[[ "${bootstrap_command}" == *"node --conditions=react-server "* ]]
+[[ "${bootstrap_command}" == *"--import tsx scripts/bootstrap-voucher-templates.ts"* ]]
+[[ "${bootstrap_command}" != *"src/test/register-server-only.mjs"* ]]
+grep -Fq 'npm run voucher:templates:bootstrap' "${SCRIPT_DIR}/release.sh"
 typecheck_line="$(grep -n 'npm run typecheck' "${SCRIPT_DIR}/release.sh" | tail -1 | cut -d: -f1)"
 test_line="$(grep -n 'npm run test:release' "${SCRIPT_DIR}/release.sh" | tail -1 | cut -d: -f1)"
 build_line="$(grep -n 'npm run build' "${SCRIPT_DIR}/release.sh" | tail -1 | cut -d: -f1)"
