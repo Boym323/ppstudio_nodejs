@@ -83,3 +83,21 @@ test("více řádků respektuje prostor nad konkrétní baseline", () => {
   assert.equal(fit.overflowed, true);
   assert.equal(fit.lines.length, 1);
 });
+
+test("fitting zohlední ascent a descent kolem baseline i pro jeden řádek", () => {
+  const baseArea = {
+    yMm: 10,
+    widthMm: 40,
+    heightMm: 10,
+    maxLines: 1,
+    typography: { preferredFontSizePt: 10, minFontSizePt: 10, lineHeightMm: 4 },
+  };
+
+  const atTop = fitVoucherTextToArea("Text", { ...baseArea, baselineMm: 20 }, measure, 1);
+  const atBottom = fitVoucherTextToArea("Text", { ...baseArea, baselineMm: 10 }, measure, 1);
+  const centered = fitVoucherTextToArea("Text", { ...baseArea, baselineMm: 14 }, measure, 1);
+
+  assert.equal(atTop.overflowed, true);
+  assert.equal(atBottom.overflowed, true);
+  assert.equal(centered.overflowed, false);
+});
