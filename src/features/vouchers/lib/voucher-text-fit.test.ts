@@ -12,8 +12,10 @@ test("automatické řádkování při lineHeightMm=0 nikdy neskládá řádky p�
   const fit = fitVoucherTextToArea(
     "Dlouhý název služby který se zalomí",
     {
+      yMm: 10,
       widthMm: 28,
       heightMm: 20,
+      baselineMm: 14,
       maxLines: 3,
       typography: { preferredFontSizePt: 10, minFontSizePt: 8, lineHeightMm: 0 },
     },
@@ -29,8 +31,10 @@ test("fitting respektuje výšku oblasti a označí overflow při příliš mal�
   const fit = fitVoucherTextToArea(
     "Jedna dvě tři čtyři pět šest",
     {
+      yMm: 10,
       widthMm: 24,
       heightMm: 2,
+      baselineMm: 11,
       maxLines: 4,
       typography: { preferredFontSizePt: 12, minFontSizePt: 8, lineHeightMm: 4 },
     },
@@ -47,8 +51,10 @@ test("horizontální inset se promítá do stejného maxWidth pro preview i PDF"
   const fit = fitVoucherTextToArea(
     "PP-2026-ABC123",
     {
+      yMm: 10,
       widthMm: 30,
       heightMm: 8,
+      baselineMm: 12,
       maxLines: 1,
       typography: { preferredFontSizePt: 8, minFontSizePt: 6, lineHeightMm: 4 },
     },
@@ -57,4 +63,23 @@ test("horizontální inset se promítá do stejného maxWidth pro preview i PDF"
   );
 
   assert.equal(fit.maxWidthMm, 26);
+});
+
+test("více řádků respektuje prostor nad konkrétní baseline", () => {
+  const fit = fitVoucherTextToArea(
+    "Jedna dvě tři čtyři",
+    {
+      yMm: 10,
+      widthMm: 20,
+      heightMm: 10,
+      baselineMm: 19,
+      maxLines: 3,
+      typography: { preferredFontSizePt: 10, minFontSizePt: 8, lineHeightMm: 4 },
+    },
+    measure,
+    1,
+  );
+
+  assert.equal(fit.overflowed, true);
+  assert.equal(fit.lines.length, 1);
 });
