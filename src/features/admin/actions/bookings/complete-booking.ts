@@ -270,12 +270,16 @@ export async function completeBookingVisitAction(
       }
 
       try {
-        plannedVoucherAmountCzk = requireServiceVoucherPriceSnapshot({
+        requireServiceVoucherPriceSnapshot({
           voucherId: voucher.id,
           voucherCode: normalizedVoucherCode,
           bookingId: booking.id,
           servicePriceSnapshotCzk: voucher.servicePriceSnapshotCzk,
         });
+        plannedVoucherAmountCzk = Math.min(
+          remainingCzk,
+          Math.max(0, booking.servicePriceFromCzk ?? booking.service.priceFromCzk ?? 0),
+        );
       } catch (error) {
         if (error instanceof VoucherRedemptionError) {
           return {

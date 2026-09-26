@@ -21,6 +21,8 @@ async function bootstrapVoucherTemplates(...args: Parameters<(typeof import("./v
 
 function createDb(options: {
   existing?: boolean;
+  existingStatus?: "PUBLISHED" | "INACTIVE";
+  defaultTemplateId?: string | null;
   previewStoragePath?: string | null;
   failAfterTransaction?: boolean;
   previewUpdateConflict?: boolean;
@@ -33,7 +35,7 @@ function createDb(options: {
     version: number;
     label: string;
     layout: typeof defaultVoucherTemplateLayout;
-    status: "PUBLISHED" | "DRAFT";
+    status: "PUBLISHED" | "DRAFT" | "INACTIVE";
     masterStoragePath: string | null;
     masterSha256: string | null;
     previewStoragePath: string | null;
@@ -48,7 +50,7 @@ function createDb(options: {
         version: 1,
         label: "Klasický",
         layout: defaultVoucherTemplateLayout,
-        status: "PUBLISHED",
+        status: options.existingStatus ?? "PUBLISHED",
         masterStoragePath: "voucher-templates/classic-template/master-existing.pdf",
         masterSha256,
         previewStoragePath: options.previewStoragePath ?? null,
@@ -57,7 +59,7 @@ function createDb(options: {
       }
     : null;
   let vouchers = [{ templateId: null as string | null, templateKey: "classic-v1" }];
-  let settings = { voucherDefaultTemplateId: options.existing ? "classic-template" : null as string | null };
+  let settings = { voucherDefaultTemplateId: options.defaultTemplateId ?? (options.existing ? "classic-template" : null as string | null) };
   let auditCount = 0;
   let updateCount = 0;
   let deletedTemplate = false;
@@ -83,6 +85,7 @@ function createDb(options: {
     adminUser: { findFirst: async () => ({ id: "owner" }) },
     voucherTemplate: {
       findUnique: async ({ where }: { where: { key?: string; id?: string } }) => {
+        if (where.id === "other-published-template") return { status: "PUBLISHED" };
         if (where.id && where.id !== "classic-template") return null;
         return template;
       },
@@ -250,6 +253,24 @@ test("existující validní preview se znovu negeneruje a metadata zůstanou bez
   assert.equal(prepared.getMasterWrites(), 0);
   assert.equal(prepared.getPreviewWrites(), 0);
   assert.deepEqual(prepared.deleted, []);
+});
+
+test("historická neaktivní classic-v1 s validními assety neblokuje deploy ani se nemění", async () => {
+  const context = createDb({
+    existing: true,
+    existingStatus: "INACTIVE",
+    previewStoragePath: "voucher-templates/classic-template/preview-valid.png",
+    defaultTemplateId: "other-published-template",
+  });
+  const before = { ...context.getTemplate()! };
+  const prepared = dependencies(context);
+
+  await bootstrapVoucherTemplates(prepared.deps);
+
+  assert.deepEqual(context.getTemplate(), before);
+  assert.equal(context.getSettings().voucherDefaultTemplateId, "other-published-template");
+  assert.equal(prepared.getMasterWrites(), 0);
+  assert.equal(prepared.getPreviewWrites(), 0);
 });
 
 test("existující preview s chybějícím souborem se opraví a starý pointer se uklidí až po commitu", async () => {

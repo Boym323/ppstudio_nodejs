@@ -336,7 +336,9 @@ function assertTextFitsTemplate(
   areaKey: "valueArea" | "serviceArea" | "validityArea" | "codeArea",
   options: VoucherRenderOptions,
 ) {
-  if (!options.failOnTextOverflow || !fit.overflowed) return;
+  // Peněžní hodnota nesmí být na vydaném voucheru nikdy zkrácená. Ostatní
+  // historické textové oblasti dál respektují dosavadní fitting mimo preflight.
+  if ((!options.failOnTextOverflow && areaKey !== "valueArea") || !fit.overflowed) return;
 
   const labels = { valueArea: "Hodnota", serviceArea: "Služba", validityArea: "Platnost", codeArea: "Kód" } as const;
   throw new VoucherTemplateError(template.key, {

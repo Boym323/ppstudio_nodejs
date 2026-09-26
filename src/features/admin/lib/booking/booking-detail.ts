@@ -253,16 +253,22 @@ function formatCzk(value: number | null | undefined) {
 
 function buildPaymentSummary({
   totalPriceCzk,
-  voucherPaidCzk,
+  serviceId,
+  servicePriceCzk,
+  voucherRedemptions,
   directPaidCzk,
 }: {
   totalPriceCzk: number;
-  voucherPaidCzk: number;
+  serviceId: string;
+  servicePriceCzk: number;
+  voucherRedemptions: Array<{ amountCzk: number | null; serviceId: string | null; voucher: { type: "VALUE" | "SERVICE" } }>;
   directPaidCzk: number;
 }): AdminBookingDetailData["voucher"]["paymentSummary"] {
   const summary = getBookingPaymentSummary({
     totalPriceCzk,
-    voucherRedemptions: [{ amountCzk: voucherPaidCzk }],
+    serviceId,
+    servicePriceCzk,
+    voucherRedemptions,
     payments: [{ amountCzk: directPaidCzk }],
   });
 
@@ -438,17 +444,15 @@ export async function getAdminBookingDetailData(
   const basePriceCzk = Math.max(0, booking.servicePriceFromCzk ?? booking.service.priceFromCzk ?? 0);
   const effectivePriceCzk = Math.max(0, booking.finalPriceCzk ?? basePriceCzk);
   const priceAdjustmentCzk = effectivePriceCzk - basePriceCzk;
-  const voucherPaidCzk = booking.voucherRedemptions.reduce(
-    (total, redemption) => total + (redemption.amountCzk ?? 0),
-    0,
-  );
   const directPaidCzk = booking.payments.reduce(
     (total, payment) => total + (payment.status === BookingPaymentRecordStatus.VOIDED ? 0 : payment.amountCzk),
     0,
   );
   const paymentSummary = buildPaymentSummary({
     totalPriceCzk: effectivePriceCzk,
-    voucherPaidCzk,
+    serviceId: booking.serviceId,
+    servicePriceCzk: basePriceCzk,
+    voucherRedemptions: booking.voucherRedemptions,
     directPaidCzk,
   });
   const clientPhone = booking.clientPhoneSnapshot ?? booking.client.phone;

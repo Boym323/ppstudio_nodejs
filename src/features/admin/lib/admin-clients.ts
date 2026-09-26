@@ -736,9 +736,13 @@ export async function getAdminClientDetailData(
           finalPriceCzk: true,
           scheduledStartsAt: true,
           scheduledEndsAt: true,
+          serviceId: true,
+          service: { select: { priceFromCzk: true } },
           voucherRedemptions: {
             select: {
               amountCzk: true,
+              serviceId: true,
+              voucher: { select: { type: true } },
             },
           },
           payments: {

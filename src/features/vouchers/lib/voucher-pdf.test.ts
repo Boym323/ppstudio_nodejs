@@ -47,6 +47,34 @@ test("výchozí VALUE layout projde strict schematem a finálním publish prefli
   assert.match(invalid.errors.join(" "), /Řádkování/);
 });
 
+test("publish preflight odmítne VALUE oblast, která zvládne 1 500 Kč, ale ne maximum", async () => {
+  const masterBytes = await readFile("src/features/vouchers/bootstrap-assets/classic-v1.pdf");
+  const { preflightVoucherTemplateForPublish } = await import("./voucher-template-publish-preflight");
+  const layout = voucherTemplateLayoutSchema.parse({
+    ...defaultVoucherTemplateLayout,
+    valueArea: { ...defaultVoucherTemplateLayout.valueArea, widthMm: 27 },
+  });
+  const template = {
+    id: "narrow-value-test", key: "narrow-value-v1", label: "Úzká", status: "DRAFT",
+    allowedTypes: [VoucherType.VALUE], layout,
+    masterSha256: createHash("sha256").update(masterBytes).digest("hex"), masterBytes,
+  } as const;
+
+  const result = await preflightVoucherTemplateForPublish({ ...template, allowedTypes: [...template.allowedTypes] });
+
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join(" "), /Hodnota/);
+
+  const { generateResolvedVoucherPrintPdf } = await import("./voucher-pdf-core");
+  await assert.rejects(
+    () => generateResolvedVoucherPrintPdf(
+      buildVoucherFixture({ originalValueCzk: 100_000, remainingValueCzk: 100_000 }),
+      { ...template, allowedTypes: [...template.allowedTypes] },
+    ),
+    /Dynamický text se nevejde do oblasti „Hodnota“/,
+  );
+});
+
 test("historická šablona s malým QR zůstává renderovatelná", async () => {
   const masterBytes = await readFile("src/features/vouchers/bootstrap-assets/classic-v1.pdf");
   const { generateResolvedVoucherPrintPdf } = await import("./voucher-pdf-core");

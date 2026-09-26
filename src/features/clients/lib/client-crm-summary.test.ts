@@ -14,6 +14,8 @@ function booking(overrides: Partial<ClientCrmSummaryBookingInput> = {}): ClientC
   return {
     id: overrides.id ?? "booking-1",
     status: overrides.status ?? BookingStatus.CONFIRMED,
+    serviceId: overrides.serviceId ?? "service-1",
+    service: overrides.service,
     serviceNameSnapshot: overrides.serviceNameSnapshot ?? "Kosmetické ošetření",
     servicePriceFromCzk: overrides.servicePriceFromCzk ?? 1_200,
     finalPriceCzk: overrides.finalPriceCzk,
@@ -170,6 +172,28 @@ test("getClientCrmSummary clamps overpaid booking unpaid value to zero", () => {
 
   assert.equal(summary.paidCzk, 1_400);
   assert.equal(summary.unpaidCzk, 0);
+});
+
+test("getClientCrmSummary započítá SERVICE po zdražení a zachová skutečné doplatky", () => {
+  for (const scenario of [
+    { type: "SERVICE" as const, finalPriceCzk: 1_500, paidCzk: 1_500, unpaidCzk: 0 },
+    { type: "SERVICE" as const, finalPriceCzk: 1_800, paidCzk: 1_500, unpaidCzk: 300 },
+    { type: "VALUE" as const, finalPriceCzk: 1_500, paidCzk: 1_200, unpaidCzk: 300 },
+  ]) {
+    const summary = getClientCrmSummary([
+      booking({
+        status: BookingStatus.COMPLETED,
+        servicePriceFromCzk: 1_500,
+        finalPriceCzk: scenario.finalPriceCzk,
+        scheduledStartsAt: new Date("2026-04-30T10:00:00.000Z"),
+        scheduledEndsAt: new Date("2026-04-30T11:00:00.000Z"),
+        voucherRedemptions: [{ amountCzk: 1_200, serviceId: "service-1", voucher: { type: scenario.type } }],
+      }),
+    ], { now });
+
+    assert.equal(summary.paidCzk, scenario.paidCzk);
+    assert.equal(summary.unpaidCzk, scenario.unpaidCzk);
+  }
 });
 
 test("getClientCrmSummary excludes cancelled and no-show bookings from unpaid total", () => {

@@ -54,8 +54,8 @@ export async function completeBookingVisitInTransaction(
     where: { id: input.bookingId },
     select: {
       id: true, status: true, scheduledEndsAt: true, finalPriceCzk: true, servicePriceFromCzk: true,
-      service: { select: { priceFromCzk: true } },
-      voucherRedemptions: { select: { amountCzk: true } },
+      serviceId: true, service: { select: { priceFromCzk: true } },
+      voucherRedemptions: { select: { amountCzk: true, serviceId: true, voucher: { select: { type: true } } } },
       payments: { select: { amountCzk: true, status: true } },
     },
   });
@@ -69,6 +69,8 @@ export async function completeBookingVisitInTransaction(
 
   const currentSummary = getBookingPaymentSummary({
     totalPriceCzk: current.finalPriceCzk ?? current.servicePriceFromCzk ?? current.service.priceFromCzk ?? 0,
+    serviceId: current.serviceId,
+    servicePriceCzk: current.servicePriceFromCzk ?? current.service.priceFromCzk,
     voucherRedemptions: current.voucherRedemptions,
     payments: current.payments,
   });
@@ -135,12 +137,14 @@ export async function completeBookingVisitInTransaction(
   const paidAfterCompletion = await tx.booking.findUniqueOrThrow({
     where: { id: current.id },
     select: {
-      voucherRedemptions: { select: { amountCzk: true } },
+      voucherRedemptions: { select: { amountCzk: true, serviceId: true, voucher: { select: { type: true } } } },
       payments: { select: { amountCzk: true, status: true } },
     },
   });
   const afterSummary = getBookingPaymentSummary({
     totalPriceCzk: current.finalPriceCzk ?? current.servicePriceFromCzk ?? current.service.priceFromCzk ?? 0,
+    serviceId: current.serviceId,
+    servicePriceCzk: current.servicePriceFromCzk ?? current.service.priceFromCzk,
     voucherRedemptions: paidAfterCompletion.voucherRedemptions,
     payments: paidAfterCompletion.payments,
   });

@@ -144,7 +144,9 @@ async function bootstrapOnce(dependencies: VoucherTemplateBootstrapDependencies)
           },
         });
       } else {
-        if (template.status !== VoucherTemplateStatus.PUBLISHED || !template.masterStoragePath || !template.masterSha256) {
+        const isPublished = template.status === VoucherTemplateStatus.PUBLISHED;
+        const isHistoricalInactive = template.status === VoucherTemplateStatus.INACTIVE;
+        if ((!isPublished && !isHistoricalInactive) || !template.masterStoragePath || !template.masterSha256) {
           throw new Error("Bootstrap nalezl classic-v1 bez publikovaného a platného masteru.");
         }
 
@@ -170,6 +172,10 @@ async function bootstrapOnce(dependencies: VoucherTemplateBootstrapDependencies)
           } catch {
             previewIsValid = false;
           }
+        }
+
+        if (!previewIsValid && isHistoricalInactive) {
+          throw new Error("Bootstrap nalezl neplatný nebo chybějící preview classic-v1.");
         }
 
         if (!previewIsValid) {
@@ -205,6 +211,9 @@ async function bootstrapOnce(dependencies: VoucherTemplateBootstrapDependencies)
       if (!settings) throw new Error("Bootstrap nenalezl očekávaný singleton SiteSettings.");
 
       if (settings.voucherDefaultTemplateId === null) {
+        if (template.status === VoucherTemplateStatus.INACTIVE) {
+          throw new Error("Bootstrap nemůže nastavit neaktivní classic-v1 jako výchozí šablonu.");
+        }
         const updatedSettings = await tx.siteSettings.updateMany({
           where: { id: "site-settings", voucherDefaultTemplateId: null },
           data: { voucherDefaultTemplateId: template.id },

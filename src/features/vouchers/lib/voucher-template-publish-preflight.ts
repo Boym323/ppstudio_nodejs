@@ -10,6 +10,7 @@ import { preflightFinalVoucherPrint, preflightVoucherTemplateMaster } from "./vo
 import { type ResolvedVoucherTemplate } from "./voucher-template-repository";
 import { VoucherTemplateError } from "./voucher-template-error";
 import { voucherTemplateLayoutSchema } from "./voucher-template-layout";
+import { VOUCHER_VALUE_MAX_CZK } from "./voucher-value-limits";
 
 export async function preflightVoucherTemplateForPublish(template: ResolvedVoucherTemplate) {
   const layout = voucherTemplateLayoutSchema.safeParse(template.layout);
@@ -21,7 +22,8 @@ export async function preflightVoucherTemplateForPublish(template: ResolvedVouch
   if (template.allowedTypes.includes(VoucherType.SERVICE)) scenarios.push({ type: VoucherType.SERVICE, serviceName: "Korejský Lash lifting" }, { type: VoucherType.SERVICE, serviceName: "Velmi dlouhý název služby s českou diakritikou pro ověření zalomení a minimální velikosti písma" });
   const errors: string[] = [];
   for (const scenario of scenarios) {
-    const voucher = { templateId: template.id, templateKey: template.key, code: "TEST-2026-ABCDEF", type: scenario.type, originalValueCzk: scenario.type === VoucherType.VALUE ? 1500 : 1500, remainingValueCzk: scenario.type === VoucherType.VALUE ? 1500 : null, serviceNameSnapshot: scenario.serviceName ?? null, servicePriceSnapshotCzk: scenario.type === VoucherType.SERVICE ? 1500 : null, validUntil: new Date("2027-12-31T22:59:59.999Z") } as Parameters<typeof generateResolvedVoucherPrintPdf>[0];
+    const valueCzk = scenario.type === VoucherType.VALUE ? VOUCHER_VALUE_MAX_CZK : 1500;
+    const voucher = { templateId: template.id, templateKey: template.key, code: "TEST-2026-ABCDEF", type: scenario.type, originalValueCzk: valueCzk, remainingValueCzk: scenario.type === VoucherType.VALUE ? valueCzk : null, serviceNameSnapshot: scenario.serviceName ?? null, servicePriceSnapshotCzk: scenario.type === VoucherType.SERVICE ? 1500 : null, validUntil: new Date("2027-12-31T22:59:59.999Z") } as Parameters<typeof generateResolvedVoucherPrintPdf>[0];
 
     try {
       const print = await preflightFinalVoucherPrint(await generateResolvedVoucherPrintPdf(voucher, template, { failOnTextOverflow: true }));

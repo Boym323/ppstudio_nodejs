@@ -8,6 +8,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Bootstrap nyní akceptuje neměnnou historickou `classic-v1` ve stavu `INACTIVE`, pokud má validní assety a výchozí šablona je jiná publikovaná; SERVICE voucher při zdražení dál pokrývá sjednanou službu včetně klientského CRM bez falešného dluhu, zatímco účetní snapshot a doplatek za další položky zůstávají zachované.
+- Publikace voucherové šablony ověřuje VALUE částku až do sdíleného maxima 100 000 Kč a renderer ji nikdy nezkrátí; master PDF s nenulovou efektivní rotací se odmítne při uploadu i publikaci.
 - Výchozí VALUE šablona nyní prochází finálním publikačním preflightem bez ořezu částky; řádkování SERVICE nemůže překrývat glyphy a bootstrap používá stejnou finální kontrolu jako ruční publikace.
 - Nové VALUE vouchery mají společný limit 100 000 Kč pro digitální vydání i aktivaci předtištěného kusu; nové QR oblasti musí mít alespoň 20 × 20 mm, historické šablony zůstávají čitelné.
 
