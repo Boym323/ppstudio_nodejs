@@ -58,9 +58,7 @@ export type VoucherTemplatePreviewTextMeasurer = (
 ) => VoucherTemplatePreviewTextMetrics | null;
 
 const PT_TO_MM = 25.4 / 72;
-const FIT_STEP_PT = 0.25;
 export const VOUCHER_TEMPLATE_PREVIEW_HORIZONTAL_PADDING_MM = 1;
-const PREVIEW_HORIZONTAL_PADDING_MM = VOUCHER_TEMPLATE_PREVIEW_HORIZONTAL_PADDING_MM * 2;
 
 export const VOUCHER_TEMPLATE_PREVIEW_FONT_FAMILIES: Readonly<Record<string, string>> = {
   "noto-sans": '"Noto Sans", sans-serif',
@@ -87,16 +85,15 @@ export function getVoucherTemplatePreviewText(
 }
 
 /**
- * Browser-safe approximation of the PDF renderer's fitText helper. It is
- * intentionally kept in the admin UI layer because the PDF implementation
- * relies on server-only font and filesystem APIs.
+ * Browser preview wrapper over the same pure fitting rules used by the PDF renderer.
+ * Only font measurement remains environment-specific.
  */
-export function fitVoucherTemplatePreviewText(text: string, area: VoucherTemplatePreviewArea, textMeasurer?: VoucherTemplatePreviewTextMeasurer | null): VoucherTemplatePreviewFit {
+export function fitVoucherTemplatePreviewText(text: string, area: VoucherTemplatePreviewArea, textMeasurer?: VoucherTemplatePreviewTextMeasurer | null, horizontalInsetMm = VOUCHER_TEMPLATE_PREVIEW_HORIZONTAL_PADDING_MM): VoucherTemplatePreviewFit {
   const fit = fitVoucherTextToArea(
     text,
     area,
     (value, fontSizePt) => measurePreviewTextWidthMm(value, fontSizePt, area.typography, textMeasurer),
-    VOUCHER_TEMPLATE_PREVIEW_HORIZONTAL_PADDING_MM,
+    horizontalInsetMm,
   );
 
   return {
