@@ -61,29 +61,26 @@ test("overlay data používají snapshot SERVICE názvu včetně diakritiky", as
 });
 
 test("dlouhý název služby se vejde do dvou řádků a při overflowu dostane ellipsis", async () => {
-  const { fitVoucherText } = await import("./voucher-pdf-test-renderers");
-  const measure = (value: string, size: number) => Array.from(value).length * size;
-  const wrap = (value: string, size: number, maxWidth: number) => {
-    const maxCharacters = Math.max(1, Math.floor(maxWidth / size));
-    const characters = Array.from(value);
-    const lines: string[] = [];
-
-    for (let index = 0; index < characters.length; index += maxCharacters) {
-      lines.push(characters.slice(index, index + maxCharacters).join(""));
-    }
-
-    return lines;
+  const { fitVoucherTextToArea } = await import("./voucher-text-fit");
+  const measure = (value: string, size: number) => Array.from(value).length * size * 0.1;
+  const area = {
+    yMm: 10,
+    widthMm: 20,
+    heightMm: 12,
+    baselineMm: 12,
+    maxLines: 2,
+    typography: { preferredFontSizePt: 14.5, minFontSizePt: 8.5, lineHeightMm: 4 },
   };
 
-  const normal = fitVoucherText("Lash lifting", measure, wrap, 180, 14.5, 8.5, 2);
-  const long = fitVoucherText("Velmi dlouhá služba s českou diakritikou pro výrazné prodloužení řas a relaxační péči", measure, wrap, 180, 14.5, 8.5, 2);
-  const extreme = fitVoucherText("SuperdlouhéSlovoBezMezerKteréSeMusíBezpečněZkrátit", measure, wrap, 180, 14.5, 8.5, 2);
+  const normal = fitVoucherTextToArea("Lash lifting", area, measure, 1);
+  const long = fitVoucherTextToArea("Velmi dlouhá služba s českou diakritikou pro výrazné prodloužení řas a relaxační péči", area, measure, 1);
+  const extreme = fitVoucherTextToArea("SuperdlouhéSlovoBezMezerKteréSeMusíBezpečněZkrátit", area, measure, 1);
 
   assert.equal(normal.overflowed, false);
   assert.equal(long.overflowed, true);
   assert.equal(extreme.overflowed, true);
-  assert.ok(long.size >= 8.5);
-  assert.ok(extreme.size >= 8.5);
+  assert.ok(long.fontSizePt >= 8.5);
+  assert.ok(extreme.fontSizePt >= 8.5);
   assert.ok(long.lines.length <= 2);
   assert.ok(extreme.lines.length <= 2);
   assert.match(long.lines.at(-1) ?? "", /…$/);
