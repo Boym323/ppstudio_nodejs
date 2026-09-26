@@ -178,6 +178,7 @@ test("preview režim, scénář, fixture text i Canvas stav jsou lokální a sav
   assert.match(source, /relative .*overflow-visible border/);
   assert.match(source, /context\.textAlign = area\.typography\.alignment/);
   assert.match(source, /context\.font = .*getVoucherTemplatePreviewFontSizePx\(preview\.fit\.fontSizePt, scale\)/);
+  assert.match(source, /context\.fillStyle = cmykToCssRgb\(area\.typography\.color\)/);
   assert.match(source, /const canvasScale = canvasSize\.width \/ 216/);
   assert.match(source, /new ResizeObserver\(measure\)/);
   assert.match(source, /enableResizing=\{isSelected \? cornerResizeEnable : false\}/);
