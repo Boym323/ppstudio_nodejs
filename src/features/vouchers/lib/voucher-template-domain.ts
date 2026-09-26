@@ -234,7 +234,7 @@ export async function publishVoucherTemplate(id: string, actorUserId: string) {
     import("./voucher-template-publish-preflight"),
   ]);
   const finalPreflight = await preflightVoucherTemplateForPublish(await resolveVoucherTemplate(template));
-  if (!finalPreflight.ok) throw new VoucherTemplateDomainError("MASTER_INVALID", "Finální PDF preflight šablony neprošel.");
+  if (!finalPreflight.ok) throw new VoucherTemplateDomainError("MASTER_INVALID", finalPreflight.errors[0] ?? "Finální PDF preflight šablony neprošel.");
 
   return runSerializableTransaction(async (tx) => {
     const current = await tx.voucherTemplate.findUnique({ where: { id } });
