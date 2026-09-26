@@ -409,18 +409,6 @@ function setPrintPageBoxes(page: PDFPage, template: VoucherTemplateRenderDefinit
   page.setTrimBox(mm(layout.trim.xMm), mm(layout.trim.yMm), mm(layout.trim.widthMm), mm(layout.trim.heightMm));
 }
 
-function fitText(text: string, fontPair: FontPair, maxWidth: number, preferredSize: number, minimumSize: number, maxLines: number) {
-  return fitVoucherText(
-    text,
-    (value, size) => measureText(value, fontPair, size),
-    (value, size, width) => wrapText(value, fontPair, size, width),
-    maxWidth,
-    preferredSize,
-    minimumSize,
-    maxLines,
-  );
-}
-
 export function fitVoucherText(
   text: string,
   measure: (value: string, size: number) => number,
@@ -461,68 +449,6 @@ function addEllipsis(text: string, measure: (value: string, size: number) => num
   }
 
   return ellipsis;
-}
-
-function fitSingleLine(text: string, fontPair: FontPair, maxWidth: number, preferredSize: number, minimumSize: number) {
-  for (let size = preferredSize; size >= minimumSize; size -= 0.25) {
-    if (measureText(text, fontPair, size) <= maxWidth) {
-      return size;
-    }
-  }
-
-  return minimumSize;
-}
-
-function wrapText(text: string, fontPair: FontPair, size: number, maxWidth: number) {
-  const words = text.split(/\s+/).filter(Boolean);
-  const lines: string[] = [];
-  let currentLine = "";
-
-  for (const word of words) {
-    const candidate = currentLine ? `${currentLine} ${word}` : word;
-
-    if (!currentLine && measureText(word, fontPair, size) > maxWidth) {
-      const chunks = splitWord(word, fontPair, size, maxWidth);
-      lines.push(...chunks.slice(0, -1));
-      currentLine = chunks.at(-1) ?? "";
-      continue;
-    }
-
-    if (measureText(candidate, fontPair, size) <= maxWidth || !currentLine) {
-      currentLine = candidate;
-    } else {
-      lines.push(currentLine);
-      currentLine = word;
-    }
-  }
-
-  if (currentLine) {
-    lines.push(currentLine);
-  }
-
-  return lines;
-}
-
-function splitWord(word: string, fontPair: FontPair, size: number, maxWidth: number) {
-  const chunks: string[] = [];
-  let current = "";
-
-  for (const character of word) {
-    const candidate = `${current}${character}`;
-
-    if (current && measureText(candidate, fontPair, size) > maxWidth) {
-      chunks.push(current);
-      current = character;
-    } else {
-      current = candidate;
-    }
-  }
-
-  if (current) {
-    chunks.push(current);
-  }
-
-  return chunks;
 }
 
 function createFontPair(primary: PDFFont, fallback: PDFFont): FontPair {
