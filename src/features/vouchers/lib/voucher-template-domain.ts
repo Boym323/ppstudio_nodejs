@@ -1,7 +1,7 @@
 import { Prisma, VoucherTemplateStatus, VoucherType } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { runSerializableTransaction } from "@/lib/serializable-transaction";
-import { voucherTemplateLayoutSchema, type VoucherTemplateLayoutV1 } from "./voucher-template-layout";
+import { voucherTemplateLayoutSchema, voucherTemplateStoredLayoutSchema, type VoucherTemplateLayoutV1 } from "./voucher-template-layout";
 import {
   deleteVoucherTemplateAsset,
   readVoucherTemplateMaster,
@@ -296,7 +296,7 @@ export async function cloneVoucherTemplateVersion(id: string, actorUserId: strin
           version,
           label: source.label,
           allowedTypes: source.allowedTypes,
-          layout: voucherTemplateLayoutSchema.parse(source.layout),
+          layout: voucherTemplateStoredLayoutSchema.parse(source.layout),
           createdByUserId: actorUserId,
           clonedFromId: source.id,
         },
