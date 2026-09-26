@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 import { VoucherTemplateDomainError } from "./voucher-template-domain";
 import { readVoucherTemplateMaster, sha256, voucherTemplateMasterExists } from "./voucher-template-storage";
-import { voucherTemplateLayoutSchema, type VoucherTemplateLayoutV1 } from "./voucher-template-layout";
+import { voucherTemplateStoredLayoutSchema, type VoucherTemplateLayoutV1 } from "./voucher-template-layout";
 
 export type ResolvedVoucherTemplate = {
   id: string;
@@ -68,7 +68,7 @@ export async function loadVoucherTemplateMaster(template: { masterStoragePath: s
 export async function resolveVoucherTemplate(template: { id: string; key: string; status: VoucherTemplateStatus; allowedTypes: VoucherType[]; label: string; layout: unknown; masterStoragePath: string | null; masterSha256: string | null }): Promise<ResolvedVoucherTemplate> {
   const masterBytes = await loadVoucherTemplateMaster(template);
   if (!template.masterSha256) throw new VoucherTemplateDomainError("MASTER_INVALID", "Master šablony není dostupný.");
-  return { id: template.id, key: template.key, status: template.status, allowedTypes: template.allowedTypes, label: template.label, layout: voucherTemplateLayoutSchema.parse(template.layout), masterSha256: template.masterSha256, masterBytes };
+  return { id: template.id, key: template.key, status: template.status, allowedTypes: template.allowedTypes, label: template.label, layout: voucherTemplateStoredLayoutSchema.parse(template.layout), masterSha256: template.masterSha256, masterBytes };
 }
 
 export async function resolveVoucherTemplateForVoucher(voucherId: string) {
