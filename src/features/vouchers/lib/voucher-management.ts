@@ -4,6 +4,7 @@ import { allocateVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import { redeemVoucherForBooking } from "@/features/vouchers/lib/voucher-redemption";
 import { validateVoucherForBookingInput } from "@/features/vouchers/lib/voucher-validation";
 import { STRICT_VOUCHER_RENDER_POLICY } from "@/features/vouchers/lib/voucher-render-policy";
+import { CURRENT_VOUCHER_TEMPLATE_VALIDATION_POLICY } from "@/features/vouchers/lib/voucher-template-validation-policy";
 import {
   createVoucherSchema,
   redeemVoucherSchema,
@@ -65,7 +66,7 @@ export async function createVoucher(input: CreateVoucherInput, createdByUserId: 
     try {
       return await runSerializableTransaction(async (tx) => {
         const template = await tx.voucherTemplate.findUnique({ where: { key: parsed.templateKey } });
-        if (!template || template.status !== "PUBLISHED" || !template.allowedTypes.includes(parsed.type)) {
+        if (!template || template.status !== "PUBLISHED" || !template.allowedTypes.includes(parsed.type) || template.validationPolicy !== CURRENT_VOUCHER_TEMPLATE_VALIDATION_POLICY) {
           throw new VoucherManagementError(
             voucherManagementErrorCodes.templateUnavailable,
             "Vybraný vzhled voucheru už není dostupný.",

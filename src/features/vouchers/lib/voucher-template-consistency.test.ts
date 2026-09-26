@@ -147,4 +147,9 @@ test("master upload má bezpečný commit point a publish odmítne změněný ma
   state.publishRace = true;
   await assert.rejects(() => domain.publishVoucherTemplate("template-1", "owner-1"), /změnil/);
   assert.equal(state.template.status, "DRAFT");
+
+  reset();
+  const published = await domain.publishVoucherTemplate("template-1", "owner-1");
+  assert.equal(published.status, "PUBLISHED");
+  assert.equal(published.validationPolicy, "STRICT_V1");
 });

@@ -9,6 +9,7 @@ import {
 
 import { allocateVoucherCodes, normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import { STRICT_VOUCHER_RENDER_POLICY } from "@/features/vouchers/lib/voucher-render-policy";
+import { CURRENT_VOUCHER_TEMPLATE_VALIDATION_POLICY } from "@/features/vouchers/lib/voucher-template-validation-policy";
 import {
   addVoucherValidityMonths,
   getVoucherPragueDateBoundary,
@@ -122,7 +123,7 @@ export async function createVoucherPrintBatch(input: VoucherStockBatchCreateInpu
             "Vybraný vzhled voucheru neexistuje.",
           );
         }
-        if (template.status !== "PUBLISHED") {
+        if (template.status !== "PUBLISHED" || template.validationPolicy !== CURRENT_VOUCHER_TEMPLATE_VALIDATION_POLICY) {
           throw new VoucherStockOperationError(
             voucherStockOperationErrorCodes.templateUnavailable,
             "Vybraný vzhled není dostupný pro nové tiskové série.",

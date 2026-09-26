@@ -735,6 +735,7 @@ model VoucherTemplate {
   version             Int
   label               String
   status              VoucherTemplateStatus     @default(DRAFT)
+  validationPolicy    String?
   allowedTypes        VoucherType[]
   layout              Json
   storageProvider     MediaStorageProvider      @default(LOCAL)

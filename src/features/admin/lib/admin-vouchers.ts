@@ -3,7 +3,7 @@ import { Prisma, type VoucherStatus, type VoucherType } from "@/generated/prisma
 import { type AdminArea } from "@/config/navigation";
 import { getVoucherDetail, listVouchers } from "@/features/vouchers/lib/voucher-read-models";
 import { prisma } from "@/lib/prisma";
-import { getVoucherTemplateById, listPublishedVoucherTemplates } from "@/features/vouchers/lib/voucher-template-repository";
+import { getVoucherTemplateById, listVoucherTemplatesForIssuance } from "@/features/vouchers/lib/voucher-template-repository";
 import { getSiteSettings } from "@/lib/site-settings";
 import {
   addVoucherValidityMonths,
@@ -314,7 +314,7 @@ export async function getAdminVoucherCreatePageData(area: AdminArea) {
         },
       },
     },
-  }), listPublishedVoucherTemplates()]);
+  }), listVoucherTemplatesForIssuance()]);
   const templates = persistedTemplates;
   const defaultTemplate = templates.find((template) => template.id === settings.voucherDefaultTemplateId);
 

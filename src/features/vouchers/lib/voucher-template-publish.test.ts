@@ -41,6 +41,7 @@ test("publish vyžaduje fyzicky dostupný validní PNG preview", async (t) => {
     masterStoragePath: "voucher-templates/template-1/master-test.pdf",
     masterSha256: "master-hash",
     previewStoragePath: "voucher-templates/template-1/preview-test.png" as string | null,
+    validationPolicy: null as string | null,
     updatedAt: initialUpdatedAt,
   };
   let race: "layout" | "allowedTypes" | "master" | "preview" | "none" = "none";
@@ -133,6 +134,7 @@ test("publish vyžaduje fyzicky dostupný validní PNG preview", async (t) => {
   preview = validPng;
   await domain.publishVoucherTemplate("template-1", "owner-1");
   assert.equal(template.status, "PUBLISHED");
+  assert.equal(template.validationPolicy, "STRICT_V1");
   assert.equal(auditCount, 1);
   assert.equal(casPredicates.at(-1)?.updatedAt, initialUpdatedAt);
 

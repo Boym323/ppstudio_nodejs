@@ -36,6 +36,7 @@ function successfulTransaction() {
 const mockTemplateForIssuance = {
   id: "template-test",
   key: "classic-v1",
+  validationPolicy: "STRICT_V1",
 };
 
 async function loadManagementTestContext(t: test.TestContext) {
@@ -91,6 +92,23 @@ test("createVoucher odmítne template deaktivovanou mezi preflightem a transakc�
   mockTransaction(t, prisma, async (operation) => operation({
     ...successfulTransaction(),
     voucherTemplate: { findUnique: async () => ({ ...mockTemplateForIssuance, status: "INACTIVE", allowedTypes: ["VALUE"] }) },
+    voucher: { findUnique: async () => null, create: async () => { created = true; return { id: "unexpected" }; } },
+  } as unknown as Prisma.TransactionClient));
+
+  await assert.rejects(
+    () => management.createVoucher(valueVoucherInput(), null),
+    (error: unknown) => error instanceof management.VoucherManagementError
+      && error.code === management.voucherManagementErrorCodes.templateUnavailable,
+  );
+  assert.equal(created, false);
+});
+
+test("createVoucher odmítne legacy PUBLISHED template bez strict markeru bez vytvoření voucheru", async (t) => {
+  const { prisma, management } = await loadManagementTestContext(t);
+  let created = false;
+  mockTransaction(t, prisma, async (operation) => operation({
+    ...successfulTransaction(),
+    voucherTemplate: { findUnique: async () => ({ ...mockTemplateForIssuance, validationPolicy: null, status: "PUBLISHED", allowedTypes: ["VALUE"] }) },
     voucher: { findUnique: async () => null, create: async () => { created = true; return { id: "unexpected" }; } },
   } as unknown as Prisma.TransactionClient));
 

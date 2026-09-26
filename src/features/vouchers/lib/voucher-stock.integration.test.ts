@@ -226,6 +226,7 @@ dbTest("Voucher Stock: převzatý kus lze aktivovat i po deaktivaci jeho immutab
       version: 1,
       label: "Stock inactive template",
       status: VoucherTemplateStatus.PUBLISHED,
+      validationPolicy: "STRICT_V1",
       allowedTypes: [VoucherType.VALUE],
       layout: defaultVoucherTemplateLayout,
     },

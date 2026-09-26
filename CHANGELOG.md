@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Nové vouchery a tiskové série mohou používat pouze publikované šablony s uloženým markerem aktuální strict validace; historické publikované šablony zůstávají dostupné pro staré doklady a aktivaci již převzatého STOCK.
 - Render policy voucheru se ukládá jako `STRICT_V1`; pouze historické řádky bez markeru zůstávají v režimu HISTORICAL bez závislosti na issuedAt nebo stavu šablony.
 - SERVICE voucher nyní ve všech výpočtech doplatku pokrývá aktuální cenu stejné rezervované služby, zatímco účetní přehledy zachovávají uložený redemption amount; historické VALUE vouchery se při renderu vejdou bezpečným zmenšením písma bez zkrácení částky a nové vydání zůstává strict.
 - Bootstrap nyní akceptuje neměnnou historickou `classic-v1` ve stavu `INACTIVE`, pokud má validní assety a výchozí šablona je jiná publikovaná; SERVICE voucher při zdražení dál pokrývá sjednanou službu včetně klientského CRM bez falešného dluhu, zatímco účetní snapshot a doplatek za další položky zůstávají zachované.

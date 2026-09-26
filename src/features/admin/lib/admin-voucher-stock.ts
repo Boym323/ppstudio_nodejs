@@ -2,7 +2,7 @@ import { Prisma, VoucherPrintBatchStatus, VoucherStockItemStatus } from "@/gener
 
 import { type AdminArea } from "@/config/navigation";
 import { findVoucherStockItemByCode } from "@/features/vouchers/lib/voucher-stock";
-import { listPublishedVoucherTemplates } from "@/features/vouchers/lib/voucher-template-repository";
+import { listVoucherTemplatesForIssuance } from "@/features/vouchers/lib/voucher-template-repository";
 import { normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import { addVoucherValidityMonths } from "@/features/vouchers/lib/voucher-validity-date";
 import {
@@ -201,7 +201,7 @@ export async function getAdminVoucherActivationPageData(area: AdminArea, codeInp
 }
 
 export async function getAdminVoucherStockCreatePageData() {
-  const templates = await listPublishedVoucherTemplates();
+  const templates = await listVoucherTemplatesForIssuance();
   return {
     templates: templates.filter((template) => template.allowedTypes.length > 0),
     listHref: getAdminVoucherStockHref("owner"),

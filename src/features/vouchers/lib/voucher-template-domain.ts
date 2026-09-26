@@ -15,6 +15,7 @@ import { preflightVoucherTemplateMaster } from "./voucher-template-preflight";
 import { renderVoucherTemplatePreview } from "./voucher-template-preview";
 import { validateVoucherTemplatePreviewPng } from "./voucher-template-preview-validation";
 import { VoucherTemplateDomainError } from "./voucher-template-errors";
+import { CURRENT_VOUCHER_TEMPLATE_VALIDATION_POLICY } from "./voucher-template-validation-policy";
 
 export { VoucherTemplateDomainError } from "./voucher-template-errors";
 
@@ -259,7 +260,7 @@ export async function publishVoucherTemplate(id: string, actorUserId: string) {
         previewStoragePath: template.previewStoragePath,
         updatedAt: template.updatedAt,
       },
-      data: { status: VoucherTemplateStatus.PUBLISHED, publishedByUserId: actorUserId, publishedAt: new Date() },
+      data: { status: VoucherTemplateStatus.PUBLISHED, validationPolicy: CURRENT_VOUCHER_TEMPLATE_VALIDATION_POLICY, publishedByUserId: actorUserId, publishedAt: new Date() },
     });
     if (published.count !== 1) throw new VoucherTemplateDomainError("INVALID_STATE", "Šablona už byla změněna; obnovte stránku.");
     await audit(tx, id, actorUserId, "PUBLISH");

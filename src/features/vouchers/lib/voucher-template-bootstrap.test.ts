@@ -36,6 +36,7 @@ function createDb(options: {
     label: string;
     layout: typeof defaultVoucherTemplateLayout;
     status: "PUBLISHED" | "DRAFT" | "INACTIVE";
+    validationPolicy: string | null;
     masterStoragePath: string | null;
     masterSha256: string | null;
     previewStoragePath: string | null;
@@ -51,6 +52,7 @@ function createDb(options: {
         label: "Klasický",
         layout: defaultVoucherTemplateLayout,
         status: options.existingStatus ?? "PUBLISHED",
+        validationPolicy: null,
         masterStoragePath: "voucher-templates/classic-template/master-existing.pdf",
         masterSha256,
         previewStoragePath: options.previewStoragePath ?? null,
@@ -98,6 +100,7 @@ function createDb(options: {
           label: "Klasický",
           layout: defaultVoucherTemplateLayout,
           status: "DRAFT",
+          validationPolicy: null,
           masterStoragePath: null,
           masterSha256: null,
           previewStoragePath: null,
@@ -211,6 +214,7 @@ test("fresh bootstrap vytvoří publikovaný master i PNG preview, audit, backfi
   const template = context.getTemplate();
   assert.equal(result.backfilledVouchers, 1);
   assert.equal(result.remainingNulls, 0);
+  assert.equal(context.getTemplate()?.validationPolicy, "STRICT_V1");
   assert.equal(template?.status, "PUBLISHED");
   assert.equal(template?.masterStoragePath, "voucher-templates/classic-template/master-new.pdf");
   assert.equal(template?.masterSha256, masterSha256);

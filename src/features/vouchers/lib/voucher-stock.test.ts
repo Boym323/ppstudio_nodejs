@@ -62,7 +62,7 @@ function createBatchTransaction(options: { batchLock?: boolean; codeLock?: boole
 
       throw new Error(`unexpected query ${queryNumber}`);
     },
-    voucherTemplate: { findUnique: async () => ({ id: "template-test", key: "classic-v1", status: "PUBLISHED", allowedTypes: ["VALUE", "SERVICE"] }) },
+    voucherTemplate: { findUnique: async () => ({ id: "template-test", key: "classic-v1", status: "PUBLISHED", validationPolicy: "STRICT_V1", allowedTypes: ["VALUE", "SERVICE"] }) },
     voucher: { findUnique: async () => null, findMany: async () => [] },
     voucherStockItem: { findUnique: async () => null, findMany: async () => [] },
     voucherPrintBatch: {
@@ -73,6 +73,23 @@ function createBatchTransaction(options: { batchLock?: boolean; codeLock?: boole
     },
   } as unknown as Prisma.TransactionClient;
 }
+
+test("batch create odmítne legacy PUBLISHED template bez aktuální validation policy", async (t) => {
+  const { prisma, stock } = await loadStockTestContext(t);
+  let created = false;
+  mockTransaction(t, prisma, async (operation) => operation({
+    ...createBatchTransaction(),
+    voucherTemplate: { findUnique: async () => ({ id: "template-test", key: "classic-v1", status: "PUBLISHED", validationPolicy: null, allowedTypes: ["VALUE"] }) },
+    voucherPrintBatch: { create: async () => { created = true; return { id: "unexpected" }; } },
+  } as unknown as Prisma.TransactionClient));
+
+  await assert.rejects(
+    () => stock.createVoucherPrintBatch({ templateKey: "classic-v1", quantity: 1, createdByUserId: "admin-test" }),
+    (error: unknown) => error instanceof stock.VoucherStockOperationError
+      && error.code === stock.voucherStockOperationErrorCodes.templateUnavailable,
+  );
+  assert.equal(created, false);
+});
 
 async function loadStockTestContext(t: test.TestContext) {
   mockVoucherPrisma(t);

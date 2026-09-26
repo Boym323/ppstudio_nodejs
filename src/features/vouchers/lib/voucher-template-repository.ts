@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { VoucherTemplateDomainError } from "./voucher-template-domain";
 import { readVoucherTemplateMaster, sha256, voucherTemplateMasterExists } from "./voucher-template-storage";
 import { voucherTemplateStoredLayoutSchema, type VoucherTemplateLayoutV1 } from "./voucher-template-layout";
+import { CURRENT_VOUCHER_TEMPLATE_VALIDATION_POLICY } from "./voucher-template-validation-policy";
 
 export type ResolvedVoucherTemplate = {
   id: string;
@@ -46,6 +47,21 @@ export async function listPublishedVoucherTemplates(type?: VoucherType) {
     where: { status: VoucherTemplateStatus.PUBLISHED, ...(type ? { allowedTypes: { has: type } } : {}) },
     orderBy: [{ familyKey: "asc" }, { version: "desc" }],
   });
+}
+
+export async function listVoucherTemplatesForIssuance(type?: VoucherType) {
+  return prisma.voucherTemplate.findMany({
+    where: {
+      status: VoucherTemplateStatus.PUBLISHED,
+      validationPolicy: CURRENT_VOUCHER_TEMPLATE_VALIDATION_POLICY,
+      ...(type ? { allowedTypes: { has: type } } : {}),
+    },
+    orderBy: [{ familyKey: "asc" }, { version: "desc" }],
+  });
+}
+
+export function isVoucherTemplateCurrentForIssuance(template: { validationPolicy: string | null }) {
+  return template.validationPolicy === CURRENT_VOUCHER_TEMPLATE_VALIDATION_POLICY;
 }
 
 export function isVoucherTemplateAllowedForType(

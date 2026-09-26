@@ -18,6 +18,7 @@ import {
   writeVoucherTemplatePreview,
 } from "./voucher-template-storage";
 import { validateVoucherTemplatePreviewPng } from "./voucher-template-preview-validation";
+import { CURRENT_VOUCHER_TEMPLATE_VALIDATION_POLICY } from "./voucher-template-validation-policy";
 
 const CLASSIC_TEMPLATE_KEY = "classic-v1";
 const BOOTSTRAP_LOCK = "ppstudio:voucher-template-bootstrap:classic-v1";
@@ -136,6 +137,7 @@ async function bootstrapOnce(dependencies: VoucherTemplateBootstrapDependencies)
           where: { id: template.id },
           data: {
             status: VoucherTemplateStatus.PUBLISHED,
+            validationPolicy: CURRENT_VOUCHER_TEMPLATE_VALIDATION_POLICY,
             masterStoragePath: storedMaster.storagePath,
             masterSha256: storedMaster.sha256,
             previewStoragePath: storedPreview.storagePath,

@@ -26,7 +26,7 @@ import {
 } from "@/features/vouchers/lib/voucher-operations";
 import { optionalVoucherValidityDate } from "@/features/vouchers/lib/voucher-validity-date";
 import { createVoucherSchema } from "@/features/vouchers/schemas/voucher-schemas";
-import { getVoucherTemplateByKey, isVoucherTemplateAllowedForType } from "@/features/vouchers/lib/voucher-template-repository";
+import { getVoucherTemplateByKey, isVoucherTemplateAllowedForType, isVoucherTemplateCurrentForIssuance } from "@/features/vouchers/lib/voucher-template-repository";
 import { requireRole } from "@/lib/auth/session";
 import { sendOwnerSystemErrorPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
@@ -152,7 +152,7 @@ export async function createAdminVoucherAction(
   }
 
   const template = await getVoucherTemplateByKey(parsed.data.templateKey);
-  if (!template || template.status !== "PUBLISHED" || !isVoucherTemplateAllowedForType(template, parsed.data.type)) {
+  if (!template || template.status !== "PUBLISHED" || !isVoucherTemplateAllowedForType(template, parsed.data.type) || !isVoucherTemplateCurrentForIssuance(template)) {
     return {
       status: "error",
       formError: "Vybraný vzhled voucheru už není dostupný.",
