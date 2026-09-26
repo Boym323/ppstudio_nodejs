@@ -338,9 +338,10 @@ function assertTextFitsTemplate(
 ) {
   if (!options.failOnTextOverflow || !fit.overflowed) return;
 
+  const labels = { valueArea: "Hodnota", serviceArea: "Služba", validityArea: "Platnost", codeArea: "Kód" } as const;
   throw new VoucherTemplateError(template.key, {
     code: "text_overflow",
-    message: `Voucher template "${template.key}" overflows dynamic text area "${areaKey}".`,
+    message: `Dynamický text se nevejde do oblasti „${labels[areaKey]}“ ani při minimální velikosti písma.`,
   });
 }
 
