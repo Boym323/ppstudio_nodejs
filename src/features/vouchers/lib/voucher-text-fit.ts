@@ -31,6 +31,8 @@ export const VOUCHER_TEXT_HORIZONTAL_INSET_MM = {
 
 const PT_TO_MM = 25.4 / 72;
 const FIT_STEP_PT = 0.25;
+const VOUCHER_TEXT_ASCENT_EM = 1.07;
+const VOUCHER_TEXT_DESCENT_EM = 0.3;
 
 export function getVoucherTextLineHeightMm(configuredLineHeightMm: number, fontSizePt: number) {
   return configuredLineHeightMm > 0 ? configuredLineHeightMm : fontSizePt * PT_TO_MM * 1.2;
@@ -56,7 +58,7 @@ export function fitVoucherTextToArea(
     if (
       lines.length <= maxLines
       && lines.every((line) => measureTextWidthMm(line, fontSizePt) <= maxWidthMm + 0.001)
-      && voucherTextLineStackFits(area, lines.length, lineHeightMm)
+      && voucherTextLineStackFits(area, lines.length, lineHeightMm, fontSizePt)
     ) {
       return { fontSizePt, lines, overflowed: false, lineHeightMm, maxWidthMm };
     }
@@ -67,10 +69,12 @@ export function fitVoucherTextToArea(
 
   const fontSizePt = minimumFontSizePt;
   const lineHeightMm = getVoucherTextLineHeightMm(area.typography.lineHeightMm, fontSizePt);
-  const topClearanceMm = Math.max(0, area.yMm + area.heightMm - area.baselineMm);
-  const maxLinesByBaseline = Math.max(1, Math.floor((topClearanceMm + 0.001) / lineHeightMm) + 1);
-  const visibleLineLimit = Math.max(1, Math.min(maxLines, maxLinesByBaseline));
-  const lines = wrapVoucherText(text, fontSizePt, maxWidthMm, measureTextWidthMm).slice(0, visibleLineLimit);
+  const wrappedLines = wrapVoucherText(text, fontSizePt, maxWidthMm, measureTextWidthMm);
+  let visibleLineLimit = Math.max(1, Math.min(maxLines, wrappedLines.length || 1));
+  while (visibleLineLimit > 1 && !voucherTextLineStackFits(area, visibleLineLimit, lineHeightMm, fontSizePt)) {
+    visibleLineLimit -= 1;
+  }
+  const lines = wrappedLines.slice(0, visibleLineLimit);
   const lastLineIndex = lines.length - 1;
 
   if (lastLineIndex >= 0) {
@@ -84,10 +88,16 @@ export function voucherTextLineStackFits(
   area: Pick<VoucherTextFitArea, "yMm" | "heightMm" | "baselineMm">,
   lineCount: number,
   lineHeightMm: number,
+  fontSizePt: number,
 ) {
-  if (lineCount <= 1) return true;
-  const topClearanceMm = area.yMm + area.heightMm - area.baselineMm;
-  return Math.max(0, lineCount - 1) * lineHeightMm <= topClearanceMm + 0.001;
+  if (lineCount <= 0) return true;
+
+  const fontSizeMm = fontSizePt * PT_TO_MM;
+  const bottom = area.baselineMm - fontSizeMm * VOUCHER_TEXT_DESCENT_EM;
+  const topBaseline = area.baselineMm + Math.max(0, lineCount - 1) * lineHeightMm;
+  const top = topBaseline + fontSizeMm * VOUCHER_TEXT_ASCENT_EM;
+
+  return bottom >= area.yMm - 0.001 && top <= area.yMm + area.heightMm + 0.001;
 }
 
 function wrapVoucherText(text: string, fontSizePt: number, maxWidthMm: number, measureTextWidthMm: VoucherTextWidthMeasurer) {
