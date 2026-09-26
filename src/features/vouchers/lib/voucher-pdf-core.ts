@@ -410,48 +410,6 @@ function setPrintPageBoxes(page: PDFPage, template: VoucherTemplateRenderDefinit
   page.setTrimBox(mm(layout.trim.xMm), mm(layout.trim.yMm), mm(layout.trim.widthMm), mm(layout.trim.heightMm));
 }
 
-export function fitVoucherText(
-  text: string,
-  measure: (value: string, size: number) => number,
-  wrap: (value: string, size: number, maxWidth: number) => string[],
-  maxWidth: number,
-  preferredSize: number,
-  minimumSize: number,
-  maxLines: number,
-) {
-  for (let size = preferredSize; size >= minimumSize; size -= 0.25) {
-    const lines = wrap(text, size, maxWidth);
-
-    if (lines.length <= maxLines && lines.every((line) => measure(line, size) <= maxWidth)) {
-      return { size, lines, overflowed: false };
-    }
-  }
-
-  const size = minimumSize;
-  const lines = wrap(text, size, maxWidth).slice(0, maxLines);
-  const lastLineIndex = lines.length - 1;
-
-  if (lastLineIndex >= 0) {
-    lines[lastLineIndex] = addEllipsis(lines[lastLineIndex], measure, size, maxWidth);
-  }
-
-  return { size, lines, overflowed: true };
-}
-
-function addEllipsis(text: string, measure: (value: string, size: number) => number, size: number, maxWidth: number) {
-  const ellipsis = "…";
-  const characters = Array.from(text.trimEnd());
-
-  for (let length = characters.length; length >= 0; length -= 1) {
-    const candidate = `${characters.slice(0, length).join("").trimEnd()}${ellipsis}`;
-    if (measure(candidate, size) <= maxWidth) {
-      return candidate;
-    }
-  }
-
-  return ellipsis;
-}
-
 function createFontPair(primary: PDFFont, fallback: PDFFont): FontPair {
   return {
     primary,
