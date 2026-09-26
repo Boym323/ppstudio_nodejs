@@ -447,10 +447,10 @@ export async function activateVoucherStockItem(input: ActivateVoucherStockItemOp
       throw new VoucherStockOperationError(voucherStockOperationErrorCodes.invalidTemplate, "Historický vzhled voucheru už není dostupný.");
     }
 
-    if (template.status !== "PUBLISHED") {
+    if (template.status === "DRAFT") {
       throw new VoucherStockOperationError(
         voucherStockOperationErrorCodes.templateUnavailable,
-        "Vybraný vzhled už není dostupný pro novou aktivaci.",
+        "Vybraný vzhled ještě není publikovaný a nelze jej použít k aktivaci.",
       );
     }
 
