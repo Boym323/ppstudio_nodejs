@@ -1,8 +1,11 @@
 import { z } from "zod";
 
 import { voucherFontRegistry } from "./voucher-font-registry";
+import { getVoucherTextMinimumLineHeightMm } from "./voucher-text-fit";
 
 export const VOUCHER_PRINT_GEOMETRY = { widthMm: 216, heightMm: 105, trimXmm: 3, trimYmm: 3, trimWidthMm: 210, trimHeightMm: 99 } as const;
+// QR verze 4 (33 modulů) + quiet zone 4 moduly na každé straně: 20 / 41 = 0,488 mm na modul.
+export const VOUCHER_QR_MIN_SIZE_MM = 20;
 const mm = z.number().finite().min(0).max(216);
 const cmyk = z.object({ c: z.number().min(0).max(1), m: z.number().min(0).max(1), y: z.number().min(0).max(1), k: z.number().min(0).max(1) });
 type VoucherAreaBounds = { xMm: number; yMm: number; widthMm: number; heightMm: number };
@@ -39,10 +42,17 @@ export const voucherTemplateLayoutSchema = voucherTemplateStoredLayoutSchema.sup
     if (!isInsideTrim(layout[key])) {
       ctx.addIssue({ code: "custom", path: [key], message: "Dynamický text musí zůstat uvnitř ořezové oblasti 210 × 99 mm." });
     }
+    const { lineHeightMm, minFontSizePt } = layout[key].typography;
+    if (lineHeightMm > 0 && lineHeightMm + 0.001 < getVoucherTextMinimumLineHeightMm(minFontSizePt)) {
+      ctx.addIssue({ code: "custom", path: [key, "typography", "lineHeightMm"], message: "Řádkování je pro minimální velikost písma příliš malé." });
+    }
   }
 
   if (!isInsideTrim(layout.qrArea)) {
     ctx.addIssue({ code: "custom", path: ["qrArea"], message: "QR musí zůstat uvnitř ořezové oblasti 210 × 99 mm." });
+  }
+  if (layout.qrArea.widthMm < VOUCHER_QR_MIN_SIZE_MM || layout.qrArea.heightMm < VOUCHER_QR_MIN_SIZE_MM) {
+    ctx.addIssue({ code: "custom", path: ["qrArea"], message: `QR musí mít alespoň ${VOUCHER_QR_MIN_SIZE_MM} × ${VOUCHER_QR_MIN_SIZE_MM} mm.` });
   }
 });
 

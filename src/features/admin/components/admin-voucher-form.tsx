@@ -12,6 +12,7 @@ import {
 } from "@/features/admin/actions/create-voucher-action-state";
 import { type AdminVoucherCreatePageData } from "@/features/admin/lib/admin-vouchers";
 import { cn } from "@/lib/utils";
+import { VOUCHER_VALUE_MAX_CZK } from "@/features/vouchers/lib/voucher-value-limits";
 
 
 type AdminVoucherFormProps = {
@@ -119,6 +120,7 @@ export function AdminVoucherForm({ data }: AdminVoucherFormProps) {
                   type="number"
                   name="originalValueCzk"
                   min={1}
+                  max={VOUCHER_VALUE_MAX_CZK}
                   step={1}
                   inputMode="numeric"
                   defaultValue={originalValueCzk}

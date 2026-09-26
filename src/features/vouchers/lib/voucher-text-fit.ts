@@ -35,7 +35,12 @@ const VOUCHER_TEXT_ASCENT_EM = 1.07;
 const VOUCHER_TEXT_DESCENT_EM = 0.3;
 
 export function getVoucherTextLineHeightMm(configuredLineHeightMm: number, fontSizePt: number) {
-  return configuredLineHeightMm > 0 ? configuredLineHeightMm : fontSizePt * PT_TO_MM * 1.2;
+  const minimum = getVoucherTextMinimumLineHeightMm(fontSizePt);
+  return configuredLineHeightMm > 0 ? Math.max(configuredLineHeightMm, minimum) : minimum;
+}
+
+export function getVoucherTextMinimumLineHeightMm(fontSizePt: number) {
+  return fontSizePt * PT_TO_MM * (VOUCHER_TEXT_ASCENT_EM + VOUCHER_TEXT_DESCENT_EM);
 }
 
 export function fitVoucherTextToArea(

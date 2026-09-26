@@ -13,6 +13,7 @@ import {
   pdfBottomToBrowserTop,
   updateTypography,
   voucherTemplateLayoutSchema,
+  VOUCHER_QR_MIN_SIZE_MM,
   type VoucherTemplateLayoutV1,
   type VoucherTemplateTypographyPatch,
 } from "@/features/vouchers/lib/voucher-template-layout";
@@ -42,11 +43,10 @@ const fieldLabels = { xMm: "X", yMm: "Y", widthMm: "Šířka", heightMm: "Výšk
 const inputClassName = "mt-1 min-h-10 w-full rounded-xl border border-white/10 bg-black/20 px-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-[var(--color-accent)]/70 focus:ring-2 focus:ring-[var(--color-accent)]/15";
 const compactButtonClassName = "inline-flex min-h-9 items-center justify-center rounded-full border px-3 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70";
 const MIN_TEXT_AREA_MM = 0.5;
-const MIN_QR_SIZE_MM = 5;
 const cornerResizeEnable = { top: false, right: false, bottom: false, left: false, topRight: true, bottomRight: true, bottomLeft: true, topLeft: true } as const;
 
 function isAspectRatioLocked(key: AreaKey) { return key === "qrArea"; }
-function minimumSizeMm(key: AreaKey) { return isAspectRatioLocked(key) ? MIN_QR_SIZE_MM : MIN_TEXT_AREA_MM; }
+function minimumSizeMm(key: AreaKey) { return isAspectRatioLocked(key) ? VOUCHER_QR_MIN_SIZE_MM : MIN_TEXT_AREA_MM; }
 
 export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initialUpdatedAt, previewSrc }: { templateId: string; initialLayout: VoucherTemplateLayoutV1; initialUpdatedAt: string; previewSrc?: string }) {
   const [layout, setLayout] = useState(initialLayout);
@@ -113,7 +113,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
   const update = (key: AreaKey, patch: Record<string, unknown>) => setLayout((current) => ({ ...current, [key]: { ...current[key], ...patch } } as VoucherTemplateLayoutV1));
   const updateAreaField = (key: AreaKey, field: "xMm" | "yMm" | "widthMm" | "heightMm", value: number) => {
     if (key === "qrArea" && (field === "widthMm" || field === "heightMm")) {
-      const sizeMm = Number.isFinite(value) ? Math.max(MIN_QR_SIZE_MM, snapToHalfMm(value)) : value;
+      const sizeMm = Number.isFinite(value) ? Math.max(VOUCHER_QR_MIN_SIZE_MM, snapToHalfMm(value)) : value;
       update(key, { widthMm: sizeMm, heightMm: sizeMm });
       return;
     }

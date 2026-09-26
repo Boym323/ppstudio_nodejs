@@ -2,6 +2,7 @@ import { VoucherType } from "@/generated/prisma/browser";
 import { z } from "zod";
 
 import { optionalVoucherValidityDate } from "@/features/vouchers/lib/voucher-validity-date";
+import { VOUCHER_VALUE_MAX_CZK } from "@/features/vouchers/lib/voucher-value-limits";
 
 const optionalText = (maxLength: number) =>
   z
@@ -35,7 +36,8 @@ export const createVoucherSchema = z
       originalValueCzk: z.coerce
         .number({ error: "Hodnotu voucheru zadejte jako celé číslo v Kč." })
         .int("Hodnota voucheru musí být celé číslo.")
-        .min(1, "Hodnota voucheru musí být vyšší než 0."),
+        .min(1, "Hodnota voucheru musí být vyšší než 0.")
+        .max(VOUCHER_VALUE_MAX_CZK, `Hodnota voucheru může být nejvýše ${VOUCHER_VALUE_MAX_CZK} Kč.`),
       serviceId: z.undefined().optional(),
     }),
     z.object({
@@ -78,7 +80,8 @@ export const activateVoucherStockItemSchema = z
       originalValueCzk: z.coerce
         .number({ error: "Hodnotu voucheru zadejte jako celé číslo v Kč." })
         .int("Hodnota voucheru musí být celé číslo.")
-        .min(1, "Hodnota voucheru musí být vyšší než 0."),
+        .min(1, "Hodnota voucheru musí být vyšší než 0.")
+        .max(VOUCHER_VALUE_MAX_CZK, `Hodnota voucheru může být nejvýše ${VOUCHER_VALUE_MAX_CZK} Kč.`),
       serviceId: z.undefined().optional(),
     }),
     z.object({

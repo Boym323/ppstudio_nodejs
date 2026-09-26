@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { VoucherTemplateBootstrapDependencies } from "./voucher-template-bootstrap";
+import { defaultVoucherTemplateLayout } from "./voucher-template-defaults";
 import { validVoucherTemplatePreviewPng } from "./voucher-template-test-fixtures";
 
 process.env.NEXT_PUBLIC_APP_URL ??= "https://ppstudio.cz";
@@ -31,6 +32,7 @@ function createDb(options: {
     familyKey: string;
     version: number;
     label: string;
+    layout: typeof defaultVoucherTemplateLayout;
     status: "PUBLISHED" | "DRAFT";
     masterStoragePath: string | null;
     masterSha256: string | null;
@@ -45,6 +47,7 @@ function createDb(options: {
         familyKey: "classic",
         version: 1,
         label: "Klasický",
+        layout: defaultVoucherTemplateLayout,
         status: "PUBLISHED",
         masterStoragePath: "voucher-templates/classic-template/master-existing.pdf",
         masterSha256,
@@ -90,6 +93,7 @@ function createDb(options: {
           familyKey: "classic",
           version: 1,
           label: "Klasický",
+          layout: defaultVoucherTemplateLayout,
           status: "DRAFT",
           masterStoragePath: null,
           masterSha256: null,
@@ -179,6 +183,7 @@ function dependencies(
     readStoredPreview: async () => png,
     masterExists: async () => true,
     preflightMaster: async () => ({ errors: [] } as never),
+    preflightPublish: async () => ({ ok: true, errors: [] }),
     renderPreview: async () => png,
     validatePreview: async () => ({ ok: true, format: "png", width: 1, height: 1 }),
     writeMaster: async () => {
@@ -210,6 +215,24 @@ test("fresh bootstrap vytvoří publikovaný master i PNG preview, audit, backfi
   assert.equal(context.getSettings().voucherDefaultTemplateId, "classic-template");
   assert.equal(context.getAuditCount(), 1);
   assert.deepEqual(prepared.deleted, []);
+});
+
+test("fresh bootstrap odmítne finální text overflow a uklidí připravené assety", async () => {
+  const context = createDb();
+  let preflightCalled = false;
+  const prepared = dependencies(context, {
+    preflightPublish: async (template) => {
+      preflightCalled = true;
+      assert.equal(template.layout.valueArea.baselineMm, 42);
+      return { ok: false, errors: ["VALUE text overflow"] };
+    },
+  });
+
+  await assert.rejects(() => bootstrapVoucherTemplates(prepared.deps), /VALUE text overflow/);
+  assert.equal(preflightCalled, true);
+  assert.equal(context.getTemplate(), null);
+  assert.equal(context.getAuditCount(), 0);
+  assert.equal(prepared.deleted.length, 2);
 });
 
 test("existující validní preview se znovu negeneruje a metadata zůstanou beze změny", async () => {

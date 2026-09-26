@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
-import { access } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { inflateSync } from "node:zlib";
 import test from "node:test";
 
 import { VoucherStatus, VoucherType } from "@/generated/prisma/browser";
 import { PDFDocument } from "pdf-lib";
+import { defaultVoucherTemplateLayout } from "./voucher-template-defaults";
+import { voucherTemplateLayoutSchema, voucherTemplateStoredLayoutSchema } from "./voucher-template-layout";
 
 import {
   createVoucherTemplateRegistry,
@@ -25,6 +28,39 @@ process.env.EMAIL_DELIVERY_MODE ??= "log";
 
 test("classic-v1 master existuje ve správné cestě", async () => {
   await access("src/features/vouchers/bootstrap-assets/classic-v1.pdf");
+});
+
+test("výchozí VALUE layout projde strict schematem a finálním publish preflightem", async () => {
+  const masterBytes = await readFile("src/features/vouchers/bootstrap-assets/classic-v1.pdf");
+  const { preflightVoucherTemplateForPublish } = await import("./voucher-template-publish-preflight");
+  const layout = voucherTemplateLayoutSchema.parse(defaultVoucherTemplateLayout);
+  const template = {
+    id: "classic-test", key: "classic-v1", label: "Klasický", status: "DRAFT",
+    allowedTypes: [VoucherType.VALUE, VoucherType.SERVICE], layout,
+    masterSha256: createHash("sha256").update(masterBytes).digest("hex"), masterBytes,
+  } as const;
+  const result = await preflightVoucherTemplateForPublish({ ...template, allowedTypes: [...template.allowedTypes] });
+  assert.deepEqual(result, { ok: true, errors: [] });
+  const invalidLayout = { ...layout, serviceArea: { ...layout.serviceArea, typography: { ...layout.serviceArea.typography, lineHeightMm: 0.1 } } };
+  const invalid = await preflightVoucherTemplateForPublish({ ...template, allowedTypes: [...template.allowedTypes], layout: invalidLayout });
+  assert.equal(invalid.ok, false);
+  assert.match(invalid.errors.join(" "), /Řádkování/);
+});
+
+test("historická šablona s malým QR zůstává renderovatelná", async () => {
+  const masterBytes = await readFile("src/features/vouchers/bootstrap-assets/classic-v1.pdf");
+  const { generateResolvedVoucherPrintPdf } = await import("./voucher-pdf-core");
+  const historicalLayout = voucherTemplateStoredLayoutSchema.parse({
+    ...defaultVoucherTemplateLayout,
+    qrArea: { ...defaultVoucherTemplateLayout.qrArea, widthMm: 5, heightMm: 5 },
+  });
+  assert.equal(voucherTemplateLayoutSchema.safeParse(historicalLayout).success, false);
+  const pdf = await generateResolvedVoucherPrintPdf(buildVoucherFixture(), {
+    id: "classic-test", key: "classic-v1", label: "Klasický", status: "INACTIVE",
+    allowedTypes: [VoucherType.VALUE], layout: historicalLayout,
+    masterSha256: createHash("sha256").update(masterBytes).digest("hex"), masterBytes,
+  });
+  assert.equal((await PDFDocument.load(pdf)).getPageCount(), 1);
 });
 
 test("overlay data obsahují českou VALUE částku a verification URL", async () => {

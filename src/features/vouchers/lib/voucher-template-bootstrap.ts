@@ -4,6 +4,8 @@ import path from "node:path";
 import { AdminRole, Prisma, VoucherTemplateStatus, VoucherType } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { defaultVoucherTemplateLayout } from "./voucher-template-defaults";
+import { voucherTemplateLayoutSchema } from "./voucher-template-layout";
+import { preflightVoucherTemplateForPublish } from "./voucher-template-publish-preflight";
 import { preflightVoucherTemplateMaster } from "./voucher-template-preflight";
 import { renderVoucherTemplatePreview } from "./voucher-template-preview";
 import {
@@ -29,6 +31,7 @@ export type VoucherTemplateBootstrapDependencies = {
   readStoredPreview?: typeof readVoucherTemplatePreview;
   masterExists?: typeof voucherTemplateMasterExists;
   preflightMaster?: typeof preflightVoucherTemplateMaster;
+  preflightPublish?: typeof preflightVoucherTemplateForPublish;
   renderPreview?: typeof renderVoucherTemplatePreview;
   validatePreview?: typeof validateVoucherTemplatePreviewPng;
   deleteAsset?: typeof deleteVoucherTemplateAsset;
@@ -63,6 +66,7 @@ async function bootstrapOnce(dependencies: VoucherTemplateBootstrapDependencies)
   const readStoredPreview = dependencies.readStoredPreview ?? readVoucherTemplatePreview;
   const masterExists = dependencies.masterExists ?? voucherTemplateMasterExists;
   const preflightMaster = dependencies.preflightMaster ?? preflightVoucherTemplateMaster;
+  const preflightPublish = dependencies.preflightPublish ?? preflightVoucherTemplateForPublish;
   const renderPreview = dependencies.renderPreview ?? renderVoucherTemplatePreview;
   const validatePreview = dependencies.validatePreview ?? validateVoucherTemplatePreviewPng;
   const deleteAsset = dependencies.deleteAsset ?? deleteVoucherTemplateAsset;
@@ -114,6 +118,19 @@ async function bootstrapOnce(dependencies: VoucherTemplateBootstrapDependencies)
         stagedAssets.push(storedMaster.storagePath);
         const storedPreview = await writePreview(template.id, preview);
         stagedAssets.push(storedPreview.storagePath);
+
+        const layout = voucherTemplateLayoutSchema.parse(template.layout);
+        const finalPreflight = await preflightPublish({
+          id: template.id,
+          key: template.key,
+          label: template.label,
+          status: template.status,
+          allowedTypes: template.allowedTypes,
+          layout,
+          masterSha256: storedMaster.sha256,
+          masterBytes: master,
+        });
+        if (!finalPreflight.ok) throw new Error(finalPreflight.errors[0] ?? "Finální PDF preflight šablony neprošel.");
 
         template = await tx.voucherTemplate.update({
           where: { id: template.id },
@@ -218,7 +235,7 @@ async function bootstrapOnce(dependencies: VoucherTemplateBootstrapDependencies)
       }
 
       return { backfilledVouchers: backfilled.count, remainingNulls };
-    });
+    }, { timeout: 30_000 });
 
     if (repairedPreviewToCleanup) {
       await deleteAsset(repairedPreviewToCleanup).catch((cleanupError) => {

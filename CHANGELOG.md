@@ -6,6 +6,11 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Výchozí VALUE šablona nyní prochází finálním publikačním preflightem bez ořezu částky; řádkování SERVICE nemůže překrývat glyphy a bootstrap používá stejnou finální kontrolu jako ruční publikace.
+- Nové VALUE vouchery mají společný limit 100 000 Kč pro digitální vydání i aktivaci předtištěného kusu; nové QR oblasti musí mít alespoň 20 × 20 mm, historické šablony zůstávají čitelné.
+
 ### Změněno
 
 - Voucher Template Editor má přepracovanou pracovní plochu s klidnějším overlayem, českými názvy oblastí, segmented preview režimy, přepínatelnými vodítky a hierarchicky rozdělenými základními a pokročilými vlastnostmi; editor zachovává drag, resize, snap, typografii a ukládání layoutu.

@@ -9,8 +9,11 @@ import {
 import { preflightFinalVoucherPrint, preflightVoucherTemplateMaster } from "./voucher-template-preflight";
 import { type ResolvedVoucherTemplate } from "./voucher-template-repository";
 import { VoucherTemplateError } from "./voucher-template-error";
+import { voucherTemplateLayoutSchema } from "./voucher-template-layout";
 
 export async function preflightVoucherTemplateForPublish(template: ResolvedVoucherTemplate) {
+  const layout = voucherTemplateLayoutSchema.safeParse(template.layout);
+  if (!layout.success) return { ok: false, errors: layout.error.issues.map((issue) => issue.message) };
   const master = await preflightVoucherTemplateMaster(template.masterBytes);
   if (master.errors.length) return { ok: false, errors: master.errors };
   const scenarios: Array<{ type: VoucherType; serviceName?: string }> = [];

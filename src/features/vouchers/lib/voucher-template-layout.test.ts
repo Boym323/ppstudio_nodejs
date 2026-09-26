@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import QRCode from "qrcode";
 
-import { browserTopToPdfBottom, isVoucherTemplateTextAreaKey, pdfBottomToBrowserTop, updateTypography, voucherTemplateLayoutSchema, voucherTemplateStoredLayoutSchema } from "./voucher-template-layout";
+import { browserTopToPdfBottom, isVoucherTemplateTextAreaKey, pdfBottomToBrowserTop, updateTypography, voucherTemplateLayoutSchema, voucherTemplateStoredLayoutSchema, VOUCHER_QR_MIN_SIZE_MM } from "./voucher-template-layout";
 import { defaultVoucherTemplateLayout } from "./voucher-template-defaults";
 
 test("transformace browser/PDF souřadnic je obousměrná", () => {
@@ -63,4 +64,30 @@ test("dynamický obsah nesmí zasahovat do 3mm spadávky", () => {
 
   assert.equal(voucherTemplateStoredLayoutSchema.safeParse(invalidText).success, true);
   assert.equal(voucherTemplateStoredLayoutSchema.safeParse(invalidQr).success, true);
+});
+
+test("historické malé QR lze číst, nové malé QR nelze uložit", () => {
+  const old = { ...defaultVoucherTemplateLayout, qrArea: { ...defaultVoucherTemplateLayout.qrArea, widthMm: 5, heightMm: 5 } };
+  assert.equal(voucherTemplateStoredLayoutSchema.safeParse(old).success, true);
+  assert.equal(voucherTemplateLayoutSchema.safeParse(old).success, false);
+  const minimum = { ...old, qrArea: { ...old.qrArea, widthMm: VOUCHER_QR_MIN_SIZE_MM, heightMm: VOUCHER_QR_MIN_SIZE_MM } };
+  assert.equal(voucherTemplateLayoutSchema.safeParse(minimum).success, true);
+  assert.equal(voucherTemplateLayoutSchema.safeParse(defaultVoucherTemplateLayout).success, true);
+});
+
+test("minimum QR drží tisknutelný modul pro produkční ověřovací URL", () => {
+  const qr = QRCode.create("https://ppstudio.cz/vouchery/overeni?code=PP-2026-ABCDEF", { errorCorrectionLevel: "M" });
+  assert.equal(qr.version, 4);
+  assert.equal(qr.modules.size, 33);
+  assert.ok(VOUCHER_QR_MIN_SIZE_MM / (qr.modules.size + 8) >= 0.48); // 4modulová quiet zone na každé straně
+});
+
+test("strict layout odmítne překrývající se explicitní řádkování", () => {
+  for (const lineHeightMm of [0, 4.2]) {
+    const layout = { ...defaultVoucherTemplateLayout, serviceArea: { ...defaultVoucherTemplateLayout.serviceArea, typography: { ...defaultVoucherTemplateLayout.serviceArea.typography, lineHeightMm } } };
+    assert.equal(voucherTemplateLayoutSchema.safeParse(layout).success, true);
+  }
+  const invalid = { ...defaultVoucherTemplateLayout, serviceArea: { ...defaultVoucherTemplateLayout.serviceArea, typography: { ...defaultVoucherTemplateLayout.serviceArea.typography, lineHeightMm: 0.1 } } };
+  assert.equal(voucherTemplateStoredLayoutSchema.safeParse(invalid).success, true);
+  assert.equal(voucherTemplateLayoutSchema.safeParse(invalid).success, false);
 });

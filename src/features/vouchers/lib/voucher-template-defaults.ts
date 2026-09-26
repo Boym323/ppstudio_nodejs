@@ -17,10 +17,10 @@ export const defaultVoucherTemplateLayout: VoucherTemplateLayoutV1 = {
     xMm: 18,
     yMm: 39,
     widthMm: 130,
-    heightMm: 8,
-    baselineMm: 41.2,
+    heightMm: 10,
+    baselineMm: 42,
     maxLines: 1,
-    typography: { ...baseTypography, preferredFontSizePt: 16.5, minFontSizePt: 16.5, fontWeight: "bold", alignment: "center" },
+    typography: { ...baseTypography, preferredFontSizePt: 16.5, minFontSizePt: 16.5, lineHeightMm: 0, fontWeight: "bold", alignment: "center" },
   },
   serviceArea: {
     xMm: 18,
@@ -29,7 +29,7 @@ export const defaultVoucherTemplateLayout: VoucherTemplateLayoutV1 = {
     heightMm: 11,
     baselineMm: 41.2,
     maxLines: 2,
-    typography: { ...baseTypography, preferredFontSizePt: 14.5, minFontSizePt: 8.5, fontWeight: "bold", alignment: "center" },
+    typography: { ...baseTypography, preferredFontSizePt: 14.5, minFontSizePt: 8.5, lineHeightMm: 0, fontWeight: "bold", alignment: "center" },
   },
   validityArea: {
     xMm: 18,

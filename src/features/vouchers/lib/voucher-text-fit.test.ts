@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fitVoucherTextToArea, getVoucherTextLineHeightMm } from "./voucher-text-fit";
+import { fitVoucherTextToArea, getVoucherTextLineHeightMm, getVoucherTextMinimumLineHeightMm } from "./voucher-text-fit";
 
 const measure = (text: string, fontSizePt: number) => text.length * fontSizePt * 0.12;
 
@@ -25,6 +25,16 @@ test("automatické řádkování při lineHeightMm=0 nikdy neskládá řádky p�
 
   assert.ok(fit.lineHeightMm > 0);
   assert.ok(fit.lines.length * fit.lineHeightMm <= 20 + 0.001 || fit.overflowed);
+});
+
+test("víceřádkový SERVICE fitting drží bezpečnou výšku pro auto i explicitní řádkování", () => {
+  const area = { yMm: 10, widthMm: 20, heightMm: 25, baselineMm: 13, maxLines: 3, typography: { preferredFontSizePt: 10, minFontSizePt: 10, lineHeightMm: 0 } };
+  for (const lineHeightMm of [0, 5, 0.1]) {
+    const fit = fitVoucherTextToArea("Jedna dvě tři čtyři pět šest", { ...area, typography: { ...area.typography, lineHeightMm } }, measure);
+    assert.ok(fit.lines.length > 1);
+    assert.equal(fit.overflowed, false);
+    assert.ok(fit.lineHeightMm >= getVoucherTextMinimumLineHeightMm(fit.fontSizePt));
+  }
 });
 
 test("fitting respektuje výšku oblasti a označí overflow při příliš malé výšce", () => {
