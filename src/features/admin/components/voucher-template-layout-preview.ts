@@ -1,4 +1,5 @@
 import type { VoucherTemplateTextAreaKey } from "@/features/vouchers/lib/voucher-template-layout";
+import { fitVoucherTextToArea } from "@/features/vouchers/lib/voucher-text-fit";
 
 /**
  * UI-only fixture data for the layout editor. It must never be added to the
@@ -91,35 +92,20 @@ export function getVoucherTemplatePreviewText(
  * relies on server-only font and filesystem APIs.
  */
 export function fitVoucherTemplatePreviewText(text: string, area: VoucherTemplatePreviewArea, textMeasurer?: VoucherTemplatePreviewTextMeasurer | null): VoucherTemplatePreviewFit {
-  const maxWidthMm = Math.max(1, area.widthMm - PREVIEW_HORIZONTAL_PADDING_MM);
-  const maxLines = Math.max(1, Math.floor(area.maxLines));
-  const minimumFontSizePt = Math.max(0.1, area.typography.minFontSizePt);
-  const preferredFontSizePt = Math.max(minimumFontSizePt, area.typography.preferredFontSizePt);
+  const fit = fitVoucherTextToArea(
+    text,
+    area,
+    (value, fontSizePt) => measurePreviewTextWidthMm(value, fontSizePt, area.typography, textMeasurer),
+    VOUCHER_TEMPLATE_PREVIEW_HORIZONTAL_PADDING_MM,
+  );
 
-  for (let size = preferredFontSizePt; size >= minimumFontSizePt - 0.001; size = roundSize(size - FIT_STEP_PT)) {
-    const fontSizePt = roundSize(size);
-    const lines = wrapPreviewText(text, fontSizePt, maxWidthMm, area.typography, textMeasurer);
-    const lineHeightMm = getPreviewLineHeightMm(area.typography.lineHeightMm, fontSizePt);
-
-    if (lines.length <= maxLines && lines.every((line) => measurePreviewTextWidthMm(line, fontSizePt, area.typography, textMeasurer) <= maxWidthMm) && lines.length * lineHeightMm <= area.heightMm + 0.001) {
-      return { fontSizePt, lines, overflowed: false, lineHeightMm };
-    }
-
-    if (fontSizePt === minimumFontSizePt) break;
-  }
-
-  const fontSizePt = minimumFontSizePt;
-  const lineHeightMm = getPreviewLineHeightMm(area.typography.lineHeightMm, fontSizePt);
-  const lines = wrapPreviewText(text, fontSizePt, maxWidthMm, area.typography, textMeasurer).slice(0, maxLines);
-  const lastLineIndex = lines.length - 1;
-
-  if (lastLineIndex >= 0) {
-    lines[lastLineIndex] = addPreviewEllipsis(lines[lastLineIndex], fontSizePt, maxWidthMm, area.typography, textMeasurer);
-  }
-
-  return { fontSizePt, lines, overflowed: true, lineHeightMm };
+  return {
+    fontSizePt: fit.fontSizePt,
+    lines: fit.lines,
+    overflowed: fit.overflowed,
+    lineHeightMm: fit.lineHeightMm,
+  };
 }
-
 export function createVoucherTemplatePreviewTextMeasurer(scale = 1): VoucherTemplatePreviewTextMeasurer | null {
   if (typeof document === "undefined" || typeof document.createElement !== "function") return null;
 
@@ -172,69 +158,6 @@ export function getVoucherTemplatePreviewLineBaselinePx(baselinePx: number, line
   return baselinePx - Math.max(0, lineCount - 1 - lineIndex) * lineHeightPx;
 }
 
-function getPreviewLineHeightMm(lineHeightMm: number, fontSizePt: number) {
-  return lineHeightMm > 0 ? lineHeightMm : fontSizePt * PT_TO_MM * 1.2;
-}
-
-function wrapPreviewText(text: string, fontSizePt: number, maxWidthMm: number, typography: PreviewTypography, textMeasurer?: VoucherTemplatePreviewTextMeasurer | null) {
-  const lines: string[] = [];
-
-  for (const paragraph of text.split(/\r?\n/)) {
-    const words = paragraph.split(/\s+/).filter(Boolean);
-    let currentLine = "";
-
-    for (const word of words) {
-      const candidate = currentLine ? `${currentLine} ${word}` : word;
-
-      if (!currentLine && measurePreviewTextWidthMm(word, fontSizePt, typography, textMeasurer) > maxWidthMm) {
-        const chunks = splitPreviewWord(word, fontSizePt, maxWidthMm, typography, textMeasurer);
-        lines.push(...chunks.slice(0, -1));
-        currentLine = chunks.at(-1) ?? "";
-      } else if (!currentLine || measurePreviewTextWidthMm(candidate, fontSizePt, typography, textMeasurer) <= maxWidthMm) {
-        currentLine = candidate;
-      } else {
-        lines.push(currentLine);
-        currentLine = word;
-      }
-    }
-
-    if (currentLine) lines.push(currentLine);
-  }
-
-  return lines;
-}
-
-function splitPreviewWord(word: string, fontSizePt: number, maxWidthMm: number, typography: PreviewTypography, textMeasurer?: VoucherTemplatePreviewTextMeasurer | null) {
-  const chunks: string[] = [];
-  let current = "";
-
-  for (const character of Array.from(word)) {
-    const candidate = `${current}${character}`;
-
-    if (current && measurePreviewTextWidthMm(candidate, fontSizePt, typography, textMeasurer) > maxWidthMm) {
-      chunks.push(current);
-      current = character;
-    } else {
-      current = candidate;
-    }
-  }
-
-  if (current) chunks.push(current);
-  return chunks;
-}
-
-function addPreviewEllipsis(text: string, fontSizePt: number, maxWidthMm: number, typography: PreviewTypography, textMeasurer?: VoucherTemplatePreviewTextMeasurer | null) {
-  const ellipsis = "…";
-  const characters = Array.from(text.trimEnd());
-
-  for (let length = characters.length; length >= 0; length -= 1) {
-    const candidate = `${characters.slice(0, length).join("").trimEnd()}${ellipsis}`;
-    if (measurePreviewTextWidthMm(candidate, fontSizePt, typography, textMeasurer) <= maxWidthMm) return candidate;
-  }
-
-  return ellipsis;
-}
-
 function measurePreviewTextWidthMm(text: string, fontSizePt: number, typography: PreviewTypography, textMeasurer?: VoucherTemplatePreviewTextMeasurer | null) {
   const measured = textMeasurer?.(text, fontSizePt, typography);
   if (measured) return measured.widthMm;
@@ -251,8 +174,4 @@ function getCharacterWidthInEm(character: string) {
   if (/[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]/.test(character)) return 0.68;
   if (/[-–—/()[\]{}]/.test(character)) return 0.38;
   return 0.56;
-}
-
-function roundSize(value: number) {
-  return Number(value.toFixed(2));
 }
