@@ -1,6 +1,9 @@
 export type VoucherTextFitArea = {
+  xMm?: number;
+  yMm: number;
   widthMm: number;
   heightMm: number;
+  baselineMm: number;
   maxLines: number;
   typography: {
     preferredFontSizePt: number;
@@ -53,7 +56,7 @@ export function fitVoucherTextToArea(
     if (
       lines.length <= maxLines
       && lines.every((line) => measureTextWidthMm(line, fontSizePt) <= maxWidthMm + 0.001)
-      && lines.length * lineHeightMm <= area.heightMm + 0.001
+      && voucherTextLineStackFits(area, lines.length, lineHeightMm)
     ) {
       return { fontSizePt, lines, overflowed: false, lineHeightMm, maxWidthMm };
     }
@@ -64,8 +67,9 @@ export function fitVoucherTextToArea(
 
   const fontSizePt = minimumFontSizePt;
   const lineHeightMm = getVoucherTextLineHeightMm(area.typography.lineHeightMm, fontSizePt);
-  const maxLinesByHeight = Math.max(1, Math.floor((area.heightMm + 0.001) / lineHeightMm));
-  const visibleLineLimit = Math.max(1, Math.min(maxLines, maxLinesByHeight));
+  const topClearanceMm = Math.max(0, area.yMm + area.heightMm - area.baselineMm);
+  const maxLinesByBaseline = Math.max(1, Math.floor((topClearanceMm + 0.001) / lineHeightMm) + 1);
+  const visibleLineLimit = Math.max(1, Math.min(maxLines, maxLinesByBaseline));
   const lines = wrapVoucherText(text, fontSizePt, maxWidthMm, measureTextWidthMm).slice(0, visibleLineLimit);
   const lastLineIndex = lines.length - 1;
 
@@ -74,6 +78,16 @@ export function fitVoucherTextToArea(
   }
 
   return { fontSizePt, lines, overflowed: true, lineHeightMm, maxWidthMm };
+}
+
+export function voucherTextLineStackFits(
+  area: Pick<VoucherTextFitArea, "yMm" | "heightMm" | "baselineMm">,
+  lineCount: number,
+  lineHeightMm: number,
+) {
+  if (lineCount <= 1) return true;
+  const topClearanceMm = area.yMm + area.heightMm - area.baselineMm;
+  return Math.max(0, lineCount - 1) * lineHeightMm <= topClearanceMm + 0.001;
 }
 
 function wrapVoucherText(text: string, fontSizePt: number, maxWidthMm: number, measureTextWidthMm: VoucherTextWidthMeasurer) {
