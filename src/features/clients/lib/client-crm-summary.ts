@@ -71,7 +71,7 @@ export function getClientCrmSummary(
       });
 
       return {
-        paidCzk: totals.paidCzk + paymentSummary.paidTotalCzk,
+        paidCzk: totals.paidCzk + paymentSummary.accountingPaidTotalCzk,
         unpaidCzk: totals.unpaidCzk + (isUnpaidRelevantBooking(booking, now) ? paymentSummary.remainingCzk : 0),
       };
     },

@@ -42,6 +42,7 @@ type AdminBookingStatusFormProps = {
   totalPriceCzk?: number;
   directPaidCzk?: number;
   voucherPaidCzk?: number;
+  accountingVoucherPaidCzk?: number;
   overpaidCzk?: number;
   paymentDetailsHref?: string;
   onSuccess?: (message: string) => void;
@@ -59,6 +60,7 @@ export function AdminBookingStatusForm({
   totalPriceCzk = 0,
   directPaidCzk = 0,
   voucherPaidCzk = 0,
+  accountingVoucherPaidCzk = voucherPaidCzk,
   overpaidCzk = 0,
   paymentDetailsHref = "#booking-voucher",
   onSuccess,
@@ -365,8 +367,8 @@ export function AdminBookingStatusForm({
               <dd>{formatCzk(totalPriceCzk)}</dd>
             </div>
             <div>
-              <dt className="text-xs text-white/48">Dosud uhrazeno</dt>
-              <dd>{formatCzk(directPaidCzk + voucherPaidCzk)}</dd>
+              <dt className="text-xs text-white/48">Dosud uhrazeno účetně</dt>
+              <dd>{formatCzk(directPaidCzk + accountingVoucherPaidCzk)}</dd>
             </div>
             <div>
               <dt className="text-xs text-white/48">

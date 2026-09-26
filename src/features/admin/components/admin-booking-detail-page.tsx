@@ -249,6 +249,7 @@ function BookingActionPanel({
           }
           directPaidCzk={data.voucher.paymentSummary.directPaidCzk}
           voucherPaidCzk={data.voucher.paymentSummary.voucherPaidCzk}
+          accountingVoucherPaidCzk={data.voucher.paymentSummary.voucherRedemptionCzk}
           overpaidCzk={data.voucher.paymentSummary.overpaidCzk}
           secondaryActionSlot={
             data.reschedule.enabled ? (
@@ -683,7 +684,7 @@ function PaymentSummaryBlock({
         </div>
         <div className="rounded-[0.8rem] border border-white/8 bg-black/14 px-3 py-2">
           <p className="text-[0.68rem] uppercase tracking-[0.14em] text-white/52">
-            Uhrazeno voucherem
+            Pokryto voucherem
           </p>
           <p className="mt-1 text-sm font-semibold text-white/88">
             {formatCzk(paymentSummary.voucherPaidCzk)}

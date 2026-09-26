@@ -8,6 +8,7 @@ import {
 } from "@/generated/prisma/client";
 
 import { allocateVoucherCodes, normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
+import { STRICT_VOUCHER_RENDER_POLICY } from "@/features/vouchers/lib/voucher-render-policy";
 import {
   addVoucherValidityMonths,
   getVoucherPragueDateBoundary,
@@ -521,6 +522,7 @@ export async function activateVoucherStockItem(input: ActivateVoucherStockItemOp
             validFrom,
             validUntil,
             issuedAt: now,
+            renderPolicy: STRICT_VOUCHER_RENDER_POLICY,
             createdByUserId: input.actorUserId,
           }
         : {
@@ -538,6 +540,7 @@ export async function activateVoucherStockItem(input: ActivateVoucherStockItemOp
             validFrom,
             validUntil,
             issuedAt: now,
+            renderPolicy: STRICT_VOUCHER_RENDER_POLICY,
             createdByUserId: input.actorUserId,
           },
     });

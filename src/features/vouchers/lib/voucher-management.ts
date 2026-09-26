@@ -3,6 +3,7 @@ import { Prisma, VoucherStatus, VoucherType } from "@/generated/prisma/client";
 import { allocateVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import { redeemVoucherForBooking } from "@/features/vouchers/lib/voucher-redemption";
 import { validateVoucherForBookingInput } from "@/features/vouchers/lib/voucher-validation";
+import { STRICT_VOUCHER_RENDER_POLICY } from "@/features/vouchers/lib/voucher-render-policy";
 import {
   createVoucherSchema,
   redeemVoucherSchema,
@@ -94,6 +95,7 @@ export async function createVoucher(input: CreateVoucherInput, createdByUserId: 
               validFrom: parsed.validFrom ?? now,
               validUntil: parsed.validUntil ?? null,
               issuedAt: now,
+              renderPolicy: STRICT_VOUCHER_RENDER_POLICY,
               internalNote: nullableText(parsed.internalNote),
               createdByUserId,
             },
@@ -153,6 +155,7 @@ export async function createVoucher(input: CreateVoucherInput, createdByUserId: 
             validFrom: parsed.validFrom ?? now,
             validUntil: parsed.validUntil ?? null,
             issuedAt: now,
+            renderPolicy: STRICT_VOUCHER_RENDER_POLICY,
             internalNote: nullableText(parsed.internalNote),
             createdByUserId,
           },

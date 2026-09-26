@@ -9,8 +9,10 @@ export type BookingPaymentStatus =
 export type BookingPaymentSummary = {
   totalPriceCzk: number;
   voucherPaidCzk: number;
+  voucherRedemptionCzk: number;
   directPaidCzk: number;
   paidTotalCzk: number;
+  accountingPaidTotalCzk: number;
   remainingCzk: number;
   overpaidCzk: number;
   status: BookingPaymentStatus;
@@ -55,8 +57,10 @@ export function getBookingPaymentSummary({
     serviceId,
     servicePriceCzk,
   });
+  const voucherRedemptionCzk = voucherRedemptions.reduce((total, redemption) => total + Math.max(0, redemption.amountCzk ?? 0), 0);
   const directPaidCzk = sumCzk(payments);
   const paidTotalCzk = voucherPaidCzk + directPaidCzk;
+  const accountingPaidTotalCzk = voucherRedemptionCzk + directPaidCzk;
   const remainingCzk = Math.max(0, normalizedTotalPriceCzk - paidTotalCzk);
   const overpaidCzk = Math.max(0, paidTotalCzk - normalizedTotalPriceCzk);
   const status = getPaymentStatus({
@@ -67,8 +71,10 @@ export function getBookingPaymentSummary({
   return {
     totalPriceCzk: normalizedTotalPriceCzk,
     voucherPaidCzk,
+    voucherRedemptionCzk,
     directPaidCzk,
     paidTotalCzk,
+    accountingPaidTotalCzk,
     remainingCzk,
     overpaidCzk,
     status,
@@ -79,13 +85,18 @@ function sumVoucherCzk(
   redemptions: NonNullable<BookingPaymentSummaryInput["voucherRedemptions"]>,
   context: { totalPriceCzk: number; serviceId?: string | null; servicePriceCzk?: number | null },
 ) {
-  return redemptions.reduce((total, redemption) => {
-    if (redemption.voucher?.type !== "SERVICE") return total + Math.max(0, redemption.amountCzk ?? 0);
-    // SERVICE voucher settles the booked service at its booking price. Its
-    // stored redemption amount remains the issuance-time accounting snapshot.
-    if (!context.serviceId || redemption.serviceId !== context.serviceId || context.servicePriceCzk === null || context.servicePriceCzk === undefined) return total;
-    return total + Math.min(context.totalPriceCzk, Math.max(0, context.servicePriceCzk));
-  }, 0);
+  const valueVoucherPaidCzk = redemptions.reduce(
+    (total, redemption) => total + (redemption.voucher?.type === "SERVICE" ? 0 : Math.max(0, redemption.amountCzk ?? 0)),
+    0,
+  );
+  // SERVICE redemption settles the booked service once at its booking price.
+  // Its stored redemption amount remains the issuance-time accounting snapshot.
+  const hasMatchingServiceVoucher = Boolean(context.serviceId)
+    && redemptions.some((redemption) => redemption.voucher?.type === "SERVICE" && redemption.serviceId === context.serviceId);
+  const serviceVoucherPaidCzk = hasMatchingServiceVoucher && context.servicePriceCzk != null
+    ? Math.min(context.totalPriceCzk, Math.max(0, context.servicePriceCzk))
+    : 0;
+  return valueVoucherPaidCzk + serviceVoucherPaidCzk;
 }
 
 function sumCzk(items: Array<{ amountCzk?: number | null; status?: BookingPaymentRecordStatus }>) {

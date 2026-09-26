@@ -442,6 +442,7 @@ export async function updateAdminBookingPrice(input: UpdateAdminBookingPriceInpu
         id: true,
         clientId: true,
         status: true,
+        serviceId: true,
         servicePriceFromCzk: true,
         finalPriceCzk: true,
         priceAdjustmentReason: true,
@@ -449,7 +450,7 @@ export async function updateAdminBookingPrice(input: UpdateAdminBookingPriceInpu
         priceAdjustedByUserId: true,
         updatedAt: true,
         service: { select: { priceFromCzk: true } },
-        voucherRedemptions: { select: { amountCzk: true } },
+        voucherRedemptions: { select: { amountCzk: true, serviceId: true, voucher: { select: { type: true } } } },
         payments: { select: { amountCzk: true, status: true } },
       },
     });
@@ -469,6 +470,8 @@ export async function updateAdminBookingPrice(input: UpdateAdminBookingPriceInpu
 
     const nextPaymentSummary = getBookingPaymentSummary({
       totalPriceCzk: clearsAdjustment ? basePriceCzk : input.nextFinalPriceCzk,
+      serviceId: currentBooking.serviceId,
+      servicePriceCzk: currentBooking.servicePriceFromCzk ?? currentBooking.service.priceFromCzk,
       voucherRedemptions: currentBooking.voucherRedemptions,
       payments: currentBooking.payments,
     });

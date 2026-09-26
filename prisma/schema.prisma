@@ -671,6 +671,7 @@ model Voucher {
   validFrom               DateTime            @default(now())
   validUntil              DateTime?
   issuedAt                DateTime?
+  renderPolicy            String?             @default("STRICT_V1")
   cancelledAt             DateTime?
   cancelledByUserId       String?
   cancelReason            String?

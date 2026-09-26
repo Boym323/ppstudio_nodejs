@@ -21,6 +21,7 @@ export type VoucherTextFitResult = {
 };
 
 export type VoucherTextWidthMeasurer = (text: string, fontSizePt: number) => number;
+export type VoucherTextFitOptions = { minimumFontSizePt?: number; ellipsisOnOverflow?: boolean };
 
 export const VOUCHER_TEXT_HORIZONTAL_INSET_MM = {
   valueArea: 1,
@@ -48,10 +49,11 @@ export function fitVoucherTextToArea(
   area: VoucherTextFitArea,
   measureTextWidthMm: VoucherTextWidthMeasurer,
   horizontalInsetMm = 1,
+  options: VoucherTextFitOptions = {},
 ): VoucherTextFitResult {
   const maxWidthMm = Math.max(1, area.widthMm - horizontalInsetMm * 2);
   const maxLines = Math.max(1, Math.floor(area.maxLines));
-  const minimumFontSizePt = Math.max(0.1, area.typography.minFontSizePt);
+  const minimumFontSizePt = Math.max(0.1, options.minimumFontSizePt ?? area.typography.minFontSizePt);
   const preferredFontSizePt = Math.max(minimumFontSizePt, area.typography.preferredFontSizePt);
 
   let size = preferredFontSizePt;
@@ -82,7 +84,7 @@ export function fitVoucherTextToArea(
   const lines = wrappedLines.slice(0, visibleLineLimit);
   const lastLineIndex = lines.length - 1;
 
-  if (lastLineIndex >= 0) {
+  if (lastLineIndex >= 0 && options.ellipsisOnOverflow !== false) {
     lines[lastLineIndex] = addVoucherEllipsis(lines[lastLineIndex], fontSizePt, maxWidthMm, measureTextWidthMm);
   }
 

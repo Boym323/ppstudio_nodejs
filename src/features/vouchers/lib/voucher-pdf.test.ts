@@ -75,6 +75,30 @@ test("publish preflight odmítne VALUE oblast, která zvládne 1 500 Kč, ale ne
   );
 });
 
+test("historický úzký VALUE layout renderuje celou částku zmenšeným písmem", async () => {
+  const masterBytes = await readFile("src/features/vouchers/bootstrap-assets/classic-v1.pdf");
+  const { generateResolvedVoucherPrintPdf } = await import("./voucher-pdf-core");
+  const layout = voucherTemplateStoredLayoutSchema.parse({
+    ...defaultVoucherTemplateLayout,
+    valueArea: { ...defaultVoucherTemplateLayout.valueArea, widthMm: 27 },
+  });
+  const template = {
+    id: "old-narrow-value", key: "classic-v1-old", label: "Historická", status: "INACTIVE" as const,
+    allowedTypes: [VoucherType.VALUE], layout,
+    masterSha256: createHash("sha256").update(masterBytes).digest("hex"), masterBytes,
+  };
+  await assert.rejects(
+    () => generateResolvedVoucherPrintPdf(buildVoucherFixture({ originalValueCzk: 100_000, remainingValueCzk: 100_000 }), template),
+    /Dynamický text se nevejde do oblasti „Hodnota“/,
+  );
+  const rendered = await generateResolvedVoucherPrintPdf(
+    buildVoucherFixture({ originalValueCzk: 100_000, remainingValueCzk: 100_000 }),
+    template,
+    { renderMode: "HISTORICAL" },
+  );
+  assert.equal((await PDFDocument.load(rendered)).getPageCount(), 1);
+});
+
 test("historická šablona s malým QR zůstává renderovatelná", async () => {
   const masterBytes = await readFile("src/features/vouchers/bootstrap-assets/classic-v1.pdf");
   const { generateResolvedVoucherPrintPdf } = await import("./voucher-pdf-core");
@@ -428,6 +452,7 @@ function buildBaseVoucherFixture() {
     validFrom: new Date("2026-01-01T00:00:00.000Z"),
     validUntil: new Date("2027-09-16T00:00:00.000Z"),
     issuedAt: new Date("2026-01-01T00:00:00.000Z"),
+    renderPolicy: "STRICT_V1",
     cancelledAt: null,
     cancelledByUserId: null,
     cancelReason: null,

@@ -110,12 +110,14 @@ export type AdminBookingDetailData = {
     paymentSummary: {
       totalPriceCzk: number | null;
       voucherPaidCzk: number;
+      voucherRedemptionCzk: number;
       paidAmountCzk: number;
       remainingAmountCzk: number | null;
       paymentStatus: AdminBookingPaymentStatus;
       paymentStatusLabel: string;
       directPaidCzk: number;
       paidTotalCzk: number;
+      accountingPaidTotalCzk: number;
       remainingCzk: number;
       overpaidCzk: number;
       status: AdminBookingPaymentStatus;
@@ -275,12 +277,14 @@ function buildPaymentSummary({
   return {
     totalPriceCzk: summary.totalPriceCzk,
     voucherPaidCzk: summary.voucherPaidCzk,
+    voucherRedemptionCzk: summary.voucherRedemptionCzk,
     paidAmountCzk: summary.paidTotalCzk,
     remainingAmountCzk: summary.remainingCzk,
     paymentStatus: summary.status,
     paymentStatusLabel: getAdminBookingPaymentStatusLabel(summary.status),
     directPaidCzk: summary.directPaidCzk,
     paidTotalCzk: summary.paidTotalCzk,
+    accountingPaidTotalCzk: summary.accountingPaidTotalCzk,
     remainingCzk: summary.remainingCzk,
     overpaidCzk: summary.overpaidCzk,
     status: summary.status,

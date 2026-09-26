@@ -1,10 +1,11 @@
 import "server-only";
 
-import { AvailabilitySlotStatus, BookingPaymentStatus, BookingStatus } from "@/generated/prisma/browser";
+import { AvailabilitySlotStatus, BookingStatus } from "@/generated/prisma/browser";
 
 import { getAdminSectionPath } from "@/features/admin/lib/admin-paths";
 import { getKpiDateKey, getKpiDateRanges, getKpiPercentChange, getKpiPeriodStart, getKpiExpectedRevenueRange, getKpiSeriesPeriodStarts, usesMonthlyKpiBuckets } from "@/features/admin/lib/kpi-date-range";
 import { calculateExpectedRevenue } from "@/features/admin/lib/kpi-expected-revenue";
+import { getBookingPaymentSummary } from "@/features/booking/payments/lib/booking-payment-summary";
 import { aggregateAcquisition } from "@/features/admin/lib/kpi-acquisition";
 import { getKpiClientMetrics } from "@/features/admin/lib/kpi-client-metrics";
 import { calculateKpiOccupancy, mergeKpiTimeIntervals } from "@/features/admin/lib/kpi-occupancy";
@@ -28,7 +29,7 @@ async function getBookings(start: Date, end: Date) {
   return prisma.booking.findMany({
     where: { scheduledStartsAt: { gte: start, lt: end } },
     orderBy: { scheduledStartsAt: "asc" },
-    select: { id: true, clientId: true, status: true, isManual: true, manualOverride: true, scheduledStartsAt: true, scheduledEndsAt: true, blockedUntil: true, serviceNameSnapshot: true, serviceDurationMinutes: true, finalPriceCzk: true, servicePriceFromCzk: true, acquisitionSource: true, acquisitionUtmSource: true, acquisitionUtmMedium: true, acquisitionUtmCampaign: true, slot: { select: { publishedAt: true } }, payments: { select: { amountCzk: true, status: true } }, voucherRedemptions: { select: { amountCzk: true } } },
+    select: { id: true, clientId: true, serviceId: true, status: true, isManual: true, manualOverride: true, scheduledStartsAt: true, scheduledEndsAt: true, blockedUntil: true, serviceNameSnapshot: true, serviceDurationMinutes: true, finalPriceCzk: true, servicePriceFromCzk: true, acquisitionSource: true, acquisitionUtmSource: true, acquisitionUtmMedium: true, acquisitionUtmCampaign: true, slot: { select: { publishedAt: true } }, service: { select: { priceFromCzk: true } }, payments: { select: { amountCzk: true, status: true } }, voucherRedemptions: { select: { amountCzk: true, serviceId: true, voucher: { select: { type: true } } } } },
   });
 }
 
@@ -96,12 +97,12 @@ function summarize(
     servicePriceFromCzk: row.servicePriceFromCzk,
   })));
   const outstanding = visits.reduce((sum, row) => {
-    const directPaidCzk = row.payments.reduce(
-      (payments, payment) => payments + (payment.status === BookingPaymentStatus.VOIDED ? 0 : payment.amountCzk),
-      0,
-    );
-    const voucherPaidCzk = row.voucherRedemptions.reduce((redemptions, redemption) => redemptions + (redemption.amountCzk ?? 0), 0);
-    return sum + Math.max(0, price(row) - directPaidCzk - voucherPaidCzk);
+    const summary = getBookingPaymentSummary({
+      totalPriceCzk: price(row), serviceId: row.serviceId,
+      servicePriceCzk: row.servicePriceFromCzk ?? row.service?.priceFromCzk,
+      voucherRedemptions: row.voucherRedemptions, payments: row.payments,
+    });
+    return sum + summary.remainingCzk;
   }, 0);
   return { listed, visits, revenue, clientMetrics, disruptions, noShowValue: disruptions.noShowValue, outstanding };
 }

@@ -173,7 +173,7 @@ export async function completeBookingVisitAction(
       scheduledEndsAt: true,
       finalPriceCzk: true,
       servicePriceFromCzk: true,
-      voucherRedemptions: { select: { amountCzk: true } },
+      voucherRedemptions: { select: { amountCzk: true, serviceId: true, voucher: { select: { type: true } } } },
       payments: { select: { amountCzk: true, status: true } },
       service: { select: { priceFromCzk: true } },
     },
@@ -199,6 +199,8 @@ export async function completeBookingVisitAction(
 
   const paymentSummary = getBookingPaymentSummary({
     totalPriceCzk: booking.finalPriceCzk ?? booking.servicePriceFromCzk ?? booking.service.priceFromCzk ?? 0,
+    serviceId: booking.serviceId,
+    servicePriceCzk: booking.servicePriceFromCzk ?? booking.service.priceFromCzk,
     voucherRedemptions: booking.voucherRedemptions,
     payments: booking.payments,
   });

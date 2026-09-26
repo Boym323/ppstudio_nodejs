@@ -101,3 +101,18 @@ test("createVoucher odmítne template deaktivovanou mezi preflightem a transakc�
   );
   assert.equal(created, false);
 });
+
+test("VALUE i SERVICE issuance ukládají persisted STRICT_V1 policy bez ohledu na template status", async (t) => {
+  const { prisma, management } = await loadManagementTestContext(t);
+  const writes: Array<Record<string, unknown>> = [];
+  mockTransaction(t, prisma, async (operation) => operation({
+    ...successfulTransaction(),
+    voucherTemplate: { findUnique: async () => ({ ...mockTemplateForIssuance, status: "PUBLISHED", allowedTypes: ["VALUE", "SERVICE"] }) },
+    service: { findUnique: async () => ({ id: "service-test", name: "Služba", publicName: null, priceFromCzk: 1500, durationMinutes: 60, isActive: true }) },
+    voucher: { findUnique: async () => null, create: async ({ data }: { data: Record<string, unknown> }) => { writes.push(data); return { id: "voucher-test" }; } },
+  } as unknown as Prisma.TransactionClient));
+
+  await management.createVoucher(valueVoucherInput(), null);
+  await management.createVoucher({ type: VoucherType.SERVICE, templateKey: "classic-v1", serviceId: "service-test" }, null);
+  assert.deepEqual(writes.map((write) => write.renderPolicy), ["STRICT_V1", "STRICT_V1"]);
+});

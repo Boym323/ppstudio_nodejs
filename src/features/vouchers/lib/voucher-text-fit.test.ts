@@ -57,6 +57,22 @@ test("fitting respektuje výšku oblasti a označí overflow při příliš mal�
   assert.match(fit.lines[0] ?? "", /…$/);
 });
 
+test("historický VALUE fallback zachová celou částku bez ellipsis", () => {
+  const amount = "100 000 Kč";
+  const fit = fitVoucherTextToArea(amount, {
+    yMm: 10,
+    widthMm: 10,
+    heightMm: 8,
+    baselineMm: 13,
+    maxLines: 1,
+    typography: { preferredFontSizePt: 18, minFontSizePt: 10, lineHeightMm: 0 },
+  }, measure, 1, { minimumFontSizePt: 0.1, ellipsisOnOverflow: false });
+
+  assert.equal(fit.overflowed, false);
+  assert.equal(fit.lines.join(""), amount);
+  assert.ok(fit.fontSizePt < 10);
+});
+
 test("horizontální inset se promítá do stejného maxWidth pro preview i PDF", () => {
   const fit = fitVoucherTextToArea(
     "PP-2026-ABC123",

@@ -84,6 +84,8 @@ test("SERVICE voucher pokryje zdraženou stejnou službu, ale ne další položk
     voucherRedemptions: [{ amountCzk: 1_200, serviceId: "service-1", voucher: { type: "SERVICE" } }],
   });
   assert.equal(sameService.voucherPaidCzk, 1_500);
+  assert.equal(sameService.voucherRedemptionCzk, 1_200);
+  assert.equal(sameService.accountingPaidTotalCzk, 1_200);
   assert.equal(sameService.remainingCzk, 0);
 
   const withExtraItem = getBookingPaymentSummary({
@@ -102,4 +104,13 @@ test("SERVICE voucher pokryje zdraženou stejnou službu, ale ne další položk
   });
   assert.equal(differentService.voucherPaidCzk, 0);
   assert.equal(differentService.remainingCzk, 1_500);
+
+  const duplicateServiceRedemptions = getBookingPaymentSummary({
+    totalPriceCzk: 1_500,
+    serviceId: "service-1",
+    servicePriceCzk: 1_500,
+    voucherRedemptions: [1, 2].map(() => ({ amountCzk: 1_200, serviceId: "service-1", voucher: { type: "SERVICE" as const } })),
+  });
+  assert.equal(duplicateServiceRedemptions.voucherPaidCzk, 1_500);
+  assert.equal(duplicateServiceRedemptions.remainingCzk, 0);
 });

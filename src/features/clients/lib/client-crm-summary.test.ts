@@ -176,8 +176,8 @@ test("getClientCrmSummary clamps overpaid booking unpaid value to zero", () => {
 
 test("getClientCrmSummary započítá SERVICE po zdražení a zachová skutečné doplatky", () => {
   for (const scenario of [
-    { type: "SERVICE" as const, finalPriceCzk: 1_500, paidCzk: 1_500, unpaidCzk: 0 },
-    { type: "SERVICE" as const, finalPriceCzk: 1_800, paidCzk: 1_500, unpaidCzk: 300 },
+    { type: "SERVICE" as const, finalPriceCzk: 1_500, paidCzk: 1_200, unpaidCzk: 0 },
+    { type: "SERVICE" as const, finalPriceCzk: 1_800, paidCzk: 1_200, unpaidCzk: 300 },
     { type: "VALUE" as const, finalPriceCzk: 1_500, paidCzk: 1_200, unpaidCzk: 300 },
   ]) {
     const summary = getClientCrmSummary([

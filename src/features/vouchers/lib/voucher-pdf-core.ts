@@ -14,11 +14,12 @@ import { type ResolvedVoucherTemplate } from "@/features/vouchers/lib/voucher-te
 import { requireVoucherTemplateById, resolveVoucherTemplate } from "@/features/vouchers/lib/voucher-template-repository";
 import { VOUCHER_PRINT_GEOMETRY } from "@/features/vouchers/lib/voucher-template-layout";
 import { fitVoucherTextToArea, VOUCHER_TEXT_HORIZONTAL_INSET_MM } from "@/features/vouchers/lib/voucher-text-fit";
+import { getPersistedVoucherRenderMode } from "@/features/vouchers/lib/voucher-render-policy";
 
 type VoucherPdfData = NonNullable<Awaited<ReturnType<typeof getVoucherDetail>>>;
 type VoucherStockBatchPdfItem = Pick<VoucherPdfData, "code">;
 type VoucherTemplateRenderDefinition = Pick<ResolvedVoucherTemplate, "key" | "label" | "layout">;
-type VoucherRenderOptions = { failOnTextOverflow?: boolean };
+type VoucherRenderOptions = { failOnTextOverflow?: boolean; renderMode?: "STRICT" | "HISTORICAL" };
 
 export const MM_TO_PT = 72 / 25.4;
 const MASTER_PAGE_SIZE_TOLERANCE_MM = 0.35;
@@ -102,12 +103,12 @@ export function buildVoucherPdfOverlayData(
 
 export async function generatePersistedVoucherPrintPdf(voucher: VoucherPdfData) {
   if (!voucher.templateId) throw new VoucherTemplateError(voucher.templateKey, { message: "Voucher nemá přiřazenou šablonu." });
-  return generateResolvedVoucherPrintPdf(voucher, await resolveVoucherTemplate(await requireVoucherTemplateById(voucher.templateId)));
+  return generateResolvedVoucherPrintPdf(voucher, await resolveVoucherTemplate(await requireVoucherTemplateById(voucher.templateId)), { renderMode: getPersistedVoucherRenderMode(voucher) });
 }
 
 export async function generatePersistedVoucherDigitalPdf(voucher: VoucherPdfData) {
   if (!voucher.templateId) throw new VoucherTemplateError(voucher.templateKey, { message: "Voucher nemá přiřazenou šablonu." });
-  return generateResolvedVoucherDigitalPdf(voucher, await resolveVoucherTemplate(await requireVoucherTemplateById(voucher.templateId)));
+  return generateResolvedVoucherDigitalPdf(voucher, await resolveVoucherTemplate(await requireVoucherTemplateById(voucher.templateId)), { renderMode: getPersistedVoucherRenderMode(voucher) });
 }
 
 /** Pure runtime renderer: receives an already resolved DB template, never Prisma or filesystem paths. */
@@ -246,7 +247,10 @@ function drawVoucherOverlay(
   const valueTypography = valueArea.typography;
   const valueFont = valueTypography.fontWeight === "bold" ? boldFont : regularFont;
   const valueInsetMm = VOUCHER_TEXT_HORIZONTAL_INSET_MM[valueAreaKey];
-  const valueFit = fitTextForArea(value, valueFont, valueArea, valueInsetMm);
+  const valueFit = fitTextForArea(value, valueFont, valueArea, valueInsetMm, voucher.type === VoucherType.VALUE && options.renderMode === "HISTORICAL");
+  if (valueFit.overflowed && voucher.type === VoucherType.VALUE && options.renderMode === "HISTORICAL") {
+    throw new VoucherTemplateError(template.key, { code: "text_overflow", message: "Historickou částku se nepodařilo vykreslit bez zkrácení." });
+  }
   assertTextFitsTemplate(valueFit, template, valueAreaKey, options);
 
   const valueLineHeight = mm(valueFit.lineHeightMm);
@@ -296,12 +300,14 @@ function fitTextForArea(
   fontPair: FontPair,
   area: VoucherTemplateRenderDefinition["layout"]["valueArea"],
   horizontalInsetMm: number,
+  historicalValueFallback = false,
 ) {
   return fitVoucherTextToArea(
     text,
     area,
     (value, size) => measureText(value, fontPair, size) / MM_TO_PT,
     horizontalInsetMm,
+    historicalValueFallback ? { minimumFontSizePt: 0.1, ellipsisOnOverflow: false } : undefined,
   );
 }
 
