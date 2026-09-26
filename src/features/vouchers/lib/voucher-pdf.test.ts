@@ -113,6 +113,40 @@ test("PRINT renderer zvládne běžné, dlouhé, extrémní i diakritické SERVI
   }
 });
 
+test("strict render odmítne layout, který by dynamický text musel oříznout", async () => {
+  const { generateVoucherPrintPdf } = await import("./voucher-pdf-test-renderers");
+  const classic = requireVoucherTemplate("classic-v1");
+  const overflowTemplate = {
+    ...classic,
+    key: "overflow-v1",
+    layout: {
+      ...classic.layout,
+      serviceArea: {
+        ...classic.layout.serviceArea,
+        widthMm: 24,
+        heightMm: 2,
+        maxLines: 1,
+      },
+    },
+  };
+  const registry = createVoucherTemplateRegistry([classic, overflowTemplate]);
+
+  await assert.rejects(
+    () => generateVoucherPrintPdf(
+      buildVoucherFixture({
+        templateKey: overflowTemplate.key,
+        type: VoucherType.SERVICE,
+        originalValueCzk: null,
+        remainingValueCzk: null,
+        serviceNameSnapshot: "Velmi dlouhý název služby pro kontrolu preflightu",
+        servicePriceSnapshotCzk: 1500,
+      }),
+      { registry, failOnTextOverflow: true },
+    ),
+    (error: unknown) => error instanceof VoucherTemplateError && error.code === "text_overflow",
+  );
+});
+
 test("overlay ignoruje osobní a interní voucherová pole", async () => {
   const { buildVoucherPdfOverlayData } = await import("./voucher-pdf-test-renderers");
   const data = buildVoucherPdfOverlayData(buildVoucherFixture());
