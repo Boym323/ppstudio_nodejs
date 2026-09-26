@@ -36,14 +36,23 @@ export async function uploadVoucherTemplateMasterAction(formData: FormData) {
   revalidatePath("/admin/nastaveni");
 }
 
-export async function saveVoucherTemplateLayoutAction(templateId: string, layout: VoucherTemplateLayoutV1) {
+export async function saveVoucherTemplateLayoutAction(templateId: string, layout: VoucherTemplateLayoutV1, expectedUpdatedAt?: string) {
   const session = await requireRole([AdminRole.OWNER]);
   const parsed = voucherTemplateLayoutSchema.safeParse(layout);
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Layout šablony obsahuje neplatné hodnoty.");
+  const parsedRevision = expectedUpdatedAt ? z.iso.datetime().safeParse(expectedUpdatedAt) : null;
+  if (expectedUpdatedAt && !parsedRevision?.success) throw new Error("Revize draftu není platná.");
   const { requireVoucherTemplateById } = await import("@/features/vouchers/lib/voucher-template-repository");
   const template = await requireVoucherTemplateById(templateId);
-  await updateVoucherTemplateDraft(templateId, { layout, allowedTypes: template.allowedTypes, label: template.label, actorUserId: session.sub });
+  const updated = await updateVoucherTemplateDraft(templateId, {
+    layout,
+    allowedTypes: template.allowedTypes,
+    label: template.label,
+    actorUserId: session.sub,
+    expectedUpdatedAt: parsedRevision?.success ? new Date(parsedRevision.data) : undefined,
+  });
   revalidatePath(`/admin/vouchery/sablony/${templateId}`);
+  return { updatedAt: updated.updatedAt.toISOString() };
 }
 
 export async function publishVoucherTemplateAction(templateId: string) {
