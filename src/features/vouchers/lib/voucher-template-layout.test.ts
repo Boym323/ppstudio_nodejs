@@ -43,3 +43,21 @@ test("QR oblast není typografická oblast", () => {
   assert.equal(isVoucherTemplateTextAreaKey("qrArea"), false);
   assert.equal(isVoucherTemplateTextAreaKey("serviceArea"), true);
 });
+
+test("dynamický obsah nesmí zasahovat do 3mm spadávky", () => {
+  const invalidText = {
+    ...defaultVoucherTemplateLayout,
+    valueArea: { ...defaultVoucherTemplateLayout.valueArea, xMm: 2.5 },
+  };
+  const invalidQr = {
+    ...defaultVoucherTemplateLayout,
+    qrArea: { ...defaultVoucherTemplateLayout.qrArea, xMm: 2.5 },
+  };
+
+  const textResult = voucherTemplateLayoutSchema.safeParse(invalidText);
+  const qrResult = voucherTemplateLayoutSchema.safeParse(invalidQr);
+  assert.equal(textResult.success, false);
+  assert.equal(qrResult.success, false);
+  if (!textResult.success) assert.match(textResult.error.issues.map((issue) => issue.message).join(" "), /ořezové oblasti/);
+  if (!qrResult.success) assert.match(qrResult.error.issues.map((issue) => issue.message).join(" "), /ořezové oblasti/);
+});
