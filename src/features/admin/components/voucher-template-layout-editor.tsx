@@ -262,11 +262,16 @@ function PreviewCanvas({ area, preview, baselinePx, fontMetricsVersion, scale, h
     context.font = `${area.typography.fontWeight === "bold" ? 700 : 400} ${getVoucherTemplatePreviewFontSizePx(preview.fit.fontSizePt, scale)}px ${fontFamily}`;
     context.textBaseline = "alphabetic";
     context.textAlign = area.typography.alignment;
-    context.fillStyle = "#2e241f";
+    context.fillStyle = cmykToCssRgb(area.typography.color);
     const x = area.typography.alignment === "center" ? widthPx / 2 : horizontalInsetMm * scale;
     preview.fit.lines.forEach((line, index) => { const lineBaselinePx = getVoucherTemplatePreviewLineBaselinePx(baselinePx, preview.fit.lines.length, index, preview.fit.lineHeightMm, scale); context.fillText(line, x, lineBaselinePx); });
   }, [area, baselinePx, fontFamily, fontMetricsVersion, horizontalInsetMm, preview, scale]);
   return <canvas ref={canvasRef} aria-hidden="true" className="pointer-events-none absolute inset-0 z-10" data-preview-text={preview.text} />;
+}
+
+function cmykToCssRgb(color: { c: number; m: number; y: number; k: number }) {
+  const channel = (component: number) => Math.round(255 * (1 - component) * (1 - color.k));
+  return `rgb(${channel(color.c)} ${channel(color.m)} ${channel(color.y)})`;
 }
 
 function PreviewQrPlaceholder() { return <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-2"><div className="grid aspect-square w-3/4 grid-cols-5 gap-px bg-white/70 p-0.5 opacity-75">{Array.from({ length: 25 }, (_, index) => <span key={index} className={(index * 7 + index % 3) % 5 < 2 ? "bg-black" : "bg-transparent"} />)}</div></div>; }
