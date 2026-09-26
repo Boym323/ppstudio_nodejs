@@ -57,7 +57,7 @@
     "admin:recover-owner": "tsx scripts/recover-admin-owner.ts",
     "db:clear-booking-data": "node scripts/clear-booking-data.mjs",
     "media:audit": "tsx scripts/media-audit.ts",
-    "ci:prepare-voucher-fixtures": "tsx scripts/prepare-ci-voucher-fixtures.ts",
+    "ci:prepare-voucher-fixtures": "node --conditions=react-server --import tsx scripts/prepare-ci-voucher-fixtures.ts",
     "voucher:templates:bootstrap": "node --conditions=react-server --env-file=.env --import tsx scripts/bootstrap-voucher-templates.ts"
   },
   "dependencies": {

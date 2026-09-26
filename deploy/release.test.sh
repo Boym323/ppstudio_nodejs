@@ -190,6 +190,10 @@ bootstrap_command="$(node -p 'require("./package.json").scripts["voucher:templat
 [[ "${bootstrap_command}" == *"node --conditions=react-server "* ]]
 [[ "${bootstrap_command}" == *"--import tsx scripts/bootstrap-voucher-templates.ts"* ]]
 [[ "${bootstrap_command}" != *"src/test/register-server-only.mjs"* ]]
+ci_fixtures_command="$(node -p 'require("./package.json").scripts["ci:prepare-voucher-fixtures"]')"
+[[ "${ci_fixtures_command}" == *"node --conditions=react-server "* ]]
+[[ "${ci_fixtures_command}" == *"--import tsx scripts/prepare-ci-voucher-fixtures.ts"* ]]
+[[ "${ci_fixtures_command}" != *"src/test/register-server-only.mjs"* ]]
 grep -Fq 'npm run voucher:templates:bootstrap' "${SCRIPT_DIR}/release.sh"
 typecheck_line="$(grep -n 'npm run typecheck' "${SCRIPT_DIR}/release.sh" | tail -1 | cut -d: -f1)"
 test_line="$(grep -n 'npm run test:release' "${SCRIPT_DIR}/release.sh" | tail -1 | cut -d: -f1)"
