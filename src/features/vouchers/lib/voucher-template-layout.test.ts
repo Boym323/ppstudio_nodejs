@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { browserTopToPdfBottom, isVoucherTemplateTextAreaKey, pdfBottomToBrowserTop, updateTypography, voucherTemplateLayoutSchema } from "./voucher-template-layout";
+import { browserTopToPdfBottom, isVoucherTemplateTextAreaKey, pdfBottomToBrowserTop, updateTypography, voucherTemplateLayoutSchema, voucherTemplateStoredLayoutSchema } from "./voucher-template-layout";
 import { defaultVoucherTemplateLayout } from "./voucher-template-defaults";
 
 test("transformace browser/PDF souřadnic je obousměrná", () => {
@@ -60,4 +60,7 @@ test("dynamický obsah nesmí zasahovat do 3mm spadávky", () => {
   assert.equal(qrResult.success, false);
   if (!textResult.success) assert.match(textResult.error.issues.map((issue) => issue.message).join(" "), /ořezové oblasti/);
   if (!qrResult.success) assert.match(qrResult.error.issues.map((issue) => issue.message).join(" "), /ořezové oblasti/);
+
+  assert.equal(voucherTemplateStoredLayoutSchema.safeParse(invalidText).success, true);
+  assert.equal(voucherTemplateStoredLayoutSchema.safeParse(invalidQr).success, true);
 });
