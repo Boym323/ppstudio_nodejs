@@ -48,8 +48,9 @@ const cornerResizeEnable = { top: false, right: false, bottom: false, left: fals
 function isAspectRatioLocked(key: AreaKey) { return key === "qrArea"; }
 function minimumSizeMm(key: AreaKey) { return isAspectRatioLocked(key) ? MIN_QR_SIZE_MM : MIN_TEXT_AREA_MM; }
 
-export function VoucherTemplateLayoutEditor({ templateId, initialLayout, previewSrc }: { templateId: string; initialLayout: VoucherTemplateLayoutV1; previewSrc?: string }) {
+export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initialUpdatedAt, previewSrc }: { templateId: string; initialLayout: VoucherTemplateLayoutV1; initialUpdatedAt: string; previewSrc?: string }) {
   const [layout, setLayout] = useState(initialLayout);
+  const [revision, setRevision] = useState(initialUpdatedAt);
   const [selected, setSelected] = useState<AreaKey>("valueArea");
   const [previewMode, setPreviewMode] = useState<VoucherTemplatePreviewMode>("VALUE");
   const [serviceScenario, setServiceScenario] = useState<ServicePreviewScenario>("normal");
@@ -157,10 +158,11 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, preview
     }
     startTransition(async () => {
       try {
-        await saveVoucherTemplateLayoutAction(templateId, layout);
+        const result = await saveVoucherTemplateLayoutAction(templateId, layout, revision);
+        setRevision(result.updatedAt);
         setSaveError(null);
       } catch {
-        setSaveError("Draft se nepodařilo uložit. Zkontrolujte hodnoty a zkuste to znovu.");
+        setSaveError("Draft se nepodařilo uložit. Mohl být změněn v jiném okně; obnovte stránku a zkuste to znovu.");
       }
     });
   };
