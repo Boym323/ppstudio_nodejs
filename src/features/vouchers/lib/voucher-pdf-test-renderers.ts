@@ -19,12 +19,12 @@ function resolveTemplate(key: string | null | undefined, registry = voucherTempl
   return reader().then((masterBytes): ResolvedVoucherTemplate => ({ id: definition.key, key: definition.key, status: "PUBLISHED", allowedTypes: [...definition.allowedTypes], label: definition.label, layout: definition.layout as ResolvedVoucherTemplate["layout"], masterSha256: "test", masterBytes }));
 }
 
-export async function generateVoucherPrintPdf(voucher: TestVoucher, options: { registry?: typeof voucherTemplateRegistry } = {}) {
-  return generateResolvedVoucherPrintPdf(voucher, await resolveTemplate(voucher.templateKey, options.registry));
+export async function generateVoucherPrintPdf(voucher: TestVoucher, options: { registry?: typeof voucherTemplateRegistry; failOnTextOverflow?: boolean } = {}) {
+  return generateResolvedVoucherPrintPdf(voucher, await resolveTemplate(voucher.templateKey, options.registry), { failOnTextOverflow: options.failOnTextOverflow });
 }
 
-export async function generateVoucherDigitalPdf(voucher: TestVoucher, options: { registry?: typeof voucherTemplateRegistry } = {}) {
-  return generateResolvedVoucherDigitalPdf(voucher, await resolveTemplate(voucher.templateKey, options.registry));
+export async function generateVoucherDigitalPdf(voucher: TestVoucher, options: { registry?: typeof voucherTemplateRegistry; failOnTextOverflow?: boolean } = {}) {
+  return generateResolvedVoucherDigitalPdf(voucher, await resolveTemplate(voucher.templateKey, options.registry), { failOnTextOverflow: options.failOnTextOverflow });
 }
 
 export async function generateVoucherStockPrintPage(stockItem: { templateKey: string; code: string }) {

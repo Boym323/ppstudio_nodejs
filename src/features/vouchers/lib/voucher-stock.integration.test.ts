@@ -4,8 +4,9 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 
-import { AdminRole, VoucherStockItemStatus, VoucherType } from "@/generated/prisma/browser";
+import { AdminRole, VoucherStockItemStatus, VoucherTemplateStatus, VoucherType } from "@/generated/prisma/browser";
 import { Prisma } from "@/generated/prisma/client";
+import { defaultVoucherTemplateLayout } from "./voucher-template-defaults";
 
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
 process.env.ADMIN_SESSION_SECRET ??= "test-secret-value-with-at-least-32-chars";
@@ -206,6 +207,53 @@ dbTest("Voucher Stock: batch, receive, VALUE activation, idempotence, VOID a clo
     await prisma.voucherStockItem.deleteMany({ where: { batchId: batch.id } });
     await prisma.voucher.deleteMany({ where: { id: { in: [normalVoucherId].filter((id): id is string => id !== null) } } });
     await prisma.voucherPrintBatch.delete({ where: { id: batch.id } });
+    await prisma.adminUser.delete({ where: { id: owner.id } });
+  }
+});
+
+dbTest("Voucher Stock: převzatý kus lze aktivovat i po deaktivaci jeho immutable šablony", async () => {
+  const [{ prisma }, stock] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./voucher-stock"),
+  ]);
+  const suffix = randomUUID().slice(0, 8);
+  const owner = await prisma.adminUser.create({ data: { email: `stock-inactive-${suffix}@example.com`, name: "Stock inactive owner", role: AdminRole.OWNER } });
+  const familyKey = `stock-inactive-${suffix}`;
+  const template = await prisma.voucherTemplate.create({
+    data: {
+      key: `${familyKey}-v1`,
+      familyKey,
+      version: 1,
+      label: "Stock inactive template",
+      status: VoucherTemplateStatus.PUBLISHED,
+      allowedTypes: [VoucherType.VALUE],
+      layout: defaultVoucherTemplateLayout,
+    },
+  });
+  const batch = await stock.createVoucherPrintBatch({ templateKey: template.key, quantity: 1, createdByUserId: owner.id });
+  let voucherId: string | null = null;
+
+  try {
+    const item = await prisma.voucherStockItem.findFirstOrThrow({ where: { batchId: batch.id } });
+    await stock.receiveVoucherPrintBatch({ batchId: batch.id, actorUserId: owner.id });
+    await prisma.voucherTemplate.update({ where: { id: template.id }, data: { status: VoucherTemplateStatus.INACTIVE } });
+
+    const activated = await stock.activateVoucherStockItem({
+      code: item.code,
+      type: VoucherType.VALUE,
+      originalValueCzk: 1200,
+      actorUserId: owner.id,
+    });
+    assert.equal(activated.kind, "activated");
+    voucherId = activated.voucherId;
+    const voucher = await prisma.voucher.findUniqueOrThrow({ where: { id: activated.voucherId } });
+    assert.equal(voucher.templateId, template.id);
+  } finally {
+    await prisma.voucherStockAuditLog.deleteMany({ where: { batchId: batch.id } });
+    await prisma.voucherStockItem.deleteMany({ where: { batchId: batch.id } });
+    if (voucherId) await prisma.voucher.delete({ where: { id: voucherId } });
+    await prisma.voucherPrintBatch.delete({ where: { id: batch.id } });
+    await prisma.voucherTemplate.delete({ where: { id: template.id } });
     await prisma.adminUser.delete({ where: { id: owner.id } });
   }
 });

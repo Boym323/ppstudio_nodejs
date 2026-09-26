@@ -21,6 +21,7 @@ test("template mutation rollbackne při chybě auditu a DELETE_DRAFT nese snapsh
     masterStoragePath: "voucher-templates/template-1/master.pdf",
     masterSha256: "hash",
     previewStoragePath: null,
+    updatedAt: new Date("2026-09-26T08:00:00.000Z"),
   };
   let auditFailure = true;
   const audits: Array<Record<string, unknown>> = [];
@@ -30,6 +31,17 @@ test("template mutation rollbackne při chybě auditu a DELETE_DRAFT nese snapsh
       findUnique: async () => template,
       update: async ({ data }: { data: Record<string, unknown> }) => {
         template = { ...(template ?? {}), ...data };
+        return template;
+      },
+      updateMany: async ({ where, data }: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+        const expected = where.updatedAt;
+        const current = template?.updatedAt;
+        if (expected instanceof Date && current instanceof Date && expected.getTime() !== current.getTime()) return { count: 0 };
+        template = { ...(template ?? {}), ...data, updatedAt: new Date("2026-09-26T08:02:00.000Z") };
+        return { count: 1 };
+      },
+      findUniqueOrThrow: async () => {
+        if (!template) throw new Error("missing template");
         return template;
       },
       delete: async () => { template = null; },
@@ -67,11 +79,36 @@ test("template mutation rollbackne při chybě auditu a DELETE_DRAFT nese snapsh
   assert.equal(audits.length, 0);
 
   auditFailure = false;
+  template = { ...(template ?? {}), updatedAt: new Date("2026-09-26T08:01:00.000Z") };
+  await assert.rejects(
+    () => domain.updateVoucherTemplateDraft("template-1", {
+      layout: defaultVoucherTemplateLayout,
+      allowedTypes: ["VALUE"],
+      label: "Stará změna",
+      actorUserId: "owner-1",
+      expectedUpdatedAt: new Date("2026-09-26T08:00:00.000Z"),
+    }),
+    (error: unknown) => error instanceof domain.VoucherTemplateDomainError && error.code === "INVALID_STATE",
+  );
+  assert.equal(template?.label, "Audit test");
+  assert.equal(audits.length, 0);
+
+  await domain.updateVoucherTemplateDraft("template-1", {
+    layout: defaultVoucherTemplateLayout,
+    allowedTypes: ["VALUE"],
+    label: "Nová změna",
+    actorUserId: "owner-1",
+    expectedUpdatedAt: new Date("2026-09-26T08:01:00.000Z"),
+  });
+  assert.equal(template?.label, "Nová změna");
+  assert.equal(audits.length, 1);
+  assert.equal(audits[0]?.operation, "UPDATE_DRAFT");
+
   await domain.deleteVoucherTemplateDraft("template-1", "owner-1");
   assert.equal(template, null);
-  assert.equal(audits.length, 1);
+  assert.equal(audits.length, 2);
   assert.deepEqual(
-    { templateId: audits[0]?.templateId, templateKey: audits[0]?.templateKey, familyKey: audits[0]?.familyKey, version: audits[0]?.version, operation: audits[0]?.operation },
+    { templateId: audits[1]?.templateId, templateKey: audits[1]?.templateKey, familyKey: audits[1]?.familyKey, version: audits[1]?.version, operation: audits[1]?.operation },
     { templateId: "template-1", templateKey: "audit-v1", familyKey: "audit", version: 1, operation: "DELETE_DRAFT" },
   );
 });

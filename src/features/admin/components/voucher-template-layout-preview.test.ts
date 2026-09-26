@@ -71,6 +71,20 @@ test("fitting nikdy nevrátí více než maxLines ani velikost pod minimum", () 
   assert.ok(fit.fontSizePt >= area.typography.minFontSizePt);
 });
 
+test("preview respektuje nulové automatické řádkování a výšku oblasti", () => {
+  const area = {
+    ...defaultVoucherTemplateLayout.serviceArea,
+    widthMm: 34,
+    heightMm: 2,
+    maxLines: 3,
+    typography: { ...defaultVoucherTemplateLayout.serviceArea.typography, lineHeightMm: 0 },
+  };
+  const fit = fitVoucherTemplatePreviewText("Velmi dlouhý název služby pro kontrolu výšky", area);
+
+  assert.equal(fit.overflowed, true);
+  assert.ok(fit.lineHeightMm > 0);
+});
+
 test("preview fitting reaguje na řez písma a baseline pozici", () => {
   const regular = fitVoucherTemplatePreviewText("WWWWWWWW", {
     ...defaultVoucherTemplateLayout.codeArea,
@@ -150,9 +164,11 @@ test("preview režim, scénář, fixture text i Canvas stav jsou lokální a sav
 
   assert.match(source, /const \[previewMode, setPreviewMode\] = useState/);
   assert.match(source, /const \[serviceScenario, setServiceScenario\] = useState/);
-  assert.match(source, /saveVoucherTemplateLayoutAction\(templateId, layout\)/);
+  assert.match(source, /saveVoucherTemplateLayoutAction\(templateId, layout, revision\)/);
   assert.doesNotMatch(source, /saveVoucherTemplateLayoutAction\(templateId, .*?(previewMode|serviceScenario|preview)/);
   assert.match(source, /<PreviewCanvas area=/);
+  assert.match(source, /VOUCHER_TEXT_HORIZONTAL_INSET_MM\[key\]/);
+  assert.match(source, /horizontalInsetMm=\{horizontalInsetMm\}/);
   assert.match(source, /baselinePx=\{baselinePx\}/);
   assert.match(source, /getVoucherTemplatePreviewFontSizePx\(preview\.fit\.fontSizePt, scale\)/);
   assert.match(source, /className="pointer-events-none absolute inset-0 z-10"/);
@@ -162,6 +178,7 @@ test("preview režim, scénář, fixture text i Canvas stav jsou lokální a sav
   assert.match(source, /relative .*overflow-visible border/);
   assert.match(source, /context\.textAlign = area\.typography\.alignment/);
   assert.match(source, /context\.font = .*getVoucherTemplatePreviewFontSizePx\(preview\.fit\.fontSizePt, scale\)/);
+  assert.match(source, /context\.fillStyle = cmykToCssRgb\(area\.typography\.color\)/);
   assert.match(source, /const canvasScale = canvasSize\.width \/ 216/);
   assert.match(source, /new ResizeObserver\(measure\)/);
   assert.match(source, /enableResizing=\{isSelected \? cornerResizeEnable : false\}/);
