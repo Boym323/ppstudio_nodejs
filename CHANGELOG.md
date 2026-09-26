@@ -13,7 +13,7 @@ Formát je inspirovaný Keep a Changelog.
 - Voucher Template Editor nyní automaticky využívá dostupný prostor canvasu, zobrazuje resize handles jen u aktivní oblasti, formátuje číselné hodnoty bez floating-point artefaktů a nabízí kompaktnější toggle ovládání vodítek a spadávky.
 - Resize voucherových oblastí nyní používá pouze čtyři rohové handles; QR oblast drží čtvercový poměr stran včetně ručních rozměrů a textové oblasti lze měnit nezávisle v obou osách.
 - Toggle `Vodítka` nyní skutečně řídí render středových os a `Spadávka` řídí viditelný 3mm bleed overlay; oba pracovní overlaye zůstávají mimo uložený layout a PDF export.
-- Voucher editor a PDF renderer nyní sdílejí pravidla fittingu textu včetně výšky oblasti, insetů a automatického řádkování; publish preflight odmítne overflow a dynamický obsah musí zůstat uvnitř TrimBoxu.
+- Voucher editor a PDF renderer nyní sdílejí pravidla fittingu textu včetně výšky oblasti, insetů, baseline a automatického řádkování; publish preflight odmítne overflow a nové uložení či publikace drží dynamický obsah uvnitř TrimBoxu, zatímco historické layouty zůstávají renderovatelné pro již vydané kusy.
 - Uložení draftu šablony používá optimistic concurrency přes `updatedAt`, neaktivní šablony se správně označují v UI a již vytištěné převzaté kusy lze aktivovat i po deaktivaci jejich immutable designu.
 
 ## [3.30.0] - 2026-09-23
