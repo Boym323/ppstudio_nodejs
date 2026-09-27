@@ -203,7 +203,14 @@ export async function getAdminVoucherActivationPageData(area: AdminArea, codeInp
 export async function getAdminVoucherStockCreatePageData() {
   const templates = await listVoucherTemplatesForIssuance();
   return {
-    templates: templates.filter((template) => template.allowedTypes.length > 0),
+    templates: templates
+      .filter((template) => template.allowedTypes.length > 0)
+      .map((template) => ({
+        ...template,
+        previewUrl: template.masterSha256
+          ? `/api/admin/voucher-templates/${template.id}/preview?v=${template.updatedAt.getTime()}`
+          : `/api/admin/voucher-templates/${template.id}/preview`,
+      })),
     listHref: getAdminVoucherStockHref("owner"),
   };
 }

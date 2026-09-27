@@ -22,6 +22,7 @@ import {
 } from "@/features/admin/actions/voucher-stock-action-state";
 import { AdminPageShell, AdminPanel } from "@/features/admin/components/admin-page-shell";
 import { AdminStatePill } from "@/features/admin/components/admin-state-pill";
+import { AdminVoucherTemplatePreview } from "@/features/admin/components/admin-voucher-template-preview";
 import {
   getAdminVoucherActivationHref,
   getAdminVoucherStockBatchHref,
@@ -148,11 +149,12 @@ export function AdminVoucherStockCreatePage({ data }: { data: AdminVoucherStockC
           {state.formError ? <ErrorBox>{state.formError}</ErrorBox> : null}
           <label className="block">
             <span className="text-xs uppercase tracking-[0.2em] text-white/50">Vzhled</span>
-            <div className="mt-2 overflow-hidden rounded-[1rem] border border-[var(--color-accent)]/35 bg-black/20">
+            <div className="mt-2 grid gap-3 sm:grid-cols-2">
               {data.templates.map((template) => (
-                <label key={template.key} className="flex cursor-pointer items-center gap-3 p-3.5">
-                  <input type="radio" name="templateKey" value={template.key} defaultChecked={template.key === data.templates[0]?.key} />
-                  <span><strong className="block text-sm text-white">{template.label}</strong><span className="text-xs text-white/50">{template.key}</span></span>
+                <label key={template.key} className="cursor-pointer overflow-hidden rounded-[1rem] border border-white/10 bg-black/20 p-2 transition has-[:checked]:border-[var(--color-accent)]/60">
+                  <input type="radio" name="templateKey" value={template.key} defaultChecked={template.key === data.templates[0]?.key} className="sr-only" />
+                  <AdminVoucherTemplatePreview src={template.previewUrl} alt={`Náhled šablony ${template.label}`} className="h-auto w-full rounded-lg" />
+                  <span className="mt-2 block px-1"><strong className="block text-sm text-white">{template.label}</strong><span className="text-xs text-white/50">{template.key}</span></span>
                 </label>
               ))}
             </div>
