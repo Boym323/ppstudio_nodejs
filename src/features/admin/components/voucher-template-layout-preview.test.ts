@@ -199,6 +199,10 @@ test("preview režim, scénář, fixture text i Canvas stav jsou lokální a sav
   assert.match(source, /relative z-10 .*bg-\[#1f1f1f\]/);
   assert.doesNotMatch(source, /repeating-linear-gradient/);
   assert.match(source, /PreviewQrPlaceholder showBackground=\{showQrBackground\}/);
+  assert.match(source, /useState<AreaKey \| null>\("valueArea"\)/);
+  assert.match(source, /onClick=\{\(\) => setSelected\(null\)\}/);
+  assert.match(source, /event\.stopPropagation\(\); selectArea\(key\)/);
+  assert.match(source, /Nic není vybráno/);
   assert.match(source, /const canvasScale = canvasSize\.width \/ 216/);
   assert.match(source, /new ResizeObserver\(measure\)/);
   assert.match(source, /enableResizing=\{isSelected \? cornerResizeEnable : false\}/);

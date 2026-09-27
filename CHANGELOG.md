@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Kliknutím na prázdné místo v planneru lze nyní zrušit výběr prvku, takže žádná oblast nezůstává aktivní bez potřeby vybírat jiný prvek.
 - Opraveno vrstvení QR náhledu v planneru, kde bílý podklad překrýval QR moduly a zobrazoval pouze prázdný rámeček.
 - QR oblast v editoru nyní vykresluje skutečný černobílý náhled s bílým podkladem a při výběru používá pouze výrazný přerušovaný obrys, takže je jasné, co se na voucheru překrývá.
 - Textové oblasti voucheru nyní při přesunu nebo změně velikosti automaticky posouvají baseline spolu s oblastí, takže preview hodnoty, platnosti a služby nezmizí mimo jejich nové umístění.

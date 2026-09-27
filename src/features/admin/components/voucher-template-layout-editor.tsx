@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type MouseEvent } from "react";
 import Image from "next/image";
 import { Rnd } from "react-rnd";
 
@@ -53,7 +53,7 @@ function minimumSizeMm(key: AreaKey) { return isAspectRatioLocked(key) ? VOUCHER
 export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initialUpdatedAt, previewSrc }: { templateId: string; initialLayout: VoucherTemplateLayoutV1; initialUpdatedAt: string; previewSrc?: string }) {
   const [layout, setLayout] = useState(initialLayout);
   const [revision, setRevision] = useState(initialUpdatedAt);
-  const [selected, setSelected] = useState<AreaKey>("valueArea");
+  const [selected, setSelected] = useState<AreaKey | null>("valueArea");
   const [previewMode, setPreviewMode] = useState<VoucherTemplatePreviewMode>("VALUE");
   const [serviceScenario, setServiceScenario] = useState<ServicePreviewScenario>("normal");
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -74,8 +74,8 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
     void fontMetricsVersion;
     return createVoucherTemplatePreviewTextMeasurer(canvasScale);
   }, [canvasScale, fontMetricsVersion]);
-  const area = layout[selected];
-  const textArea = isVoucherTemplateTextAreaKey(selected) ? layout[selected] : null;
+  const area = selected === null ? layout.valueArea : layout[selected];
+  const textArea = selected !== null && isVoucherTemplateTextAreaKey(selected) ? layout[selected] : null;
   const overlayState = getVoucherEditorOverlayState({ showGuides, showBleed, isInteracting });
 
   useEffect(() => {
@@ -132,7 +132,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
     update(key, { [field]: value });
   };
   const updateSelectedTypography = (patch: VoucherTemplateTypographyPatch) => {
-    if (!isVoucherTemplateTextAreaKey(selected)) return;
+    if (selected === null || !isVoucherTemplateTextAreaKey(selected)) return;
     setLayout((current) => updateTypography(current, selected, patch));
   };
 
@@ -236,7 +236,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
           <div ref={canvasStageRef} className="flex min-h-[360px] items-center justify-center rounded-2xl border border-white/8 bg-[#0b0a0c] p-4 shadow-inner sm:min-h-[480px] sm:p-8">
             <div className="relative shrink-0 overflow-visible border border-white/20 bg-neutral-900 shadow-[0_18px_50px_rgba(0,0,0,0.28)]" style={{ width: `${canvasSize.width}px`, height: `${canvasSize.height}px` }}>
               {previewSrc ? <Image src={previewSrc} alt="Náhled master PDF voucheru" fill sizes="(min-width: 1280px) 780px, 100vw" unoptimized draggable={false} className="pointer-events-none select-none object-contain" /> : null}
-              <div className="absolute inset-0 z-10">
+              <div className="absolute inset-0 z-10" onClick={() => setSelected(null)}>
                 {overlayState.bleedVisible ? <div data-overlay="bleed" className="pointer-events-none absolute z-10 border border-dashed border-[var(--color-accent-soft)]/65" style={{ left: 3 * canvasScale, bottom: 3 * canvasScale, width: 210 * canvasScale, height: 99 * canvasScale }} /> : null}
                 {overlayState.guidesVisible ? <><div data-overlay="guides" className={`pointer-events-none absolute left-1/2 top-0 z-10 h-full border-l border-dashed ${overlayState.guidesEmphasized ? "border-[var(--color-accent-soft)]/75" : "border-white/20"}`} /><div className={`pointer-events-none absolute left-0 top-1/2 z-10 w-full border-t border-dashed ${overlayState.guidesEmphasized ? "border-[var(--color-accent-soft)]/75" : "border-white/20"}`} /></> : null}
                 {areas.map((key) => {
@@ -259,7 +259,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
                     enableResizing={isSelected ? cornerResizeEnable : false}
                     dragGrid={[canvasScale / 2, canvasScale / 2]}
                     resizeGrid={[canvasScale / 2, canvasScale / 2]}
-                    onClick={() => selectArea(key)}
+                    onClick={(event: MouseEvent) => { event.stopPropagation(); selectArea(key); }}
                     onDragStart={() => { selectArea(key); setIsInteracting(true); }}
                     onResizeStart={(_, direction) => { resizeStartRef.current = { key, area: item, direction }; selectArea(key); setIsInteracting(true); }}
                     onResize={(_, direction, ref, __, pos) => applyResize(key, direction, ref, pos)}
@@ -288,6 +288,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
         </div>
 
         <aside className="min-w-0 bg-white/[0.02] p-4 sm:p-6">
+          {selected === null ? <div className="flex min-h-48 flex-col items-center justify-center text-center"><p className="text-sm font-semibold text-white/80">Nic není vybráno</p><p className="mt-2 max-w-xs text-xs leading-5 text-white/45">Kliknutím na prázdné místo jste zrušili výběr. Pro úpravu klikněte na oblast voucheru.</p></div> : <>
           <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-4"><div><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/50">Upravujete</p><h3 className="mt-1 text-lg font-semibold text-white">{labels[selected]}</h3></div><span className="rounded-lg border border-white/10 bg-black/15 px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-white/50">{selected === "qrArea" ? "Grafika" : "Textová oblast"}</span></div>
           {previewMode === "SERVICE" ? <section className="border-b border-white/10 py-4"><div className="flex items-center justify-between gap-3"><h4 className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">Náhled služby</h4><span className="text-[11px] text-white/40">jen pro preview</span></div><div className="mt-3 inline-flex rounded-lg border border-white/10 bg-black/20 p-1">{(["normal", "long"] as const).map((scenario) => <button key={scenario} type="button" onClick={() => setServiceScenario(scenario)} className={`${compactButtonClassName} border-transparent ${serviceScenario === scenario ? "bg-white/10 text-white" : "text-white/55"}`}>{scenario === "normal" ? "Běžný název" : "Dlouhý název"}</button>)}</div></section> : null}
           <section className="border-b border-white/10 py-3"><SectionTitle title="Pozice a rozměry" /><div className="grid grid-cols-2 gap-3">{(["xMm", "yMm", "widthMm", "heightMm"] as const).map((field) => <NumberField key={field} label={`${fieldLabels[field]} (mm)`} value={area[field]} min={field === "xMm" || field === "yMm" ? 0 : minimumSizeMm(selected)} onChange={(value) => updateAreaField(selected, field, value)} />)}</div></section>
@@ -299,6 +300,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
             <button type="button" disabled={testPdfPending || pending} onClick={downloadTestPdf} className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/15 px-4 py-2.5 text-sm font-semibold text-white/80 transition hover:border-white/30 hover:text-white disabled:cursor-wait disabled:opacity-50">{testPdfPending ? "Připravuji PDF…" : "Stáhnout testovací PDF"}</button>
             <button type="button" disabled={pending || testPdfPending} onClick={save} className="inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105 disabled:cursor-wait disabled:opacity-50">{pending ? "Ukládám změny…" : "Uložit změny"}</button>
           </div>
+          </>}
         </aside>
       </div>
     </section>
