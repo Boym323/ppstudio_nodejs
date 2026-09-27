@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Placeholderový náhled publikované šablony nyní zobrazuje pouze skutečně generovaný text a QR bez pomocných rámečků a podkladů.
 - Kliknutím na prázdné místo v planneru lze nyní zrušit výběr prvku, takže žádná oblast nezůstává aktivní bez potřeby vybírat jiný prvek.
 - Opraveno vrstvení QR náhledu v planneru, kde bílý podklad překrýval QR moduly a zobrazoval pouze prázdný rámeček.
 - QR oblast v editoru nyní vykresluje skutečný černobílý náhled s bílým podkladem a při výběru používá pouze výrazný přerušovaný obrys, takže je jasné, co se na voucheru překrývá.
@@ -23,6 +24,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Uzamčený náhled publikovaných voucherových šablon nyní umožňuje zobrazit placeholdery podle technických souřadnic layoutu pro hodnotu, službu i předtištěný voucher.
 - Výběr vzhledu při tvorbě tiskové série nyní zobrazuje náhled každé voucherové šablony.
 - Voucher Template Editor má přepracovanou pracovní plochu s klidnějším overlayem, českými názvy oblastí, segmented preview režimy, přepínatelnými vodítky a hierarchicky rozdělenými základními a pokročilými vlastnostmi; editor zachovává drag, resize, snap, typografii a ukládání layoutu.
 - Detail a vytvoření voucherové šablony používají jasnější hierarchii akcí, stav PDF masteru a bezpečné overflow menu pro méně časté operace.
