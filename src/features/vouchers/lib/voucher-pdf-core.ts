@@ -3,7 +3,7 @@ import path from "node:path";
 
 import fontkit from "@pdf-lib/fontkit";
 import { VoucherType } from "@/generated/prisma/browser";
-import { PDFDocument, cmyk, type PDFFont, type PDFPage } from "pdf-lib";
+import { PDFDocument, cmyk, clip, endPath, popGraphicsState, pushGraphicsState, rectangle, type PDFFont, type PDFPage } from "pdf-lib";
 import QRCode from "qrcode";
 
 import { formatVoucherValue } from "@/features/vouchers/lib/voucher-format";
@@ -12,7 +12,7 @@ import { VoucherTemplateError } from "@/features/vouchers/lib/voucher-template-e
 import { siteConfig } from "@/config/site";
 import { type ResolvedVoucherTemplate } from "@/features/vouchers/lib/voucher-template-repository";
 import { requireVoucherTemplateById, resolveVoucherTemplate } from "@/features/vouchers/lib/voucher-template-repository";
-import { VOUCHER_PRINT_GEOMETRY } from "@/features/vouchers/lib/voucher-template-layout";
+import { getVoucherQrRenderGeometry, VOUCHER_PRINT_GEOMETRY, VOUCHER_QR_QUIET_ZONE_MODULES } from "@/features/vouchers/lib/voucher-template-layout";
 import { fitVoucherTextToArea, VOUCHER_TEXT_HORIZONTAL_INSET_MM } from "@/features/vouchers/lib/voucher-text-fit";
 import { getPersistedVoucherRenderMode } from "@/features/vouchers/lib/voucher-render-policy";
 
@@ -363,20 +363,15 @@ function drawVoucherQr(page: PDFPage, qrCode: ReturnType<typeof QRCode.create>, 
   const y = mm(area.yMm);
   const width = mm(area.widthMm);
   const height = mm(area.heightMm);
-  const quietZoneModules = 4;
-  const totalModules = qrCode.modules.size + quietZoneModules * 2;
-  const moduleSize = Math.min(width, height) / totalModules;
-  const qrWidth = moduleSize * totalModules;
-  const qrX = x + (width - qrWidth) / 2;
-  const qrY = y + (height - qrWidth) / 2;
+  const geometry = getVoucherQrRenderGeometry(area, qrCode.modules.size);
+  const moduleSize = mm(geometry.moduleSizeMm);
+  const qrX = mm(geometry.xMm);
+  const qrY = mm(geometry.yMm);
 
-  page.drawRectangle({
-    x,
-    y,
-    width,
-    height,
-    color: cmyk(0, 0, 0, 0),
-  });
+  // Master PDF může mít rámeček těsně u QR oblasti. Planner jeho overlay
+  // ořezává hranicí oblasti, proto musí stejnou hranici respektovat i PDF.
+  page.pushOperators(pushGraphicsState(), rectangle(x, y, width, height), clip(), endPath());
+  page.drawRectangle({ x, y, width, height, color: cmyk(0, 0, 0, 0) });
 
   for (let row = 0; row < qrCode.modules.size; row += 1) {
     for (let column = 0; column < qrCode.modules.size; column += 1) {
@@ -385,14 +380,16 @@ function drawVoucherQr(page: PDFPage, qrCode: ReturnType<typeof QRCode.create>, 
       }
 
       page.drawRectangle({
-        x: qrX + (column + quietZoneModules) * moduleSize,
-        y: qrY + (qrCode.modules.size - row - 1 + quietZoneModules) * moduleSize,
+        x: qrX + (column + VOUCHER_QR_QUIET_ZONE_MODULES) * moduleSize,
+        y: qrY + (qrCode.modules.size - row - 1 + VOUCHER_QR_QUIET_ZONE_MODULES) * moduleSize,
         width: moduleSize,
         height: moduleSize,
         color: cmyk(0, 0, 0, 1),
       });
     }
   }
+
+  page.pushOperators(popGraphicsState());
 }
 
 function getTextX(

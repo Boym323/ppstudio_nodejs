@@ -52,6 +52,7 @@ function minimumSizeMm(key: AreaKey) { return isAspectRatioLocked(key) ? VOUCHER
 
 export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initialUpdatedAt, previewSrc }: { templateId: string; initialLayout: VoucherTemplateLayoutV1; initialUpdatedAt: string; previewSrc?: string }) {
   const [layout, setLayout] = useState(initialLayout);
+  const layoutRef = useRef(initialLayout);
   const [revision, setRevision] = useState(initialUpdatedAt);
   const [selected, setSelected] = useState<AreaKey | null>("valueArea");
   const [previewMode, setPreviewMode] = useState<VoucherTemplatePreviewMode>("VALUE");
@@ -115,7 +116,12 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
     return () => observer.disconnect();
   }, []);
 
-  const update = (key: AreaKey, patch: Record<string, unknown>) => setLayout((current) => ({ ...current, [key]: { ...current[key], ...patch } } as VoucherTemplateLayoutV1));
+  const update = (key: AreaKey, patch: Record<string, unknown>) => {
+    const current = layoutRef.current;
+    const next = { ...current, [key]: { ...current[key], ...patch } } as VoucherTemplateLayoutV1;
+    layoutRef.current = next;
+    setLayout(next);
+  };
   const updateAreaField = (key: AreaKey, field: "xMm" | "yMm" | "widthMm" | "heightMm", value: number) => {
     if (key === "qrArea" && (field === "widthMm" || field === "heightMm")) {
       const sizeMm = Number.isFinite(value) ? Math.max(VOUCHER_QR_MIN_SIZE_MM, snapToHalfMm(value)) : value;
@@ -123,7 +129,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
       return;
     }
     if (isVoucherTemplateTextAreaKey(key) && (field === "yMm" || field === "heightMm")) {
-      const current = layout[key] as VoucherTemplateLayoutV1[VoucherTemplateTextAreaKey];
+      const current = layoutRef.current[key] as VoucherTemplateLayoutV1[VoucherTemplateTextAreaKey];
       const nextYmm = field === "yMm" ? value : current.yMm;
       const nextHeightMm = field === "heightMm" ? value : current.heightMm;
       update(key, { [field]: value, baselineMm: getBaselineWithPreservedTopOffset(current, nextYmm, nextHeightMm) });
@@ -133,7 +139,9 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
   };
   const updateSelectedTypography = (patch: VoucherTemplateTypographyPatch) => {
     if (selected === null || !isVoucherTemplateTextAreaKey(selected)) return;
-    setLayout((current) => updateTypography(current, selected, patch));
+    const next = updateTypography(layoutRef.current, selected, patch);
+    layoutRef.current = next;
+    setLayout(next);
   };
 
   const applyResize = (key: AreaKey, direction: string, elementRef: HTMLElement, position: { x: number; y: number }) => {
@@ -166,14 +174,15 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
   };
 
   const save = () => {
-    const parsed = voucherTemplateLayoutSchema.safeParse(layout);
+    const currentLayout = layoutRef.current;
+    const parsed = voucherTemplateLayoutSchema.safeParse(currentLayout);
     if (!parsed.success) {
       setSaveError(parsed.error.issues[0]?.message ?? "Layout šablony obsahuje neplatné hodnoty.");
       return;
     }
     startTransition(async () => {
       try {
-        const result = await saveVoucherTemplateLayoutAction(templateId, layout, revision);
+        const result = await saveVoucherTemplateLayoutAction(templateId, currentLayout, revision);
         setRevision(result.updatedAt);
         setSaveError(null);
       } catch {
@@ -189,7 +198,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
       const response = await fetch(`/api/admin/voucher-templates/${templateId}/test-pdf`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ layout }),
+        body: JSON.stringify({ layout: layoutRef.current }),
       });
       if (!response.ok) throw new Error(await response.text());
       const url = URL.createObjectURL(await response.blob());

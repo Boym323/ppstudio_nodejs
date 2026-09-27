@@ -174,9 +174,10 @@ test("preview režim, scénář, fixture text i Canvas stav jsou lokální a sav
   assert.match(source, /const \[previewMode, setPreviewMode\] = useState/);
   assert.match(source, /const \[showQrBackground, setShowQrBackground\] = useState\(true\)/);
   assert.match(source, /const \[serviceScenario, setServiceScenario\] = useState/);
-  assert.match(source, /saveVoucherTemplateLayoutAction\(templateId, layout, revision\)/);
+  assert.match(source, /saveVoucherTemplateLayoutAction\(templateId, currentLayout, revision\)/);
   assert.match(source, /test-pdf/);
-  assert.match(source, /JSON\.stringify\(\{ layout \}\)/);
+  assert.match(source, /JSON\.stringify\(\{ layout: layoutRef\.current \}\)/);
+  assert.match(source, /const layoutRef = useRef\(initialLayout\)/);
   assert.match(source, /Stáhnout testovací PDF/);
   assert.doesNotMatch(source, /saveVoucherTemplateLayoutAction\(templateId, .*?(previewMode|serviceScenario|preview)/);
   assert.match(source, /<PreviewCanvas area=/);

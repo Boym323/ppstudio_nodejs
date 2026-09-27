@@ -6,6 +6,7 @@ import { getVoucherTextMinimumLineHeightMm } from "./voucher-text-fit";
 export const VOUCHER_PRINT_GEOMETRY = { widthMm: 216, heightMm: 105, trimXmm: 3, trimYmm: 3, trimWidthMm: 210, trimHeightMm: 99 } as const;
 // QR verze 4 (33 modulů) + quiet zone 4 moduly na každé straně: 20 / 41 = 0,488 mm na modul.
 export const VOUCHER_QR_MIN_SIZE_MM = 20;
+export const VOUCHER_QR_QUIET_ZONE_MODULES = 4;
 const mm = z.number().finite().min(0).max(216);
 const cmyk = z.object({ c: z.number().min(0).max(1), m: z.number().min(0).max(1), y: z.number().min(0).max(1), k: z.number().min(0).max(1) });
 type VoucherAreaBounds = { xMm: number; yMm: number; widthMm: number; heightMm: number };
@@ -83,3 +84,19 @@ export function updateTypography(
 
 export function pdfBottomToBrowserTop(yMm: number, heightMm: number) { return VOUCHER_PRINT_GEOMETRY.heightMm - yMm - heightMm; }
 export function browserTopToPdfBottom(topMm: number, heightMm: number) { return VOUCHER_PRINT_GEOMETRY.heightMm - topMm - heightMm; }
+export function getVoucherTextBaselineBrowserTopMm(area: Pick<VoucherTemplateLayoutV1["valueArea"], "baselineMm">) {
+  return VOUCHER_PRINT_GEOMETRY.heightMm - area.baselineMm;
+}
+
+export function getVoucherQrRenderGeometry(area: VoucherTemplateLayoutV1["qrArea"], dataModules: number) {
+  const totalModules = dataModules + VOUCHER_QR_QUIET_ZONE_MODULES * 2;
+  const moduleSize = Math.min(area.widthMm, area.heightMm) / totalModules;
+  const qrWidthMm = moduleSize * totalModules;
+
+  return {
+    xMm: area.xMm + (area.widthMm - qrWidthMm) / 2,
+    yMm: area.yMm + (area.heightMm - qrWidthMm) / 2,
+    moduleSizeMm: moduleSize,
+    totalModules,
+  } as const;
+}

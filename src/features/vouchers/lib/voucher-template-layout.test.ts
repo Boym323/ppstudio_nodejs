@@ -2,13 +2,24 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import QRCode from "qrcode";
 
-import { browserTopToPdfBottom, isVoucherTemplateTextAreaKey, pdfBottomToBrowserTop, updateTypography, voucherTemplateLayoutSchema, voucherTemplateStoredLayoutSchema, VOUCHER_QR_MIN_SIZE_MM } from "./voucher-template-layout";
+import { browserTopToPdfBottom, getVoucherQrRenderGeometry, getVoucherTextBaselineBrowserTopMm, isVoucherTemplateTextAreaKey, pdfBottomToBrowserTop, updateTypography, voucherTemplateLayoutSchema, voucherTemplateStoredLayoutSchema, VOUCHER_QR_MIN_SIZE_MM } from "./voucher-template-layout";
 import { defaultVoucherTemplateLayout } from "./voucher-template-defaults";
 
 test("transformace browser/PDF souřadnic je obousměrná", () => {
   const top = pdfBottomToBrowserTop(20, 28);
   assert.equal(top, 57);
   assert.equal(browserTopToPdfBottom(top, 28), 20);
+});
+
+test("textová baseline a QR geometrie používají společné tiskové souřadnice", () => {
+  const area = defaultVoucherTemplateLayout.validityArea;
+  assert.equal(getVoucherTextBaselineBrowserTopMm(area), 105 - area.baselineMm);
+
+  const qr = getVoucherQrRenderGeometry(defaultVoucherTemplateLayout.qrArea, 33);
+  assert.equal(qr.totalModules, 41);
+  assert.equal(qr.xMm, defaultVoucherTemplateLayout.qrArea.xMm);
+  assert.equal(qr.yMm, defaultVoucherTemplateLayout.qrArea.yMm);
+  assert.equal(qr.moduleSizeMm, 28 / 41);
 });
 
 test("layout odmítne deformovaný QR a CMYK mimo rozsah", () => {

@@ -1,6 +1,6 @@
 import QRCode from "qrcode";
 
-import type { VoucherTemplateTextAreaKey } from "@/features/vouchers/lib/voucher-template-layout";
+import { getVoucherTextBaselineBrowserTopMm, pdfBottomToBrowserTop, VOUCHER_QR_QUIET_ZONE_MODULES, type VoucherTemplateTextAreaKey } from "@/features/vouchers/lib/voucher-template-layout";
 import { fitVoucherTextToArea } from "@/features/vouchers/lib/voucher-text-fit";
 
 /**
@@ -62,17 +62,16 @@ export type VoucherTemplatePreviewTextMeasurer = (
 const PT_TO_MM = 25.4 / 72;
 export const VOUCHER_TEMPLATE_PREVIEW_HORIZONTAL_PADDING_MM = 1;
 
-const PREVIEW_QR_QUIET_ZONE_MODULES = 4;
 const PREVIEW_QR = QRCode.create("https://ppstudio.cz/vouchery/overeni?code=TEST-2026-ABCDEF", { errorCorrectionLevel: "M" });
-const PREVIEW_QR_TOTAL_MODULES = PREVIEW_QR.modules.size + PREVIEW_QR_QUIET_ZONE_MODULES * 2;
+const PREVIEW_QR_TOTAL_MODULES = PREVIEW_QR.modules.size + VOUCHER_QR_QUIET_ZONE_MODULES * 2;
 
 export const VOUCHER_TEMPLATE_PREVIEW_QR = {
   totalModules: PREVIEW_QR_TOTAL_MODULES,
   dataModules: PREVIEW_QR.modules.size,
-  quietZoneModules: PREVIEW_QR_QUIET_ZONE_MODULES,
+  quietZoneModules: VOUCHER_QR_QUIET_ZONE_MODULES,
   isDark(row: number, column: number) {
-    const dataRow = row - PREVIEW_QR_QUIET_ZONE_MODULES;
-    const dataColumn = column - PREVIEW_QR_QUIET_ZONE_MODULES;
+    const dataRow = row - VOUCHER_QR_QUIET_ZONE_MODULES;
+    const dataColumn = column - VOUCHER_QR_QUIET_ZONE_MODULES;
     return Boolean(dataRow >= 0
       && dataColumn >= 0
       && dataRow < PREVIEW_QR.modules.size
@@ -151,7 +150,7 @@ export function getVoucherTemplatePreviewFontSizePx(fontSizePt: number, scale = 
 }
 
 export function getVoucherTemplatePreviewBaselineTopMm(area: Pick<VoucherTemplatePreviewArea, "yMm" | "heightMm" | "baselineMm">) {
-  return area.heightMm - (area.baselineMm - area.yMm);
+  return getVoucherTextBaselineBrowserTopMm(area) - pdfBottomToBrowserTop(area.yMm, area.heightMm);
 }
 
 export function getVoucherTemplatePreviewBaselineTopPx(
