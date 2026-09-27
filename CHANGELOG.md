@@ -9,6 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Opraveno
 
 - Placeholderový náhled publikované šablony nyní zobrazuje pouze skutečně generovaný text a QR bez pomocných rámečků a podkladů.
+- Náhled uzamčené publikované šablony nyní umisťuje datum a další text podle stejného fittingu a baseline jako planner a PDF, takže neleží mimo technickou oblast.
 - Kliknutím na prázdné místo v planneru lze nyní zrušit výběr prvku, takže žádná oblast nezůstává aktivní bez potřeby vybírat jiný prvek.
 - Opraveno vrstvení QR náhledu v planneru, kde bílý podklad překrýval QR moduly a zobrazoval pouze prázdný rámeček.
 - QR oblast v editoru nyní vykresluje skutečný černobílý náhled s bílým podkladem a při výběru používá pouze výrazný přerušovaný obrys, takže je jasné, co se na voucheru překrývá.

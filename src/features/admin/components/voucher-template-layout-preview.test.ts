@@ -218,3 +218,10 @@ test("preview režim, scénář, fixture text i Canvas stav jsou lokální a sav
   assert.match(source, /document\.fonts\.ready/);
   assert.doesNotMatch(source, /function PreviewText\(/);
 });
+
+test("uzamčený náhled používá fitting a baseline layoutu", async () => {
+  const source = await readFile(new URL("./voucher-template-published-preview.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /fitVoucherTemplatePreviewText\(label, area as VoucherTemplateLayoutV1\["valueArea"\]\)/);
+  assert.match(source, /getVoucherTemplatePreviewBaselineTopMm\(area\)/);
+});

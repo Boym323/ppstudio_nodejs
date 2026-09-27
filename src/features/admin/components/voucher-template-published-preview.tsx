@@ -4,7 +4,11 @@ import { useState } from "react";
 import Image from "next/image";
 
 import type { VoucherTemplateLayoutV1 } from "@/features/vouchers/lib/voucher-template-layout";
-import { VOUCHER_TEMPLATE_PREVIEW_QR } from "./voucher-template-layout-preview";
+import {
+  fitVoucherTemplatePreviewText,
+  getVoucherTemplatePreviewBaselineTopMm,
+  VOUCHER_TEMPLATE_PREVIEW_QR,
+} from "./voucher-template-layout-preview";
 import { cn } from "@/lib/utils";
 
 type PreviewMode = "VALUE" | "SERVICE" | "STOCK";
@@ -57,17 +61,24 @@ function getVisibleAreas(mode: PreviewMode): AreaKey[] {
 
 function Placeholder({ area, label, isQr }: { area: VoucherTemplateLayoutV1[AreaKey]; label: string; isQr: boolean }) {
   const typography = isQr || !("typography" in area) ? null : area.typography;
-  const fontSize = `${Math.max(1.8, (typography?.preferredFontSizePt ?? 8) * 25.4 / 72 / 216 * 100)}cqw`;
+  const fit = typography
+    ? fitVoucherTemplatePreviewText(label, area as VoucherTemplateLayoutV1["valueArea"])
+    : null;
+  const fontSizePt = fit?.fontSizePt ?? typography?.preferredFontSizePt ?? 8;
+  const fontSize = `${Math.max(1.8, fontSizePt * 25.4 / 72 / 216 * 100)}cqw`;
+  const baselineTop = "baselineMm" in area ? getVoucherTemplatePreviewBaselineTopMm(area) : null;
+  const baselineAscentMm = fontSizePt * 25.4 / 72 * 1.07;
   return (
     <span
       aria-hidden="true"
       className="pointer-events-none absolute z-10 flex items-center justify-center overflow-hidden text-center font-semibold leading-none"
       style={{
         left: `${(area.xMm / 216) * 100}%`,
-        top: `${((105 - area.yMm - area.heightMm) / 105) * 100}%`,
+        top: baselineTop === null ? `${((105 - area.yMm - area.heightMm) / 105) * 100}%` : `${((baselineTop - baselineAscentMm) / 105) * 100}%`,
         width: `${(area.widthMm / 216) * 100}%`,
-        height: `${(area.heightMm / 105) * 100}%`,
+        height: baselineTop === null ? `${(area.heightMm / 105) * 100}%` : `${((fit?.lineHeightMm ?? baselineAscentMm) / 105) * 100}%`,
         fontSize,
+        lineHeight: fit ? `${(fit.lineHeightMm / 105) * 100}%` : undefined,
         fontWeight: typography?.fontWeight === "bold" ? 700 : 400,
         textAlign: typography?.alignment ?? "center",
         color: typography ? cmykToCssRgb(typography.color) : undefined,
