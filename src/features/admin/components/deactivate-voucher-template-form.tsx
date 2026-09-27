@@ -5,7 +5,7 @@ import { useFormStatus } from "react-dom";
 
 import { deactivateVoucherTemplateAction } from "@/features/admin/actions/voucher-template-actions";
 
-export function DeactivateVoucherTemplateForm({ templateId }: { templateId: string }) {
+export function DeactivateVoucherTemplateForm({ templateId, compact = false }: { templateId: string; compact?: boolean }) {
   const [error, setError] = useState<string | null>(null);
 
   async function submit() {
@@ -29,19 +29,21 @@ export function DeactivateVoucherTemplateForm({ templateId }: { templateId: stri
           {error}
         </p>
       ) : null}
-      <SubmitButton />
+      <SubmitButton compact={compact} />
     </form>
   );
 }
 
-function SubmitButton() {
+function SubmitButton({ compact }: { compact: boolean }) {
   const { pending } = useFormStatus();
 
   return (
     <button
       type="submit"
       disabled={pending}
-      className="rounded-xl border border-amber-300/40 px-4 py-2 font-semibold text-amber-100 disabled:cursor-wait disabled:opacity-60"
+      className={compact
+        ? "w-full rounded-xl px-3 py-2.5 text-left text-sm text-white/65 transition-colors hover:bg-white/8 hover:text-white disabled:cursor-wait disabled:opacity-50"
+        : "rounded-xl border border-white/15 px-4 py-2 text-sm font-medium text-white/65 transition-colors hover:border-white/25 hover:text-white/85 disabled:cursor-wait disabled:opacity-50"}
     >
       {pending ? "Deaktivuji…" : "Deaktivovat"}
     </button>
