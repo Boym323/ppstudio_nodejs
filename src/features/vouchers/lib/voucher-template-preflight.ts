@@ -40,8 +40,15 @@ export async function preflightVoucherTemplateMaster(bytes: Buffer): Promise<Vou
   if (rotation !== null && rotation !== 0) errors.push(`Master PDF má nepodporovanou rotaci ${rotation}°. Použijte rotaci 0°.`);
   const expectedMedia = { x: 0, y: 0, width: VOUCHER_PRINT_GEOMETRY.widthMm * MM_TO_PT, height: VOUCHER_PRINT_GEOMETRY.heightMm * MM_TO_PT };
   const expectedTrim = { x: VOUCHER_PRINT_GEOMETRY.trimXmm * MM_TO_PT, y: VOUCHER_PRINT_GEOMETRY.trimYmm * MM_TO_PT, width: VOUCHER_PRINT_GEOMETRY.trimWidthMm * MM_TO_PT, height: VOUCHER_PRINT_GEOMETRY.trimHeightMm * MM_TO_PT };
+  // PDF default values for CropBox and BleedBox are inherited from MediaBox.
+  // pdf-lib returns that effective value even when the box is not explicitly present.
   const geometryValid = Boolean(mediaBox && trimBox && bleedBox && isExpected(mediaBox, expectedMedia) && isExpected(trimBox, expectedTrim) && isExpected(bleedBox, expectedMedia));
-  if (!geometryValid) errors.push("PDF nemá požadovaný MediaBox 216 × 105 mm, TrimBox 210 × 99 mm na offsetu 3 mm a BleedBox stránky.");
+  if (!geometryValid) {
+    const boxDescription = (name: string, box: PdfBox | null) => box
+      ? `${name} ${[box.x, box.y, box.width, box.height].map((value) => (value / MM_TO_PT).toFixed(2)).join(" × ")} mm`
+      : `${name} chybí`;
+    errors.push(`PDF nemá požadovanou geometrii (MediaBox 216 × 105 mm, TrimBox 210 × 99 mm na offsetu 3 mm, BleedBox stránky). Zjištěno: ${boxDescription("MediaBox", mediaBox)}, ${boxDescription("TrimBox", trimBox)}, ${boxDescription("BleedBox", bleedBox)}.`);
+  }
   const raw = bytes.toString("latin1");
   const outputIntentPresent = raw.includes("/OutputIntent");
   const pdfXClaim = /\/GTS_PDFXVersion\s*\(([^)]+)\)/.exec(raw)?.[1] ?? null;

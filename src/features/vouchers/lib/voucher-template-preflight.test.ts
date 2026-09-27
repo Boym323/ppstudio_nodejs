@@ -22,6 +22,18 @@ async function makeMaster(rotation: number) {
   return Buffer.from(await pdf.save());
 }
 
+async function makeMasterWithoutExplicitBleedBox() {
+  const pdf = await PDFDocument.create();
+  const page = pdf.addPage([mm(VOUCHER_PRINT_GEOMETRY.widthMm), mm(VOUCHER_PRINT_GEOMETRY.heightMm)]);
+  page.setTrimBox(
+    mm(VOUCHER_PRINT_GEOMETRY.trimXmm),
+    mm(VOUCHER_PRINT_GEOMETRY.trimYmm),
+    mm(VOUCHER_PRINT_GEOMETRY.trimWidthMm),
+    mm(VOUCHER_PRINT_GEOMETRY.trimHeightMm),
+  );
+  return Buffer.from(await pdf.save());
+}
+
 test("preflight masteru přijme efektivní Rotate 0", async () => {
   const result = await preflightVoucherTemplateMaster(await makeMaster(0));
 
@@ -34,4 +46,11 @@ test("preflight masteru odmítne Rotate 180", async () => {
 
   assert.equal(result.rotation, 180);
   assert.match(result.errors.join(" "), /nepodporovanou rotaci 180/);
+});
+
+test("preflight masteru přijme BleedBox odvozený z MediaBoxu", async () => {
+  const result = await preflightVoucherTemplateMaster(await makeMasterWithoutExplicitBleedBox());
+
+  assert.equal(result.geometryValid, true);
+  assert.deepEqual(result.errors, []);
 });
