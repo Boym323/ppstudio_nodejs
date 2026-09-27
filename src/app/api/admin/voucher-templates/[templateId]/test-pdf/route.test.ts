@@ -31,6 +31,9 @@ test("test PDF používá layout z requestu a vrací tiskové PDF pouze OWNERovi
       generateResolvedVoucherPrintPdf: async (_voucher: unknown, template: { layout: unknown }) => { receivedLayout = template.layout; return Buffer.from("%PDF-test"); },
     },
   });
+  t.mock.module("@/features/vouchers/lib/voucher-template-preview", {
+    exports: { renderVoucherTemplatePreview: async () => Buffer.from([137, 80, 78, 71]) },
+  });
 
   const { POST } = await import("./route");
   const changedLayout = { ...layout, qrArea: { ...layout.qrArea, xMm: 150 } };
@@ -40,6 +43,10 @@ test("test PDF používá layout z requestu a vrací tiskové PDF pouze OWNERovi
   assert.equal(response.headers.get("content-type"), "application/pdf");
   assert.equal(response.headers.get("content-disposition"), 'attachment; filename="voucher-TEST-2026-ABCDEF.pdf"');
   assert.deepEqual(receivedLayout, changedLayout);
+  const preview = await POST(new Request("https://example.com?format=preview", { method: "POST", body: JSON.stringify({ layout: changedLayout }), headers: { "content-type": "application/json" } }), { params: Promise.resolve({ templateId: "template-1" }) });
+  assert.equal(preview.status, 200);
+  assert.equal(preview.headers.get("content-type"), "image/png");
+  assert.deepEqual(Buffer.from(await preview.arrayBuffer()), Buffer.from([137, 80, 78, 71]));
   role = "SALON";
   const forbidden = await POST(new Request("https://example.com", { method: "POST", body: "{}" }), { params: Promise.resolve({ templateId: "template-1" }) });
   assert.equal(forbidden.status, 403);

@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 
 import type { VoucherTemplateLayoutV1 } from "@/features/vouchers/lib/voucher-template-layout";
 import {
   fitVoucherTemplatePreviewText,
+  createVoucherTemplatePreviewQr,
   getVoucherTemplatePreviewBaselineTopMm,
-  VOUCHER_TEMPLATE_PREVIEW_QR,
 } from "./voucher-template-layout-preview";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +29,11 @@ const placeholderText: Record<Exclude<AreaKey, "qrArea">, string> = {
 
 export function VoucherTemplatePublishedPreview({ src, alt, layout }: { src?: string; alt: string; layout: VoucherTemplateLayoutV1 }) {
   const [mode, setMode] = useState<PreviewMode>("VALUE");
+  const [previewQr, setPreviewQr] = useState(() => createVoucherTemplatePreviewQr());
+
+  useEffect(() => {
+    setPreviewQr(createVoucherTemplatePreviewQr(window.location.origin));
+  }, []);
   const visibleAreas = getVisibleAreas(mode);
 
   return (
@@ -45,7 +50,7 @@ export function VoucherTemplatePublishedPreview({ src, alt, layout }: { src?: st
         {src ? <Image src={src} alt={alt} fill sizes="(min-width: 768px) 60vw, 100vw" unoptimized className="object-contain" /> : <div role="img" aria-label={alt} className="flex h-full items-center justify-center text-center text-xs text-black/50">Náhled šablony není dostupný.</div>}
         {visibleAreas.map((key) => {
           const area = layout[key];
-          return <Placeholder key={key} area={area} label={key === "qrArea" ? "QR" : placeholderText[key]} isQr={key === "qrArea"} />;
+          return <Placeholder key={key} area={area} label={key === "qrArea" ? "QR" : placeholderText[key]} isQr={key === "qrArea"} qr={previewQr} />;
         })}
       </div>
       <p className="mt-2 text-xs text-white/45">Placeholdery jsou pouze pro kontrolu umístění podle technických údajů layoutu.</p>
@@ -59,7 +64,7 @@ function getVisibleAreas(mode: PreviewMode): AreaKey[] {
   return ["codeArea", "qrArea"];
 }
 
-function Placeholder({ area, label, isQr }: { area: VoucherTemplateLayoutV1[AreaKey]; label: string; isQr: boolean }) {
+function Placeholder({ area, label, isQr, qr }: { area: VoucherTemplateLayoutV1[AreaKey]; label: string; isQr: boolean; qr: ReturnType<typeof createVoucherTemplatePreviewQr> }) {
   const typography = isQr || !("typography" in area) ? null : area.typography;
   const fit = typography
     ? fitVoucherTemplatePreviewText(label, area as VoucherTemplateLayoutV1["valueArea"])
@@ -84,19 +89,19 @@ function Placeholder({ area, label, isQr }: { area: VoucherTemplateLayoutV1[Area
         color: typography ? cmykToCssRgb(typography.color) : undefined,
       }}
     >
-      {isQr ? <QrPlaceholder /> : label}
+      {isQr ? <QrPlaceholder qr={qr} /> : label}
     </span>
   );
 }
 
-function QrPlaceholder() {
-  const modules = Array.from({ length: VOUCHER_TEMPLATE_PREVIEW_QR.totalModules ** 2 }, (_, index) => {
-    const row = Math.floor(index / VOUCHER_TEMPLATE_PREVIEW_QR.totalModules);
-    const column = index % VOUCHER_TEMPLATE_PREVIEW_QR.totalModules;
-    return <span key={index} className={VOUCHER_TEMPLATE_PREVIEW_QR.isDark(row, column) ? "bg-[#1f1f1f]" : "bg-transparent"} />;
+function QrPlaceholder({ qr }: { qr: ReturnType<typeof createVoucherTemplatePreviewQr> }) {
+  const modules = Array.from({ length: qr.totalModules ** 2 }, (_, index) => {
+    const row = Math.floor(index / qr.totalModules);
+    const column = index % qr.totalModules;
+    return <span key={index} className={qr.isDark(row, column) ? "bg-[#1f1f1f]" : "bg-transparent"} />;
   });
 
-  return <span aria-hidden="true" className="grid aspect-square h-full w-full" style={{ gridTemplateColumns: `repeat(${VOUCHER_TEMPLATE_PREVIEW_QR.totalModules}, minmax(0, 1fr))` }}>{modules}</span>;
+  return <span aria-hidden="true" className="grid aspect-square h-full w-full" style={{ gridTemplateColumns: `repeat(${qr.totalModules}, minmax(0, 1fr))` }}>{modules}</span>;
 }
 
 function cmykToCssRgb(color: { c: number; m: number; y: number; k: number }) {

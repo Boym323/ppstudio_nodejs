@@ -2,19 +2,14 @@ import QRCode from "qrcode";
 
 import { getVoucherTextBaselineBrowserTopMm, pdfBottomToBrowserTop, VOUCHER_QR_QUIET_ZONE_MODULES, type VoucherTemplateTextAreaKey } from "@/features/vouchers/lib/voucher-template-layout";
 import { fitVoucherTextToArea } from "@/features/vouchers/lib/voucher-text-fit";
+import { VOUCHER_TEMPLATE_TEST_DATA } from "@/features/vouchers/lib/voucher-template-test-data";
 
-/**
- * UI-only fixture data for the layout editor. It must never be added to the
- * persisted voucher template layout or to the voucher PDF renderer input.
- */
+/** Testovací obsah náhledu; není součástí uloženého layoutu. */
 export const VOUCHER_TEMPLATE_PREVIEW_VALUES = {
-  valueArea: "1 500 Kč",
-  serviceArea: {
-    normal: "Korejský lash lifting",
-    long: "ANTI AGE TREATMENT S INTENZIVNÍ MASÁŽÍ",
-  },
-  validityArea: "31. 12. 2027",
-  codeArea: "PP-2026-ABC123",
+  valueArea: VOUCHER_TEMPLATE_TEST_DATA.value,
+  serviceArea: VOUCHER_TEMPLATE_TEST_DATA.service,
+  validityArea: VOUCHER_TEMPLATE_TEST_DATA.validity,
+  codeArea: VOUCHER_TEMPLATE_TEST_DATA.code,
 } as const;
 
 export type ServicePreviewScenario = keyof typeof VOUCHER_TEMPLATE_PREVIEW_VALUES.serviceArea;
@@ -62,23 +57,29 @@ export type VoucherTemplatePreviewTextMeasurer = (
 const PT_TO_MM = 25.4 / 72;
 export const VOUCHER_TEMPLATE_PREVIEW_HORIZONTAL_PADDING_MM = 1;
 
-const PREVIEW_QR = QRCode.create("https://ppstudio.cz/vouchery/overeni?code=TEST-2026-ABCDEF", { errorCorrectionLevel: "M" });
-const PREVIEW_QR_TOTAL_MODULES = PREVIEW_QR.modules.size + VOUCHER_QR_QUIET_ZONE_MODULES * 2;
+export function createVoucherTemplatePreviewQr(baseUrl = "https://ppstudio.cz") {
+  const verificationUrl = new URL("/vouchery/overeni", baseUrl);
+  verificationUrl.searchParams.set("code", VOUCHER_TEMPLATE_TEST_DATA.code);
+  const qr = QRCode.create(verificationUrl.toString(), { errorCorrectionLevel: "M" });
+  const totalModules = qr.modules.size + VOUCHER_QR_QUIET_ZONE_MODULES * 2;
 
-export const VOUCHER_TEMPLATE_PREVIEW_QR = {
-  totalModules: PREVIEW_QR_TOTAL_MODULES,
-  dataModules: PREVIEW_QR.modules.size,
-  quietZoneModules: VOUCHER_QR_QUIET_ZONE_MODULES,
-  isDark(row: number, column: number) {
-    const dataRow = row - VOUCHER_QR_QUIET_ZONE_MODULES;
-    const dataColumn = column - VOUCHER_QR_QUIET_ZONE_MODULES;
-    return Boolean(dataRow >= 0
-      && dataColumn >= 0
-      && dataRow < PREVIEW_QR.modules.size
-      && dataColumn < PREVIEW_QR.modules.size
-      && PREVIEW_QR.modules.get(dataRow, dataColumn));
-  },
-} as const;
+  return {
+    totalModules,
+    dataModules: qr.modules.size,
+    quietZoneModules: VOUCHER_QR_QUIET_ZONE_MODULES,
+    isDark(row: number, column: number) {
+      const dataRow = row - VOUCHER_QR_QUIET_ZONE_MODULES;
+      const dataColumn = column - VOUCHER_QR_QUIET_ZONE_MODULES;
+      return Boolean(dataRow >= 0
+        && dataColumn >= 0
+        && dataRow < qr.modules.size
+        && dataColumn < qr.modules.size
+        && qr.modules.get(dataRow, dataColumn));
+    },
+  } as const;
+}
+
+export const VOUCHER_TEMPLATE_PREVIEW_QR = createVoucherTemplatePreviewQr();
 
 export const VOUCHER_TEMPLATE_PREVIEW_FONT_FAMILIES: Readonly<Record<string, string>> = {
   "noto-sans": '"Noto Sans", sans-serif',

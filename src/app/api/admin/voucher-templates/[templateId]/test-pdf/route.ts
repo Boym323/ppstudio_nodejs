@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 
 import { generateResolvedVoucherPrintPdf, buildVoucherPrintPdfFilename } from "@/features/vouchers/lib/voucher-pdf";
 import { voucherTemplateLayoutSchema } from "@/features/vouchers/lib/voucher-template-layout";
+import { renderVoucherTemplatePreview } from "@/features/vouchers/lib/voucher-template-preview";
+import { VOUCHER_TEMPLATE_TEST_DATA } from "@/features/vouchers/lib/voucher-template-test-data";
 import { requireVoucherTemplateById, resolveVoucherTemplate } from "@/features/vouchers/lib/voucher-template-repository";
 import { getSession } from "@/lib/auth/session";
 
@@ -32,15 +34,31 @@ export async function POST(
     const voucher = {
       templateId: template.id,
       templateKey: template.key,
-      code: "TEST-2026-ABCDEF",
+      code: VOUCHER_TEMPLATE_TEST_DATA.code,
       type: VoucherType.VALUE,
-      originalValueCzk: 1500,
-      remainingValueCzk: 1500,
+      originalValueCzk: VOUCHER_TEMPLATE_TEST_DATA.valueCzk,
+      remainingValueCzk: VOUCHER_TEMPLATE_TEST_DATA.valueCzk,
       serviceNameSnapshot: null,
       servicePriceSnapshotCzk: null,
-      validUntil: new Date("2027-12-31T22:59:59.999Z"),
+      validUntil: new Date(VOUCHER_TEMPLATE_TEST_DATA.validUntilIso),
     } as Parameters<typeof generateResolvedVoucherPrintPdf>[0];
     const pdf = await generateResolvedVoucherPrintPdf(voucher, { ...resolved, layout: layout.data }, { failOnTextOverflow: true });
+
+    // Editor needs the very same composition order as the downloadable PDF.
+    // In particular, PDF masters can contain artwork above the QR area which
+    // cannot be faithfully reproduced by drawing browser overlays over a
+    // rasterised master preview.
+    if (new URL(request.url).searchParams.get("format") === "preview") {
+      const preview = await renderVoucherTemplatePreview(Buffer.from(pdf));
+
+      return new NextResponse(Uint8Array.from(preview), {
+        headers: {
+          "Content-Type": "image/png",
+          "Cache-Control": "private, no-store",
+          "X-Content-Type-Options": "nosniff",
+        },
+      });
+    }
 
     return new NextResponse(Uint8Array.from(pdf), {
       headers: {

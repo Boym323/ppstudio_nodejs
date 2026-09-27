@@ -22,6 +22,7 @@ import { VOUCHER_TEXT_HORIZONTAL_INSET_MM } from "@/features/vouchers/lib/vouche
 
 import {
   createVoucherTemplatePreviewTextMeasurer,
+  createVoucherTemplatePreviewQr,
   fitVoucherTemplatePreviewText,
   getVoucherTemplatePreviewBaselineTopPx,
   getVoucherTemplatePreviewFontSizePx,
@@ -29,7 +30,6 @@ import {
   getVoucherTemplatePreviewText,
   isVoucherTemplatePreviewAreaVisible,
   VOUCHER_TEMPLATE_PREVIEW_FONT_FAMILIES,
-  VOUCHER_TEMPLATE_PREVIEW_QR,
   type ServicePreviewScenario,
   type VoucherTemplatePreviewMode,
 } from "./voucher-template-layout-preview";
@@ -67,6 +67,8 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
   const [showBleed, setShowBleed] = useState(true);
   const [showQrBackground, setShowQrBackground] = useState(true);
   const [isInteracting, setIsInteracting] = useState(false);
+  const [renderedPreviewSrc, setRenderedPreviewSrc] = useState<string | null>(null);
+  const [previewQr, setPreviewQr] = useState(() => createVoucherTemplatePreviewQr());
   const canvasStageRef = useRef<HTMLDivElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 648, height: 315 });
   const resizeStartRef = useRef<ResizeStart | null>(null);
@@ -78,6 +80,64 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
   const area = selected === null ? layout.valueArea : layout[selected];
   const textArea = selected !== null && isVoucherTemplateTextAreaKey(selected) ? layout[selected] : null;
   const overlayState = getVoucherEditorOverlayState({ showGuides, showBleed, isInteracting });
+
+  useEffect(() => {
+    const origin = window.location.origin;
+    setPreviewQr(createVoucherTemplatePreviewQr(origin));
+  }, []);
+
+  useEffect(() => {
+    if (isInteracting) {
+      setRenderedPreviewSrc((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return null;
+      });
+      return;
+    }
+
+    setRenderedPreviewSrc((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return null;
+    });
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/admin/voucher-templates/${templateId}/test-pdf?format=preview`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ layout }),
+          signal: controller.signal,
+        });
+        if (!response.ok || controller.signal.aborted) return;
+        const nextUrl = URL.createObjectURL(await response.blob());
+        if (controller.signal.aborted) {
+          URL.revokeObjectURL(nextUrl);
+          return;
+        }
+        setRenderedPreviewSrc((current) => {
+          if (current) URL.revokeObjectURL(current);
+          return nextUrl;
+        });
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          setRenderedPreviewSrc(null);
+        }
+      }
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [isInteracting, layout, templateId]);
+
+  useEffect(() => () => {
+    if (renderedPreviewSrc) URL.revokeObjectURL(renderedPreviewSrc);
+  }, [renderedPreviewSrc]);
+
+  const displayedPreviewSrc = renderedPreviewSrc ?? previewSrc;
+  const hasRenderedPreview = renderedPreviewSrc !== null;
 
   useEffect(() => {
     if (typeof document === "undefined" || !document.fonts?.ready) {
@@ -244,7 +304,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
         <div className="min-w-0 p-4 sm:p-6 xl:border-r xl:border-white/10">
           <div ref={canvasStageRef} className="flex min-h-[360px] items-center justify-center rounded-2xl border border-white/8 bg-[#0b0a0c] p-4 shadow-inner sm:min-h-[480px] sm:p-8">
             <div className="relative shrink-0 overflow-visible border border-white/20 bg-neutral-900 shadow-[0_18px_50px_rgba(0,0,0,0.28)]" style={{ width: `${canvasSize.width}px`, height: `${canvasSize.height}px` }}>
-              {previewSrc ? <Image src={previewSrc} alt="Náhled master PDF voucheru" fill sizes="(min-width: 1280px) 780px, 100vw" unoptimized draggable={false} className="pointer-events-none select-none object-contain" /> : null}
+              {displayedPreviewSrc ? <Image src={displayedPreviewSrc} alt={hasRenderedPreview ? "Náhled výsledného voucheru" : "Náhled master PDF voucheru"} fill sizes="(min-width: 1280px) 780px, 100vw" unoptimized draggable={false} className="pointer-events-none select-none object-contain" /> : null}
               <div className="absolute inset-0 z-10" onClick={() => setSelected(null)}>
                 {overlayState.bleedVisible ? <div data-overlay="bleed" className="pointer-events-none absolute z-10 border border-dashed border-[var(--color-accent-soft)]/65" style={{ left: 3 * canvasScale, bottom: 3 * canvasScale, width: 210 * canvasScale, height: 99 * canvasScale }} /> : null}
                 {overlayState.guidesVisible ? <><div data-overlay="guides" className={`pointer-events-none absolute left-1/2 top-0 z-10 h-full border-l border-dashed ${overlayState.guidesEmphasized ? "border-[var(--color-accent-soft)]/75" : "border-white/20"}`} /><div className={`pointer-events-none absolute left-0 top-1/2 z-10 w-full border-t border-dashed ${overlayState.guidesEmphasized ? "border-[var(--color-accent-soft)]/75" : "border-white/20"}`} /></> : null}
@@ -284,10 +344,10 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
                     }}
                     onResizeStop={(_, direction, ref, __, pos) => { setIsInteracting(false); applyResize(key, direction, ref, pos); resizeStartRef.current = null; }}
                     resizeHandleStyles={cornerHandleStyles}
-                    className={`group relative cursor-move overflow-visible border transition-colors ${isSelected ? `${isQrArea ? "z-20 border-2 border-dashed border-[var(--color-accent-soft)] bg-transparent" : "z-20 border-[var(--color-accent-soft)] bg-[rgba(190,160,120,0.08)]"} outline outline-2 outline-offset-2 outline-[var(--color-accent)]/70` : "border-white/8 bg-transparent opacity-35 hover:border-white/40 hover:opacity-80"}`}
+                    className={`group relative cursor-move overflow-visible border transition-colors ${isSelected ? `${isQrArea ? "z-20 border-2 border-dashed border-[var(--color-accent-soft)] bg-transparent" : "z-20 border-[var(--color-accent-soft)] bg-[rgba(190,160,120,0.08)]"} outline outline-2 outline-offset-2 outline-[var(--color-accent)]/70` : "border-white/8 bg-transparent hover:border-white/40"}`}
                   >
                     {isSelected ? <span className="pointer-events-none absolute -top-6 left-0 z-20 rounded-md border border-[var(--color-accent)]/50 bg-[#1c1714] px-1.5 py-1 text-[9px] font-bold leading-none tracking-[0.08em] text-[var(--color-accent-soft)]">{isQrArea ? "QR kód" : labels[key]}</span> : <span className="pointer-events-none absolute -top-5 left-0 z-20 rounded-md border border-white/10 bg-black/75 px-1.5 py-1 text-[9px] font-bold leading-none tracking-[0.08em] text-white/70 opacity-0 transition-opacity group-hover:opacity-100">{shortLabels[key]}</span>}
-                    <div className="pointer-events-none absolute inset-0 overflow-hidden">{key === "qrArea" ? <PreviewQrPlaceholder showBackground={showQrBackground} /> : textPreview && baselinePx !== null ? <PreviewCanvas area={item as VoucherTemplateLayoutV1["valueArea"]} preview={textPreview} baselinePx={baselinePx} fontMetricsVersion={fontMetricsVersion} scale={canvasScale} horizontalInsetMm={horizontalInsetMm} /> : null}{isSelected && baselinePx !== null ? <span className="pointer-events-none absolute left-0 right-0 z-20 border-t border-[var(--color-accent-soft)]/70" style={{ top: `${baselinePx}px` }} /> : null}</div>
+                    <div className="pointer-events-none absolute inset-0 overflow-hidden">{!hasRenderedPreview && (key === "qrArea" ? <PreviewQrPlaceholder showBackground={showQrBackground} qr={previewQr} /> : textPreview && baselinePx !== null ? <PreviewCanvas area={item as VoucherTemplateLayoutV1["valueArea"]} preview={textPreview} baselinePx={baselinePx} fontMetricsVersion={fontMetricsVersion} scale={canvasScale} horizontalInsetMm={horizontalInsetMm} /> : null)}{isSelected && baselinePx !== null ? <span className="pointer-events-none absolute left-0 right-0 z-20 border-t border-[var(--color-accent-soft)]/70" style={{ top: `${baselinePx}px` }} /> : null}</div>
                   </Rnd>;
                 })}
               </div>
@@ -303,13 +363,13 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
           <section className="border-b border-white/10 py-3"><SectionTitle title="Pozice a rozměry" /><div className="grid grid-cols-2 gap-3">{(["xMm", "yMm", "widthMm", "heightMm"] as const).map((field) => <NumberField key={field} label={`${fieldLabels[field]} (mm)`} value={area[field]} min={field === "xMm" || field === "yMm" ? 0 : minimumSizeMm(selected)} onChange={(value) => updateAreaField(selected, field, value)} />)}</div></section>
           {textArea ? <section className="border-b border-white/10 py-3"><SectionTitle title="Typografie" /><label className="block text-xs text-white/70">Písmo<select value={textArea.typography.fontFamilyKey} onChange={(event) => updateSelectedTypography({ fontFamilyKey: event.target.value })} className={inputClassName}>{Object.keys(VOUCHER_TEMPLATE_PREVIEW_FONT_FAMILIES).map((key) => <option key={key} value={key} className="text-black">{key === "noto-sans" ? "Noto Sans" : key}</option>)}</select></label><div className="mt-3 grid grid-cols-2 gap-3"><label className="block text-xs text-white/70">Řez<select value={textArea.typography.fontWeight} onChange={(event) => updateSelectedTypography({ fontWeight: event.target.value as "regular" | "bold" })} className={inputClassName}><option value="regular" className="text-black">Regular</option><option value="bold" className="text-black">Bold</option></select></label><NumberField label="Velikost (pt)" value={textArea.typography.preferredFontSizePt} step="0.1" onChange={(value) => updateSelectedTypography({ preferredFontSizePt: value })} /></div><label className="mt-3 block text-xs text-white/70">Zarovnání<select value={textArea.typography.alignment} onChange={(event) => updateSelectedTypography({ alignment: event.target.value as "left" | "center" })} className={inputClassName}><option value="left" className="text-black">Vlevo</option><option value="center" className="text-black">Na střed</option></select></label></section> : null}
           {textArea ? <details className="border-b border-white/10 py-3"><summary className="cursor-pointer list-none text-sm font-semibold text-white marker:hidden">Pokročilé nastavení <span className="float-right text-white/45">⌄</span></summary><div className="mt-3 grid gap-3"><NumberField label="Baseline (mm)" value={textArea.baselineMm} step="0.5" onChange={(value) => update(selected, { baselineMm: value })} /><div className="grid grid-cols-2 gap-3"><NumberField label="Min. velikost (pt)" value={textArea.typography.minFontSizePt} step="0.1" onChange={(value) => updateSelectedTypography({ minFontSizePt: value })} /><NumberField label="Max. řádků" value={textArea.maxLines} step="1" onChange={(value) => update(selected, { maxLines: value })} /></div><NumberField label="Řádkování (mm)" value={textArea.typography.lineHeightMm} step="0.1" onChange={(value) => updateSelectedTypography({ lineHeightMm: value })} /><p className="text-xs leading-5 text-white/45">Baseline, minimální velikost a řádkování ovlivňují fitting textu v PDF.</p></div></details> : null}
+          </>}
           {saveError ? <p role="alert" className="mt-3 rounded-xl border border-red-300/30 bg-red-950/30 p-3 text-sm text-red-200">{saveError}</p> : null}
           {testPdfError ? <p role="alert" className="mt-3 rounded-xl border border-red-300/30 bg-red-950/30 p-3 text-sm text-red-200">{testPdfError}</p> : null}
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             <button type="button" disabled={testPdfPending || pending} onClick={downloadTestPdf} className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/15 px-4 py-2.5 text-sm font-semibold text-white/80 transition hover:border-white/30 hover:text-white disabled:cursor-wait disabled:opacity-50">{testPdfPending ? "Připravuji PDF…" : "Stáhnout testovací PDF"}</button>
             <button type="button" disabled={pending || testPdfPending} onClick={save} className="inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105 disabled:cursor-wait disabled:opacity-50">{pending ? "Ukládám změny…" : "Uložit změny"}</button>
           </div>
-          </>}
         </aside>
       </div>
     </section>
@@ -359,14 +419,14 @@ function cmykToCssRgb(color: { c: number; m: number; y: number; k: number }) {
   return `rgb(${channel(color.c)} ${channel(color.m)} ${channel(color.y)})`;
 }
 
-function PreviewQrPlaceholder({ showBackground }: { showBackground: boolean }) {
-  const modules = Array.from({ length: VOUCHER_TEMPLATE_PREVIEW_QR.totalModules ** 2 }, (_, index) => {
-    const row = Math.floor(index / VOUCHER_TEMPLATE_PREVIEW_QR.totalModules);
-    const column = index % VOUCHER_TEMPLATE_PREVIEW_QR.totalModules;
-    return <span key={index} className={`relative z-10 ${VOUCHER_TEMPLATE_PREVIEW_QR.isDark(row, column) ? "bg-[#1f1f1f]" : "bg-transparent"}`} />;
+function PreviewQrPlaceholder({ showBackground, qr }: { showBackground: boolean; qr: ReturnType<typeof createVoucherTemplatePreviewQr> }) {
+  const modules = Array.from({ length: qr.totalModules ** 2 }, (_, index) => {
+    const row = Math.floor(index / qr.totalModules);
+    const column = index % qr.totalModules;
+    return <span key={index} className={`relative z-10 ${qr.isDark(row, column) ? "bg-[#1f1f1f]" : "bg-transparent"}`} />;
   });
 
-  return <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 grid aspect-square w-full grid-cols-none" style={{ gridTemplateColumns: `repeat(${VOUCHER_TEMPLATE_PREVIEW_QR.totalModules}, minmax(0, 1fr))` }}>
+  return <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 grid aspect-square w-full grid-cols-none" style={{ gridTemplateColumns: `repeat(${qr.totalModules}, minmax(0, 1fr))` }}>
     {showBackground ? <span className="absolute inset-0 z-0 bg-white" /> : null}
     {modules}
   </div>;

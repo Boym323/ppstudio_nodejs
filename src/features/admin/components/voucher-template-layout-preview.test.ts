@@ -10,6 +10,7 @@ import {
   getVoucherTemplatePreviewFontSizePx,
   getVoucherTemplatePreviewLineBaselinePx,
   fitVoucherTemplatePreviewText,
+  createVoucherTemplatePreviewQr,
   getVoucherTemplatePreviewText,
   isVoucherTemplatePreviewAreaVisible,
   VOUCHER_TEMPLATE_PREVIEW_QR,
@@ -153,6 +154,19 @@ test("QR preview používá stejnou quiet zone a geometrii jako PDF renderer", (
   assert.equal(VOUCHER_TEMPLATE_PREVIEW_QR.isDark(4, 4), true);
 });
 
+test("QR preview používá origin aktuálního prostředí", () => {
+  const qr = createVoucherTemplatePreviewQr("http://192.168.0.150:3000");
+
+  assert.equal(qr.dataModules, 33);
+  let differs = false;
+  for (let row = 0; row < qr.totalModules; row += 1) {
+    for (let column = 0; column < qr.totalModules; column += 1) {
+      if (qr.isDark(row, column) !== VOUCHER_TEMPLATE_PREVIEW_QR.isDark(row, column)) differs = true;
+    }
+  }
+  assert.equal(differs, true);
+});
+
 test("preview mode visibility matrix nikdy nezobrazí VALUE a SERVICE současně", () => {
   const matrix = {
     VALUE: { valueArea: true, serviceArea: false, validityArea: true, codeArea: true, qrArea: true },
@@ -179,6 +193,8 @@ test("preview režim, scénář, fixture text i Canvas stav jsou lokální a sav
   assert.match(source, /JSON\.stringify\(\{ layout: layoutRef\.current \}\)/);
   assert.match(source, /const layoutRef = useRef\(initialLayout\)/);
   assert.match(source, /Stáhnout testovací PDF/);
+  assert.match(source, /selected === null \? <div className="flex min-h-48/);
+  assert.match(source, /\{saveError \? <p role="alert"/);
   assert.doesNotMatch(source, /saveVoucherTemplateLayoutAction\(templateId, .*?(previewMode|serviceScenario|preview)/);
   assert.match(source, /<PreviewCanvas area=/);
   assert.match(source, /VOUCHER_TEXT_HORIZONTAL_INSET_MM\[key\]/);
@@ -194,7 +210,7 @@ test("preview režim, scénář, fixture text i Canvas stav jsou lokální a sav
   assert.match(source, /context\.font = .*getVoucherTemplatePreviewFontSizePx\(preview\.fit\.fontSizePt, scale\)/);
   assert.match(source, /context\.fillStyle = cmykToCssRgb\(area\.typography\.color\)/);
   assert.match(source, /isQrArea \? "z-20 border-2 border-dashed/);
-  assert.match(source, /VOUCHER_TEMPLATE_PREVIEW_QR/);
+  assert.match(source, /createVoucherTemplatePreviewQr/);
   assert.match(source, /QR kód/);
   assert.match(source, /absolute inset-0 z-0 bg-white/);
   assert.match(source, /relative z-10 .*bg-\[#1f1f1f\]/);
