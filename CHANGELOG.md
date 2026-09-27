@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Textové oblasti voucheru nyní při přesunu nebo změně velikosti automaticky posouvají baseline spolu s oblastí, takže preview hodnoty, platnosti a služby nezmizí mimo jejich nové umístění.
 - Produkční release spouští voucher template bootstrap se serverovým `react-server` resolver condition, takže standalone Node běh správně načte server-only moduly.
 - Nové vouchery a tiskové série mohou používat pouze publikované šablony s uloženým markerem aktuální strict validace; historické publikované šablony zůstávají dostupné pro staré doklady a aktivaci již převzatého STOCK.
 - Render policy voucheru se ukládá jako `STRICT_V1`; pouze historické řádky bez markeru zůstávají v režimu HISTORICAL bez závislosti na issuedAt nebo stavu šablony.

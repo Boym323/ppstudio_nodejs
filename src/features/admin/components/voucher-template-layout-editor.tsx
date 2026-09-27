@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Rnd } from "react-rnd";
 
 import { saveVoucherTemplateLayoutAction } from "@/features/admin/actions/voucher-template-actions";
-import { getLockedResizeSize, getResizeAnchor, snapToHalfMm } from "./voucher-template-layout-editor-geometry";
+import { getBaselineWithPreservedTopOffset, getLockedResizeSize, getResizeAnchor, snapToHalfMm } from "./voucher-template-layout-editor-geometry";
 import { getVoucherEditorOverlayState } from "./voucher-template-layout-editor-overlays";
 import {
   browserTopToPdfBottom,
@@ -14,6 +14,7 @@ import {
   updateTypography,
   voucherTemplateLayoutSchema,
   VOUCHER_QR_MIN_SIZE_MM,
+  type VoucherTemplateTextAreaKey,
   type VoucherTemplateLayoutV1,
   type VoucherTemplateTypographyPatch,
 } from "@/features/vouchers/lib/voucher-template-layout";
@@ -117,6 +118,13 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
       update(key, { widthMm: sizeMm, heightMm: sizeMm });
       return;
     }
+    if (isVoucherTemplateTextAreaKey(key) && (field === "yMm" || field === "heightMm")) {
+      const current = layout[key] as VoucherTemplateLayoutV1[VoucherTemplateTextAreaKey];
+      const nextYmm = field === "yMm" ? value : current.yMm;
+      const nextHeightMm = field === "heightMm" ? value : current.heightMm;
+      update(key, { [field]: value, baselineMm: getBaselineWithPreservedTopOffset(current, nextYmm, nextHeightMm) });
+      return;
+    }
     update(key, { [field]: value });
   };
   const updateSelectedTypography = (patch: VoucherTemplateTypographyPatch) => {
@@ -134,14 +142,17 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
     const heightMm = isAspectRatioLocked(key) ? widthMm : Math.max(minimumMm, measuredHeightMm);
     const anchor = getResizeAnchor(start, direction, widthMm, heightMm);
     const fallbackPosition = { xMm: position.x / scale, yMm: browserTopToPdfBottom(position.y / scale, heightMm) };
+    const yMm = anchor?.yMm ?? snapToHalfMm(fallbackPosition.yMm);
+    const baselineArea = isVoucherTemplateTextAreaKey(key) ? start as VoucherTemplateLayoutV1[VoucherTemplateTextAreaKey] : null;
 
     update(key, {
       // The opposite corner is an anchor, so keep its original coordinate
       // even when the persisted template uses a non-grid position.
       xMm: anchor?.xMm ?? snapToHalfMm(fallbackPosition.xMm),
-      yMm: anchor?.yMm ?? snapToHalfMm(fallbackPosition.yMm),
+      yMm,
       widthMm,
       heightMm,
+      ...(baselineArea ? { baselineMm: getBaselineWithPreservedTopOffset(baselineArea, yMm, heightMm) } : {}),
     });
   };
   const selectArea = (nextArea: AreaKey) => {
@@ -207,7 +218,35 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
                   const textPreview = fontsReady && isVoucherTemplateTextAreaKey(key) && previewVisible ? (() => { const text = getVoucherTemplatePreviewText(key, serviceScenario); const fit = fitVoucherTemplatePreviewText(text, item as VoucherTemplateLayoutV1["valueArea"], previewTextMeasurer, horizontalInsetMm); return { text, fit }; })() : null;
                   const baselinePx = baseline === null ? null : getVoucherTemplatePreviewBaselineTopPx(item as VoucherTemplateLayoutV1["valueArea"], canvasScale);
                   const isSelected = selected === key;
-                  return <Rnd key={key} bounds="parent" size={{ width: item.widthMm * canvasScale, height: item.heightMm * canvasScale }} position={{ x: item.xMm * canvasScale, y: pdfBottomToBrowserTop(item.yMm, item.heightMm) * canvasScale }} lockAspectRatio={isAspectRatioLocked(key)} minWidth={minimumSizeMm(key) * canvasScale} minHeight={minimumSizeMm(key) * canvasScale} enableResizing={isSelected ? cornerResizeEnable : false} dragGrid={[canvasScale / 2, canvasScale / 2]} resizeGrid={[canvasScale / 2, canvasScale / 2]} onClick={() => selectArea(key)} onDragStart={() => { selectArea(key); setIsInteracting(true); }} onResizeStart={(_, direction) => { resizeStartRef.current = { key, area: item, direction }; selectArea(key); setIsInteracting(true); }} onResize={(_, direction, ref, __, pos) => applyResize(key, direction, ref, pos)} onDragStop={(_, data) => { setIsInteracting(false); update(key, { xMm: snapToHalfMm(data.x / canvasScale), yMm: snapToHalfMm(browserTopToPdfBottom(data.y / canvasScale, item.heightMm)) }); }} onResizeStop={(_, direction, ref, __, pos) => { setIsInteracting(false); applyResize(key, direction, ref, pos); resizeStartRef.current = null; }} resizeHandleStyles={cornerHandleStyles} className={`group relative cursor-move overflow-visible border transition-colors ${isSelected ? "z-20 border-[var(--color-accent-soft)] bg-[rgba(190,160,120,0.08)] outline outline-1 outline-offset-2 outline-[var(--color-accent)]/70" : "border-white/8 bg-transparent opacity-35 hover:border-white/40 hover:opacity-80"}`}>
+                  return <Rnd
+                    key={key}
+                    bounds="parent"
+                    size={{ width: item.widthMm * canvasScale, height: item.heightMm * canvasScale }}
+                    position={{ x: item.xMm * canvasScale, y: pdfBottomToBrowserTop(item.yMm, item.heightMm) * canvasScale }}
+                    lockAspectRatio={isAspectRatioLocked(key)}
+                    minWidth={minimumSizeMm(key) * canvasScale}
+                    minHeight={minimumSizeMm(key) * canvasScale}
+                    enableResizing={isSelected ? cornerResizeEnable : false}
+                    dragGrid={[canvasScale / 2, canvasScale / 2]}
+                    resizeGrid={[canvasScale / 2, canvasScale / 2]}
+                    onClick={() => selectArea(key)}
+                    onDragStart={() => { selectArea(key); setIsInteracting(true); }}
+                    onResizeStart={(_, direction) => { resizeStartRef.current = { key, area: item, direction }; selectArea(key); setIsInteracting(true); }}
+                    onResize={(_, direction, ref, __, pos) => applyResize(key, direction, ref, pos)}
+                    onDragStop={(_, data) => {
+                      setIsInteracting(false);
+                      const nextYmm = snapToHalfMm(browserTopToPdfBottom(data.y / canvasScale, item.heightMm));
+                      const baselineArea = isVoucherTemplateTextAreaKey(key) ? item as VoucherTemplateLayoutV1[VoucherTemplateTextAreaKey] : null;
+                      update(key, {
+                        xMm: snapToHalfMm(data.x / canvasScale),
+                        yMm: nextYmm,
+                        ...(baselineArea ? { baselineMm: getBaselineWithPreservedTopOffset(baselineArea, nextYmm, item.heightMm) } : {}),
+                      });
+                    }}
+                    onResizeStop={(_, direction, ref, __, pos) => { setIsInteracting(false); applyResize(key, direction, ref, pos); resizeStartRef.current = null; }}
+                    resizeHandleStyles={cornerHandleStyles}
+                    className={`group relative cursor-move overflow-visible border transition-colors ${isSelected ? "z-20 border-[var(--color-accent-soft)] bg-[rgba(190,160,120,0.08)] outline outline-1 outline-offset-2 outline-[var(--color-accent)]/70" : "border-white/8 bg-transparent opacity-35 hover:border-white/40 hover:opacity-80"}`}
+                  >
                     {isSelected ? <span className="pointer-events-none absolute -top-6 left-0 z-20 rounded-md border border-[var(--color-accent)]/50 bg-[#1c1714] px-1.5 py-1 text-[9px] font-bold leading-none tracking-[0.08em] text-[var(--color-accent-soft)]">{labels[key]}</span> : <span className="pointer-events-none absolute -top-5 left-0 z-20 rounded-md border border-white/10 bg-black/75 px-1.5 py-1 text-[9px] font-bold leading-none tracking-[0.08em] text-white/70 opacity-0 transition-opacity group-hover:opacity-100">{shortLabels[key]}</span>}
                     <div className="pointer-events-none absolute inset-0 overflow-hidden">{key === "qrArea" ? <PreviewQrPlaceholder /> : textPreview && baselinePx !== null ? <PreviewCanvas area={item as VoucherTemplateLayoutV1["valueArea"]} preview={textPreview} baselinePx={baselinePx} fontMetricsVersion={fontMetricsVersion} scale={canvasScale} horizontalInsetMm={horizontalInsetMm} /> : null}{isSelected && baselinePx !== null ? <span className="pointer-events-none absolute left-0 right-0 z-20 border-t border-[var(--color-accent-soft)]/70" style={{ top: `${baselinePx}px` }} /> : null}</div>
                   </Rnd>;

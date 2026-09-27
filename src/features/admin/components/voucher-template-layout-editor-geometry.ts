@@ -23,3 +23,16 @@ export function getResizeAnchor(
   if (direction === "topLeft") return { xMm: rightMm - widthMm, yMm: area.yMm };
   return null;
 }
+
+/**
+ * Keep a text baseline at the same relative distance from the area's top edge
+ * when the area itself moves or changes height.
+ */
+export function getBaselineWithPreservedTopOffset(
+  area: Pick<{ yMm: number; heightMm: number; baselineMm: number }, "yMm" | "heightMm" | "baselineMm">,
+  yMm: number,
+  heightMm: number,
+) {
+  const topOffsetMm = area.yMm + area.heightMm - area.baselineMm;
+  return yMm + heightMm - topOffsetMm;
+}
