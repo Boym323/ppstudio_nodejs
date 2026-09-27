@@ -12,6 +12,7 @@ import {
   fitVoucherTemplatePreviewText,
   getVoucherTemplatePreviewText,
   isVoucherTemplatePreviewAreaVisible,
+  VOUCHER_TEMPLATE_PREVIEW_QR,
 } from "./voucher-template-layout-preview";
 
 test("VALUE preview používá UI fixture 1 500 Kč", () => {
@@ -144,6 +145,14 @@ test("QR preview nemá textovou typografii", () => {
   assert.equal(getVoucherTemplatePreviewText("qrArea", "normal"), null);
 });
 
+test("QR preview používá stejnou quiet zone a geometrii jako PDF renderer", () => {
+  assert.equal(VOUCHER_TEMPLATE_PREVIEW_QR.dataModules, 33);
+  assert.equal(VOUCHER_TEMPLATE_PREVIEW_QR.quietZoneModules, 4);
+  assert.equal(VOUCHER_TEMPLATE_PREVIEW_QR.totalModules, 41);
+  assert.equal(VOUCHER_TEMPLATE_PREVIEW_QR.isDark(0, 0), false);
+  assert.equal(VOUCHER_TEMPLATE_PREVIEW_QR.isDark(4, 4), true);
+});
+
 test("preview mode visibility matrix nikdy nezobrazí VALUE a SERVICE současně", () => {
   const matrix = {
     VALUE: { valueArea: true, serviceArea: false, validityArea: true, codeArea: true, qrArea: true },
@@ -163,8 +172,12 @@ test("preview režim, scénář, fixture text i Canvas stav jsou lokální a sav
   const source = await readFile(new URL("./voucher-template-layout-editor.tsx", import.meta.url), "utf8");
 
   assert.match(source, /const \[previewMode, setPreviewMode\] = useState/);
+  assert.match(source, /const \[showQrBackground, setShowQrBackground\] = useState\(true\)/);
   assert.match(source, /const \[serviceScenario, setServiceScenario\] = useState/);
   assert.match(source, /saveVoucherTemplateLayoutAction\(templateId, layout, revision\)/);
+  assert.match(source, /test-pdf/);
+  assert.match(source, /JSON\.stringify\(\{ layout \}\)/);
+  assert.match(source, /Stáhnout testovací PDF/);
   assert.doesNotMatch(source, /saveVoucherTemplateLayoutAction\(templateId, .*?(previewMode|serviceScenario|preview)/);
   assert.match(source, /<PreviewCanvas area=/);
   assert.match(source, /VOUCHER_TEXT_HORIZONTAL_INSET_MM\[key\]/);
@@ -179,6 +192,13 @@ test("preview režim, scénář, fixture text i Canvas stav jsou lokální a sav
   assert.match(source, /context\.textAlign = area\.typography\.alignment/);
   assert.match(source, /context\.font = .*getVoucherTemplatePreviewFontSizePx\(preview\.fit\.fontSizePt, scale\)/);
   assert.match(source, /context\.fillStyle = cmykToCssRgb\(area\.typography\.color\)/);
+  assert.match(source, /isQrArea \? "z-20 border-2 border-dashed/);
+  assert.match(source, /VOUCHER_TEMPLATE_PREVIEW_QR/);
+  assert.match(source, /QR kód/);
+  assert.match(source, /absolute inset-0 z-0 bg-white/);
+  assert.match(source, /relative z-10 .*bg-\[#1f1f1f\]/);
+  assert.doesNotMatch(source, /repeating-linear-gradient/);
+  assert.match(source, /PreviewQrPlaceholder showBackground=\{showQrBackground\}/);
   assert.match(source, /const canvasScale = canvasSize\.width \/ 216/);
   assert.match(source, /new ResizeObserver\(measure\)/);
   assert.match(source, /enableResizing=\{isSelected \? cornerResizeEnable : false\}/);

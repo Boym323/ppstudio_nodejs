@@ -8,6 +8,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Opraveno vrstvení QR náhledu v planneru, kde bílý podklad překrýval QR moduly a zobrazoval pouze prázdný rámeček.
+- QR oblast v editoru nyní vykresluje skutečný černobílý náhled s bílým podkladem a při výběru používá pouze výrazný přerušovaný obrys, takže je jasné, co se na voucheru překrývá.
 - Textové oblasti voucheru nyní při přesunu nebo změně velikosti automaticky posouvají baseline spolu s oblastí, takže preview hodnoty, platnosti a služby nezmizí mimo jejich nové umístění.
 - Produkční release spouští voucher template bootstrap se serverovým `react-server` resolver condition, takže standalone Node běh správně načte server-only moduly.
 - Nové vouchery a tiskové série mohou používat pouze publikované šablony s uloženým markerem aktuální strict validace; historické publikované šablony zůstávají dostupné pro staré doklady a aktivaci již převzatého STOCK.
@@ -32,6 +34,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Přidáno
 
+- Voucher Template Editor nyní umožňuje stáhnout testovací tiskové PDF z aktuálního neuloženého layoutu, takže lze před uložením ověřit dynamické texty, QR kód i jejich překrytí v reálném výstupu.
+- QR preview v editoru nyní používá stejnou testovací matici, velikost quiet zone a plochu jako produkční PDF renderer, takže jeho měřítko odpovídá skutečnému voucheru.
+- Planner nově nabízí přepínač `QR podklad`, kterým lze při kontrole layoutu zobrazit QR se světlým podkladem nebo transparentně nad masterem.
+- QR planner nyní ve výchozím režimu vykresluje plný černobílý QR s bílým podkladem stejně jako produkční PDF; transparentní podklad zůstává dostupný pouze jako volitelný kontrolní režim.
 - Základ persistentní domény `VoucherTemplate`: verzované drafty, audit lifecycle, trusted Noto Sans registry, validace layoutu v milimetrech a privátní storage masterů s SHA-256 kontrolou.
 - Vouchery používají verzované master PDF šablony s uloženým `templateKey`; administrace nabízí nastavení výchozího vzhledu a výchozí platnosti nových voucherů.
 - OWNER může v `/admin/vouchery/predtistene` připravit číslovanou tiskovou sérii předtištěných voucherů; po příjmu ji OWNER nebo SALON aktivuje až při prodeji, přičemž kód a QR zůstávají stejné napříč evidencí, voucherem i veřejným ověřením.
