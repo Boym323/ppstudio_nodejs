@@ -5,9 +5,10 @@ import { inflateSync } from "node:zlib";
 import test from "node:test";
 
 import { VoucherStatus, VoucherType } from "@/generated/prisma/browser";
-import { PDFDocument, rgb } from "pdf-lib";
+import { PDFDocument, PDFName, PDFStream, PDFString, rgb } from "pdf-lib";
 import { defaultVoucherTemplateLayout } from "./voucher-template-defaults";
 import { voucherTemplateLayoutSchema, voucherTemplateStoredLayoutSchema } from "./voucher-template-layout";
+import { ensurePrintPdfMetadata } from "./voucher-pdf-prepress";
 
 import {
   createVoucherTemplateRegistry,
@@ -26,12 +27,27 @@ process.env.ADMIN_STAFF_EMAIL ??= "staff@example.com";
 process.env.ADMIN_STAFF_PASSWORD ??= "change-me-staff";
 process.env.EMAIL_DELIVERY_MODE ??= "log";
 
+async function makeStrictMaster(masterBytes: Buffer) {
+  const pdf = await PDFDocument.load(masterBytes, { updateMetadata: false });
+  const profileRef = pdf.context.register(pdf.context.stream(Buffer.from("test ICC profile"), { N: 3 }));
+  const outputIntent = pdf.context.obj({
+    Type: "OutputIntent",
+    S: "GTS_PDFX",
+    OutputConditionIdentifier: PDFString.of("sRGB IEC61966-2.1 (test fixture)"),
+    Info: PDFString.of("Test fixture ICC profile"),
+    DestOutputProfile: profileRef,
+  });
+  pdf.catalog.set(PDFName.of("OutputIntents"), pdf.context.obj([pdf.context.register(outputIntent)]));
+  ensurePrintPdfMetadata(pdf);
+  return Buffer.from(await pdf.save());
+}
+
 test("classic-v1 master existuje ve správné cestě", async () => {
   await access("src/features/vouchers/bootstrap-assets/classic-v1.pdf");
 });
 
 test("výchozí VALUE layout projde strict schematem a finálním publish preflightem", async () => {
-  const masterBytes = await readFile("src/features/vouchers/bootstrap-assets/classic-v1.pdf");
+  const masterBytes = await makeStrictMaster(await readFile("src/features/vouchers/bootstrap-assets/classic-v1.pdf"));
   const { preflightVoucherTemplateForPublish } = await import("./voucher-template-publish-preflight");
   const layout = voucherTemplateLayoutSchema.parse(defaultVoucherTemplateLayout);
   const template = {
@@ -47,8 +63,48 @@ test("výchozí VALUE layout projde strict schematem a finálním publish prefli
   assert.match(invalid.errors.join(" "), /Řádkování/);
 });
 
-test("publish preflight odmítne VALUE oblast, která zvládne 1 500 Kč, ale ne maximum", async () => {
+test("publish preflight odmítne strict master bez OutputIntentu", async () => {
   const masterBytes = await readFile("src/features/vouchers/bootstrap-assets/classic-v1.pdf");
+  const { preflightVoucherTemplateForPublish } = await import("./voucher-template-publish-preflight");
+  const template = {
+    id: "missing-prepress",
+    key: "missing-prepress-v1",
+    label: "Bez prepress metadat",
+    status: "DRAFT" as const,
+    allowedTypes: [VoucherType.VALUE],
+    layout: voucherTemplateLayoutSchema.parse(defaultVoucherTemplateLayout),
+    masterSha256: createHash("sha256").update(masterBytes).digest("hex"),
+    masterBytes,
+  };
+
+  const result = await preflightVoucherTemplateForPublish({ ...template, allowedTypes: [...template.allowedTypes] });
+
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join(" "), /OutputIntent/);
+});
+
+test("strict runtime PRINT nevrátí PDF bez prepress kontraktu", async () => {
+  const { generateResolvedVoucherPrintPdf } = await import("./voucher-pdf-core");
+  const masterBytes = await readFile("src/features/vouchers/bootstrap-assets/classic-v1.pdf");
+  const template = {
+    id: "strict-runtime-invalid",
+    key: "strict-runtime-invalid-v1",
+    label: "Neplatný runtime master",
+    status: "PUBLISHED" as const,
+    allowedTypes: [VoucherType.VALUE],
+    layout: defaultVoucherTemplateLayout,
+    masterSha256: "test",
+    masterBytes,
+  };
+
+  await assert.rejects(
+    () => generateResolvedVoucherPrintPdf(buildVoucherFixture(), template, { requirePrepress: true }),
+    (error: unknown) => error instanceof VoucherTemplateError && error.code === "invalid_print_pdf",
+  );
+});
+
+test("publish preflight odmítne VALUE oblast, která zvládne 1 500 Kč, ale ne maximum", async () => {
+  const masterBytes = await makeStrictMaster(await readFile("src/features/vouchers/bootstrap-assets/classic-v1.pdf"));
   const { preflightVoucherTemplateForPublish } = await import("./voucher-template-publish-preflight");
   const layout = voucherTemplateLayoutSchema.parse({
     ...defaultVoucherTemplateLayout,
@@ -378,7 +434,7 @@ test("tiskové PDF zachová rám masteru na všech čtyřech hranách QR oblasti
     color: rgb(0.8, 0.8, 0.8), borderColor: rgb(1, 0, 0), borderWidth: mm(0.5),
   });
   const pdf = await generateResolvedVoucherPrintPdf(buildVoucherFixture(), {
-    ...requireVoucherTemplate("classic-v1"), layout: defaultVoucherTemplateLayout,
+    ...requireVoucherTemplate("classic-v1"), id: "qr-frame-test", status: "PUBLISHED", masterSha256: "test", allowedTypes: [...requireVoucherTemplate("classic-v1").allowedTypes], layout: defaultVoucherTemplateLayout,
     masterBytes: Buffer.from(await master.save()),
   } as Parameters<typeof generateResolvedVoucherPrintPdf>[1]);
   const { data, info } = await sharp(await renderVoucherTemplatePreview(Buffer.from(pdf))).removeAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -413,6 +469,45 @@ test("předtištěná stránka vykreslí pouze kód a QR a batch PDF má jednu s
   assert.equal(batchPdf.getPageCount(), 3);
   assert.deepEqual(roundBox(batchPdf.getPage(1).getTrimBox()), roundBox({ x: mm(3), y: mm(3), width: mm(210), height: mm(99) }));
   assert.notDeepEqual(getPageOverlayContent(batchPdf.getPage(0)), getPageOverlayContent(batchPdf.getPage(1)));
+});
+
+test("strict PRINT a STOCK zachovají OutputIntent, XMP a sdílený ICC profil", async () => {
+  const { generateResolvedVoucherBatchPrintPdf, generateResolvedVoucherPrintPdf, mm } = await import("./voucher-pdf-core");
+  const { preflightFinalVoucherPrint } = await import("./voucher-template-preflight");
+  const masterBytes = await makeStrictMaster(await readFile("src/features/vouchers/bootstrap-assets/classic-v1.pdf"));
+  const template = {
+    ...requireVoucherTemplate("classic-v1"),
+    id: "strict-prepress-test",
+    status: "PUBLISHED",
+    masterSha256: "test",
+    allowedTypes: [...requireVoucherTemplate("classic-v1").allowedTypes],
+    layout: defaultVoucherTemplateLayout,
+    masterBytes,
+  } as Parameters<typeof generateResolvedVoucherPrintPdf>[1];
+  const print = await generateResolvedVoucherPrintPdf(buildVoucherFixture(), template);
+  const printPreflight = await preflightFinalVoucherPrint(print, 1);
+  assert.deepEqual(printPreflight.errors, []);
+  assert.equal(printPreflight.pdfXVerification, "STRUCTURALLY_VALIDATED");
+  assert.equal(printPreflight.outputConditionIdentifier, "sRGB IEC61966-2.1 (test fixture)");
+
+  const stock = await generateResolvedVoucherBatchPrintPdf({
+    batchNumber: "TEST-PREPRESS",
+    items: [{ code: "PP-PRE-001" }, { code: "PP-PRE-002" }, { code: "PP-PRE-003" }],
+  }, template);
+  const stockPdf = await PDFDocument.load(stock, { updateMetadata: false });
+  const stockPreflight = await preflightFinalVoucherPrint(stock, 3);
+  assert.deepEqual(stockPreflight.errors, []);
+  assert.equal(stockPreflight.pdfXVerification, "STRUCTURALLY_VALIDATED");
+  assert.equal(stockPreflight.pageCount, 3);
+  for (const page of stockPdf.getPages()) {
+    assert.deepEqual(roundBox(page.getMediaBox()), roundBox({ x: 0, y: 0, width: mm(216), height: mm(105) }));
+    assert.deepEqual(roundBox(page.getCropBox()), roundBox({ x: 0, y: 0, width: mm(216), height: mm(105) }));
+    assert.deepEqual(roundBox(page.getBleedBox()), roundBox({ x: 0, y: 0, width: mm(216), height: mm(105) }));
+    assert.deepEqual(roundBox(page.getTrimBox()), roundBox({ x: mm(3), y: mm(3), width: mm(210), height: mm(99) }));
+  }
+  assert.notDeepEqual(getPageOverlayContent(stockPdf.getPage(0)), getPageOverlayContent(stockPdf.getPage(1)));
+  const iccStreams = stockPdf.context.enumerateIndirectObjects().filter(([, object]) => object instanceof PDFStream && object.dict.get(PDFName.of("N")));
+  assert.ok(iccStreams.length <= 2, `ICC streamů je ${iccStreams.length}, očekáváno nejvýše 2 sdílené profily.`);
 });
 
 function roundBox(box: { x?: number; y?: number; width: number; height: number }) {

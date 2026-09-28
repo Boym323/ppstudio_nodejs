@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Tiskový PRINT a STOCK export voucherů nyní zachovává dokumentový OutputIntent s ICC profilem masteru, vytváří konzistentní PDF/X-4 XMP metadata a sdílí neměnné master resources napříč vícestránkovou sérií; strict preflight nevyhovující tiskové mastery odmítne.
 - Publikovaný náhled voucherové šablony nyní vykresluje textové placeholdery podle absolutní pozice uložené baseline; po publikaci se už nesesunou k horní hraně náhledu.
 - QR kód v PDF má včetně bílého podkladu a ochranné zóny odsazení 0,5 mm od hran své oblasti, aby nepřekrýval ohraničení v tiskovém podkladu; editor zobrazuje stejný výsledek.
 - Editor voucherových šablon nyní zobrazuje obsah pouze z náhledu vyrenderovaného stejným testovacím PDF, takže QR rámečky a polohy textů odpovídají exportu i u masterů s vlastními překryvy.

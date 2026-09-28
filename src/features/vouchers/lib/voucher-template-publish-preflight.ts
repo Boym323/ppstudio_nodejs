@@ -26,7 +26,7 @@ export async function preflightVoucherTemplateForPublish(template: ResolvedVouch
     const voucher = { templateId: template.id, templateKey: template.key, code: "TEST-2026-ABCDEF", type: scenario.type, originalValueCzk: valueCzk, remainingValueCzk: scenario.type === VoucherType.VALUE ? valueCzk : null, serviceNameSnapshot: scenario.serviceName ?? null, servicePriceSnapshotCzk: scenario.type === VoucherType.SERVICE ? 1500 : null, validUntil: new Date("2027-12-31T22:59:59.999Z") } as Parameters<typeof generateResolvedVoucherPrintPdf>[0];
 
     try {
-      const print = await preflightFinalVoucherPrint(await generateResolvedVoucherPrintPdf(voucher, template, { failOnTextOverflow: true }));
+      const print = await preflightFinalVoucherPrint(await generateResolvedVoucherPrintPdf(voucher, template, { failOnTextOverflow: true }), 1);
       const digitalPdf = await PDFDocument.load(await generateResolvedVoucherDigitalPdf(voucher, template, { failOnTextOverflow: true }));
       const digitalPage = digitalPdf.getPage(0);
       if (print.errors.length || !print.geometryValid) errors.push(...print.errors, "Finální PRINT nemá očekávanou geometrii.");
@@ -42,7 +42,7 @@ export async function preflightVoucherTemplateForPublish(template: ResolvedVouch
   }
 
   try {
-    const stock = await preflightFinalVoucherPrint(await generateResolvedVoucherBatchPrintPdf({ batchNumber: "TEST-001", items: [{ code: "TEST-2026-ABCDEF" }] }, template, { failOnTextOverflow: true }));
+    const stock = await preflightFinalVoucherPrint(await generateResolvedVoucherBatchPrintPdf({ batchNumber: "TEST-001", items: [{ code: "TEST-2026-ABCDEF" }] }, template, { failOnTextOverflow: true }), 1);
     if (stock.errors.length || !stock.geometryValid) errors.push(...stock.errors, "Finální STOCK nemá očekávanou geometrii.");
   } catch (error) {
     if (error instanceof VoucherTemplateError && error.code === "text_overflow") errors.push(error.message);

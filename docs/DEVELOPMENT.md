@@ -33,7 +33,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 - `VoucherTemplate` je verzovaný immutable master: draft lze upravit, `PUBLISHED` a `INACTIVE` se nikdy nepřepisují. Nový design vzniká klonem do nové verze.
 - Master PDF je privátní soubor v `MEDIA_STORAGE_ROOT/private/voucher-templates`; databáze drží pouze relativní cestu a SHA-256. Pro first rollout spusť explicitně `npm run voucher:templates:bootstrap` po migraci, nikdy při web requestu.
 - `Voucher.templateId`, `VoucherPrintBatch.templateId` a `SiteSettings.voucherDefaultTemplateId` jsou referenční vazby. Default musí odkazovat na publikovanou šablonu; před deaktivací jej změň.
-- PRINT (216 × 105 mm), DIGITAL (vektorový crop 210 × 99 mm) i STOCK používají stejný persistentní master. PDF/X-4 conformity renderer neověřuje; preflight proto reportuje `NOT VERIFIED`, ale kontroluje geometrii a čitelnost PDF.
+- PRINT (216 × 105 mm), DIGITAL (vektorový crop 210 × 99 mm) i STOCK používají stejný persistentní master. Tiskový preflight strukturálně kontroluje geometrii, OutputIntent/ICC, katalogová PDF/X-4 XMP metadata, rotaci, encryption a všechny stránky; bez externího PDF/X validátoru reportuje `STRUCTURALLY_VALIDATED`, nikoli externí certifikaci.
 
 ### Vývoj e-mailů
 
