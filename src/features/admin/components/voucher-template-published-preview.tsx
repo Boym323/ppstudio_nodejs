@@ -7,8 +7,8 @@ import type { VoucherTemplateLayoutV1 } from "@/features/vouchers/lib/voucher-te
 import {
   fitVoucherTemplatePreviewText,
   createVoucherTemplatePreviewQr,
-  getVoucherTemplatePreviewBaselineTopMm,
 } from "./voucher-template-layout-preview";
+import { getVoucherTextBaselineBrowserTopMm } from "@/features/vouchers/lib/voucher-template-layout";
 import { cn } from "@/lib/utils";
 
 type PreviewMode = "VALUE" | "SERVICE" | "STOCK";
@@ -71,7 +71,9 @@ function Placeholder({ area, label, isQr, qr }: { area: VoucherTemplateLayoutV1[
     : null;
   const fontSizePt = fit?.fontSizePt ?? typography?.preferredFontSizePt ?? 8;
   const fontSize = `${Math.max(1.8, fontSizePt * 25.4 / 72 / 216 * 100)}cqw`;
-  const baselineTop = "baselineMm" in area ? getVoucherTemplatePreviewBaselineTopMm(area) : null;
+  // This span is positioned against the whole voucher, so use the absolute
+  // browser-top baseline. The editor canvas uses a local offset instead.
+  const baselineTop = "baselineMm" in area ? getVoucherTextBaselineBrowserTopMm(area) : null;
   const baselineAscentMm = fontSizePt * 25.4 / 72 * 1.07;
   return (
     <span

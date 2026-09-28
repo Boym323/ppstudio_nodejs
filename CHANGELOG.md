@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Publikovaný náhled voucherové šablony nyní vykresluje textové placeholdery podle absolutní pozice uložené baseline; po publikaci se už nesesunou k horní hraně náhledu.
 - QR kód v PDF má včetně bílého podkladu a ochranné zóny odsazení 0,5 mm od hran své oblasti, aby nepřekrýval ohraničení v tiskovém podkladu; editor zobrazuje stejný výsledek.
 - Editor voucherových šablon nyní zobrazuje obsah pouze z náhledu vyrenderovaného stejným testovacím PDF, takže QR rámečky a polohy textů odpovídají exportu i u masterů s vlastními překryvy.
 - Vybranou oblast voucherové šablony lze nyní jemně posouvat šipkami po 0,1 mm, případně se Shiftem po 1 mm.
@@ -33,6 +34,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Rámečky aktivních oblastí ve voucherovém editoru jsou nyní tenčí, bez překrývající výplně a s menšími rohovými úchyty, takže méně zakrývají podklad při pozicování.
 - Uzamčený náhled publikovaných voucherových šablon nyní umožňuje zobrazit placeholdery podle technických souřadnic layoutu pro hodnotu, službu i předtištěný voucher.
 - Výběr vzhledu při tvorbě tiskové série nyní zobrazuje náhled každé voucherové šablony.
 - Voucher Template Editor má přepracovanou pracovní plochu s klidnějším overlayem, českými názvy oblastí, segmented preview režimy, přepínatelnými vodítky a hierarchicky rozdělenými základními a pokročilými vlastnostmi; editor zachovává drag, resize, snap, typografii a ukládání layoutu.

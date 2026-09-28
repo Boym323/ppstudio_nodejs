@@ -200,7 +200,7 @@ test("editor používá pro obsah náhled vyrenderovaný stejným PDF rendererem
   assert.match(source, /-top-6 left-0 z-20/);
   assert.match(source, /labels\[key\]/);
   assert.match(source, /relative .*overflow-visible border/);
-  assert.match(source, /isQrArea \? "z-20 border-2 border-dashed/);
+  assert.match(source, /isQrArea \? "z-20 border border-dashed/);
   assert.match(source, /QR kód/);
   assert.match(source, /useState<AreaKey \| null>\("valueArea"\)/);
   assert.match(source, /onClick=\{\(\) => setSelected\(null\)\}/);
@@ -227,5 +227,5 @@ test("uzamčený náhled používá fitting a baseline layoutu", async () => {
   const source = await readFile(new URL("./voucher-template-published-preview.tsx", import.meta.url), "utf8");
 
   assert.match(source, /fitVoucherTemplatePreviewText\(label, area as VoucherTemplateLayoutV1\["valueArea"\]\)/);
-  assert.match(source, /getVoucherTemplatePreviewBaselineTopMm\(area\)/);
+  assert.match(source, /getVoucherTextBaselineBrowserTopMm\(area\)/);
 });
