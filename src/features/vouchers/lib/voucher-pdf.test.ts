@@ -8,7 +8,7 @@ import { VoucherStatus, VoucherType } from "@/generated/prisma/browser";
 import { PDFArray, PDFDict, PDFDocument, PDFName, PDFRawStream, PDFStream, PDFString, decodePDFRawStream, rgb } from "pdf-lib";
 import { defaultVoucherTemplateLayout } from "./voucher-template-defaults";
 import { voucherTemplateLayoutSchema, voucherTemplateStoredLayoutSchema } from "./voucher-template-layout";
-import { ensurePrintPdfMetadata } from "./voucher-pdf-prepress";
+import { ensurePrintPdfMetadata, inspectIccProfile } from "./voucher-pdf-prepress";
 
 import {
   createVoucherTemplateRegistry,
@@ -38,6 +38,18 @@ function makeTestCmykIccProfile() {
   bytes.write("acsp", 36, "ascii");
   return bytes;
 }
+
+test("ICC profile version čte major z byte 8 a minor/bugfix z byte 9", () => {
+  for (const [header, expected] of [
+    [[0x02, 0x40, 0x00, 0x00], "2.4.0"],
+    [[0x04, 0x20, 0x00, 0x00], "4.2.0"],
+    [[0x04, 0x30, 0x00, 0x00], "4.3.0"],
+  ] as const) {
+    const profile = makeTestCmykIccProfile();
+    profile.set(header, 8);
+    assert.equal(inspectIccProfile(profile).version, expected);
+  }
+});
 
 async function makeStrictMaster(masterBytes: Buffer) {
   const pdf = await PDFDocument.load(masterBytes, { updateMetadata: false });

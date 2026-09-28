@@ -95,7 +95,7 @@ function readUInt32(bytes: Uint8Array, offset: number) {
 }
 
 function readVersion(bytes: Uint8Array) {
-  return bytes.length >= 12 ? `${bytes[8] >> 4}.${bytes[8] & 0x0f}.${bytes[9] >> 4}` : null;
+  return bytes.length >= 12 ? `${bytes[8]}.${bytes[9] >> 4}.${bytes[9] & 0x0f}` : null;
 }
 
 function readTag(bytes: Uint8Array, tagSignature: string) {
