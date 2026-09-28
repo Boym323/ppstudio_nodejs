@@ -152,8 +152,8 @@ async function main() {
   assert.equal(serviceActivation.kind, "activated");
 
   const [valueVerification, serviceVerification] = await Promise.all([
-    verifyVoucherPublic({ code: items[0]!.code }, new Date("2026-09-29T12:00:00.000Z")),
-    verifyVoucherPublic({ code: items[1]!.code }, new Date("2026-09-29T12:00:00.000Z")),
+    verifyVoucherPublic({ code: items[0]!.code, now: new Date("2026-09-29T12:00:00.000Z") }),
+    verifyVoucherPublic({ code: items[1]!.code, now: new Date("2026-09-29T12:00:00.000Z") }),
   ]);
   assert.equal(valueVerification.ok, true);
   assert.equal(serviceVerification.ok, true);
