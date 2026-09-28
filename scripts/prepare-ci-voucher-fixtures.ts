@@ -1,5 +1,8 @@
 import "dotenv/config";
 
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
 import { AdminRole } from "@/generated/prisma/client";
 import { bootstrapVoucherTemplates } from "@/features/vouchers/lib/voucher-template-bootstrap";
 import { hashPassword } from "@/lib/auth/password";
@@ -48,11 +51,13 @@ async function prepareCiVoucherFixtures() {
     },
   });
 
-  // CI používá stejnou bootstrap cestu jako production first rollout.
-  // Ověřuje tak historický classic-v1 i strict classic-v2 bez test-only override.
-  const result = await bootstrapVoucherTemplates();
+  // Běžné integrační/E2E fixture zůstávají kompatibilní se scénáři, které
+  // historicky používají key classic-v1 jako strict testovací šablonu.
+  // Skutečný production first-rollout je samostatně ověřen smoke gate skriptem.
+  const strictCiMaster = await readFile(path.join(process.cwd(), "src", "features", "vouchers", "bootstrap-assets", "classic-v2.pdf"));
+  const result = await bootstrapVoucherTemplates({ readMaster: async () => strictCiMaster });
   console.info(
-    `CI voucher fixtures připraveny; backfill=${result.backfilledVouchers}; remainingNulls=${result.remainingNulls}; default=${result.defaultTemplateId}.`,
+    `CI voucher fixtures připraveny; backfill=${result.backfilledVouchers}; remainingNulls=${result.remainingNulls}.`,
   );
 }
 
