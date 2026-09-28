@@ -29,6 +29,9 @@ const images = streams.filter(([, object]) => object.dict.lookupMaybe(PDFName.of
 const embeddedFontStreams = streams.filter(([, object]) => object.dict.get(PDFName.of("Length1")) || object.dict.get(PDFName.of("FontFile")) || object.dict.get(PDFName.of("FontFile2")) || object.dict.get(PDFName.of("FontFile3")));
 const fontDictionaries = objects.filter(([, object]) => object instanceof PDFDict && object.lookupMaybe(PDFName.of("Type"), PDFName)?.asString() === "/Font");
 const bytes = await readFile(filePath);
+const pdfVersion = /^%PDF-(\d+\.\d+)/.exec(bytes.subarray(0, 16).toString("latin1"))?.[1] ?? null;
+const [pdfMajor, pdfMinor] = pdfVersion?.split(".").map(Number) ?? [];
+const pdfVersionValid = Number.isInteger(pdfMajor) && Number.isInteger(pdfMinor) && pdfMajor * 10 + pdfMinor >= 16;
 const describe = (object) => {
   if (object instanceof PDFName) return object.asString();
   if (object instanceof PDFRef) return `${object.objectNumber} ${object.generationNumber} R`;
@@ -74,10 +77,10 @@ const geometryValid = pages.length > 0 && pages.every((page) => {
     && Math.abs(mm(trim.height) - 99) < 0.01
     && page.getRotation().angle === 0;
 });
-const pass = !pdf.isEncrypted && geometryValid && metadata.outputIntent.valid && metadata.xmp.valid;
+const pass = !pdf.isEncrypted && pdfVersionValid && geometryValid && metadata.outputIntent.valid && metadata.xmp.valid && !metadata.pdfXConformanceInfoPresent;
 
 console.log(`Pages: ${pages.length}`);
-console.log(`PDF version: ${bytes.subarray(0, 12).toString("latin1").match(/^%PDF-(\d\.\d)/)?.[1] ?? "unknown"}`);
+console.log(`PDF version: ${pdfVersion ?? "unknown"} (${pdfVersionValid ? "PASS" : "FAIL"})`);
 console.log(`MediaBox: ${first ? formatBox(first.getMediaBox()) : "missing"}`);
 console.log(`TrimBox: ${first ? formatBox(first.getTrimBox()) : "missing"}`);
 console.log(`BleedBox: ${first ? formatBox(first.getBleedBox()) : "missing"}`);
@@ -91,6 +94,8 @@ for (const icc of iccObjects) {
   console.log(`Embedded ICC ${icc.ref}: ${icc.profile?.valid ? "VALID" : "INVALID"}, decodedSize=${icc.size}, encodedSize=${icc.encodedSize}, N=${icc.channels}, signature=${icc.profile?.signatureValid ? "acsp" : "invalid"}, class=${icc.profile?.profileClass ?? "unknown"}, colorSpace=${icc.profile?.colorSpace ?? "unknown"}, PCS=${icc.profile?.pcs ?? "unknown"}, description=${icc.profile?.description ?? "unknown"}`);
 }
 console.log(`PDF/X declaration: ${metadata.xmp.claim ?? "missing"}`);
+console.log(`PDF/X properties: ${metadata.xmp.pdfxidProperties.join(", ") || "none"}`);
+console.log(`PDF/X conformance Info key: ${metadata.pdfXConformanceInfoPresent ? "FAIL" : "PASS"}`);
 console.log(`PDF/X structural checks: ${pass ? "PASS" : "FAIL"}`);
 console.log(`Fonts: ${fontDictionaries.length} dictionaries, ${embeddedFontStreams.length} embedded streams`);
 console.log(`Images: ${images.length}`);

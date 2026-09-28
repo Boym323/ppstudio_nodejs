@@ -499,6 +499,7 @@ test("strict PRINT a STOCK zachovají OutputIntent, XMP a sdílený ICC profil",
   const print = await generateResolvedVoucherPrintPdf(buildVoucherFixture(), template);
   const printPreflight = await preflightFinalVoucherPrint(print, 1);
   assert.deepEqual(printPreflight.errors, []);
+  assert.equal(printPreflight.pdfVersion, "1.7");
   assert.equal(printPreflight.pdfXVerification, "STRUCTURALLY_VALIDATED");
   assert.equal(printPreflight.outputConditionIdentifier, "sRGB IEC61966-2.1 (test fixture)");
 
@@ -509,6 +510,7 @@ test("strict PRINT a STOCK zachovají OutputIntent, XMP a sdílený ICC profil",
   const stockPdf = await PDFDocument.load(stock, { updateMetadata: false });
   const stockPreflight = await preflightFinalVoucherPrint(stock, 3);
   assert.deepEqual(stockPreflight.errors, []);
+  assert.equal(stockPreflight.pdfVersion, "1.7");
   assert.equal(stockPreflight.pdfXVerification, "STRUCTURALLY_VALIDATED");
   assert.equal(stockPreflight.pageCount, 3);
   for (const page of stockPdf.getPages()) {

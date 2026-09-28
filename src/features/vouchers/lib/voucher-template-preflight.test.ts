@@ -125,6 +125,16 @@ test("preflight finalu kontroluje všechny stránky a očekávaný počet", asyn
   assert.equal(result.pdfXVerification, "DECLARED");
 });
 
+test("preflight odmítne PDF/X-4 PDF verzi nižší než 1.6", async () => {
+  const bytes = await makeMaster(0);
+  bytes.write("%PDF-1.5", 0, "ascii");
+  const result = await preflightVoucherTemplateMaster(bytes);
+
+  assert.equal(result.pdfVersion, "1.5");
+  assert.match(result.errors.join(" "), /minimálně 1\.6/);
+  assert.equal(result.pdfXVerification, "DECLARED");
+});
+
 test("preflight odmítne neplatné PDF", async () => {
   const result = await preflightVoucherTemplateMaster(Buffer.from("not a PDF"));
 

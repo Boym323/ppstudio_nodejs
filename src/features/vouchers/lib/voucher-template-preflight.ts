@@ -11,6 +11,7 @@ type PdfPreflightMode = "MASTER" | "FINAL_PRINT";
 export type PdfXVerification = "DECLARED" | "STRUCTURALLY_VALIDATED" | "EXTERNALLY_VERIFIED";
 
 export type VoucherTemplatePreflight = {
+  pdfVersion: string | null;
   pageCount: number;
   mediaBox: PdfBox | null;
   cropBox: PdfBox | null;
@@ -47,6 +48,7 @@ function normalizeRotation(angle: number) {
 
 function emptyPreflight(overrides: Partial<VoucherTemplatePreflight> = {}): VoucherTemplatePreflight {
   return {
+    pdfVersion: null,
     pageCount: 0,
     mediaBox: null,
     cropBox: null,
@@ -78,20 +80,24 @@ function formatBox(name: string, box: PdfBox | null) {
 }
 
 async function inspectVoucherPdf(bytes: Buffer, mode: PdfPreflightMode, expectedPageCount?: number): Promise<VoucherTemplatePreflight> {
+  const pdfVersion = /^%PDF-(\d+\.\d+)/.exec(Buffer.from(bytes.subarray(0, 16)).toString("latin1"))?.[1] ?? null;
   let pdf: PDFDocument;
   try {
     // ignoreEncryption lets us report encryption explicitly instead of
     // collapsing it into the generic invalid-PDF error.
     pdf = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
   } catch {
-    return emptyPreflight({ errors: ["PDF nelze načíst nebo je neplatné."] });
+    return emptyPreflight({ pdfVersion, errors: ["PDF nelze načíst nebo je neplatné."] });
   }
 
-  if (pdf.isEncrypted) return emptyPreflight({ encrypted: true, errors: ["PDF je zašifrované; tiskové PDF nesmí být šifrované."] });
+  if (pdf.isEncrypted) return emptyPreflight({ pdfVersion, encrypted: true, errors: ["PDF je zašifrované; tiskové PDF nesmí být šifrované."] });
 
   const pageCount = pdf.getPageCount();
   const errors: string[] = [];
   const warnings: string[] = [];
+  const [pdfMajor, pdfMinor] = pdfVersion?.split(".").map(Number) ?? [];
+  const pdfVersionValid = Number.isInteger(pdfMajor) && Number.isInteger(pdfMinor) && pdfMajor * 10 + pdfMinor >= 16;
+  if (!pdfVersionValid) errors.push(`PDF verze ${pdfVersion ?? "neznámá"} je pro PDF/X-4 nedostatečná; vyžadována je minimálně 1.6.`);
   const expectedPageCountForMode = mode === "MASTER" ? 1 : expectedPageCount;
   if (expectedPageCountForMode !== undefined && pageCount !== expectedPageCountForMode) {
     errors.push(`${mode === "MASTER" ? "Master" : "Finální tiskové PDF"} má mít ${expectedPageCountForMode} ${expectedPageCountForMode === 1 ? "stránku" : "stránky"}, zjištěno ${pageCount}.`);
@@ -131,6 +137,7 @@ async function inspectVoucherPdf(bytes: Buffer, mode: PdfPreflightMode, expected
   else if (!metadata.outputIntent.profileValid) errors.push("DestOutputProfile není platný ICC stream.");
   if (!metadata.xmp.present) errors.push("PDF nemá katalogová PDF/X XMP metadata.");
   else if (!metadata.xmp.valid) errors.push("PDF/X XMP metadata nedeklarují PDF/X-4.");
+  if (metadata.pdfXConformanceInfoPresent) errors.push("PDF Info dictionary nesmí obsahovat GTS_PDFXConformance pro PDF/X-4.");
 
   if (metadata.xmp.claim && !metadata.xmp.valid) warnings.push(`PDF obsahuje deklaraci ${metadata.xmp.claim}, ale neprošla interní kontrolou.`);
   if (metadata.outputIntent.outputConditionIdentifier) warnings.push(`Output condition: ${metadata.outputIntent.outputConditionIdentifier}.`);
@@ -139,6 +146,7 @@ async function inspectVoucherPdf(bytes: Buffer, mode: PdfPreflightMode, expected
   const pdfXVerification: PdfXVerification = structurallyValid ? "STRUCTURALLY_VALIDATED" : "DECLARED";
 
   return {
+    pdfVersion,
     pageCount,
     mediaBox,
     cropBox,

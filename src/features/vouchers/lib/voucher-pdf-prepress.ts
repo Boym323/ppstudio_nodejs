@@ -18,7 +18,7 @@ const METADATA = PDFName.of("Metadata");
 const TYPE = PDFName.of("Type");
 const SUBTYPE = PDFName.of("Subtype");
 const XML = PDFName.of("XML");
-const PDF_X4_VERSION = "PDF/X-4:2010";
+const PDF_X4_VERSION = "PDF/X-4";
 
 export type PdfOutputIntentInspection = {
   present: boolean;
@@ -47,12 +47,15 @@ export type PdfXmpInspection = {
   present: boolean;
   valid: boolean;
   claim: string | null;
+  pdfxidProperties: string[];
+  hasConformanceProperty: boolean;
   raw: string | null;
 };
 
 export type PdfPrepressMetadataInspection = {
   outputIntent: PdfOutputIntentInspection;
   xmp: PdfXmpInspection;
+  pdfXConformanceInfoPresent: boolean;
 };
 
 function getCatalogArray(pdf: PDFDocument) {
@@ -199,15 +202,33 @@ export function inspectPdfPrepressMetadata(pdf: PDFDocument): PdfPrepressMetadat
       ?? /GTS_PDFXVersion\s*=\s*["']([^"']+)["']/i.exec(raw)?.[1]?.trim()
       ?? null
     : null;
+  const pdfxidProperties = raw ? Array.from(raw.matchAll(/<pdfxid:([^>\s]+)[^>]*>/gi), (match) => match[1]) : [];
+  const hasConformanceProperty = Boolean(raw && /GTS_PDFXConformance/i.test(raw));
+  const pdfXConformanceInfoPresent = (() => {
+    const infoDictionary = pdf.context.trailerInfo.Info
+      ? pdf.context.lookupMaybe(pdf.context.trailerInfo.Info, PDFDict)
+      : undefined;
+    return Boolean(infoDictionary && Array.from(infoDictionary.keys()).some((key) => key.asString() === "/GTS_PDFXConformance"));
+  })();
 
   const xmp: PdfXmpInspection = {
     present: Boolean(metadata && metadataType === "/Metadata" && metadataSubtype === XML.asString() && raw),
-    valid: Boolean(metadata && metadataType === "/Metadata" && metadataSubtype === XML.asString() && claim?.startsWith("PDF/X-4")),
+    valid: Boolean(
+      metadata
+      && metadataType === "/Metadata"
+      && metadataSubtype === XML.asString()
+      && claim === PDF_X4_VERSION
+      && pdfxidProperties.length === 1
+      && pdfxidProperties[0] === "GTS_PDFXVersion"
+      && !hasConformanceProperty,
+    ),
     claim,
+    pdfxidProperties,
+    hasConformanceProperty,
     raw,
   };
 
-  return { outputIntent, xmp };
+  return { outputIntent, xmp, pdfXConformanceInfoPresent };
 }
 
 function buildPdfX4Xmp() {
