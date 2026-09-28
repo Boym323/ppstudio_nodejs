@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Chyby validace PDF při publikaci voucherové šablony se nyní zobrazí administrátorovi jako srozumitelné hlášení místo neodchycené chyby v prohlížeči.
 - CI fixture bootstrap nyní používá strict `classic-v2` master pod legacy testovacím klíčem `classic-v1`, takže historický PDF 1.4 master není omylem posuzován jako nový PDF/X-4 výstup; publikovaný náhled zároveň neprovádí synchronní změnu React state v efektu.
 - Prepress inspekce ICC profilů nyní správně reportuje verzi podle ICC header encoding, takže oficiální ColorPoint profil je uváděn jako `2.4.0` místo `0.2.4`; profilové bytes, OutputIntent i SHA-256 se nemění.
 - Připraven nový immutable `classic-v2` master pro ColorPoint/Fujifilm Revoria uncoated workflow s originálním CMYK OutputIntent profilem; historický `classic-v1` ani produkční default se automaticky nemění.

@@ -16,7 +16,7 @@ import { voucherTemplateStoredLayoutSchema } from "@/features/vouchers/lib/vouch
 import { requireVoucherTemplateById } from "@/features/vouchers/lib/voucher-template-repository";
 import { requireRole } from "@/lib/auth/session";
 
-export default async function VoucherTemplateDetailPage({ params }: { params: Promise<{ templateId: string }> }) {
+export default async function VoucherTemplateDetailPage({ params, searchParams }: { params: Promise<{ templateId: string }>; searchParams: Promise<{ error?: string }> }) {
   await requireRole([AdminRole.OWNER]);
   let template;
   try {
@@ -26,6 +26,7 @@ export default async function VoucherTemplateDetailPage({ params }: { params: Pr
   }
 
   const templateId = template.id;
+  const errorMessage = (await searchParams).error;
   const statusLabel = template.status === "DRAFT" ? "Draft" : template.status === "PUBLISHED" ? "Publikováno" : "Neaktivní";
   const statusDescription = template.status === "DRAFT" ? "v přípravě" : template.status === "PUBLISHED" ? "publikovaná" : "neaktivní";
   const statusTone = template.status === "DRAFT" ? "accent" : template.status === "PUBLISHED" ? "active" : "muted";
@@ -55,6 +56,7 @@ export default async function VoucherTemplateDetailPage({ params }: { params: Pr
       }
     >
       <div className="space-y-5">
+        {errorMessage ? <div role="alert" className="rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">{errorMessage}</div> : null}
         <AdminVoucherTabs area="owner" active="templates" />
         <section className="rounded-[var(--radius-panel)] border border-white/10 bg-white/[0.035] p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-4">

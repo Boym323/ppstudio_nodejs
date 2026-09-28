@@ -14,6 +14,7 @@ import {
   replaceVoucherTemplateMaster,
   updateVoucherTemplateDraft,
 } from "@/features/vouchers/lib/voucher-template-domain";
+import { VoucherTemplateDomainError } from "@/features/vouchers/lib/voucher-template-errors";
 import { voucherTemplateLayoutSchema, type VoucherTemplateLayoutV1 } from "@/features/vouchers/lib/voucher-template-layout";
 import { generateResolvedVoucherDigitalPdf } from "@/features/vouchers/lib/voucher-pdf";
 import { requireVoucherTemplateById, resolveVoucherTemplate } from "@/features/vouchers/lib/voucher-template-repository";
@@ -57,7 +58,14 @@ export async function saveVoucherTemplateLayoutAction(templateId: string, layout
 
 export async function publishVoucherTemplateAction(templateId: string) {
   const session = await requireRole([AdminRole.OWNER]);
-  await publishVoucherTemplate(templateId, session.sub);
+  try {
+    await publishVoucherTemplate(templateId, session.sub);
+  } catch (error) {
+    if (error instanceof VoucherTemplateDomainError) {
+      redirect(`/admin/vouchery/sablony/${templateId}?error=${encodeURIComponent(error.message)}`);
+    }
+    throw error;
+  }
   revalidatePath(`/admin/vouchery/sablony/${templateId}`);
   revalidatePath("/admin/vouchery/sablony");
 }
