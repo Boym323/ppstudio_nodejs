@@ -11,7 +11,7 @@
     "clean:e2e": "rm -rf .next-e2e",
     "predev": "prisma generate",
     "dev": "next dev",
-    "dev:clean": "npm run clean && npm run dev",
+    "dev:clean": "npm run clean && npm run db:check-migrations && prisma migrate status && npm run dev",
     "dev:fast": "next dev",
     "dev:clean:fast": "npm run clean && next dev",
     "dev:webpack": "next dev --webpack",
