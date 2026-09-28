@@ -125,6 +125,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify voucher production first rollout
+        timeout-minutes: 8
+        run: npm run ci:verify-voucher-first-rollout
+
       - name: Prepare database
         run: |
           npx prisma migrate deploy
