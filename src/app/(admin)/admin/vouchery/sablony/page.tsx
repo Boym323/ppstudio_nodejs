@@ -5,13 +5,15 @@ import { AdminVoucherTabs } from "@/features/admin/components/admin-voucher-stoc
 import { listOwnerVoucherTemplates } from "@/features/vouchers/lib/voucher-template-repository";
 import { requireRole } from "@/lib/auth/session";
 
-export default async function VoucherTemplatesPage() {
+export default async function VoucherTemplatesPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   await requireRole([AdminRole.OWNER]);
   const templates = await listOwnerVoucherTemplates();
+  const errorMessage = (await searchParams).error;
 
   return (
     <AdminPageShell eyebrow="Vouchery" title="Šablony voucherů" description="Verzované PDF mastery a dynamický layout.">
       <div className="space-y-4">
+        {errorMessage ? <div role="alert" className="rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">{errorMessage}</div> : null}
         <AdminVoucherTabs area="owner" active="templates" />
         <div className="space-y-3">
           <Link className="inline-flex rounded-xl bg-[var(--color-accent)] px-4 py-2 font-semibold text-black" href="/admin/vouchery/sablony/nova">Nová šablona</Link>

@@ -5,12 +5,14 @@ import { AdminPageShell } from "@/features/admin/components/admin-page-shell";
 import { AdminVoucherTabs } from "@/features/admin/components/admin-voucher-stock-pages";
 import { requireRole } from "@/lib/auth/session";
 
-export default async function NewVoucherTemplatePage() {
+export default async function NewVoucherTemplatePage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   await requireRole([AdminRole.OWNER]);
+  const errorMessage = (await searchParams).error;
 
   return (
     <AdminPageShell eyebrow="Vouchery / Šablony" title="Vytvořit šablonu" description="Začněte novým draftem. Publikované verze zůstávají neměnné.">
       <div className="space-y-4">
+        {errorMessage ? <div role="alert" className="max-w-2xl rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">{errorMessage}</div> : null}
         <AdminVoucherTabs area="owner" active="templates" />
         <form action={createVoucherTemplateAction} className="max-w-2xl rounded-[var(--radius-panel)] border border-white/10 bg-white/[0.035] p-5 sm:p-7">
           <div className="max-w-xl"><p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent-soft)]">Nový design</p><h3 className="mt-2 font-display text-2xl text-white sm:text-3xl">Pojmenujte voucherovou šablonu</h3><p className="mt-3 text-sm leading-6 text-white/65">Vytvoříme pracovní draft s výchozím layoutem. PDF master a přesné pozice upravíte v dalším kroku.</p></div>
