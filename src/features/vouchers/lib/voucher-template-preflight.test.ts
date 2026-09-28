@@ -9,6 +9,18 @@ import { ensurePrintPdfMetadata } from "./voucher-pdf-prepress";
 
 const mm = (value: number) => value * 72 / 25.4;
 
+// TEST ONLY: minimal deterministic ICC v4 CMYK header for structural tests.
+function makeTestCmykIccProfile() {
+  const bytes = Buffer.alloc(128);
+  bytes.writeUInt32BE(bytes.length, 0);
+  bytes[8] = 0x43;
+  bytes.write("prtr", 12, "ascii");
+  bytes.write("CMYK", 16, "ascii");
+  bytes.write("XYZ ", 20, "ascii");
+  bytes.write("acsp", 36, "ascii");
+  return bytes;
+}
+
 async function makeMaster(rotation: number, withPrepress = true) {
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([mm(VOUCHER_PRINT_GEOMETRY.widthMm), mm(VOUCHER_PRINT_GEOMETRY.heightMm)]);
@@ -38,7 +50,7 @@ async function makeMasterWithoutExplicitBleedBox() {
 }
 
 function addTestOutputIntent(pdf: PDFDocument) {
-  const profile = pdf.context.stream(Buffer.from("test ICC profile"), { N: 3 });
+  const profile = pdf.context.stream(makeTestCmykIccProfile(), { N: 4 });
   const profileRef = pdf.context.register(profile);
   const outputIntent = pdf.context.obj({
     Type: "OutputIntent",

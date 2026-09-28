@@ -28,6 +28,19 @@ export type PdfOutputIntentInspection = {
   profileValid: boolean;
   outputConditionIdentifier: string | null;
   info: string | null;
+  iccProfile: IccProfileInspection | null;
+};
+
+export type IccProfileInspection = {
+  valid: boolean;
+  declaredSize: number | null;
+  signatureValid: boolean;
+  profileClass: string | null;
+  colorSpace: string | null;
+  pcs: string | null;
+  version: string | null;
+  description: string | null;
+  errors: string[];
 };
 
 export type PdfXmpInspection = {
@@ -63,6 +76,69 @@ function getStreamType(stream: PDFStream, key: PDFName) {
   return stream.dict.lookupMaybe(key, PDFName);
 }
 
+function readSignature(bytes: Uint8Array, offset: number) {
+  return bytes.length >= offset + 4 ? Buffer.from(bytes.subarray(offset, offset + 4)).toString("ascii") : null;
+}
+
+function readUInt32(bytes: Uint8Array, offset: number) {
+  return bytes.length >= offset + 4
+    ? ((bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3]) >>> 0
+    : null;
+}
+
+function readVersion(bytes: Uint8Array) {
+  return bytes.length >= 12 ? `${bytes[8] >> 4}.${bytes[8] & 0x0f}.${bytes[9] >> 4}` : null;
+}
+
+function readTagDescription(bytes: Uint8Array, tagSignature: string) {
+  const tagCount = readUInt32(bytes, 128);
+  if (tagCount === null || bytes.length < 132 + tagCount * 12) return null;
+  for (let index = 0; index < tagCount; index += 1) {
+    const offset = 132 + index * 12;
+    if (readSignature(bytes, offset) !== tagSignature) continue;
+    const tagOffset = readUInt32(bytes, offset + 4);
+    const tagSize = readUInt32(bytes, offset + 8);
+    if (tagOffset === null || tagSize === null || tagOffset + tagSize > bytes.length || tagSize < 12) return null;
+    if (readSignature(bytes, tagOffset) !== "desc") return null;
+    const asciiLength = readUInt32(bytes, tagOffset + 8);
+    if (asciiLength === null || asciiLength < 1 || tagOffset + 12 + asciiLength > bytes.length) return null;
+    return Buffer.from(bytes.subarray(tagOffset + 12, tagOffset + 12 + asciiLength - 1)).toString("ascii");
+  }
+  return null;
+}
+
+/** Structural ICC sanity check for the CMYK print OutputIntent contract. */
+export function inspectIccProfile(bytes: Uint8Array): IccProfileInspection {
+  const errors: string[] = [];
+  const declaredSize = readUInt32(bytes, 0);
+  const signature = readSignature(bytes, 36);
+  const profileClass = readSignature(bytes, 12);
+  const colorSpace = readSignature(bytes, 16);
+  const pcs = readSignature(bytes, 20);
+  const version = readVersion(bytes);
+
+  if (bytes.length < 128) errors.push("ICC profil je kratší než 128 bytes.");
+  if (declaredSize === null || declaredSize < 128) errors.push("ICC header nemá platnou deklarovanou velikost.");
+  else if (declaredSize > bytes.length) errors.push("Deklarovaná velikost ICC profilu přesahuje dostupná data.");
+  if (signature !== "acsp") errors.push("ICC header nemá signature acsp.");
+  if (!profileClass || !["scnr", "mntr", "prtr", "link", "spac", "abst", "nmcl"].includes(profileClass)) errors.push("ICC header nemá rozpoznatelnou device/profile class.");
+  if (!colorSpace || !/^(GRAY|RGB |CMYK|CIE |[2-9A-F]CLR)$/.test(colorSpace)) errors.push("ICC header nemá rozpoznatelný data color space.");
+  if (!pcs || !["XYZ ", "Lab "].includes(pcs)) errors.push("ICC header nemá rozpoznatelný PCS.");
+  if (colorSpace !== "CMYK") errors.push("ICC profil není CMYK profil.");
+
+  return {
+    valid: errors.length === 0,
+    declaredSize,
+    signatureValid: signature === "acsp",
+    profileClass,
+    colorSpace,
+    pcs,
+    version,
+    description: readTagDescription(bytes, "desc"),
+    errors,
+  };
+}
+
 /** Reads document-level prepress objects through pdf-lib's parsed object graph. */
 export function inspectPdfPrepressMetadata(pdf: PDFDocument): PdfPrepressMetadataInspection {
   const outputIntents = getCatalogArray(pdf);
@@ -71,6 +147,7 @@ export function inspectPdfPrepressMetadata(pdf: PDFDocument): PdfPrepressMetadat
   let profileValid = false;
   let outputConditionIdentifier: string | null = null;
   let info: string | null = null;
+  let iccProfile: IccProfileInspection | null = null;
 
   if (outputIntents) {
     for (let index = 0; index < outputIntents.size(); index += 1) {
@@ -83,17 +160,20 @@ export function inspectPdfPrepressMetadata(pdf: PDFDocument): PdfPrepressMetadat
       const profileN = profile?.dict.lookupMaybe(PDFName.of("N"), PDFNumber)?.asNumber();
       const profileBytes = profile ? decodeStream(profile) : null;
       const hasProfile = Boolean(profile);
-      const hasValidProfile = Boolean(profile && profileN && profileN >= 1 && profileN <= 4 && profileBytes && profileBytes.length > 0);
+      const inspectedProfile = profileBytes ? inspectIccProfile(profileBytes) : null;
+      const hasValidProfile = Boolean(profile && profileN === 4 && inspectedProfile?.valid);
 
       if (type === OUTPUT_INTENT.asString() && subtype === "/GTS_PDFX" && hasProfile && hasValidProfile && !validIntent) {
         validIntent = intent;
         profilePresent = true;
         profileValid = true;
+        iccProfile = inspectedProfile;
         outputConditionIdentifier = getStringValue(intent.lookupMaybe(PDFName.of("OutputConditionIdentifier"), PDFString, PDFHexString));
         info = getStringValue(intent.lookupMaybe(PDFName.of("Info"), PDFString, PDFHexString));
       } else if (hasProfile) {
         profilePresent = true;
         profileValid ||= hasValidProfile;
+        if (!iccProfile && inspectedProfile) iccProfile = inspectedProfile;
       }
     }
   }
@@ -106,6 +186,7 @@ export function inspectPdfPrepressMetadata(pdf: PDFDocument): PdfPrepressMetadat
     profileValid,
     outputConditionIdentifier,
     info,
+    iccProfile,
   };
 
   const metadata = pdf.context.lookupMaybe(pdf.catalog.get(METADATA), PDFStream);

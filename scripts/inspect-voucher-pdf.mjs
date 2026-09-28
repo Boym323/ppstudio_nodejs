@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 
-import { PDFDict, PDFDocument, PDFName, PDFStream } from "pdf-lib";
+import { PDFArray, PDFDict, PDFDocument, PDFName, PDFRef, PDFStream, decodePDFRawStream } from "pdf-lib";
 
-import { inspectPdfPrepressMetadata } from "../src/features/vouchers/lib/voucher-pdf-prepress.ts";
+import { inspectIccProfile, inspectPdfPrepressMetadata } from "../src/features/vouchers/lib/voucher-pdf-prepress.ts";
 
 const filePath = process.argv[2];
 if (!filePath) {
@@ -29,6 +29,33 @@ const images = streams.filter(([, object]) => object.dict.lookupMaybe(PDFName.of
 const embeddedFontStreams = streams.filter(([, object]) => object.dict.get(PDFName.of("Length1")) || object.dict.get(PDFName.of("FontFile")) || object.dict.get(PDFName.of("FontFile2")) || object.dict.get(PDFName.of("FontFile3")));
 const fontDictionaries = objects.filter(([, object]) => object instanceof PDFDict && object.lookupMaybe(PDFName.of("Type"), PDFName)?.asString() === "/Font");
 const bytes = await readFile(filePath);
+const describe = (object) => {
+  if (object instanceof PDFName) return object.asString();
+  if (object instanceof PDFRef) return `${object.objectNumber} ${object.generationNumber} R`;
+  if (object instanceof PDFArray) return `[${Array.from({ length: object.size() }, (_, index) => describe(object.get(index))).join(" ")}]`;
+  return object?.constructor?.name ?? String(object);
+};
+const pageResources = pages[0]?.node.lookupMaybe(PDFName.of("Resources"), PDFDict);
+const pageColorSpaces = pageResources?.lookupMaybe(PDFName.of("ColorSpace"), PDFDict);
+const colorSpaceEntries = pageColorSpaces
+  ? Array.from(pageColorSpaces.entries()).map(([name, value]) => `${name.asString()}=${describe(value)}`).join(", ")
+  : "none";
+const iccObjects = streams.flatMap(([ref, object]) => {
+  const n = object.dict.get(PDFName.of("N"));
+  if (!n) return [];
+  let profile;
+  let decodedSize = null;
+  try {
+    const decoded = decodePDFRawStream(object).decode();
+    decodedSize = decoded.length;
+    profile = inspectIccProfile(decoded);
+  } catch { profile = null; }
+  return [{ ref: describe(ref), size: decodedSize, encodedSize: object.getContents().length, channels: n.asNumber?.() ?? null, profile }];
+});
+const imageColorSpaces = streams
+  .filter(([, object]) => object.dict.lookupMaybe(PDFName.of("Subtype"), PDFName)?.asString() === "/Image")
+  .map(([ref, object]) => `${describe(ref)}=${describe(object.dict.get(PDFName.of("ColorSpace")))}`)
+  .join(", ");
 const first = pages[0];
 const geometryValid = pages.length > 0 && pages.every((page) => {
   const media = page.getMediaBox();
@@ -55,9 +82,14 @@ console.log(`MediaBox: ${first ? formatBox(first.getMediaBox()) : "missing"}`);
 console.log(`TrimBox: ${first ? formatBox(first.getTrimBox()) : "missing"}`);
 console.log(`BleedBox: ${first ? formatBox(first.getBleedBox()) : "missing"}`);
 console.log(`CropBox: ${first ? formatBox(first.getCropBox()) : "missing"}`);
+console.log(`Page ColorSpace resources: ${colorSpaceEntries}`);
+console.log(`Image ColorSpace usage: ${imageColorSpaces || "none"}`);
 console.log(`Rotation: ${pages.every((page) => page.getRotation().angle === 0) ? "PASS" : "FAIL"}`);
 console.log(`OutputIntent: ${metadata.outputIntent.valid ? "PASS" : "FAIL"} (${metadata.outputIntent.count})`);
 console.log(`ICC profile: ${metadata.outputIntent.profileValid ? "PASS" : "FAIL"}${metadata.outputIntent.outputConditionIdentifier ? ` (${metadata.outputIntent.outputConditionIdentifier})` : ""}`);
+for (const icc of iccObjects) {
+  console.log(`Embedded ICC ${icc.ref}: ${icc.profile?.valid ? "VALID" : "INVALID"}, decodedSize=${icc.size}, encodedSize=${icc.encodedSize}, N=${icc.channels}, signature=${icc.profile?.signatureValid ? "acsp" : "invalid"}, class=${icc.profile?.profileClass ?? "unknown"}, colorSpace=${icc.profile?.colorSpace ?? "unknown"}, PCS=${icc.profile?.pcs ?? "unknown"}, description=${icc.profile?.description ?? "unknown"}`);
+}
 console.log(`PDF/X declaration: ${metadata.xmp.claim ?? "missing"}`);
 console.log(`PDF/X structural checks: ${pass ? "PASS" : "FAIL"}`);
 console.log(`Fonts: ${fontDictionaries.length} dictionaries, ${embeddedFontStreams.length} embedded streams`);

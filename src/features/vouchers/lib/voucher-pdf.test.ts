@@ -27,9 +27,21 @@ process.env.ADMIN_STAFF_EMAIL ??= "staff@example.com";
 process.env.ADMIN_STAFF_PASSWORD ??= "change-me-staff";
 process.env.EMAIL_DELIVERY_MODE ??= "log";
 
+// TEST ONLY: minimal deterministic ICC v4 CMYK header for structural tests.
+function makeTestCmykIccProfile() {
+  const bytes = Buffer.alloc(128);
+  bytes.writeUInt32BE(bytes.length, 0);
+  bytes[8] = 0x43;
+  bytes.write("prtr", 12, "ascii");
+  bytes.write("CMYK", 16, "ascii");
+  bytes.write("XYZ ", 20, "ascii");
+  bytes.write("acsp", 36, "ascii");
+  return bytes;
+}
+
 async function makeStrictMaster(masterBytes: Buffer) {
   const pdf = await PDFDocument.load(masterBytes, { updateMetadata: false });
-  const profileRef = pdf.context.register(pdf.context.stream(Buffer.from("test ICC profile"), { N: 3 }));
+  const profileRef = pdf.context.register(pdf.context.stream(makeTestCmykIccProfile(), { N: 4 }));
   const outputIntent = pdf.context.obj({
     Type: "OutputIntent",
     S: "GTS_PDFX",
