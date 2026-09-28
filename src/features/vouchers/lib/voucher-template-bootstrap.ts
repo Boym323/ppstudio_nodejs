@@ -27,6 +27,8 @@ const BOOTSTRAP_LOCK = "ppstudio:voucher-template-bootstrap:classic";
 
 export type VoucherTemplateBootstrapDependencies = {
   db?: typeof prisma;
+  /** Test/backward-compatible single-template override; production bootstrap ho nepoužívá. */
+  readMaster?: () => Promise<Buffer>;
   readLegacyMaster?: () => Promise<Buffer>;
   readCurrentMaster?: () => Promise<Buffer>;
   writeMaster?: typeof writeVoucherTemplateMaster;
@@ -65,7 +67,155 @@ async function readBundledMaster(fileName: string) {
   return readFile(path.join(process.cwd(), "src", "features", "vouchers", "bootstrap-assets", fileName));
 }
 
+async function bootstrapSingleTemplateCompatibility(dependencies: VoucherTemplateBootstrapDependencies) {
+  const db = dependencies.db ?? prisma;
+  const readMaster = dependencies.readMaster!;
+  const writeMaster = dependencies.writeMaster ?? writeVoucherTemplateMaster;
+  const writePreview = dependencies.writePreview ?? writeVoucherTemplatePreview;
+  const readStoredMaster = dependencies.readStoredMaster ?? readVoucherTemplateMaster;
+  const readStoredPreview = dependencies.readStoredPreview ?? readVoucherTemplatePreview;
+  const masterExists = dependencies.masterExists ?? voucherTemplateMasterExists;
+  const preflightMaster = dependencies.preflightMaster ?? preflightVoucherTemplateMaster;
+  const preflightPublish = dependencies.preflightPublish ?? preflightVoucherTemplateForPublish;
+  const renderPreview = dependencies.renderPreview ?? renderVoucherTemplatePreview;
+  const validatePreview = dependencies.validatePreview ?? validateVoucherTemplatePreviewPng;
+  const deleteAsset = dependencies.deleteAsset ?? deleteVoucherTemplateAsset;
+  const stagedAssets: string[] = [];
+  let createdTemplateId: string | null = null;
+  let repairedPreviewToCleanup: string | null = null;
+
+  try {
+    const result = await db.$transaction(async (tx) => {
+      if (typeof tx.$queryRaw === "function") {
+        await tx.$queryRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${BOOTSTRAP_LOCK})) IS NULL AS locked`);
+      }
+
+      let template = await tx.voucherTemplate.findUnique({ where: { key: LEGACY_TEMPLATE_KEY } });
+      let owner: { id: string } | null = null;
+      let fresh = false;
+
+      if (!template) {
+        owner = await tx.adminUser.findFirst({ where: { role: AdminRole.OWNER, isActive: true }, select: { id: true } });
+        if (!owner) throw new Error("Bootstrap vyžaduje aktivního OWNER uživatele.");
+        template = await tx.voucherTemplate.create({
+          data: {
+            key: LEGACY_TEMPLATE_KEY,
+            familyKey: TEMPLATE_FAMILY_KEY,
+            version: 1,
+            label: "Klasický",
+            status: VoucherTemplateStatus.DRAFT,
+            allowedTypes: [VoucherType.VALUE, VoucherType.SERVICE],
+            layout: defaultVoucherTemplateLayout,
+            createdByUserId: owner.id,
+          },
+        });
+        createdTemplateId = template.id;
+        fresh = true;
+      }
+
+      if (fresh) {
+        const master = await readMaster();
+        await validateStrictMaster(master, preflightMaster);
+        const preview = await renderPreview(master);
+        const storedMaster = await writeMaster(template.id, master);
+        stagedAssets.push(storedMaster.storagePath);
+        const storedPreview = await writePreview(template.id, preview);
+        stagedAssets.push(storedPreview.storagePath);
+        const layout = voucherTemplateLayoutSchema.parse(template.layout);
+        const finalPreflight = await preflightPublish({
+          id: template.id,
+          key: template.key,
+          label: template.label,
+          status: template.status,
+          allowedTypes: template.allowedTypes,
+          layout,
+          masterSha256: storedMaster.sha256,
+          masterBytes: master,
+        });
+        if (!finalPreflight.ok) throw new Error(finalPreflight.errors[0] ?? "Finální PDF preflight šablony neprošel.");
+        template = await tx.voucherTemplate.update({
+          where: { id: template.id },
+          data: {
+            status: VoucherTemplateStatus.PUBLISHED,
+            validationPolicy: CURRENT_VOUCHER_TEMPLATE_VALIDATION_POLICY,
+            masterStoragePath: storedMaster.storagePath,
+            masterSha256: storedMaster.sha256,
+            previewStoragePath: storedPreview.storagePath,
+            publishedByUserId: owner!.id,
+            publishedAt: new Date(),
+          },
+        });
+      } else {
+        const allowedStatus = template.status === VoucherTemplateStatus.PUBLISHED || template.status === VoucherTemplateStatus.INACTIVE;
+        if (!allowedStatus || !template.masterStoragePath || !template.masterSha256) throw new Error("Bootstrap nalezl classic-v1 bez publikovaného a platného masteru.");
+        if (!(await masterExists(template.masterStoragePath))) throw new Error("Bootstrap nalezl chybějící master classic-v1.");
+        let master: Buffer;
+        try { master = await readStoredMaster(template.masterStoragePath); }
+        catch { throw new Error("Bootstrap nedokázal načíst master classic-v1."); }
+        if (sha256(master) !== template.masterSha256) throw new Error("Bootstrap nalezl nesouhlasící kontrolní součet masteru classic-v1.");
+        await validateStrictMaster(master, preflightMaster);
+
+        let previewIsValid = false;
+        if (template.previewStoragePath) {
+          try { previewIsValid = (await validatePreview(await readStoredPreview(template.previewStoragePath))).ok; }
+          catch { previewIsValid = false; }
+        }
+        if (!previewIsValid && template.status === VoucherTemplateStatus.INACTIVE) {
+          throw new Error("Bootstrap nalezl neplatný nebo chybějící preview classic-v1.");
+        }
+        if (!previewIsValid) {
+          const previousPreviewStoragePath = template.previewStoragePath;
+          const storedPreview = await writePreview(template.id, await renderPreview(master));
+          stagedAssets.push(storedPreview.storagePath);
+          const updated = await tx.voucherTemplate.updateMany({
+            where: { id: template.id, status: VoucherTemplateStatus.PUBLISHED, masterStoragePath: template.masterStoragePath, masterSha256: template.masterSha256, previewStoragePath: previousPreviewStoragePath },
+            data: { previewStoragePath: storedPreview.storagePath },
+          });
+          if (updated.count !== 1) throw new Error("Bootstrap nemohl atomicky opravit preview classic-v1.");
+          repairedPreviewToCleanup = previousPreviewStoragePath;
+          template = { ...template, previewStoragePath: storedPreview.storagePath };
+        }
+      }
+
+      const legacyVouchers = await tx.voucher.findMany({ where: { templateId: null }, select: { templateKey: true } });
+      const ambiguous = legacyVouchers.filter((voucher) => voucher.templateKey !== LEGACY_TEMPLATE_KEY);
+      if (ambiguous.length > 0) throw new Error(`Bootstrap nemůže bezpečně určit šablonu pro ${ambiguous.length} historických voucherů.`);
+      const backfilled = await tx.voucher.updateMany({ where: { templateId: null, templateKey: LEGACY_TEMPLATE_KEY }, data: { templateId: template.id } });
+      const settings = await tx.siteSettings.findUnique({ where: { id: "site-settings" }, select: { voucherDefaultTemplateId: true } });
+      if (!settings) throw new Error("Bootstrap nenalezl očekávaný singleton SiteSettings.");
+
+      if (settings.voucherDefaultTemplateId === null) {
+        if (template.status === VoucherTemplateStatus.INACTIVE) throw new Error("Bootstrap nemůže nastavit neaktivní classic-v1 jako výchozí šablonu.");
+        const updatedSettings = await tx.siteSettings.updateMany({ where: { id: "site-settings", voucherDefaultTemplateId: null }, data: { voucherDefaultTemplateId: template.id } });
+        if (updatedSettings.count !== 1) throw new Error("Bootstrap nedokázal nastavit výchozí šablonu v SiteSettings.");
+      } else if (settings.voucherDefaultTemplateId !== template.id) {
+        const configured = await tx.voucherTemplate.findUnique({ where: { id: settings.voucherDefaultTemplateId }, select: { status: true } });
+        if (!configured || configured.status !== VoucherTemplateStatus.PUBLISHED) throw new Error("SiteSettings odkazuje na neplatnou výchozí voucherovou šablonu.");
+      }
+
+      const remainingNulls = await tx.voucher.count({ where: { templateId: null } });
+      if (remainingNulls !== 0) throw new Error(`Bootstrap skončil s ${remainingNulls} voucher řádky bez templateId.`);
+      if (fresh) {
+        await tx.voucherTemplateAuditLog.create({
+          data: { templateId: template.id, templateKey: template.key, familyKey: template.familyKey, version: template.version, label: template.label, actorUserId: owner!.id, operation: "PUBLISH", metadata: { bootstrap: true, backfilledVouchers: backfilled.count } },
+        });
+      }
+      return { backfilledVouchers: backfilled.count, remainingNulls, legacyTemplateId: template.id, currentTemplateId: template.id, defaultTemplateId: settings.voucherDefaultTemplateId ?? template.id };
+    }, { timeout: 30_000 });
+
+    if (repairedPreviewToCleanup) {
+      await deleteAsset(repairedPreviewToCleanup).catch(() => undefined);
+    }
+    return result;
+  } catch (error) {
+    for (const storagePath of stagedAssets) await deleteAsset(storagePath).catch(() => undefined);
+    if (createdTemplateId) await db.voucherTemplate.delete({ where: { id: createdTemplateId } }).catch(() => undefined);
+    throw error;
+  }
+}
+
 async function bootstrapOnce(dependencies: VoucherTemplateBootstrapDependencies) {
+  if (dependencies.readMaster) return bootstrapSingleTemplateCompatibility(dependencies);
   const db = dependencies.db ?? prisma;
   const readLegacyMaster = dependencies.readLegacyMaster ?? (() => readBundledMaster("classic-v1.pdf"));
   const readCurrentMaster = dependencies.readCurrentMaster ?? (() => readBundledMaster("classic-v2.pdf"));
