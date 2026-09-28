@@ -5,7 +5,7 @@ import { inflateSync } from "node:zlib";
 import test from "node:test";
 
 import { VoucherStatus, VoucherType } from "@/generated/prisma/browser";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, rgb } from "pdf-lib";
 import { defaultVoucherTemplateLayout } from "./voucher-template-defaults";
 import { voucherTemplateLayoutSchema, voucherTemplateStoredLayoutSchema } from "./voucher-template-layout";
 
@@ -345,7 +345,9 @@ test("renderer používá layout druhé template včetně QR a validity souřadn
   const page = pdf.getPage(0);
   const content = new TextDecoder().decode(getPageOverlayContent(page));
 
-  assert.match(content, new RegExp(`1 0 0 1 ${pdfNumber(mm(160))}\\d* ${pdfNumber(mm(12))}\\d* cm`));
+  assert.ok([...content.matchAll(/1 0 0 1 ([\d.]+) ([\d.]+) cm/g)].some((match) =>
+    Math.abs(Number(match[1]) - mm(160.5)) < 0.000001
+    && Math.abs(Number(match[2]) - mm(12.5)) < 0.000001));
   assert.match(content, new RegExp(`1 0 0 1 [\\d.]+ ${pdfNumber(mm(20))}\\d* Tm`));
 });
 
@@ -362,6 +364,36 @@ test("historickou inactive template lze renderovat, ale není aktivní pro nové
   );
 
   assert.equal((await PDFDocument.load(pdfBytes)).getPageCount(), 1);
+});
+
+test("tiskové PDF zachová rám masteru na všech čtyřech hranách QR oblasti", async () => {
+  const { generateResolvedVoucherPrintPdf, mm } = await import("./voucher-pdf-core");
+  const { renderVoucherTemplatePreview } = await import("./voucher-template-preview");
+  const { default: sharp } = await import("sharp");
+  const master = await PDFDocument.create();
+  const page = master.addPage([mm(216), mm(105)]);
+  const area = defaultVoucherTemplateLayout.qrArea;
+  page.drawRectangle({
+    x: mm(area.xMm), y: mm(area.yMm), width: mm(area.widthMm), height: mm(area.heightMm),
+    color: rgb(0.8, 0.8, 0.8), borderColor: rgb(1, 0, 0), borderWidth: mm(0.5),
+  });
+  const pdf = await generateResolvedVoucherPrintPdf(buildVoucherFixture(), {
+    ...requireVoucherTemplate("classic-v1"), layout: defaultVoucherTemplateLayout,
+    masterBytes: Buffer.from(await master.save()),
+  } as Parameters<typeof generateResolvedVoucherPrintPdf>[1]);
+  const { data, info } = await sharp(await renderVoucherTemplatePreview(Buffer.from(pdf))).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const pixel = (xMm: number, yMm: number) => {
+    const x = Math.round(mm(xMm) * 3);
+    const y = Math.round(mm(105 - yMm) * 3);
+    const offset = (y * info.width + x) * info.channels;
+    return [...data.subarray(offset, offset + 3)];
+  };
+  const centerX = area.xMm + area.widthMm / 2;
+  const centerY = area.yMm + area.heightMm / 2;
+  for (const [x, y] of [[area.xMm, centerY], [area.xMm + area.widthMm, centerY], [centerX, area.yMm], [centerX, area.yMm + area.heightMm]]) {
+    assert.deepEqual(pixel(x, y), [255, 0, 0], "Bílý podklad QR nesmí přepsat linku masteru.");
+  }
+  assert.deepEqual(pixel(area.xMm + 1, centerY), [255, 255, 255], "QR zachová bílou ochrannou zónu.");
 });
 
 test("předtištěná stránka vykreslí pouze kód a QR a batch PDF má jednu stránku na kus", async () => {

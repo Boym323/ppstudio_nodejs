@@ -359,19 +359,16 @@ function voucherTextColor(color: { c: number; m: number; y: number; k: number })
 
 function drawVoucherQr(page: PDFPage, qrCode: ReturnType<typeof QRCode.create>, template: VoucherTemplateRenderDefinition) {
   const area = template.layout.qrArea;
-  const x = mm(area.xMm);
-  const y = mm(area.yMm);
-  const width = mm(area.widthMm);
-  const height = mm(area.heightMm);
   const geometry = getVoucherQrRenderGeometry(area, qrCode.modules.size);
   const moduleSize = mm(geometry.moduleSizeMm);
   const qrX = mm(geometry.xMm);
   const qrY = mm(geometry.yMm);
+  const qrSize = moduleSize * geometry.totalModules;
 
-  // Master PDF může mít rámeček těsně u QR oblasti. Planner jeho overlay
-  // ořezává hranicí oblasti, proto musí stejnou hranici respektovat i PDF.
-  page.pushOperators(pushGraphicsState(), rectangle(x, y, width, height), clip(), endPath());
-  page.drawRectangle({ x, y, width, height, color: cmyk(0, 0, 0, 0) });
+  // Inset both the background and modules, keeping the full quiet zone
+  // while preserving the master's placement frame along the area's edge.
+  page.pushOperators(pushGraphicsState(), rectangle(qrX, qrY, qrSize, qrSize), clip(), endPath());
+  page.drawRectangle({ x: qrX, y: qrY, width: qrSize, height: qrSize, color: cmyk(0, 0, 0, 0) });
 
   for (let row = 0; row < qrCode.modules.size; row += 1) {
     for (let column = 0; column < qrCode.modules.size; column += 1) {

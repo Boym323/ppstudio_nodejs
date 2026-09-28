@@ -17,9 +17,9 @@ test("textová baseline a QR geometrie používají společné tiskové souřadn
 
   const qr = getVoucherQrRenderGeometry(defaultVoucherTemplateLayout.qrArea, 33);
   assert.equal(qr.totalModules, 41);
-  assert.equal(qr.xMm, defaultVoucherTemplateLayout.qrArea.xMm);
-  assert.equal(qr.yMm, defaultVoucherTemplateLayout.qrArea.yMm);
-  assert.equal(qr.moduleSizeMm, 28 / 41);
+  assert.equal(qr.xMm, defaultVoucherTemplateLayout.qrArea.xMm + 0.5);
+  assert.equal(qr.yMm, defaultVoucherTemplateLayout.qrArea.yMm + 0.5);
+  assert.equal(qr.moduleSizeMm, 27 / 41);
 });
 
 test("layout odmítne deformovaný QR a CMYK mimo rozsah", () => {
@@ -90,7 +90,7 @@ test("minimum QR drží tisknutelný modul pro produkční ověřovací URL", ()
   const qr = QRCode.create("https://ppstudio.cz/vouchery/overeni?code=PP-2026-ABCDEF", { errorCorrectionLevel: "M" });
   assert.equal(qr.version, 4);
   assert.equal(qr.modules.size, 33);
-  assert.ok(VOUCHER_QR_MIN_SIZE_MM / (qr.modules.size + 8) >= 0.48); // 4modulová quiet zone na každé straně
+  assert.ok(getVoucherQrRenderGeometry({ xMm: 3, yMm: 3, widthMm: VOUCHER_QR_MIN_SIZE_MM, heightMm: VOUCHER_QR_MIN_SIZE_MM }, qr.modules.size).moduleSizeMm >= 0.46); // včetně odsazení a 4modulové quiet zone
 });
 
 test("strict layout odmítne překrývající se explicitní řádkování", () => {

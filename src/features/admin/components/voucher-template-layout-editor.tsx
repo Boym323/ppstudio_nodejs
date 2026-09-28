@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition, type MouseEvent } from "react";
+import { useEffect, useRef, useState, useTransition, type KeyboardEvent, type MouseEvent } from "react";
 import Image from "next/image";
 import { Rnd } from "react-rnd";
 
@@ -18,21 +18,7 @@ import {
   type VoucherTemplateLayoutV1,
   type VoucherTemplateTypographyPatch,
 } from "@/features/vouchers/lib/voucher-template-layout";
-import { VOUCHER_TEXT_HORIZONTAL_INSET_MM } from "@/features/vouchers/lib/voucher-text-fit";
-
-import {
-  createVoucherTemplatePreviewTextMeasurer,
-  createVoucherTemplatePreviewQr,
-  fitVoucherTemplatePreviewText,
-  getVoucherTemplatePreviewBaselineTopPx,
-  getVoucherTemplatePreviewFontSizePx,
-  getVoucherTemplatePreviewLineBaselinePx,
-  getVoucherTemplatePreviewText,
-  isVoucherTemplatePreviewAreaVisible,
-  VOUCHER_TEMPLATE_PREVIEW_FONT_FAMILIES,
-  type ServicePreviewScenario,
-  type VoucherTemplatePreviewMode,
-} from "./voucher-template-layout-preview";
+import { VOUCHER_TEMPLATE_PREVIEW_FONT_FAMILIES } from "./voucher-template-layout-preview";
 
 const areas = ["valueArea", "serviceArea", "validityArea", "codeArea", "qrArea"] as const;
 type AreaKey = (typeof areas)[number];
@@ -45,6 +31,8 @@ const fieldLabels = { xMm: "X", yMm: "Y", widthMm: "Šířka", heightMm: "Výšk
 const inputClassName = "mt-1 min-h-10 w-full rounded-xl border border-white/10 bg-black/20 px-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-[var(--color-accent)]/70 focus:ring-2 focus:ring-[var(--color-accent)]/15";
 const compactButtonClassName = "inline-flex min-h-9 items-center justify-center rounded-full border px-3 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70";
 const MIN_TEXT_AREA_MM = 0.5;
+const KEYBOARD_NUDGE_MM = 0.1;
+const KEYBOARD_NUDGE_LARGE_MM = 1;
 const cornerResizeEnable = { top: false, right: false, bottom: false, left: false, topRight: true, bottomRight: true, bottomLeft: true, topLeft: true } as const;
 
 function isAspectRatioLocked(key: AreaKey) { return key === "qrArea"; }
@@ -55,53 +43,27 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
   const layoutRef = useRef(initialLayout);
   const [revision, setRevision] = useState(initialUpdatedAt);
   const [selected, setSelected] = useState<AreaKey | null>("valueArea");
-  const [previewMode, setPreviewMode] = useState<VoucherTemplatePreviewMode>("VALUE");
-  const [serviceScenario, setServiceScenario] = useState<ServicePreviewScenario>("normal");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [testPdfError, setTestPdfError] = useState<string | null>(null);
   const [testPdfPending, setTestPdfPending] = useState(false);
   const [pending, startTransition] = useTransition();
-  const [fontsReady, setFontsReady] = useState(false);
-  const [fontMetricsVersion, setFontMetricsVersion] = useState(0);
   const [showGuides, setShowGuides] = useState(true);
   const [showBleed, setShowBleed] = useState(true);
-  const [showQrBackground, setShowQrBackground] = useState(true);
   const [isInteracting, setIsInteracting] = useState(false);
   const [renderedPreviewSrc, setRenderedPreviewSrc] = useState<string | null>(null);
-  const [previewQr, setPreviewQr] = useState(() => createVoucherTemplatePreviewQr());
   const canvasStageRef = useRef<HTMLDivElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 648, height: 315 });
   const resizeStartRef = useRef<ResizeStart | null>(null);
   const canvasScale = canvasSize.width / 216;
-  const previewTextMeasurer = useMemo(() => {
-    void fontMetricsVersion;
-    return createVoucherTemplatePreviewTextMeasurer(canvasScale);
-  }, [canvasScale, fontMetricsVersion]);
   const area = selected === null ? layout.valueArea : layout[selected];
   const textArea = selected !== null && isVoucherTemplateTextAreaKey(selected) ? layout[selected] : null;
   const overlayState = getVoucherEditorOverlayState({ showGuides, showBleed, isInteracting });
 
   useEffect(() => {
-    const origin = window.location.origin;
-    setPreviewQr(createVoucherTemplatePreviewQr(origin));
-  }, []);
-
-  useEffect(() => {
-    if (isInteracting) {
-      setRenderedPreviewSrc((current) => {
-        if (current) URL.revokeObjectURL(current);
-        return null;
-      });
-      return;
-    }
-
-    setRenderedPreviewSrc((current) => {
-      if (current) URL.revokeObjectURL(current);
-      return null;
-    });
+    if (isInteracting) return;
 
     const controller = new AbortController();
-    const timer = window.setTimeout(async () => {
+    void (async () => {
       try {
         const response = await fetch(`/api/admin/voucher-templates/${templateId}/test-pdf?format=preview`, {
           method: "POST",
@@ -124,10 +86,9 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
           setRenderedPreviewSrc(null);
         }
       }
-    }, 350);
+    })();
 
     return () => {
-      window.clearTimeout(timer);
       controller.abort();
     };
   }, [isInteracting, layout, templateId]);
@@ -138,21 +99,6 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
 
   const displayedPreviewSrc = renderedPreviewSrc ?? previewSrc;
   const hasRenderedPreview = renderedPreviewSrc !== null;
-
-  useEffect(() => {
-    if (typeof document === "undefined" || !document.fonts?.ready) {
-      void Promise.resolve().then(() => setFontsReady(true));
-      return;
-    }
-    let active = true;
-    void document.fonts.ready.then(() => {
-      if (active) {
-        setFontsReady(true);
-        setFontMetricsVersion((current) => current + 1);
-      }
-    });
-    return () => { active = false; };
-  }, []);
 
   useEffect(() => {
     const stage = canvasStageRef.current;
@@ -229,8 +175,26 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
   };
   const selectArea = (nextArea: AreaKey) => {
     setSelected(nextArea);
-    if (nextArea === "valueArea") setPreviewMode("VALUE");
-    if (nextArea === "serviceArea") setPreviewMode("SERVICE");
+  };
+  const nudgeAreaByKeyboard = (event: KeyboardEvent<HTMLDivElement>, key: AreaKey) => {
+    const direction = {
+      ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1],
+    }[event.key];
+    if (!direction) return;
+
+    event.preventDefault();
+    const item = layoutRef.current[key];
+    const step = event.shiftKey ? KEYBOARD_NUDGE_LARGE_MM : KEYBOARD_NUDGE_MM;
+    const [horizontal, vertical] = direction;
+    const xMm = Math.min(213 - item.widthMm, Math.max(3, item.xMm + horizontal * step));
+    const yMm = Math.min(102 - item.heightMm, Math.max(3, item.yMm + vertical * step));
+    const baselineArea = isVoucherTemplateTextAreaKey(key) ? item as VoucherTemplateLayoutV1[VoucherTemplateTextAreaKey] : null;
+
+    update(key, {
+      xMm,
+      yMm,
+      ...(baselineArea ? { baselineMm: getBaselineWithPreservedTopOffset(baselineArea, yMm, item.heightMm) } : {}),
+    });
   };
 
   const save = () => {
@@ -286,17 +250,11 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
         <div className="mt-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-wrap items-end gap-4">
             <div>
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/50">Náhled</p>
-              <div className="inline-flex max-w-full overflow-x-auto rounded-xl border border-white/10 bg-black/20 p-1" role="tablist" aria-label="Režim náhledu">
-                {(["VALUE", "SERVICE", "STOCK"] as const).map((mode) => { const modeLabels = { VALUE: "Hodnota", SERVICE: "Služba", STOCK: "Předtištěný" }; return <button key={mode} type="button" role="tab" aria-selected={previewMode === mode} onClick={() => setPreviewMode(mode)} className={`${compactButtonClassName} whitespace-nowrap border-transparent px-3.5 ${previewMode === mode ? "bg-[var(--color-accent)] text-[var(--color-accent-contrast)] shadow-sm" : "text-white/65 hover:text-white"}`}>{modeLabels[mode]}</button>; })}
-              </div>
-            </div>
-            <div>
               <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/50">Prvek</p>
               <div className="flex gap-1 overflow-x-auto" role="tablist" aria-label="Editovaná oblast">{areas.map((key) => <button key={key} type="button" role="tab" aria-selected={selected === key} onClick={() => selectArea(key)} className={`${compactButtonClassName} shrink-0 ${selected === key ? "border-[var(--color-accent)]/60 bg-[rgba(190,160,120,0.16)] text-[var(--color-accent-soft)]" : "border-white/10 text-white/60 hover:border-white/20 hover:text-white"}`}>{shortLabels[key]}</button>)}</div>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-white/70 xl:ml-auto"><ToggleButton label="Vodítka" checked={showGuides} onClick={() => setShowGuides((current) => !current)} /><ToggleButton label="Spadávka" checked={showBleed} onClick={() => setShowBleed((current) => !current)} /><ToggleButton label="QR podklad" checked={showQrBackground} onClick={() => setShowQrBackground((current) => !current)} /></div>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-white/70 xl:ml-auto"><ToggleButton label="Vodítka" checked={showGuides} onClick={() => setShowGuides((current) => !current)} /><ToggleButton label="Spadávka" checked={showBleed} onClick={() => setShowBleed((current) => !current)} /></div>
         </div>
       </div>
 
@@ -310,11 +268,6 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
                 {overlayState.guidesVisible ? <><div data-overlay="guides" className={`pointer-events-none absolute left-1/2 top-0 z-10 h-full border-l border-dashed ${overlayState.guidesEmphasized ? "border-[var(--color-accent-soft)]/75" : "border-white/20"}`} /><div className={`pointer-events-none absolute left-0 top-1/2 z-10 w-full border-t border-dashed ${overlayState.guidesEmphasized ? "border-[var(--color-accent-soft)]/75" : "border-white/20"}`} /></> : null}
                 {areas.map((key) => {
                   const item = layout[key];
-                  const baseline = "baselineMm" in item ? item.baselineMm : null;
-                  const previewVisible = isVoucherTemplatePreviewAreaVisible(key, previewMode);
-                  const horizontalInsetMm = isVoucherTemplateTextAreaKey(key) ? VOUCHER_TEXT_HORIZONTAL_INSET_MM[key] : 0;
-                  const textPreview = fontsReady && isVoucherTemplateTextAreaKey(key) && previewVisible ? (() => { const text = getVoucherTemplatePreviewText(key, serviceScenario); const fit = fitVoucherTemplatePreviewText(text, item as VoucherTemplateLayoutV1["valueArea"], previewTextMeasurer, horizontalInsetMm); return { text, fit }; })() : null;
-                  const baselinePx = baseline === null ? null : getVoucherTemplatePreviewBaselineTopPx(item as VoucherTemplateLayoutV1["valueArea"], canvasScale);
                   const isSelected = selected === key;
                   const isQrArea = key === "qrArea";
                   return <Rnd
@@ -328,7 +281,11 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
                     enableResizing={isSelected ? cornerResizeEnable : false}
                     dragGrid={[canvasScale / 2, canvasScale / 2]}
                     resizeGrid={[canvasScale / 2, canvasScale / 2]}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`${labels[key]}. Šipkami posunete o 0,1 mm, se Shiftem o 1 mm.`}
                     onClick={(event: MouseEvent) => { event.stopPropagation(); selectArea(key); }}
+                    onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => nudgeAreaByKeyboard(event, key)}
                     onDragStart={() => { selectArea(key); setIsInteracting(true); }}
                     onResizeStart={(_, direction) => { resizeStartRef.current = { key, area: item, direction }; selectArea(key); setIsInteracting(true); }}
                     onResize={(_, direction, ref, __, pos) => applyResize(key, direction, ref, pos)}
@@ -347,7 +304,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
                     className={`group relative cursor-move overflow-visible border transition-colors ${isSelected ? `${isQrArea ? "z-20 border-2 border-dashed border-[var(--color-accent-soft)] bg-transparent" : "z-20 border-[var(--color-accent-soft)] bg-[rgba(190,160,120,0.08)]"} outline outline-2 outline-offset-2 outline-[var(--color-accent)]/70` : "border-white/8 bg-transparent hover:border-white/40"}`}
                   >
                     {isSelected ? <span className="pointer-events-none absolute -top-6 left-0 z-20 rounded-md border border-[var(--color-accent)]/50 bg-[#1c1714] px-1.5 py-1 text-[9px] font-bold leading-none tracking-[0.08em] text-[var(--color-accent-soft)]">{isQrArea ? "QR kód" : labels[key]}</span> : <span className="pointer-events-none absolute -top-5 left-0 z-20 rounded-md border border-white/10 bg-black/75 px-1.5 py-1 text-[9px] font-bold leading-none tracking-[0.08em] text-white/70 opacity-0 transition-opacity group-hover:opacity-100">{shortLabels[key]}</span>}
-                    <div className="pointer-events-none absolute inset-0 overflow-hidden">{!hasRenderedPreview && (key === "qrArea" ? <PreviewQrPlaceholder showBackground={showQrBackground} qr={previewQr} /> : textPreview && baselinePx !== null ? <PreviewCanvas area={item as VoucherTemplateLayoutV1["valueArea"]} preview={textPreview} baselinePx={baselinePx} fontMetricsVersion={fontMetricsVersion} scale={canvasScale} horizontalInsetMm={horizontalInsetMm} /> : null)}{isSelected && baselinePx !== null ? <span className="pointer-events-none absolute left-0 right-0 z-20 border-t border-[var(--color-accent-soft)]/70" style={{ top: `${baselinePx}px` }} /> : null}</div>
+                    <div className="pointer-events-none absolute inset-0 overflow-hidden" />
                   </Rnd>;
                 })}
               </div>
@@ -359,7 +316,6 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
         <aside className="min-w-0 bg-white/[0.02] p-4 sm:p-6">
           {selected === null ? <div className="flex min-h-48 flex-col items-center justify-center text-center"><p className="text-sm font-semibold text-white/80">Nic není vybráno</p><p className="mt-2 max-w-xs text-xs leading-5 text-white/45">Kliknutím na prázdné místo jste zrušili výběr. Pro úpravu klikněte na oblast voucheru.</p></div> : <>
           <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-4"><div><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/50">Upravujete</p><h3 className="mt-1 text-lg font-semibold text-white">{labels[selected]}</h3></div><span className="rounded-lg border border-white/10 bg-black/15 px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-white/50">{selected === "qrArea" ? "Grafika" : "Textová oblast"}</span></div>
-          {previewMode === "SERVICE" ? <section className="border-b border-white/10 py-4"><div className="flex items-center justify-between gap-3"><h4 className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">Náhled služby</h4><span className="text-[11px] text-white/40">jen pro preview</span></div><div className="mt-3 inline-flex rounded-lg border border-white/10 bg-black/20 p-1">{(["normal", "long"] as const).map((scenario) => <button key={scenario} type="button" onClick={() => setServiceScenario(scenario)} className={`${compactButtonClassName} border-transparent ${serviceScenario === scenario ? "bg-white/10 text-white" : "text-white/55"}`}>{scenario === "normal" ? "Běžný název" : "Dlouhý název"}</button>)}</div></section> : null}
           <section className="border-b border-white/10 py-3"><SectionTitle title="Pozice a rozměry" /><div className="grid grid-cols-2 gap-3">{(["xMm", "yMm", "widthMm", "heightMm"] as const).map((field) => <NumberField key={field} label={`${fieldLabels[field]} (mm)`} value={area[field]} min={field === "xMm" || field === "yMm" ? 0 : minimumSizeMm(selected)} onChange={(value) => updateAreaField(selected, field, value)} />)}</div></section>
           {textArea ? <section className="border-b border-white/10 py-3"><SectionTitle title="Typografie" /><label className="block text-xs text-white/70">Písmo<select value={textArea.typography.fontFamilyKey} onChange={(event) => updateSelectedTypography({ fontFamilyKey: event.target.value })} className={inputClassName}>{Object.keys(VOUCHER_TEMPLATE_PREVIEW_FONT_FAMILIES).map((key) => <option key={key} value={key} className="text-black">{key === "noto-sans" ? "Noto Sans" : key}</option>)}</select></label><div className="mt-3 grid grid-cols-2 gap-3"><label className="block text-xs text-white/70">Řez<select value={textArea.typography.fontWeight} onChange={(event) => updateSelectedTypography({ fontWeight: event.target.value as "regular" | "bold" })} className={inputClassName}><option value="regular" className="text-black">Regular</option><option value="bold" className="text-black">Bold</option></select></label><NumberField label="Velikost (pt)" value={textArea.typography.preferredFontSizePt} step="0.1" onChange={(value) => updateSelectedTypography({ preferredFontSizePt: value })} /></div><label className="mt-3 block text-xs text-white/70">Zarovnání<select value={textArea.typography.alignment} onChange={(event) => updateSelectedTypography({ alignment: event.target.value as "left" | "center" })} className={inputClassName}><option value="left" className="text-black">Vlevo</option><option value="center" className="text-black">Na střed</option></select></label></section> : null}
           {textArea ? <details className="border-b border-white/10 py-3"><summary className="cursor-pointer list-none text-sm font-semibold text-white marker:hidden">Pokročilé nastavení <span className="float-right text-white/45">⌄</span></summary><div className="mt-3 grid gap-3"><NumberField label="Baseline (mm)" value={textArea.baselineMm} step="0.5" onChange={(value) => update(selected, { baselineMm: value })} /><div className="grid grid-cols-2 gap-3"><NumberField label="Min. velikost (pt)" value={textArea.typography.minFontSizePt} step="0.1" onChange={(value) => updateSelectedTypography({ minFontSizePt: value })} /><NumberField label="Max. řádků" value={textArea.maxLines} step="1" onChange={(value) => update(selected, { maxLines: value })} /></div><NumberField label="Řádkování (mm)" value={textArea.typography.lineHeightMm} step="0.1" onChange={(value) => updateSelectedTypography({ lineHeightMm: value })} /><p className="text-xs leading-5 text-white/45">Baseline, minimální velikost a řádkování ovlivňují fitting textu v PDF.</p></div></details> : null}
@@ -386,48 +342,3 @@ function formatNumericValue(value: number, step: string) {
 function ToggleButton({ label, checked, onClick }: { label: string; checked: boolean; onClick: () => void }) { return <button type="button" aria-pressed={checked} onClick={onClick} className="inline-flex min-h-9 items-center gap-2 rounded-full border border-white/10 bg-black/15 px-3 py-1.5 text-xs font-semibold text-white/70 transition hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70"><span>{label}</span><span className={`rounded-full px-1.5 py-0.5 text-[9px] tracking-[0.12em] ${checked ? "bg-[var(--color-accent)] text-[var(--color-accent-contrast)]" : "bg-white/10 text-white/45"}`}>{checked ? "ON" : "OFF"}</span></button>; }
 const handleStyle = { width: 8, height: 8, borderRadius: 3, background: "#dbc2a5", border: "1px solid #171311", boxShadow: "0 0 0 1px rgba(135,105,65,.55)" };
 const cornerHandleStyles = { topLeft: { ...handleStyle, cursor: "nwse-resize" }, topRight: { ...handleStyle, cursor: "nesw-resize" }, bottomLeft: { ...handleStyle, cursor: "nesw-resize" }, bottomRight: { ...handleStyle, cursor: "nwse-resize" } };
-
-function PreviewCanvas({ area, preview, baselinePx, fontMetricsVersion, scale, horizontalInsetMm }: { area: VoucherTemplateLayoutV1["valueArea"]; preview: { text: string; fit: ReturnType<typeof fitVoucherTemplatePreviewText> }; baselinePx: number; fontMetricsVersion: number; scale: number; horizontalInsetMm: number }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fontFamily = VOUCHER_TEMPLATE_PREVIEW_FONT_FAMILIES[area.typography.fontFamilyKey] ?? '"Noto Sans", sans-serif';
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const widthPx = Math.max(1, area.widthMm * scale);
-    const heightPx = Math.max(1, area.heightMm * scale);
-    const devicePixelRatio = Math.max(1, window.devicePixelRatio || 1);
-    const context = canvas.getContext("2d");
-    if (!context) return;
-    canvas.style.width = `${widthPx}px`;
-    canvas.style.height = `${heightPx}px`;
-    canvas.width = Math.max(1, Math.round(widthPx * devicePixelRatio));
-    canvas.height = Math.max(1, Math.round(heightPx * devicePixelRatio));
-    context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-    context.clearRect(0, 0, widthPx, heightPx);
-    context.font = `${area.typography.fontWeight === "bold" ? 700 : 400} ${getVoucherTemplatePreviewFontSizePx(preview.fit.fontSizePt, scale)}px ${fontFamily}`;
-    context.textBaseline = "alphabetic";
-    context.textAlign = area.typography.alignment;
-    context.fillStyle = cmykToCssRgb(area.typography.color);
-    const x = area.typography.alignment === "center" ? widthPx / 2 : horizontalInsetMm * scale;
-    preview.fit.lines.forEach((line, index) => { const lineBaselinePx = getVoucherTemplatePreviewLineBaselinePx(baselinePx, preview.fit.lines.length, index, preview.fit.lineHeightMm, scale); context.fillText(line, x, lineBaselinePx); });
-  }, [area, baselinePx, fontFamily, fontMetricsVersion, horizontalInsetMm, preview, scale]);
-  return <canvas ref={canvasRef} aria-hidden="true" className="pointer-events-none absolute inset-0 z-10" data-preview-text={preview.text} />;
-}
-
-function cmykToCssRgb(color: { c: number; m: number; y: number; k: number }) {
-  const channel = (component: number) => Math.round(255 * (1 - component) * (1 - color.k));
-  return `rgb(${channel(color.c)} ${channel(color.m)} ${channel(color.y)})`;
-}
-
-function PreviewQrPlaceholder({ showBackground, qr }: { showBackground: boolean; qr: ReturnType<typeof createVoucherTemplatePreviewQr> }) {
-  const modules = Array.from({ length: qr.totalModules ** 2 }, (_, index) => {
-    const row = Math.floor(index / qr.totalModules);
-    const column = index % qr.totalModules;
-    return <span key={index} className={`relative z-10 ${qr.isDark(row, column) ? "bg-[#1f1f1f]" : "bg-transparent"}`} />;
-  });
-
-  return <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 grid aspect-square w-full grid-cols-none" style={{ gridTemplateColumns: `repeat(${qr.totalModules}, minmax(0, 1fr))` }}>
-    {showBackground ? <span className="absolute inset-0 z-0 bg-white" /> : null}
-    {modules}
-  </div>;
-}

@@ -182,40 +182,26 @@ test("preview mode visibility matrix nikdy nezobrazí VALUE a SERVICE současně
   }
 });
 
-test("preview režim, scénář, fixture text i Canvas stav jsou lokální a save payload obsahuje jen layout", async () => {
+test("editor používá pro obsah náhled vyrenderovaný stejným PDF rendererem a save payload obsahuje jen layout", async () => {
   const source = await readFile(new URL("./voucher-template-layout-editor.tsx", import.meta.url), "utf8");
 
-  assert.match(source, /const \[previewMode, setPreviewMode\] = useState/);
-  assert.match(source, /const \[showQrBackground, setShowQrBackground\] = useState\(true\)/);
-  assert.match(source, /const \[serviceScenario, setServiceScenario\] = useState/);
   assert.match(source, /saveVoucherTemplateLayoutAction\(templateId, currentLayout, revision\)/);
-  assert.match(source, /test-pdf/);
+  assert.match(source, /test-pdf\?format=preview/);
   assert.match(source, /JSON\.stringify\(\{ layout: layoutRef\.current \}\)/);
   assert.match(source, /const layoutRef = useRef\(initialLayout\)/);
   assert.match(source, /Stáhnout testovací PDF/);
   assert.match(source, /selected === null \? <div className="flex min-h-48/);
   assert.match(source, /\{saveError \? <p role="alert"/);
-  assert.doesNotMatch(source, /saveVoucherTemplateLayoutAction\(templateId, .*?(previewMode|serviceScenario|preview)/);
-  assert.match(source, /<PreviewCanvas area=/);
-  assert.match(source, /VOUCHER_TEXT_HORIZONTAL_INSET_MM\[key\]/);
-  assert.match(source, /horizontalInsetMm=\{horizontalInsetMm\}/);
-  assert.match(source, /baselinePx=\{baselinePx\}/);
-  assert.match(source, /getVoucherTemplatePreviewFontSizePx\(preview\.fit\.fontSizePt, scale\)/);
-  assert.match(source, /className="pointer-events-none absolute inset-0 z-10"/);
+  assert.match(source, /const displayedPreviewSrc = renderedPreviewSrc \?\? previewSrc/);
+  assert.match(source, /setRenderedPreviewSrc/);
+  assert.doesNotMatch(source, /PreviewCanvas/);
+  assert.doesNotMatch(source, /PreviewQrPlaceholder/);
   assert.match(source, /className="pointer-events-none absolute inset-0 overflow-hidden"/);
   assert.match(source, /-top-6 left-0 z-20/);
   assert.match(source, /labels\[key\]/);
   assert.match(source, /relative .*overflow-visible border/);
-  assert.match(source, /context\.textAlign = area\.typography\.alignment/);
-  assert.match(source, /context\.font = .*getVoucherTemplatePreviewFontSizePx\(preview\.fit\.fontSizePt, scale\)/);
-  assert.match(source, /context\.fillStyle = cmykToCssRgb\(area\.typography\.color\)/);
   assert.match(source, /isQrArea \? "z-20 border-2 border-dashed/);
-  assert.match(source, /createVoucherTemplatePreviewQr/);
   assert.match(source, /QR kód/);
-  assert.match(source, /absolute inset-0 z-0 bg-white/);
-  assert.match(source, /relative z-10 .*bg-\[#1f1f1f\]/);
-  assert.doesNotMatch(source, /repeating-linear-gradient/);
-  assert.match(source, /PreviewQrPlaceholder showBackground=\{showQrBackground\}/);
   assert.match(source, /useState<AreaKey \| null>\("valueArea"\)/);
   assert.match(source, /onClick=\{\(\) => setSelected\(null\)\}/);
   assert.match(source, /event\.stopPropagation\(\); selectArea\(key\)/);
@@ -226,14 +212,15 @@ test("preview režim, scénář, fixture text i Canvas stav jsou lokální a sav
   assert.match(source, /resizeHandleStyles=\{cornerHandleStyles\}/);
   assert.match(source, /lockAspectRatio=\{isAspectRatioLocked\(key\)\}/);
   assert.match(source, /onResize=\{\(_, direction, ref, __, pos\) => applyResize\(key, direction, ref, pos\)\}/);
+  assert.match(source, /KEYBOARD_NUDGE_MM = 0\.1/);
+  assert.match(source, /onKeyDown=\{\(event: KeyboardEvent<HTMLDivElement>\) => nudgeAreaByKeyboard\(event, key\)\}/);
+  assert.match(source, /Šipkami posunete o 0,1 mm/);
   assert.match(source, /data\.x \/ canvasScale/);
   assert.match(source, /formatNumericValue/);
   assert.match(source, /getVoucherEditorOverlayState/);
   assert.match(source, /data-overlay="bleed"/);
   assert.match(source, /data-overlay="guides"/);
   assert.doesNotMatch(source, /showGuides \|\| isInteracting/);
-  assert.match(source, /document\.fonts\.ready/);
-  assert.doesNotMatch(source, /function PreviewText\(/);
 });
 
 test("uzamčený náhled používá fitting a baseline layoutu", async () => {

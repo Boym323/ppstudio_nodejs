@@ -8,7 +8,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
-- Editor voucherových šablon nyní po úpravě zobrazí náhled vyrenderovaný ze stejného testovacího PDF, takže QR rámečky a polohy textů odpovídají exportu i u masterů s vlastními překryvy.
+- QR kód v PDF má včetně bílého podkladu a ochranné zóny odsazení 0,5 mm od hran své oblasti, aby nepřekrýval ohraničení v tiskovém podkladu; editor zobrazuje stejný výsledek.
+- Editor voucherových šablon nyní zobrazuje obsah pouze z náhledu vyrenderovaného stejným testovacím PDF, takže QR rámečky a polohy textů odpovídají exportu i u masterů s vlastními překryvy.
+- Vybranou oblast voucherové šablony lze nyní jemně posouvat šipkami po 0,1 mm, případně se Shiftem po 1 mm.
 - Editor layoutu a testovací PDF nyní používají stejná testovací data a náhled editoru už nezeslabuje vykreslený obsah prvků.
 - QR náhled editoru nyní používá stejný origin ověřovací URL jako testovací PDF, takže se shoduje i v lokálním dev prostředí.
 - Placeholderový náhled publikované šablony nyní zobrazuje pouze skutečně generovaný text a QR bez pomocných rámečků a podkladů.
