@@ -1,8 +1,10 @@
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 
 import { PDFArray, PDFDict, PDFDocument, PDFName, PDFRef, PDFStream, decodePDFRawStream } from "pdf-lib";
 
 import { inspectIccProfile, inspectPdfPrepressMetadata } from "../src/features/vouchers/lib/voucher-pdf-prepress.ts";
+import { defaultVoucherTemplateLayout } from "../src/features/vouchers/lib/voucher-template-defaults.ts";
 
 const filePath = process.argv[2];
 if (!filePath) {
@@ -53,12 +55,26 @@ const iccObjects = streams.flatMap(([ref, object]) => {
     decodedSize = decoded.length;
     profile = inspectIccProfile(decoded);
   } catch { profile = null; }
-  return [{ ref: describe(ref), size: decodedSize, encodedSize: object.getContents().length, channels: n.asNumber?.() ?? null, profile }];
+  return [{ ref: describe(ref), size: decodedSize, encodedSize: object.getContents().length, channels: n.asNumber?.() ?? null, sha256: profile ? createHash("sha256").update(decodePDFRawStream(object).decode()).digest("hex") : null, profile }];
 });
 const imageColorSpaces = streams
   .filter(([, object]) => object.dict.lookupMaybe(PDFName.of("Subtype"), PDFName)?.asString() === "/Image")
   .map(([ref, object]) => `${describe(ref)}=${describe(object.dict.get(PDFName.of("ColorSpace")))}`)
   .join(", ");
+const trim = defaultVoucherTemplateLayout.trim;
+const dynamicAreas = [defaultVoucherTemplateLayout.valueArea, defaultVoucherTemplateLayout.serviceArea, defaultVoucherTemplateLayout.validityArea, defaultVoucherTemplateLayout.codeArea, defaultVoucherTemplateLayout.qrArea];
+const dynamicSafeAreaValid = dynamicAreas.every((area) => Math.min(
+  area.xMm - trim.xMm,
+  area.yMm - trim.yMm,
+  trim.xMm + trim.widthMm - (area.xMm + area.widthMm),
+  trim.yMm + trim.heightMm - (area.yMm + area.heightMm),
+) >= 3);
+const extGStates = objects.filter(([, object]) => object instanceof PDFDict && Array.from(object.keys()).some((key) => key.asString() === "/CA" || key.asString() === "/ca" || key.asString() === "/BM" || key.asString() === "/SMask"));
+const softMasks = extGStates.filter(([, object]) => object.get(PDFName.of("SMask")) && object.get(PDFName.of("SMask"))?.toString() !== "/None");
+const blendModes = extGStates.filter(([, object]) => object.get(PDFName.of("BM")) && object.get(PDFName.of("BM"))?.toString() !== "/Normal");
+const overprintObjects = objects.filter(([, object]) => object instanceof PDFDict && (object.get(PDFName.of("OP")) || object.get(PDFName.of("op")) || object.get(PDFName.of("OPM"))));
+const javaScriptObjects = objects.filter(([, object]) => object instanceof PDFDict && Array.from(object.keys()).some((key) => key.asString() === "/JavaScript"));
+const form = pdf.catalog.lookupMaybe(PDFName.of("AcroForm"), PDFDict);
 const first = pages[0];
 const geometryValid = pages.length > 0 && pages.every((page) => {
   const media = page.getMediaBox();
@@ -87,11 +103,13 @@ console.log(`BleedBox: ${first ? formatBox(first.getBleedBox()) : "missing"}`);
 console.log(`CropBox: ${first ? formatBox(first.getCropBox()) : "missing"}`);
 console.log(`Page ColorSpace resources: ${colorSpaceEntries}`);
 console.log(`Image ColorSpace usage: ${imageColorSpaces || "none"}`);
+console.log(`Dynamic safe area (default voucher layout): ${dynamicSafeAreaValid ? "PASS" : "FAIL"}`);
+console.log("Master artwork safe area: NOT AUTOMATICALLY VERIFIED");
 console.log(`Rotation: ${pages.every((page) => page.getRotation().angle === 0) ? "PASS" : "FAIL"}`);
 console.log(`OutputIntent: ${metadata.outputIntent.valid ? "PASS" : "FAIL"} (${metadata.outputIntent.count})`);
 console.log(`ICC profile: ${metadata.outputIntent.profileValid ? "PASS" : "FAIL"}${metadata.outputIntent.outputConditionIdentifier ? ` (${metadata.outputIntent.outputConditionIdentifier})` : ""}`);
 for (const icc of iccObjects) {
-  console.log(`Embedded ICC ${icc.ref}: ${icc.profile?.valid ? "VALID" : "INVALID"}, decodedSize=${icc.size}, encodedSize=${icc.encodedSize}, N=${icc.channels}, signature=${icc.profile?.signatureValid ? "acsp" : "invalid"}, class=${icc.profile?.profileClass ?? "unknown"}, colorSpace=${icc.profile?.colorSpace ?? "unknown"}, PCS=${icc.profile?.pcs ?? "unknown"}, description=${icc.profile?.description ?? "unknown"}`);
+  console.log(`Embedded ICC ${icc.ref}: ${icc.profile?.valid ? "VALID" : "INVALID"}, sha256=${icc.sha256 ?? "unknown"}, decodedSize=${icc.size}, encodedSize=${icc.encodedSize}, N=${icc.channels}, signature=${icc.profile?.signatureValid ? "acsp" : "invalid"}, class=${icc.profile?.profileClass ?? "unknown"}, colorSpace=${icc.profile?.colorSpace ?? "unknown"}, PCS=${icc.profile?.pcs ?? "unknown"}, description=${icc.profile?.description ?? "unknown"}, version=${icc.profile?.version ?? "unknown"}, renderingIntent=${icc.profile?.renderingIntent ?? "unknown"}, tagCount=${icc.profile?.tagCount ?? "unknown"}, copyright=${icc.profile?.copyright ?? "unknown"}, manufacturer=${icc.profile?.manufacturer ?? "unknown"}, model=${icc.profile?.model ?? "unknown"}`);
 }
 console.log(`PDF/X declaration: ${metadata.xmp.claim ?? "missing"}`);
 console.log(`PDF/X properties: ${metadata.xmp.pdfxidProperties.join(", ") || "none"}`);
@@ -99,6 +117,8 @@ console.log(`PDF/X conformance Info key: ${metadata.pdfXConformanceInfoPresent ?
 console.log(`PDF/X structural checks: ${pass ? "PASS" : "FAIL"}`);
 console.log(`Fonts: ${fontDictionaries.length} dictionaries, ${embeddedFontStreams.length} embedded streams`);
 console.log(`Images: ${images.length}`);
+console.log(`Transparency: ExtGState=${extGStates.length}, soft masks=${softMasks.length}, non-Normal blend modes=${blendModes.length}, overprint dictionaries=${overprintObjects.length}`);
+console.log(`Security: encryption=${pdf.isEncrypted ? "YES" : "NO"}, forms=${form ? "YES" : "NO"}, JavaScript objects=${javaScriptObjects.length}`);
 console.log(`File size: ${bytes.length} bytes`);
 console.log(`ICC streams: ${objects.filter(([, object]) => object instanceof PDFStream && object.dict.get(PDFName.of("N"))).length}`);
 console.log(`PDF objects: ${objects.length}, streams: ${streams.length}`);

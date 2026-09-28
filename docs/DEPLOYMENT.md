@@ -18,6 +18,8 @@ Rollout musí držet následující pořadí; nový web ani worker nesmí mezi m
 6. Teprve po úspěšném bootstrapu atomicky aktivuj nový release, spusť web a worker a proveď health/smoke kontroly. Při selhání migrace nebo bootstrapu release neaktivuj.
 7. U tiskárny kontroluj geometrii ColorPoint (trim 210 × 99 mm, bleed 3 mm). Interní preflight ověřuje tiskový kontrakt a reportuje `STRUCTURALLY_VALIDATED`; bez externího validačního nástroje se výstup neoznačuje jako externě ověřený PDF/X-4.
 
+Připravený `classic-v2` master s oficiálním profilem ColorPoint/Fujifilm Revoria uncoated je pouze kandidátní asset: bootstrap ani runtime automaticky nemění produkční default a nevytvářejí databázový záznam. Schválený rollout musí samostatně nahrát master do privátního storage, vytvořit a validovat publikovaný `VoucherTemplate` s klíčem `classic-v2`, provést PRINT/STOCK smoke test a teprve po schválení změnit `SiteSettings` default; historické vouchery `classic-v1` musí dál odkazovat na původní template.
+
 - Před releasem s migrací `20260710110000_availability_slot_capacity_one` ověř `AvailabilitySlot` dotazem `WHERE "capacity" <> 1`. Migrace se při nálezu bezpečně zastaví; hodnoty neopravuj hromadně bez kontroly souběžných rezervací.
 
 ## Artefakty a zavislosti

@@ -40,6 +40,11 @@ export type IccProfileInspection = {
   pcs: string | null;
   version: string | null;
   description: string | null;
+  copyright: string | null;
+  manufacturer: string | null;
+  model: string | null;
+  renderingIntent: number | null;
+  tagCount: number | null;
   errors: string[];
 };
 
@@ -93,7 +98,7 @@ function readVersion(bytes: Uint8Array) {
   return bytes.length >= 12 ? `${bytes[8] >> 4}.${bytes[8] & 0x0f}.${bytes[9] >> 4}` : null;
 }
 
-function readTagDescription(bytes: Uint8Array, tagSignature: string) {
+function readTag(bytes: Uint8Array, tagSignature: string) {
   const tagCount = readUInt32(bytes, 128);
   if (tagCount === null || bytes.length < 132 + tagCount * 12) return null;
   for (let index = 0; index < tagCount; index += 1) {
@@ -102,10 +107,21 @@ function readTagDescription(bytes: Uint8Array, tagSignature: string) {
     const tagOffset = readUInt32(bytes, offset + 4);
     const tagSize = readUInt32(bytes, offset + 8);
     if (tagOffset === null || tagSize === null || tagOffset + tagSize > bytes.length || tagSize < 12) return null;
-    if (readSignature(bytes, tagOffset) !== "desc") return null;
-    const asciiLength = readUInt32(bytes, tagOffset + 8);
-    if (asciiLength === null || asciiLength < 1 || tagOffset + 12 + asciiLength > bytes.length) return null;
-    return Buffer.from(bytes.subarray(tagOffset + 12, tagOffset + 12 + asciiLength - 1)).toString("ascii");
+    return { type: readSignature(bytes, tagOffset), offset: tagOffset, size: tagSize };
+  }
+  return null;
+}
+
+function readTagText(bytes: Uint8Array, tagSignature: string) {
+  const tag = readTag(bytes, tagSignature);
+  if (!tag) return null;
+  if (tag.type === "text") {
+    return Buffer.from(bytes.subarray(tag.offset + 8, tag.offset + tag.size)).toString("ascii").replace(/\0+$/, "").trim() || null;
+  }
+  if (tag.type === "desc") {
+    const asciiLength = readUInt32(bytes, tag.offset + 8);
+    if (asciiLength === null || asciiLength < 1 || tag.offset + 12 + asciiLength > bytes.length) return null;
+    return Buffer.from(bytes.subarray(tag.offset + 12, tag.offset + 12 + asciiLength - 1)).toString("ascii");
   }
   return null;
 }
@@ -119,6 +135,8 @@ export function inspectIccProfile(bytes: Uint8Array): IccProfileInspection {
   const colorSpace = readSignature(bytes, 16);
   const pcs = readSignature(bytes, 20);
   const version = readVersion(bytes);
+  const tagCount = readUInt32(bytes, 128);
+  const renderingIntent = readUInt32(bytes, 64);
 
   if (bytes.length < 128) errors.push("ICC profil je kratší než 128 bytes.");
   if (declaredSize === null || declaredSize < 128) errors.push("ICC header nemá platnou deklarovanou velikost.");
@@ -137,7 +155,12 @@ export function inspectIccProfile(bytes: Uint8Array): IccProfileInspection {
     colorSpace,
     pcs,
     version,
-    description: readTagDescription(bytes, "desc"),
+    description: readTagText(bytes, "desc"),
+    copyright: readTagText(bytes, "cprt"),
+    manufacturer: readTagText(bytes, "dmnd"),
+    model: readTagText(bytes, "dmdd"),
+    renderingIntent,
+    tagCount,
     errors,
   };
 }
