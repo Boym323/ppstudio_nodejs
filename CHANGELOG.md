@@ -8,6 +8,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Produkční first-rollout Voucher Template Manageru nyní odděluje historický `classic-v1` (immutable, neaktivní, bez strict markeru) od aktuálního `classic-v2` (publikovaný `STRICT_V1` PDF/X-4 master); staré vouchery se backfillují na původní vzhled a nový default míří na `classic-v2`.
+- CI má samostatný izolovaný production-first-rollout smoke gate nad čistou PostgreSQL databází a skutečnými bundled mastery; ověřuje migrace, bootstrap, STOCK PDF preflight, převzetí série, VALUE/SERVICE aktivaci, veřejné ověření a idempotentní druhý bootstrap.
+- Admin PWA E2E kontroluje statické assety sekvenčně místo tří souběžných requestů při startu Next serveru, čímž odstraňuje náhodný `socket hang up` bez oslabení kontrolovaných hlaviček a scope.
+
 - Editor voucherů upozorní na chybu aktualizace náhledu a nezobrazuje zastaralý výsledek; testovací PDF respektuje vybraný typ voucheru a tažení i změna rozměrů drží prvky uvnitř ořezové oblasti.
 
 - Chyby validace a správy voucherových šablon se nyní zobrazí administrátorovi jako srozumitelné hlášení místo neodchycené chyby v prohlížeči.
