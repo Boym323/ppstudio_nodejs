@@ -51,9 +51,9 @@ async function prepareCiVoucherFixtures() {
     },
   });
 
-  // CI používá legacy key classic-v1 kvůli existujícím fixture scénářům, ale
-  // musí testovat současný strict PDF/X master. Historický classic-v1.pdf je
-  // záměrně PDF 1.4 a nesmí se kvůli CI ani produkčnímu bootstrapu přepisovat.
+  // Běžné integrační/E2E fixture zůstávají kompatibilní se scénáři, které
+  // historicky používají key classic-v1 jako strict testovací šablonu.
+  // Skutečný production first-rollout je samostatně ověřen smoke gate skriptem.
   const strictCiMaster = await readFile(path.join(process.cwd(), "src", "features", "vouchers", "bootstrap-assets", "classic-v2.pdf"));
   const result = await bootstrapVoucherTemplates({ readMaster: async () => strictCiMaster });
   console.info(
