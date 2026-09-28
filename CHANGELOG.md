@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.30.1] - 2026-09-28
+
 ### Opraveno
 
 - Produkční first-rollout Voucher Template Manageru nyní odděluje historický `classic-v1` (immutable, neaktivní, bez strict markeru) od aktuálního `classic-v2` (publikovaný `STRICT_V1` PDF/X-4 master); staré vouchery se backfillují na původní vzhled a nový default míří na `classic-v2`.
