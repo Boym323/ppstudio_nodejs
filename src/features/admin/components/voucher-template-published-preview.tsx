@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 
 import type { VoucherTemplateLayoutV1 } from "@/features/vouchers/lib/voucher-template-layout";
@@ -29,11 +29,7 @@ const placeholderText: Record<Exclude<AreaKey, "qrArea">, string> = {
 
 export function VoucherTemplatePublishedPreview({ src, alt, layout }: { src?: string; alt: string; layout: VoucherTemplateLayoutV1 }) {
   const [mode, setMode] = useState<PreviewMode>("VALUE");
-  const [previewQr, setPreviewQr] = useState(() => createVoucherTemplatePreviewQr());
-
-  useEffect(() => {
-    setPreviewQr(createVoucherTemplatePreviewQr(window.location.origin));
-  }, []);
+  const [previewQr] = useState(() => createVoucherTemplatePreviewQr(typeof window === "undefined" ? undefined : window.location.origin));
   const visibleAreas = getVisibleAreas(mode);
 
   return (

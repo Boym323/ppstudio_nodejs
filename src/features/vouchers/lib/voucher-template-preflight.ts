@@ -1,66 +1,179 @@
 import { PDFDocument } from "pdf-lib";
 
+import { inspectPdfPrepressMetadata } from "./voucher-pdf-prepress";
 import { VOUCHER_PRINT_GEOMETRY } from "./voucher-template-layout";
 
 const MM_TO_PT = 72 / 25.4;
 const tolerancePt = MM_TO_PT * 0.35;
 type PdfBox = { x: number; y: number; width: number; height: number };
+type PdfPreflightMode = "MASTER" | "FINAL_PRINT";
+
+export type PdfXVerification = "DECLARED" | "STRUCTURALLY_VALIDATED" | "EXTERNALLY_VERIFIED";
 
 export type VoucherTemplatePreflight = {
+  pdfVersion: string | null;
   pageCount: number;
   mediaBox: PdfBox | null;
+  cropBox: PdfBox | null;
   trimBox: PdfBox | null;
   bleedBox: PdfBox | null;
   rotation: number | null;
   encrypted: boolean;
   geometryValid: boolean;
+  pageGeometryValid: boolean;
   outputIntentPresent: boolean;
+  outputIntentValid: boolean;
+  iccProfilePresent: boolean;
+  iccProfileValid: boolean;
+  outputConditionIdentifier: string | null;
   pdfXClaim: string | null;
-  pdfXVerification: "NOT VERIFIED";
+  pdfXMetadataPresent: boolean;
+  pdfXMetadataValid: boolean;
+  pdfXVerification: PdfXVerification;
   warnings: string[];
   errors: string[];
 };
 
-function close(a: number, b: number) { return Math.abs(a - b) <= tolerancePt; }
-function isExpected(box: PdfBox, expected: PdfBox) { return close(box.x, expected.x) && close(box.y, expected.y) && close(box.width, expected.width) && close(box.height, expected.height); }
-function getBox(page: { getMediaBox(): PdfBox; getTrimBox(): PdfBox; getBleedBox(): PdfBox }, kind: "media" | "trim" | "bleed") { return kind === "media" ? page.getMediaBox() : kind === "trim" ? page.getTrimBox() : page.getBleedBox(); }
+function close(a: number, b: number) {
+  return Math.abs(a - b) <= tolerancePt;
+}
 
-export async function preflightVoucherTemplateMaster(bytes: Buffer): Promise<VoucherTemplatePreflight> {
-  const warnings: string[] = [];
-  const errors: string[] = [];
-  let pdf: PDFDocument;
-  try { pdf = await PDFDocument.load(bytes, { ignoreEncryption: false }); } catch { return { pageCount: 0, mediaBox: null, trimBox: null, bleedBox: null, rotation: null, encrypted: false, geometryValid: false, outputIntentPresent: false, pdfXClaim: null, pdfXVerification: "NOT VERIFIED", warnings, errors: ["PDF nelze načíst nebo je chráněné heslem."] }; }
-  const pageCount = pdf.getPageCount();
-  if (pageCount !== 1) errors.push("Master musí mít právě jednu stránku.");
-  const page = pageCount ? pdf.getPage(0) : null;
-  const mediaBox = page ? getBox(page, "media") : null;
-  const trimBox = page ? getBox(page, "trim") : null;
-  const bleedBox = page ? getBox(page, "bleed") : null;
-  const rotation = page ? normalizeRotation(page.getRotation().angle) : null;
-  if (rotation !== null && rotation !== 0) errors.push(`Master PDF má nepodporovanou rotaci ${rotation}°. Použijte rotaci 0°.`);
-  const expectedMedia = { x: 0, y: 0, width: VOUCHER_PRINT_GEOMETRY.widthMm * MM_TO_PT, height: VOUCHER_PRINT_GEOMETRY.heightMm * MM_TO_PT };
-  const expectedTrim = { x: VOUCHER_PRINT_GEOMETRY.trimXmm * MM_TO_PT, y: VOUCHER_PRINT_GEOMETRY.trimYmm * MM_TO_PT, width: VOUCHER_PRINT_GEOMETRY.trimWidthMm * MM_TO_PT, height: VOUCHER_PRINT_GEOMETRY.trimHeightMm * MM_TO_PT };
-  // PDF default values for CropBox and BleedBox are inherited from MediaBox.
-  // pdf-lib returns that effective value even when the box is not explicitly present.
-  const geometryValid = Boolean(mediaBox && trimBox && bleedBox && isExpected(mediaBox, expectedMedia) && isExpected(trimBox, expectedTrim) && isExpected(bleedBox, expectedMedia));
-  if (!geometryValid) {
-    const boxDescription = (name: string, box: PdfBox | null) => box
-      ? `${name} ${[box.x, box.y, box.width, box.height].map((value) => (value / MM_TO_PT).toFixed(2)).join(" × ")} mm`
-      : `${name} chybí`;
-    errors.push(`PDF nemá požadovanou geometrii (MediaBox 216 × 105 mm, TrimBox 210 × 99 mm na offsetu 3 mm, BleedBox stránky). Zjištěno: ${boxDescription("MediaBox", mediaBox)}, ${boxDescription("TrimBox", trimBox)}, ${boxDescription("BleedBox", bleedBox)}.`);
-  }
-  const raw = bytes.toString("latin1");
-  const outputIntentPresent = raw.includes("/OutputIntent");
-  const pdfXClaim = /\/GTS_PDFXVersion\s*\(([^)]+)\)/.exec(raw)?.[1] ?? null;
-  if (pdfXClaim) warnings.push(`Master deklaruje ${pdfXClaim}; finální PDF/X-4 conformity se dostupným rendererem neověřuje.`);
-  if (!outputIntentPresent) warnings.push("Master neobsahuje rozpoznatelný OutputIntent/ICC profil.");
-  return { pageCount, mediaBox, trimBox, bleedBox, rotation, encrypted: false, geometryValid, outputIntentPresent, pdfXClaim, pdfXVerification: "NOT VERIFIED", warnings, errors };
+function isExpected(box: PdfBox, expected: PdfBox) {
+  return close(box.x, expected.x) && close(box.y, expected.y) && close(box.width, expected.width) && close(box.height, expected.height);
 }
 
 function normalizeRotation(angle: number) {
   return ((angle % 360) + 360) % 360;
 }
 
-export async function preflightFinalVoucherPrint(bytes: Uint8Array) {
-  return preflightVoucherTemplateMaster(Buffer.from(bytes));
+function emptyPreflight(overrides: Partial<VoucherTemplatePreflight> = {}): VoucherTemplatePreflight {
+  return {
+    pdfVersion: null,
+    pageCount: 0,
+    mediaBox: null,
+    cropBox: null,
+    trimBox: null,
+    bleedBox: null,
+    rotation: null,
+    encrypted: false,
+    geometryValid: false,
+    pageGeometryValid: false,
+    outputIntentPresent: false,
+    outputIntentValid: false,
+    iccProfilePresent: false,
+    iccProfileValid: false,
+    outputConditionIdentifier: null,
+    pdfXClaim: null,
+    pdfXMetadataPresent: false,
+    pdfXMetadataValid: false,
+    pdfXVerification: "DECLARED",
+    warnings: [],
+    errors: [],
+    ...overrides,
+  };
+}
+
+function formatBox(name: string, box: PdfBox | null) {
+  return box
+    ? `${name} ${[box.x, box.y, box.width, box.height].map((value) => (value / MM_TO_PT).toFixed(2)).join(" × ")} mm`
+    : `${name} chybí`;
+}
+
+async function inspectVoucherPdf(bytes: Buffer, mode: PdfPreflightMode, expectedPageCount?: number): Promise<VoucherTemplatePreflight> {
+  const pdfVersion = /^%PDF-(\d+\.\d+)/.exec(Buffer.from(bytes.subarray(0, 16)).toString("latin1"))?.[1] ?? null;
+  let pdf: PDFDocument;
+  try {
+    // ignoreEncryption lets us report encryption explicitly instead of
+    // collapsing it into the generic invalid-PDF error.
+    pdf = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+  } catch {
+    return emptyPreflight({ pdfVersion, errors: ["PDF nelze načíst nebo je neplatné."] });
+  }
+
+  if (pdf.isEncrypted) return emptyPreflight({ pdfVersion, encrypted: true, errors: ["PDF je zašifrované; tiskové PDF nesmí být šifrované."] });
+
+  const pageCount = pdf.getPageCount();
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const [pdfMajor, pdfMinor] = pdfVersion?.split(".").map(Number) ?? [];
+  const pdfVersionValid = Number.isInteger(pdfMajor) && Number.isInteger(pdfMinor) && pdfMajor * 10 + pdfMinor >= 16;
+  if (!pdfVersionValid) errors.push(`PDF verze ${pdfVersion ?? "neznámá"} je pro PDF/X-4 nedostatečná; vyžadována je minimálně 1.6.`);
+  const expectedPageCountForMode = mode === "MASTER" ? 1 : expectedPageCount;
+  if (expectedPageCountForMode !== undefined && pageCount !== expectedPageCountForMode) {
+    errors.push(`${mode === "MASTER" ? "Master" : "Finální tiskové PDF"} má mít ${expectedPageCountForMode} ${expectedPageCountForMode === 1 ? "stránku" : "stránky"}, zjištěno ${pageCount}.`);
+  }
+  if (pageCount === 0) errors.push("PDF nemá žádnou stránku.");
+
+  const expectedMedia = { x: 0, y: 0, width: VOUCHER_PRINT_GEOMETRY.widthMm * MM_TO_PT, height: VOUCHER_PRINT_GEOMETRY.heightMm * MM_TO_PT };
+  const expectedTrim = { x: VOUCHER_PRINT_GEOMETRY.trimXmm * MM_TO_PT, y: VOUCHER_PRINT_GEOMETRY.trimYmm * MM_TO_PT, width: VOUCHER_PRINT_GEOMETRY.trimWidthMm * MM_TO_PT, height: VOUCHER_PRINT_GEOMETRY.trimHeightMm * MM_TO_PT };
+  const pages = Array.from({ length: pageCount }, (_, index) => pdf.getPage(index));
+  const firstPage = pages[0];
+  const mediaBox = firstPage?.getMediaBox() ?? null;
+  const cropBox = firstPage?.getCropBox() ?? null;
+  const trimBox = firstPage?.getTrimBox() ?? null;
+  const bleedBox = firstPage?.getBleedBox() ?? null;
+  const rotation = firstPage ? normalizeRotation(firstPage.getRotation().angle) : null;
+  const pageGeometryValid = pages.length > 0 && pages.every((page) => {
+    const pageRotation = normalizeRotation(page.getRotation().angle);
+    return pageRotation === 0
+      && isExpected(page.getMediaBox(), expectedMedia)
+      && isExpected(page.getCropBox(), expectedMedia)
+      && isExpected(page.getBleedBox(), expectedMedia)
+      && isExpected(page.getTrimBox(), expectedTrim);
+  });
+  const geometryValid = pageGeometryValid;
+
+  if (pages.some((page) => normalizeRotation(page.getRotation().angle) !== 0)) {
+    errors.push(`PDF má nepodporovanou rotaci ${rotation ?? "?"}°. Použijte rotaci 0°.`);
+  }
+  if (!geometryValid) {
+    errors.push(`PDF nemá požadovanou geometrii (MediaBox/CropBox/BleedBox 216 × 105 mm, TrimBox 210 × 99 mm na offsetu 3 mm). Zjištěno: ${formatBox("MediaBox", mediaBox)}, ${formatBox("CropBox", cropBox)}, ${formatBox("TrimBox", trimBox)}, ${formatBox("BleedBox", bleedBox)}.`);
+  }
+
+  const metadata = inspectPdfPrepressMetadata(pdf);
+  if (!metadata.outputIntent.present) errors.push("PDF nemá dokumentový OutputIntent.");
+  else if (!metadata.outputIntent.valid) errors.push("PDF má neúplný OutputIntent; musí obsahovat /S /GTS_PDFX a DestOutputProfile s ICC streamem.");
+  if (!metadata.outputIntent.profilePresent) errors.push("PDF nemá DestOutputProfile/ICC profil.");
+  else if (!metadata.outputIntent.profileValid) errors.push("DestOutputProfile není platný ICC stream.");
+  if (!metadata.xmp.present) errors.push("PDF nemá katalogová PDF/X XMP metadata.");
+  else if (!metadata.xmp.valid) errors.push("PDF/X XMP metadata nedeklarují PDF/X-4.");
+  if (metadata.pdfXConformanceInfoPresent) errors.push("PDF Info dictionary nesmí obsahovat GTS_PDFXConformance pro PDF/X-4.");
+
+  if (metadata.xmp.claim && !metadata.xmp.valid) warnings.push(`PDF obsahuje deklaraci ${metadata.xmp.claim}, ale neprošla interní kontrolou.`);
+  if (metadata.outputIntent.outputConditionIdentifier) warnings.push(`Output condition: ${metadata.outputIntent.outputConditionIdentifier}.`);
+
+  const structurallyValid = errors.length === 0;
+  const pdfXVerification: PdfXVerification = structurallyValid ? "STRUCTURALLY_VALIDATED" : "DECLARED";
+
+  return {
+    pdfVersion,
+    pageCount,
+    mediaBox,
+    cropBox,
+    trimBox,
+    bleedBox,
+    rotation,
+    encrypted: false,
+    geometryValid,
+    pageGeometryValid,
+    outputIntentPresent: metadata.outputIntent.present,
+    outputIntentValid: metadata.outputIntent.valid,
+    iccProfilePresent: metadata.outputIntent.profilePresent,
+    iccProfileValid: metadata.outputIntent.profileValid,
+    outputConditionIdentifier: metadata.outputIntent.outputConditionIdentifier,
+    pdfXClaim: metadata.xmp.claim,
+    pdfXMetadataPresent: metadata.xmp.present,
+    pdfXMetadataValid: metadata.xmp.valid,
+    pdfXVerification,
+    warnings,
+    errors,
+  };
+}
+
+export async function preflightVoucherTemplateMaster(bytes: Buffer): Promise<VoucherTemplatePreflight> {
+  return inspectVoucherPdf(bytes, "MASTER");
+}
+
+export async function preflightFinalVoucherPrint(bytes: Uint8Array, expectedPageCount?: number) {
+  return inspectVoucherPdf(Buffer.from(bytes), "FINAL_PRINT", expectedPageCount);
 }

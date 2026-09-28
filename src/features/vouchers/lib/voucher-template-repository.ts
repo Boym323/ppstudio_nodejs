@@ -16,6 +16,7 @@ export type ResolvedVoucherTemplate = {
   layout: VoucherTemplateLayoutV1;
   masterSha256: string;
   masterBytes: Buffer;
+  validationPolicy?: string | null;
 };
 
 export async function getVoucherTemplateById(id: string) {
@@ -81,10 +82,10 @@ export async function loadVoucherTemplateMaster(template: { masterStoragePath: s
   return master;
 }
 
-export async function resolveVoucherTemplate(template: { id: string; key: string; status: VoucherTemplateStatus; allowedTypes: VoucherType[]; label: string; layout: unknown; masterStoragePath: string | null; masterSha256: string | null }): Promise<ResolvedVoucherTemplate> {
+export async function resolveVoucherTemplate(template: { id: string; key: string; status: VoucherTemplateStatus; allowedTypes: VoucherType[]; label: string; layout: unknown; masterStoragePath: string | null; masterSha256: string | null; validationPolicy?: string | null }): Promise<ResolvedVoucherTemplate> {
   const masterBytes = await loadVoucherTemplateMaster(template);
   if (!template.masterSha256) throw new VoucherTemplateDomainError("MASTER_INVALID", "Master šablony není dostupný.");
-  return { id: template.id, key: template.key, status: template.status, allowedTypes: template.allowedTypes, label: template.label, layout: voucherTemplateStoredLayoutSchema.parse(template.layout), masterSha256: template.masterSha256, masterBytes };
+  return { id: template.id, key: template.key, status: template.status, allowedTypes: template.allowedTypes, label: template.label, layout: voucherTemplateStoredLayoutSchema.parse(template.layout), masterSha256: template.masterSha256, masterBytes, validationPolicy: template.validationPolicy };
 }
 
 export async function resolveVoucherTemplateForVoucher(voucherId: string) {

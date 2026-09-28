@@ -8,6 +8,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- CI fixture bootstrap nyní používá strict `classic-v2` master pod legacy testovacím klíčem `classic-v1`, takže historický PDF 1.4 master není omylem posuzován jako nový PDF/X-4 výstup; publikovaný náhled zároveň neprovádí synchronní změnu React state v efektu.
+- Prepress inspekce ICC profilů nyní správně reportuje verzi podle ICC header encoding, takže oficiální ColorPoint profil je uváděn jako `2.4.0` místo `0.2.4`; profilové bytes, OutputIntent i SHA-256 se nemění.
+- Připraven nový immutable `classic-v2` master pro ColorPoint/Fujifilm Revoria uncoated workflow s originálním CMYK OutputIntent profilem; historický `classic-v1` ani produkční default se automaticky nemění.
+- Tiskový PRINT a STOCK export voucherů nyní zachovává dokumentový OutputIntent s ověřeným CMYK ICC profilem masteru, vytváří přesnou PDF/X-4 XMP identitu (`GTS_PDFXVersion=PDF/X-4`), vyžaduje PDF verzi minimálně 1.6 a sdílí neměnné master resources napříč vícestránkovou sérií; strict preflight nevyhovující tiskové mastery odmítne.
 - Publikovaný náhled voucherové šablony nyní vykresluje textové placeholdery podle absolutní pozice uložené baseline; po publikaci se už nesesunou k horní hraně náhledu.
 - QR kód v PDF má včetně bílého podkladu a ochranné zóny odsazení 0,5 mm od hran své oblasti, aby nepřekrýval ohraničení v tiskovém podkladu; editor zobrazuje stejný výsledek.
 - Editor voucherových šablon nyní zobrazuje obsah pouze z náhledu vyrenderovaného stejným testovacím PDF, takže QR rámečky a polohy textů odpovídají exportu i u masterů s vlastními překryvy.

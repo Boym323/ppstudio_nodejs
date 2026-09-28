@@ -44,7 +44,8 @@ export function createAdminVoucherStockPdfRoute(dependencies: VoucherStockPdfRou
   }));
   const generatePdf = dependencies.generatePdf ?? (async (batch) => {
     if (!batch.templateId) throw new Error("Tisková série nemá přiřazenou šablonu.");
-    return generateResolvedVoucherBatchPrintPdf({ batchNumber: batch.batchNumber, items: batch.items }, await resolveVoucherTemplate(await requireVoucherTemplateById(batch.templateId)));
+    const template = await resolveVoucherTemplate(await requireVoucherTemplateById(batch.templateId));
+    return generateResolvedVoucherBatchPrintPdf({ batchNumber: batch.batchNumber, items: batch.items }, template, { requirePrepress: template.validationPolicy === "STRICT_V1" });
   });
 
   return async function AdminVoucherStockPdfRoute(

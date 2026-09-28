@@ -3,7 +3,7 @@ import path from "node:path";
 
 import fontkit from "@pdf-lib/fontkit";
 import { VoucherType } from "@/generated/prisma/browser";
-import { PDFDocument, cmyk, clip, endPath, popGraphicsState, pushGraphicsState, rectangle, type PDFFont, type PDFPage } from "pdf-lib";
+import { PDFDocument, PDFObjectCopier, PDFPage, cmyk, clip, endPath, popGraphicsState, pushGraphicsState, rectangle, type PDFFont } from "pdf-lib";
 import QRCode from "qrcode";
 
 import { formatVoucherValue } from "@/features/vouchers/lib/voucher-format";
@@ -15,11 +15,12 @@ import { requireVoucherTemplateById, resolveVoucherTemplate } from "@/features/v
 import { getVoucherQrRenderGeometry, VOUCHER_PRINT_GEOMETRY, VOUCHER_QR_QUIET_ZONE_MODULES } from "@/features/vouchers/lib/voucher-template-layout";
 import { fitVoucherTextToArea, VOUCHER_TEXT_HORIZONTAL_INSET_MM } from "@/features/vouchers/lib/voucher-text-fit";
 import { getPersistedVoucherRenderMode } from "@/features/vouchers/lib/voucher-render-policy";
+import { ensurePrintPdfMetadata } from "@/features/vouchers/lib/voucher-pdf-prepress";
 
 type VoucherPdfData = NonNullable<Awaited<ReturnType<typeof getVoucherDetail>>>;
 type VoucherStockBatchPdfItem = Pick<VoucherPdfData, "code">;
 type VoucherTemplateRenderDefinition = Pick<ResolvedVoucherTemplate, "key" | "label" | "layout">;
-type VoucherRenderOptions = { failOnTextOverflow?: boolean; renderMode?: "STRICT" | "HISTORICAL" };
+type VoucherRenderOptions = { failOnTextOverflow?: boolean; renderMode?: "STRICT" | "HISTORICAL"; requirePrepress?: boolean };
 
 export const MM_TO_PT = 72 / 25.4;
 const MASTER_PAGE_SIZE_TOLERANCE_MM = 0.35;
@@ -103,7 +104,8 @@ export function buildVoucherPdfOverlayData(
 
 export async function generatePersistedVoucherPrintPdf(voucher: VoucherPdfData) {
   if (!voucher.templateId) throw new VoucherTemplateError(voucher.templateKey, { message: "Voucher nemá přiřazenou šablonu." });
-  return generateResolvedVoucherPrintPdf(voucher, await resolveVoucherTemplate(await requireVoucherTemplateById(voucher.templateId)), { renderMode: getPersistedVoucherRenderMode(voucher) });
+  const renderMode = getPersistedVoucherRenderMode(voucher);
+  return generateResolvedVoucherPrintPdf(voucher, await resolveVoucherTemplate(await requireVoucherTemplateById(voucher.templateId)), { renderMode, requirePrepress: renderMode === "STRICT" });
 }
 
 export async function generatePersistedVoucherDigitalPdf(voucher: VoucherPdfData) {
@@ -114,7 +116,7 @@ export async function generatePersistedVoucherDigitalPdf(voucher: VoucherPdfData
 /** Pure runtime renderer: receives an already resolved DB template, never Prisma or filesystem paths. */
 export async function generateResolvedVoucherPrintPdf(voucher: VoucherPdfData, template: ResolvedVoucherTemplate, options: VoucherRenderOptions = {}) {
   const masterBytes = template.masterBytes;
-  const pdf = await PDFDocument.load(masterBytes);
+  const pdf = await PDFDocument.load(masterBytes, { updateMetadata: false });
   validateMasterPageSize(pdf, template);
   const page = pdf.getPage(0);
 
@@ -144,8 +146,11 @@ export async function generateResolvedVoucherPrintPdf(voucher: VoucherPdfData, t
 
   drawVoucherOverlay(page, voucher, template, regularFont, boldFont, qrCode, options);
   setPrintPageBoxes(page, template);
+  ensurePrintPdfMetadata(pdf);
 
-  return pdf.save();
+  const bytes = await pdf.save();
+  if (options.requirePrepress) await assertFinalPrintPreflight(bytes, template, 1);
+  return bytes;
 }
 
 export function buildVoucherStockPdfFilename(batchNumber: string) {
@@ -162,18 +167,40 @@ export async function generateResolvedVoucherBatchPrintPdf(
   const [regularLatinBytes, regularLatinExtBytes, boldLatinBytes, boldLatinExtBytes] = await Promise.all([
     readFile(fontRegularLatinPath), readFile(fontRegularLatinExtPath), readFile(fontBoldLatinPath), readFile(fontBoldLatinExtPath),
   ]);
-  const masterPdf = await PDFDocument.load(template.masterBytes);
+  const masterPdf = await PDFDocument.load(template.masterBytes, { updateMetadata: false });
   validateMasterPageSize(masterPdf, template);
-  const pdf = await PDFDocument.create(); pdf.registerFontkit(fontkit);
+  const pdf = await PDFDocument.create({ updateMetadata: false }); pdf.registerFontkit(fontkit);
+  // One copier is deliberately reused for the whole batch. pdf-lib's public
+  // copyPages() creates a fresh copier per call, which duplicates immutable
+  // master images, fonts, and other resources for every stock page.
+  const copier = PDFObjectCopier.for(masterPdf.context, pdf.context);
+  const masterPage = masterPdf.getPage(0);
   const regularFont = createFontPair(await pdf.embedFont(regularLatinBytes, { subset: true }), await pdf.embedFont(regularLatinExtBytes, { subset: true }));
   const boldFont = createFontPair(await pdf.embedFont(boldLatinBytes, { subset: true }), await pdf.embedFont(boldLatinExtBytes, { subset: true }));
   for (const item of batch.items) {
-    const [page] = await pdf.copyPages(masterPdf, [0]); pdf.addPage(page);
+    const copiedPageNode = copier.copy(masterPage.node);
+    const copiedPage = PDFPage.of(copiedPageNode, pdf.context.register(copiedPageNode), pdf);
+    pdf.addPage(copiedPage);
+    const page = copiedPage;
     drawVoucherCodeAndQrOverlay(page, item.code, template, regularFont, boldFont, QRCode.create(buildVoucherVerificationUrl(item.code), { errorCorrectionLevel: "M" }), options);
     setPrintPageBoxes(page, template);
   }
+  ensurePrintPdfMetadata(pdf, masterPdf, copier);
   pdf.setTitle(`Předtištěné vouchery ${batch.batchNumber}`); pdf.setAuthor("PP Studio"); pdf.setSubject(`Tisková série voucherů PP Studio · ${template.label}`); pdf.setCreator("PP Studio administrace"); pdf.setProducer("PP Studio administrace");
-  return pdf.save();
+  const bytes = await pdf.save();
+  if (options.requirePrepress) await assertFinalPrintPreflight(bytes, template, batch.items.length);
+  return bytes;
+}
+
+async function assertFinalPrintPreflight(bytes: Uint8Array, template: VoucherTemplateRenderDefinition, expectedPageCount: number) {
+  const { preflightFinalVoucherPrint } = await import("./voucher-template-preflight");
+  const result = await preflightFinalVoucherPrint(bytes, expectedPageCount);
+  if (result.errors.length > 0) {
+    throw new VoucherTemplateError(template.key, {
+      code: "invalid_print_pdf",
+      message: "Finální tiskové PDF neprošlo interním preflightem.",
+    });
+  }
 }
 
 function validateMasterPageSize(pdf: PDFDocument, template: VoucherTemplateRenderDefinition) {

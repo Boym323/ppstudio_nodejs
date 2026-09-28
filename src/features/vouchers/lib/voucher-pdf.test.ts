@@ -5,9 +5,10 @@ import { inflateSync } from "node:zlib";
 import test from "node:test";
 
 import { VoucherStatus, VoucherType } from "@/generated/prisma/browser";
-import { PDFDocument, rgb } from "pdf-lib";
+import { PDFArray, PDFDict, PDFDocument, PDFName, PDFRawStream, PDFStream, PDFString, decodePDFRawStream, rgb } from "pdf-lib";
 import { defaultVoucherTemplateLayout } from "./voucher-template-defaults";
 import { voucherTemplateLayoutSchema, voucherTemplateStoredLayoutSchema } from "./voucher-template-layout";
+import { ensurePrintPdfMetadata, inspectIccProfile } from "./voucher-pdf-prepress";
 
 import {
   createVoucherTemplateRegistry,
@@ -26,12 +27,51 @@ process.env.ADMIN_STAFF_EMAIL ??= "staff@example.com";
 process.env.ADMIN_STAFF_PASSWORD ??= "change-me-staff";
 process.env.EMAIL_DELIVERY_MODE ??= "log";
 
+// TEST ONLY: minimal deterministic ICC v4 CMYK header for structural tests.
+function makeTestCmykIccProfile() {
+  const bytes = Buffer.alloc(128);
+  bytes.writeUInt32BE(bytes.length, 0);
+  bytes[8] = 0x43;
+  bytes.write("prtr", 12, "ascii");
+  bytes.write("CMYK", 16, "ascii");
+  bytes.write("XYZ ", 20, "ascii");
+  bytes.write("acsp", 36, "ascii");
+  return bytes;
+}
+
+test("ICC profile version čte major z byte 8 a minor/bugfix z byte 9", () => {
+  for (const [header, expected] of [
+    [[0x02, 0x40, 0x00, 0x00], "2.4.0"],
+    [[0x04, 0x20, 0x00, 0x00], "4.2.0"],
+    [[0x04, 0x30, 0x00, 0x00], "4.3.0"],
+  ] as const) {
+    const profile = makeTestCmykIccProfile();
+    profile.set(header, 8);
+    assert.equal(inspectIccProfile(profile).version, expected);
+  }
+});
+
+async function makeStrictMaster(masterBytes: Buffer) {
+  const pdf = await PDFDocument.load(masterBytes, { updateMetadata: false });
+  const profileRef = pdf.context.register(pdf.context.stream(makeTestCmykIccProfile(), { N: 4 }));
+  const outputIntent = pdf.context.obj({
+    Type: "OutputIntent",
+    S: "GTS_PDFX",
+    OutputConditionIdentifier: PDFString.of("sRGB IEC61966-2.1 (test fixture)"),
+    Info: PDFString.of("Test fixture ICC profile"),
+    DestOutputProfile: profileRef,
+  });
+  pdf.catalog.set(PDFName.of("OutputIntents"), pdf.context.obj([pdf.context.register(outputIntent)]));
+  ensurePrintPdfMetadata(pdf);
+  return Buffer.from(await pdf.save());
+}
+
 test("classic-v1 master existuje ve správné cestě", async () => {
   await access("src/features/vouchers/bootstrap-assets/classic-v1.pdf");
 });
 
 test("výchozí VALUE layout projde strict schematem a finálním publish preflightem", async () => {
-  const masterBytes = await readFile("src/features/vouchers/bootstrap-assets/classic-v1.pdf");
+  const masterBytes = await makeStrictMaster(await readFile("src/features/vouchers/bootstrap-assets/classic-v1.pdf"));
   const { preflightVoucherTemplateForPublish } = await import("./voucher-template-publish-preflight");
   const layout = voucherTemplateLayoutSchema.parse(defaultVoucherTemplateLayout);
   const template = {
@@ -47,8 +87,48 @@ test("výchozí VALUE layout projde strict schematem a finálním publish prefli
   assert.match(invalid.errors.join(" "), /Řádkování/);
 });
 
-test("publish preflight odmítne VALUE oblast, která zvládne 1 500 Kč, ale ne maximum", async () => {
+test("publish preflight odmítne strict master bez OutputIntentu", async () => {
   const masterBytes = await readFile("src/features/vouchers/bootstrap-assets/classic-v1.pdf");
+  const { preflightVoucherTemplateForPublish } = await import("./voucher-template-publish-preflight");
+  const template = {
+    id: "missing-prepress",
+    key: "missing-prepress-v1",
+    label: "Bez prepress metadat",
+    status: "DRAFT" as const,
+    allowedTypes: [VoucherType.VALUE],
+    layout: voucherTemplateLayoutSchema.parse(defaultVoucherTemplateLayout),
+    masterSha256: createHash("sha256").update(masterBytes).digest("hex"),
+    masterBytes,
+  };
+
+  const result = await preflightVoucherTemplateForPublish({ ...template, allowedTypes: [...template.allowedTypes] });
+
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join(" "), /OutputIntent/);
+});
+
+test("strict runtime PRINT nevrátí PDF bez prepress kontraktu", async () => {
+  const { generateResolvedVoucherPrintPdf } = await import("./voucher-pdf-core");
+  const masterBytes = await readFile("src/features/vouchers/bootstrap-assets/classic-v1.pdf");
+  const template = {
+    id: "strict-runtime-invalid",
+    key: "strict-runtime-invalid-v1",
+    label: "Neplatný runtime master",
+    status: "PUBLISHED" as const,
+    allowedTypes: [VoucherType.VALUE],
+    layout: defaultVoucherTemplateLayout,
+    masterSha256: "test",
+    masterBytes,
+  };
+
+  await assert.rejects(
+    () => generateResolvedVoucherPrintPdf(buildVoucherFixture(), template, { requirePrepress: true }),
+    (error: unknown) => error instanceof VoucherTemplateError && error.code === "invalid_print_pdf",
+  );
+});
+
+test("publish preflight odmítne VALUE oblast, která zvládne 1 500 Kč, ale ne maximum", async () => {
+  const masterBytes = await makeStrictMaster(await readFile("src/features/vouchers/bootstrap-assets/classic-v1.pdf"));
   const { preflightVoucherTemplateForPublish } = await import("./voucher-template-publish-preflight");
   const layout = voucherTemplateLayoutSchema.parse({
     ...defaultVoucherTemplateLayout,
@@ -203,6 +283,7 @@ test("strict render odmítne layout, který by dynamický text musel oříznout"
   const classic = requireVoucherTemplate("classic-v1");
   const overflowTemplate = {
     ...classic,
+    allowedTypes: [...classic.allowedTypes],
     key: "overflow-v1",
     layout: {
       ...classic.layout,
@@ -378,7 +459,7 @@ test("tiskové PDF zachová rám masteru na všech čtyřech hranách QR oblasti
     color: rgb(0.8, 0.8, 0.8), borderColor: rgb(1, 0, 0), borderWidth: mm(0.5),
   });
   const pdf = await generateResolvedVoucherPrintPdf(buildVoucherFixture(), {
-    ...requireVoucherTemplate("classic-v1"), layout: defaultVoucherTemplateLayout,
+    ...requireVoucherTemplate("classic-v1"), id: "qr-frame-test", status: "PUBLISHED", masterSha256: "test", allowedTypes: [...requireVoucherTemplate("classic-v1").allowedTypes], layout: defaultVoucherTemplateLayout,
     masterBytes: Buffer.from(await master.save()),
   } as Parameters<typeof generateResolvedVoucherPrintPdf>[1]);
   const { data, info } = await sharp(await renderVoucherTemplatePreview(Buffer.from(pdf))).removeAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -413,6 +494,105 @@ test("předtištěná stránka vykreslí pouze kód a QR a batch PDF má jednu s
   assert.equal(batchPdf.getPageCount(), 3);
   assert.deepEqual(roundBox(batchPdf.getPage(1).getTrimBox()), roundBox({ x: mm(3), y: mm(3), width: mm(210), height: mm(99) }));
   assert.notDeepEqual(getPageOverlayContent(batchPdf.getPage(0)), getPageOverlayContent(batchPdf.getPage(1)));
+});
+
+test("strict PRINT a STOCK zachovají OutputIntent, XMP a sdílený ICC profil", async () => {
+  const { generateResolvedVoucherBatchPrintPdf, generateResolvedVoucherPrintPdf, mm } = await import("./voucher-pdf-core");
+  const { preflightFinalVoucherPrint } = await import("./voucher-template-preflight");
+  const masterBytes = await makeStrictMaster(await readFile("src/features/vouchers/bootstrap-assets/classic-v1.pdf"));
+  const template = {
+    ...requireVoucherTemplate("classic-v1"),
+    id: "strict-prepress-test",
+    status: "PUBLISHED",
+    masterSha256: "test",
+    allowedTypes: [...requireVoucherTemplate("classic-v1").allowedTypes],
+    layout: defaultVoucherTemplateLayout,
+    masterBytes,
+  } as unknown as Parameters<typeof generateResolvedVoucherPrintPdf>[1];
+  const print = await generateResolvedVoucherPrintPdf(buildVoucherFixture(), template);
+  const printPreflight = await preflightFinalVoucherPrint(print, 1);
+  assert.deepEqual(printPreflight.errors, []);
+  assert.equal(printPreflight.pdfVersion, "1.7");
+  assert.equal(printPreflight.pdfXVerification, "STRUCTURALLY_VALIDATED");
+  assert.equal(printPreflight.outputConditionIdentifier, "sRGB IEC61966-2.1 (test fixture)");
+
+  const stock = await generateResolvedVoucherBatchPrintPdf({
+    batchNumber: "TEST-PREPRESS",
+    items: [{ code: "PP-PRE-001" }, { code: "PP-PRE-002" }, { code: "PP-PRE-003" }],
+  }, template);
+  const stockPdf = await PDFDocument.load(stock, { updateMetadata: false });
+  const stockPreflight = await preflightFinalVoucherPrint(stock, 3);
+  assert.deepEqual(stockPreflight.errors, []);
+  assert.equal(stockPreflight.pdfVersion, "1.7");
+  assert.equal(stockPreflight.pdfXVerification, "STRUCTURALLY_VALIDATED");
+  assert.equal(stockPreflight.pageCount, 3);
+  for (const page of stockPdf.getPages()) {
+    assert.deepEqual(roundBox(page.getMediaBox()), roundBox({ x: 0, y: 0, width: mm(216), height: mm(105) }));
+    assert.deepEqual(roundBox(page.getCropBox()), roundBox({ x: 0, y: 0, width: mm(216), height: mm(105) }));
+    assert.deepEqual(roundBox(page.getBleedBox()), roundBox({ x: 0, y: 0, width: mm(216), height: mm(105) }));
+    assert.deepEqual(roundBox(page.getTrimBox()), roundBox({ x: mm(3), y: mm(3), width: mm(210), height: mm(99) }));
+  }
+  assert.notDeepEqual(getPageOverlayContent(stockPdf.getPage(0)), getPageOverlayContent(stockPdf.getPage(1)));
+  const iccStreams = stockPdf.context.enumerateIndirectObjects().filter(([, object]) => object instanceof PDFStream && object.dict.get(PDFName.of("N")));
+  assert.ok(iccStreams.length <= 2, `ICC streamů je ${iccStreams.length}, očekáváno nejvýše 2 sdílené profily.`);
+});
+
+test("classic-v2 ColorPoint master projde reálným PRINT/STOCK rendererem", async () => {
+  const { generateResolvedVoucherBatchPrintPdf, generateResolvedVoucherPrintPdf } = await import("./voucher-pdf-core");
+  const { preflightFinalVoucherPrint, preflightVoucherTemplateMaster } = await import("./voucher-template-preflight");
+  const masterBytes = await readFile("src/features/vouchers/bootstrap-assets/classic-v2.pdf");
+  const classic = requireVoucherTemplate("classic-v1");
+  const template = {
+    ...classic,
+    allowedTypes: [...classic.allowedTypes],
+    id: "classic-v2",
+    key: "classic-v2",
+    status: "PUBLISHED" as const,
+    label: "Klasický v2 · ColorPoint uncoated",
+    masterBytes,
+    masterSha256: "a4d4e85b79f1c3ea062e4b568fac438a603b8c68e46d7813ead336e13c30cceb",
+  } as unknown as Parameters<typeof generateResolvedVoucherPrintPdf>[1];
+  const masterPreflight = await preflightVoucherTemplateMaster(masterBytes);
+  assert.deepEqual(masterPreflight.errors, []);
+  assert.equal(masterPreflight.pdfVersion, "1.7");
+  assert.equal(masterPreflight.pdfXClaim, "PDF/X-4");
+  assert.equal(masterPreflight.outputConditionIdentifier, "FujiFilm Revoria Uncoated (Fogra 52)");
+  const masterPdf = await PDFDocument.load(masterBytes, { updateMetadata: false });
+  const outputIntents = masterPdf.catalog.lookup(PDFName.of("OutputIntents"), PDFArray);
+  const intentDictionary = masterPdf.context.lookup(outputIntents.get(0), PDFDict);
+  assert.equal(intentDictionary.lookup(PDFName.of("Type"), PDFName).asString(), "/OutputIntent");
+  const profileStream = masterPdf.context.lookup(intentDictionary.get(PDFName.of("DestOutputProfile")), PDFStream);
+  assert.equal(createHash("sha256").update(decodePDFRawStream(profileStream as PDFRawStream).decode()).digest("hex"), "f05e0b3e453b5efb77714375df096abaa6d66e8cbcb96691bfa9260f930207ec");
+
+  const trim = classic.layout.trim;
+  const dynamicAreas = [classic.layout.valueArea, classic.layout.serviceArea, classic.layout.validityArea, classic.layout.codeArea, classic.layout.qrArea];
+  for (const area of dynamicAreas) {
+    const distances = [
+      area.xMm - trim.xMm,
+      area.yMm - trim.yMm,
+      trim.xMm + trim.widthMm - (area.xMm + area.widthMm),
+      trim.yMm + trim.heightMm - (area.yMm + area.heightMm),
+    ];
+    assert.ok(Math.min(...distances) >= 3, `Dynamická oblast není 3mm safe-area: ${JSON.stringify(area)}`);
+  }
+
+  const print = await generateResolvedVoucherPrintPdf(buildVoucherFixture({ templateKey: "classic-v2" }), template, { requirePrepress: true });
+  const printPreflight = await preflightFinalVoucherPrint(print, 1);
+  assert.deepEqual(printPreflight.errors, []);
+  assert.equal(printPreflight.pdfVersion, "1.7");
+  assert.equal(printPreflight.pdfXClaim, "PDF/X-4");
+
+  const items = Array.from({ length: 50 }, (_, index) => ({ code: `PP-V2-${String(index + 1).padStart(3, "0")}` }));
+  const stock = await generateResolvedVoucherBatchPrintPdf({ batchNumber: "COLORPOINT-V2-50", items }, template, { requirePrepress: true });
+  const stockPreflight = await preflightFinalVoucherPrint(stock, items.length);
+  assert.deepEqual(stockPreflight.errors, []);
+  assert.equal(stockPreflight.pageCount, 50);
+  assert.equal(stockPreflight.pdfVersion, "1.7");
+  assert.equal(stockPreflight.pdfXClaim, "PDF/X-4");
+  const stockPdf = await PDFDocument.load(stock, { updateMetadata: false });
+  const pageOverlays = stockPdf.getPages().map((page) => getPageOverlayContent(page).toString("latin1"));
+  assert.equal(new Set(pageOverlays).size, 50, "50 stránek musí mít unikátní dynamický overlay/QR.");
+  assert.equal(stockPdf.context.enumerateIndirectObjects().filter(([, object]) => object instanceof PDFStream && object.dict.lookupMaybe(PDFName.of("Subtype"), PDFName)?.asString() === "/Image").length, 2, "QR musí zůstat vektorový a nesmí vytvořit raster image stream pro každou stránku.");
 });
 
 function roundBox(box: { x?: number; y?: number; width: number; height: number }) {
