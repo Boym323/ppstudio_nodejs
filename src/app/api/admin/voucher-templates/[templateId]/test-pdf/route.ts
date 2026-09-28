@@ -31,15 +31,17 @@ export async function POST(
     if (template.status !== "DRAFT") return new NextResponse("Zkušební PDF lze stáhnout pouze z draftu.", { status: 409 });
 
     const resolved = await resolveVoucherTemplate(template);
+    const searchParams = new URL(request.url).searchParams;
+    const isServicePreview = searchParams.get("previewType") === "SERVICE";
     const voucher = {
       templateId: template.id,
       templateKey: template.key,
       code: VOUCHER_TEMPLATE_TEST_DATA.code,
-      type: VoucherType.VALUE,
+      type: isServicePreview ? VoucherType.SERVICE : VoucherType.VALUE,
       originalValueCzk: VOUCHER_TEMPLATE_TEST_DATA.valueCzk,
-      remainingValueCzk: VOUCHER_TEMPLATE_TEST_DATA.valueCzk,
-      serviceNameSnapshot: null,
-      servicePriceSnapshotCzk: null,
+      remainingValueCzk: isServicePreview ? null : VOUCHER_TEMPLATE_TEST_DATA.valueCzk,
+      serviceNameSnapshot: isServicePreview ? VOUCHER_TEMPLATE_TEST_DATA.service.normal : null,
+      servicePriceSnapshotCzk: isServicePreview ? VOUCHER_TEMPLATE_TEST_DATA.valueCzk : null,
       validUntil: new Date(VOUCHER_TEMPLATE_TEST_DATA.validUntilIso),
     } as Parameters<typeof generateResolvedVoucherPrintPdf>[0];
     const pdf = await generateResolvedVoucherPrintPdf(voucher, { ...resolved, layout: layout.data }, { failOnTextOverflow: true });
@@ -48,7 +50,7 @@ export async function POST(
     // In particular, PDF masters can contain artwork above the QR area which
     // cannot be faithfully reproduced by drawing browser overlays over a
     // rasterised master preview.
-    if (new URL(request.url).searchParams.get("format") === "preview") {
+    if (searchParams.get("format") === "preview") {
       const preview = await renderVoucherTemplatePreview(Buffer.from(pdf));
 
       return new NextResponse(Uint8Array.from(preview), {

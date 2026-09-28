@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Rnd } from "react-rnd";
 
 import { saveVoucherTemplateLayoutAction } from "@/features/admin/actions/voucher-template-actions";
-import { getBaselineWithPreservedTopOffset, getLockedResizeSize, getResizeAnchor, snapToHalfMm } from "./voucher-template-layout-editor-geometry";
+import { constrainAreaToTrim, getBaselineWithPreservedTopOffset, getLockedResizeSize, getResizeAnchor, snapToHalfMm } from "./voucher-template-layout-editor-geometry";
 import { getVoucherEditorOverlayState } from "./voucher-template-layout-editor-overlays";
 import {
   browserTopToPdfBottom,
@@ -50,7 +50,8 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
   const [showGuides, setShowGuides] = useState(true);
   const [showBleed, setShowBleed] = useState(true);
   const [isInteracting, setIsInteracting] = useState(false);
-  const [renderedPreviewSrc, setRenderedPreviewSrc] = useState<string | null>(null);
+  const [renderedPreview, setRenderedPreviewSrc] = useState<{ src: string; layout: VoucherTemplateLayoutV1; previewType: string } | null>(null);
+  const [previewFailure, setPreviewFailure] = useState<{ layout: VoucherTemplateLayoutV1; previewType: string; message: string } | null>(null);
   const canvasStageRef = useRef<HTMLDivElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 648, height: 315 });
   const resizeStartRef = useRef<ResizeStart | null>(null);
@@ -58,6 +59,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
   const area = selected === null ? layout.valueArea : layout[selected];
   const textArea = selected !== null && isVoucherTemplateTextAreaKey(selected) ? layout[selected] : null;
   const overlayState = getVoucherEditorOverlayState({ showGuides, showBleed, isInteracting });
+  const previewType = selected === "serviceArea" ? "SERVICE" : "VALUE";
 
   useEffect(() => {
     if (isInteracting) return;
@@ -65,25 +67,26 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
     const controller = new AbortController();
     void (async () => {
       try {
-        const response = await fetch(`/api/admin/voucher-templates/${templateId}/test-pdf?format=preview`, {
+        const response = await fetch(`/api/admin/voucher-templates/${templateId}/test-pdf?format=preview&previewType=${previewType}`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ layout }),
           signal: controller.signal,
         });
-        if (!response.ok || controller.signal.aborted) return;
+        if (controller.signal.aborted) return;
+        if (!response.ok) throw new Error(await response.text());
         const nextUrl = URL.createObjectURL(await response.blob());
         if (controller.signal.aborted) {
           URL.revokeObjectURL(nextUrl);
           return;
         }
         setRenderedPreviewSrc((current) => {
-          if (current) URL.revokeObjectURL(current);
-          return nextUrl;
+          if (current) URL.revokeObjectURL(current.src);
+          return { src: nextUrl, layout, previewType };
         });
       } catch (error) {
-        if (!(error instanceof DOMException && error.name === "AbortError")) {
-          setRenderedPreviewSrc(null);
+        if (!controller.signal.aborted) {
+          setPreviewFailure({ layout, previewType, message: error instanceof Error ? error.message : "Náhled se nepodařilo aktualizovat." });
         }
       }
     })();
@@ -91,14 +94,15 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
     return () => {
       controller.abort();
     };
-  }, [isInteracting, layout, templateId]);
+  }, [isInteracting, layout, previewType, templateId]);
 
   useEffect(() => () => {
-    if (renderedPreviewSrc) URL.revokeObjectURL(renderedPreviewSrc);
-  }, [renderedPreviewSrc]);
+    if (renderedPreview) URL.revokeObjectURL(renderedPreview.src);
+  }, [renderedPreview]);
 
-  const displayedPreviewSrc = renderedPreviewSrc ?? previewSrc;
-  const hasRenderedPreview = renderedPreviewSrc !== null;
+  const hasRenderedPreview = renderedPreview?.layout === layout && renderedPreview.previewType === previewType;
+  const displayedPreviewSrc = hasRenderedPreview ? renderedPreview.src : previewSrc;
+  const previewError = !hasRenderedPreview && previewFailure?.layout === layout && previewFailure.previewType === previewType ? previewFailure.message : null;
 
   useEffect(() => {
     const stage = canvasStageRef.current;
@@ -156,21 +160,24 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
     const measuredWidthMm = snapToHalfMm(elementRef.getBoundingClientRect().width / scale);
     const measuredHeightMm = snapToHalfMm(elementRef.getBoundingClientRect().height / scale);
     const minimumMm = minimumSizeMm(key);
-    const widthMm = isAspectRatioLocked(key) ? getLockedResizeSize(measuredWidthMm, measuredHeightMm, minimumMm) : Math.max(minimumMm, measuredWidthMm);
-    const heightMm = isAspectRatioLocked(key) ? widthMm : Math.max(minimumMm, measuredHeightMm);
+    const maxWidthMm = direction.endsWith("Left") ? start.xMm + start.widthMm - 3 : 213 - start.xMm;
+    const maxHeightMm = direction.startsWith("top") ? 102 - start.yMm : start.yMm + start.heightMm - 3;
+    const widthMm = isAspectRatioLocked(key)
+      ? Math.min(maxWidthMm, maxHeightMm, getLockedResizeSize(measuredWidthMm, measuredHeightMm, minimumMm))
+      : Math.min(maxWidthMm, Math.max(minimumMm, measuredWidthMm));
+    const heightMm = isAspectRatioLocked(key) ? widthMm : Math.min(maxHeightMm, Math.max(minimumMm, measuredHeightMm));
     const anchor = getResizeAnchor(start, direction, widthMm, heightMm);
     const fallbackPosition = { xMm: position.x / scale, yMm: browserTopToPdfBottom(position.y / scale, heightMm) };
-    const yMm = anchor?.yMm ?? snapToHalfMm(fallbackPosition.yMm);
+    const constrained = constrainAreaToTrim({
+      xMm: anchor?.xMm ?? snapToHalfMm(fallbackPosition.xMm),
+      yMm: anchor?.yMm ?? snapToHalfMm(fallbackPosition.yMm),
+      widthMm, heightMm,
+    });
     const baselineArea = isVoucherTemplateTextAreaKey(key) ? start as VoucherTemplateLayoutV1[VoucherTemplateTextAreaKey] : null;
 
     update(key, {
-      // The opposite corner is an anchor, so keep its original coordinate
-      // even when the persisted template uses a non-grid position.
-      xMm: anchor?.xMm ?? snapToHalfMm(fallbackPosition.xMm),
-      yMm,
-      widthMm,
-      heightMm,
-      ...(baselineArea ? { baselineMm: getBaselineWithPreservedTopOffset(baselineArea, yMm, heightMm) } : {}),
+      ...constrained,
+      ...(baselineArea ? { baselineMm: getBaselineWithPreservedTopOffset(baselineArea, constrained.yMm, constrained.heightMm) } : {}),
     });
   };
   const selectArea = (nextArea: AreaKey) => {
@@ -219,7 +226,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
     setTestPdfPending(true);
     setTestPdfError(null);
     try {
-      const response = await fetch(`/api/admin/voucher-templates/${templateId}/test-pdf`, {
+      const response = await fetch(`/api/admin/voucher-templates/${templateId}/test-pdf?previewType=${previewType}`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ layout: layoutRef.current }),
@@ -291,12 +298,11 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
                     onResize={(_, direction, ref, __, pos) => applyResize(key, direction, ref, pos)}
                     onDragStop={(_, data) => {
                       setIsInteracting(false);
-                      const nextYmm = snapToHalfMm(browserTopToPdfBottom(data.y / canvasScale, item.heightMm));
+                      const constrained = constrainAreaToTrim({ ...item, xMm: snapToHalfMm(data.x / canvasScale), yMm: snapToHalfMm(browserTopToPdfBottom(data.y / canvasScale, item.heightMm)) });
                       const baselineArea = isVoucherTemplateTextAreaKey(key) ? item as VoucherTemplateLayoutV1[VoucherTemplateTextAreaKey] : null;
                       update(key, {
-                        xMm: snapToHalfMm(data.x / canvasScale),
-                        yMm: nextYmm,
-                        ...(baselineArea ? { baselineMm: getBaselineWithPreservedTopOffset(baselineArea, nextYmm, item.heightMm) } : {}),
+                        ...constrained,
+                        ...(baselineArea ? { baselineMm: getBaselineWithPreservedTopOffset(baselineArea, constrained.yMm, constrained.heightMm) } : {}),
                       });
                     }}
                     onResizeStop={(_, direction, ref, __, pos) => { setIsInteracting(false); applyResize(key, direction, ref, pos); resizeStartRef.current = null; }}
@@ -320,6 +326,8 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
           {textArea ? <section className="border-b border-white/10 py-3"><SectionTitle title="Typografie" /><label className="block text-xs text-white/70">Písmo<select value={textArea.typography.fontFamilyKey} onChange={(event) => updateSelectedTypography({ fontFamilyKey: event.target.value })} className={inputClassName}>{Object.keys(VOUCHER_TEMPLATE_PREVIEW_FONT_FAMILIES).map((key) => <option key={key} value={key} className="text-black">{key === "noto-sans" ? "Noto Sans" : key}</option>)}</select></label><div className="mt-3 grid grid-cols-2 gap-3"><label className="block text-xs text-white/70">Řez<select value={textArea.typography.fontWeight} onChange={(event) => updateSelectedTypography({ fontWeight: event.target.value as "regular" | "bold" })} className={inputClassName}><option value="regular" className="text-black">Regular</option><option value="bold" className="text-black">Bold</option></select></label><NumberField label="Velikost (pt)" value={textArea.typography.preferredFontSizePt} step="0.1" onChange={(value) => updateSelectedTypography({ preferredFontSizePt: value })} /></div><label className="mt-3 block text-xs text-white/70">Zarovnání<select value={textArea.typography.alignment} onChange={(event) => updateSelectedTypography({ alignment: event.target.value as "left" | "center" })} className={inputClassName}><option value="left" className="text-black">Vlevo</option><option value="center" className="text-black">Na střed</option></select></label></section> : null}
           {textArea ? <details className="border-b border-white/10 py-3"><summary className="cursor-pointer list-none text-sm font-semibold text-white marker:hidden">Pokročilé nastavení <span className="float-right text-white/45">⌄</span></summary><div className="mt-3 grid gap-3"><NumberField label="Baseline (mm)" value={textArea.baselineMm} step="0.5" onChange={(value) => update(selected, { baselineMm: value })} /><div className="grid grid-cols-2 gap-3"><NumberField label="Min. velikost (pt)" value={textArea.typography.minFontSizePt} step="0.1" onChange={(value) => updateSelectedTypography({ minFontSizePt: value })} /><NumberField label="Max. řádků" value={textArea.maxLines} step="1" onChange={(value) => update(selected, { maxLines: value })} /></div><NumberField label="Řádkování (mm)" value={textArea.typography.lineHeightMm} step="0.1" onChange={(value) => updateSelectedTypography({ lineHeightMm: value })} /><p className="text-xs leading-5 text-white/45">Baseline, minimální velikost a řádkování ovlivňují fitting textu v PDF.</p></div></details> : null}
           </>}
+          {previewError ? <p role="alert" className="mt-3 rounded-xl border border-red-300/30 bg-red-950/30 p-3 text-sm text-red-200">Náhled není aktuální: {previewError}</p> : null}
+          {!hasRenderedPreview && !previewError ? <p role="status" className="mt-3 text-xs text-white/60">Aktualizuji náhled…</p> : null}
           {saveError ? <p role="alert" className="mt-3 rounded-xl border border-red-300/30 bg-red-950/30 p-3 text-sm text-red-200">{saveError}</p> : null}
           {testPdfError ? <p role="alert" className="mt-3 rounded-xl border border-red-300/30 bg-red-950/30 p-3 text-sm text-red-200">{testPdfError}</p> : null}
           <div className="mt-4 grid gap-2 sm:grid-cols-2">

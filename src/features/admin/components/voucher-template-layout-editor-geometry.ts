@@ -1,4 +1,18 @@
+import { VOUCHER_PRINT_GEOMETRY } from "@/features/vouchers/lib/voucher-template-layout";
+
 export type ResizeCorner = "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
+
+export function constrainAreaToTrim(area: { xMm: number; yMm: number; widthMm: number; heightMm: number }) {
+  const trim = VOUCHER_PRINT_GEOMETRY;
+  const widthMm = Math.min(area.widthMm, trim.trimWidthMm);
+  const heightMm = Math.min(area.heightMm, trim.trimHeightMm);
+  return {
+    widthMm,
+    heightMm,
+    xMm: Math.max(trim.trimXmm, Math.min(area.xMm, trim.trimXmm + trim.trimWidthMm - widthMm)),
+    yMm: Math.max(trim.trimYmm, Math.min(area.yMm, trim.trimYmm + trim.trimHeightMm - heightMm)),
+  };
+}
 
 export function snapToHalfMm(value: number) {
   return Math.round(value * 2) / 2;

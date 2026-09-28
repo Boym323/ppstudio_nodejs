@@ -17,6 +17,7 @@ test("test PDF používá layout z requestu a vrací tiskové PDF pouze OWNERovi
     qrArea: { xMm: 173.7, yMm: 20, widthMm: 28, heightMm: 28 },
   };
   let receivedLayout: unknown;
+  let receivedVoucher: { type: string; serviceNameSnapshot: string | null } | undefined;
 
   t.mock.module("@/lib/auth/session", { exports: { getSession: async () => ({ role }) } });
   t.mock.module("@/features/vouchers/lib/voucher-template-repository", {
@@ -28,7 +29,7 @@ test("test PDF používá layout z requestu a vrací tiskové PDF pouze OWNERovi
   t.mock.module("@/features/vouchers/lib/voucher-pdf", {
     exports: {
       buildVoucherPrintPdfFilename: (code: string) => `voucher-${code}.pdf`,
-      generateResolvedVoucherPrintPdf: async (_voucher: unknown, template: { layout: unknown }) => { receivedLayout = template.layout; return Buffer.from("%PDF-test"); },
+      generateResolvedVoucherPrintPdf: async (voucher: { type: string; serviceNameSnapshot: string | null }, template: { layout: unknown }) => { receivedVoucher = voucher; receivedLayout = template.layout; return Buffer.from("%PDF-test"); },
     },
   });
   t.mock.module("@/features/vouchers/lib/voucher-template-preview", {
@@ -47,6 +48,13 @@ test("test PDF používá layout z requestu a vrací tiskové PDF pouze OWNERovi
   assert.equal(preview.status, 200);
   assert.equal(preview.headers.get("content-type"), "image/png");
   assert.deepEqual(Buffer.from(await preview.arrayBuffer()), Buffer.from([137, 80, 78, 71]));
+  for (const format of ["", "&format=preview"]) {
+    const service = await POST(new Request(`https://example.com?previewType=SERVICE${format}`, { method: "POST", body: JSON.stringify({ layout: changedLayout }), headers: { "content-type": "application/json" } }), { params: Promise.resolve({ templateId: "template-1" }) });
+    assert.equal(service.status, 200);
+    assert.equal(service.headers.get("content-type"), format ? "image/png" : "application/pdf");
+    assert.equal(receivedVoucher?.type, "SERVICE");
+    assert.ok(receivedVoucher?.serviceNameSnapshot);
+  }
   role = "SALON";
   const forbidden = await POST(new Request("https://example.com", { method: "POST", body: "{}" }), { params: Promise.resolve({ templateId: "template-1" }) });
   assert.equal(forbidden.status, 403);

@@ -85,9 +85,10 @@ function Placeholder({ area, label, isQr, qr }: { area: VoucherTemplateLayoutV1[
         fontWeight: typography?.fontWeight === "bold" ? 700 : 400,
         textAlign: typography?.alignment ?? "center",
         color: typography ? cmykToCssRgb(typography.color) : undefined,
+        whiteSpace: fit ? "pre-line" : undefined,
       }}
     >
-      {isQr ? <QrPlaceholder qr={qr} /> : label}
+      {isQr ? <QrPlaceholder qr={qr} /> : fit?.lines.join("\n") ?? label}
     </span>
   );
 }

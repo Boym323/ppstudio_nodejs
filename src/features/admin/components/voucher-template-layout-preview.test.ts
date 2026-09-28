@@ -192,7 +192,9 @@ test("editor používá pro obsah náhled vyrenderovaný stejným PDF rendererem
   assert.match(source, /Stáhnout testovací PDF/);
   assert.match(source, /selected === null \? <div className="flex min-h-48/);
   assert.match(source, /\{saveError \? <p role="alert"/);
-  assert.match(source, /const displayedPreviewSrc = renderedPreviewSrc \?\? previewSrc/);
+  assert.match(source, /const displayedPreviewSrc = hasRenderedPreview \? renderedPreview.src : previewSrc/);
+  assert.match(source, /previewType = selected === "serviceArea" \? "SERVICE" : "VALUE"/);
+  assert.match(source, /format=preview&previewType=\$\{previewType\}/);
   assert.match(source, /setRenderedPreviewSrc/);
   assert.doesNotMatch(source, /PreviewCanvas/);
   assert.doesNotMatch(source, /PreviewQrPlaceholder/);
@@ -228,4 +230,6 @@ test("uzamčený náhled používá fitting a baseline layoutu", async () => {
 
   assert.match(source, /fitVoucherTemplatePreviewText\(label, area as VoucherTemplateLayoutV1\["valueArea"\]\)/);
   assert.match(source, /getVoucherTextBaselineBrowserTopMm\(area\)/);
+  assert.match(source, /fit\?\.lines\.join\("\\n"\)/);
+  assert.match(source, /whiteSpace: fit \? "pre-line"/);
 });
