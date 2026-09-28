@@ -15,11 +15,14 @@ async function loginAdmin(page: Page, email: string, password: string) {
 }
 
 test("admin PWA assety mají bezpečné hlavičky a veřejná rezervace není v jejím scope", async ({ page, request }) => {
-  const [manifest, worker, offline] = await Promise.all([
-    request.get("/admin.webmanifest"),
-    request.get("/admin-sw.js"),
-    request.get("/admin-offline.html"),
-  ]);
+  // Assety čteme sekvenčně: test neověřuje paralelní obsluhu a souběžné
+  // requesty při rozběhu Next serveru dříve občas končily socket hang up.
+  const manifest = await request.get("/admin.webmanifest");
+  const worker = await request.get("/admin-sw.js");
+  const offline = await request.get("/admin-offline.html");
+  expect(manifest.ok()).toBe(true);
+  expect(worker.ok()).toBe(true);
+  expect(offline.ok()).toBe(true);
 
   expect(manifest.headers()["content-type"]).toContain("application/manifest+json");
   const manifestData = await manifest.json();
