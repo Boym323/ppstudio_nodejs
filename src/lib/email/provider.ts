@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import type { Transporter } from "nodemailer";
 import type SMTPTransport from "nodemailer/lib/smtp-transport";
 
 import { env } from "@/config/env";
@@ -29,7 +30,7 @@ export type EmailDeliveryResult = {
   messageId?: string;
 };
 
-let cachedTransporter: nodemailer.Transporter | null = null;
+let cachedTransporter: Transporter | null = null;
 
 export function resolveSmtpSecureMode(port: number | undefined, mode: "auto" | "true" | "false") {
   if (mode === "true") {

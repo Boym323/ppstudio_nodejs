@@ -6,6 +6,11 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Změněno
+
+- Prisma ORM, Prisma Client a PostgreSQL adapter byly aktualizovány z 7.9.1 na 7.10.0 včetně odpovídajících engine balíčků.
+- Nodemailer byl aktualizován z 9.1.1 na 10.0.12, což odstraňuje známou chybu v opakovaném použití TLS `servername` napříč SMTP transporty.
+
 ## [3.30.2] - 2026-09-29
 
 ### Opraveno
