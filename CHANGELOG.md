@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.30.2] - 2026-09-29
+
+### Opraveno
+
+- E-mailový worker se znovu spustí i v běžném Node/tsx runtime; sdílená transakční utilita už nevyžaduje Next.js-only `server-only` resolver condition.
+
 ## [3.30.1] - 2026-09-28
 
 ### Opraveno
