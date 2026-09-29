@@ -7,9 +7,11 @@ function isServiceGallerySortOrderConflict(error: unknown) {
   if (!(typeof error === "object" && error !== null && "code" in error && error.code === "P2002")) return false;
   const meta = "meta" in error ? error.meta as {
     target?: unknown;
-    driverAdapterError?: { cause?: { constraint?: { fields?: unknown } } };
+    driverAdapterError?: { cause?: { constraint?: { fields?: unknown; index?: unknown } } };
   } | undefined : undefined;
-  const target = meta?.driverAdapterError?.cause?.constraint?.fields ?? meta?.target;
+  const target = meta?.driverAdapterError?.cause?.constraint?.fields
+    ?? meta?.driverAdapterError?.cause?.constraint?.index
+    ?? meta?.target;
   const fields = (Array.isArray(target) ? target : [target]).map((field) =>
     typeof field === "string" ? field.replaceAll('"', "") : field,
   );
