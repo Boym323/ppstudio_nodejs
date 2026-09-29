@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 
 import { cn } from "@/lib/utils";
 
@@ -31,5 +32,17 @@ export function AdminVoucherTemplatePreview({
     );
   }
 
-  return <img src={src} alt={alt} className={cn("aspect-[216/105] w-full object-contain", className)} onError={() => setFailedSrc(src)} />;
+  return (
+    <div className={cn("relative aspect-[216/105] w-full overflow-hidden", className)}>
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        sizes="(min-width: 768px) 60vw, 100vw"
+        unoptimized
+        className="object-contain"
+        onError={() => setFailedSrc(src)}
+      />
+    </div>
+  );
 }
