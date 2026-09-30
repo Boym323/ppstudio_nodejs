@@ -241,6 +241,32 @@ function buildParameterRows(data: AdminVoucherDetailData) {
   const issuedPrice = resolveIssuedPrice(data);
   const linkedServiceName = data.service ? data.service.publicName ?? data.service.name : null;
 
+  if (data.type === VoucherType.SERVICE) {
+    return [
+      { label: "Vzhled", value: data.templateLabel },
+      { label: "Platnost od", value: formatDateLabel(data.validFrom) },
+      { label: "Platnost do", value: formatDateLabel(data.validUntil) },
+      {
+        label: "Při vystavení",
+        value: formatServiceSnapshot(data.serviceNameSnapshot, data.servicePriceSnapshotCzk),
+        tone: data.serviceNameSnapshot?.trim() && data.servicePriceSnapshotCzk !== null ? "default" : "muted",
+      },
+      {
+        label: "Aktuální služba",
+        value: formatServiceSnapshot(linkedServiceName, data.service?.priceFromCzk ?? null),
+        tone: linkedServiceName && data.service?.priceFromCzk !== null ? "default" : "muted",
+      },
+      {
+        label: "Délka při vystavení",
+        value: formatDuration(data.serviceDurationSnapshot),
+        tone: data.serviceDurationSnapshot === null ? "muted" : "default",
+      },
+      { label: "Vystaveno", value: data.issuedAt ? formatDateTimeLabel(data.issuedAt) : "Nevyplněno", tone: data.issuedAt ? "default" : "muted" },
+      { label: "Vytvořeno", value: formatDateTimeLabel(data.createdAt) },
+      { label: "Vytvořil", value: formatUserLabel(data.createdByUser), tone: data.createdByUser ? "default" : "muted" },
+    ] satisfies Array<{ label: string; value: string; tone?: DetailRowTone }>;
+  }
+
   return [
     { label: "Vzhled", value: data.templateLabel },
     { label: "Platnost od", value: formatDateLabel(data.validFrom) },
@@ -256,27 +282,13 @@ function buildParameterRows(data: AdminVoucherDetailData) {
       value: formatUserLabel(data.createdByUser),
       tone: data.createdByUser ? "default" : "muted",
     },
-    {
-      label: "Služba při vystavení",
-      value: formatOptional(data.serviceNameSnapshot),
-      tone: data.serviceNameSnapshot?.trim() ? "default" : "muted",
-    },
-    {
-      label: "Cena při vystavení",
-      value: formatCzk(issuedPrice),
-      tone: issuedPrice === null ? "muted" : "default",
-    },
-    {
-      label: "Délka při vystavení",
-      value: formatDuration(data.serviceDurationSnapshot),
-      tone: data.serviceDurationSnapshot === null ? "muted" : "default",
-    },
-    {
-      label: "Aktuální služba",
-      value: formatOptional(linkedServiceName),
-      tone: linkedServiceName ? "default" : "muted",
-    },
+    { label: "Cena při vystavení", value: formatCzk(issuedPrice), tone: issuedPrice === null ? "muted" : "default" },
   ] satisfies Array<{ label: string; value: string; tone?: DetailRowTone }>;
+}
+
+function formatServiceSnapshot(name: string | null | undefined, priceCzk: number | null) {
+  if (!name?.trim() && priceCzk === null) return "Nevyplněno";
+  return `${formatOptional(name)} · ${formatCzk(priceCzk)}`;
 }
 
 function buildPurchaserRows(data: AdminVoucherDetailData) {

@@ -78,14 +78,14 @@ test("getBookingPaymentSummary vyloučí zneplatněné přímé platby", () => {
 
 test("SERVICE voucher pokryje zdraženou stejnou službu, ale ne další položky ani jinou službu", () => {
   const sameService = getBookingPaymentSummary({
-    totalPriceCzk: 1_500,
+    totalPriceCzk: 1_100,
     serviceId: "service-1",
-    servicePriceCzk: 1_500,
-    voucherRedemptions: [{ amountCzk: 1_200, serviceId: "service-1", voucher: { type: "SERVICE" } }],
+    servicePriceCzk: 1_100,
+    voucherRedemptions: [{ amountCzk: 950, serviceId: "service-1", voucher: { type: "SERVICE" } }],
   });
-  assert.equal(sameService.voucherPaidCzk, 1_500);
-  assert.equal(sameService.voucherRedemptionCzk, 1_200);
-  assert.equal(sameService.accountingPaidTotalCzk, 1_200);
+  assert.equal(sameService.voucherPaidCzk, 1_100);
+  assert.equal(sameService.voucherRedemptionCzk, 950);
+  assert.equal(sameService.accountingPaidTotalCzk, 950);
   assert.equal(sameService.remainingCzk, 0);
 
   const withExtraItem = getBookingPaymentSummary({
