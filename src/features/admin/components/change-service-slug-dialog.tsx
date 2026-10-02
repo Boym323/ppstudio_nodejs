@@ -3,9 +3,9 @@
 import { useActionState, useEffect, useState } from "react";
 import * as Dialog from "@/components/ui/dialog";
 import { type AdminArea } from "@/config/navigation";
+import { initialChangeServiceSlugActionState } from "@/features/admin/actions/change-service-slug-action-state";
 import {
   changeServiceSlugAction,
-  initialChangeServiceSlugActionState,
 } from "@/features/admin/actions/service-actions";
 function normalizeSlug(value: string) {
   return value

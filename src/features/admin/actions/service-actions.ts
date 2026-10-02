@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { type AdminArea } from "@/config/navigation";
+import { type ChangeServiceSlugActionState } from "@/features/admin/actions/change-service-slug-action-state";
 import { type UpdateServiceActionState } from "@/features/admin/actions/update-service-action-state";
 import { requireAdminSectionAccess } from "@/features/admin/lib/admin-guards";
 import {
@@ -45,13 +46,6 @@ function revalidateServicePaths(area: AdminArea, serviceSlugs: string[] = []) {
     revalidatePath(`/sluzby/${encodeURIComponent(slug)}`);
   }
 }
-
-export type ChangeServiceSlugActionState = {
-  status: "idle" | "success" | "error";
-  formError?: string;
-};
-
-export const initialChangeServiceSlugActionState: ChangeServiceSlugActionState = { status: "idle" };
 
 export async function changeServiceSlugAction(
   _previousState: ChangeServiceSlugActionState,
