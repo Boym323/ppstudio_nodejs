@@ -6,10 +6,14 @@ import { prisma } from "@/lib/prisma";
 import "@/lib/email/worker";
 
 console.info("Email worker imports loaded in an ordinary Node/tsx runtime.");
-void prisma.$disconnect().then(
-  () => process.exit(0),
-  (error: unknown) => {
+
+async function main() {
+  try {
+    await prisma.$disconnect();
+  } catch (error: unknown) {
     console.error("Email worker import check could not close Prisma", error);
-    process.exit(1);
-  },
-);
+    process.exitCode = 1;
+  }
+}
+
+void main();
