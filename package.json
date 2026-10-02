@@ -53,6 +53,7 @@
     "db:import-services": "tsx scripts/import-services.mjs",
     "service-catalog:cutover-2026-10-01": "tsx scripts/service-catalog-cutover-2026-10-01.ts",
     "service-catalog:audit-2026-10-01": "tsx scripts/service-catalog-audit-2026-10-01.ts",
+    "service-slug:cutover-2026-10-02": "tsx scripts/service-slug-cutover-2026-10-02.ts",
     "db:backfill-service-copy": "tsx scripts/backfill-service-copy.ts",
     "db:backfill-media-library-v2": "tsx scripts/media-library-v2-backfill.ts",
     "db:cleanup-rate-limits": "tsx scripts/cleanup-rate-limit-reservations.ts",

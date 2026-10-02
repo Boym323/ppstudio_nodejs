@@ -1,0 +1,14 @@
+{
+  "cutoverId": "service-slug-cutover-2026-10-02",
+  "actorUserId": "cmo9x6iyt0000e0o4bx5w4yld",
+  "changes": [
+    { "serviceId": "cmo4lxzjw0007k8o4worzanp0", "expectedSlug": "refresh-treatment-60-min", "targetSlug": "skin-balance" },
+    { "serviceId": "cmo4lxzkg0008k8o4p3zwylhi", "expectedSlug": "refresh-treatment-90-min", "targetSlug": "skin-ritual" },
+    { "serviceId": "cmo4lxzl20009k8o46v6sm18k", "expectedSlug": "anti-age-treatment", "targetSlug": "age-renew" },
+    { "serviceId": "cmo4lxzli000ak8o477f2rly7", "expectedSlug": "clear-treatment", "targetSlug": "clear-skin" },
+    { "serviceId": "cmo4lxzso000pk8o4pdx48c8t", "expectedSlug": "mens-treatment", "targetSlug": "mens-skin-reset" },
+    { "serviceId": "cmo4lxzt7000qk8o4a65bhq00", "expectedSlug": "spicule-pdrn-treatment", "targetSlug": "pdrn-peptide-renew" },
+    { "serviceId": "cmo4lxzto000rk8o4vzkdnubq", "expectedSlug": "student-treatment-15-20-let", "targetSlug": "young-skin" },
+    { "serviceId": "cmo4lxzus000tk8o44ykfy0w9", "expectedSlug": "spicule-exosomy-treatment", "targetSlug": "exosome-renew" }
+  ]
+}

@@ -67,6 +67,16 @@ export type PublicServiceSitemapEntry = {
   updatedAt: Date;
 };
 
+export type PublicServiceSlugResolution = {
+  service: Service;
+  isCanonical: boolean;
+};
+
+export type PublicBookingServiceSlugResolution = {
+  slug: string;
+  isCanonical: boolean;
+};
+
 const publicServiceVisibilityWhere = {
   isActive: true,
   isPubliclyBookable: true,
@@ -77,6 +87,19 @@ const publicServiceVisibilityWhere = {
     { pricingShortDescription: { not: null } },
   ],
 } satisfies Prisma.ServiceWhereInput;
+
+const publicServiceDetailInclude = {
+  category: {
+    select: {
+      name: true,
+    },
+  },
+  media: {
+    where: { mediaAsset: { is: { isPublished: true, visibility: "PUBLIC", deletionRequestedAt: null } } },
+    orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+    select: { role: true, sortOrder: true, altText: true, mediaAsset: { select: { altText: true, optimizedUrl: true, url: true, thumbnailUrl: true } } },
+  },
+} satisfies Prisma.ServiceInclude;
 
 function formatPrice(value: number | null) {
   if (value === null) {
@@ -462,7 +485,7 @@ export async function getPublicPricingCatalog(): Promise<PublicPricingCategory[]
   return pricingCategories;
 }
 
-export async function getPublicServiceBySlug(slug: string): Promise<Service | null> {
+export async function resolvePublicServiceSlug(slug: string): Promise<PublicServiceSlugResolution | null> {
   const service = await prisma.service.findFirst({
     where: {
       ...publicServiceVisibilityWhere,
@@ -473,21 +496,83 @@ export async function getPublicServiceBySlug(slug: string): Promise<Service | nu
         },
       },
     },
-    include: {
-      category: {
-        select: {
-          name: true,
+    include: publicServiceDetailInclude,
+  });
+
+  if (service) {
+    return { service: mapService(service), isCanonical: true };
+  }
+
+  const alias = await prisma.serviceSlugAlias.findFirst({
+    where: {
+      slug,
+      service: {
+        is: {
+          ...publicServiceVisibilityWhere,
+          category: {
+            is: {
+              isActive: true,
+            },
+          },
         },
       },
-      media: {
-        where: { mediaAsset: { is: { isPublished: true, visibility: "PUBLIC", deletionRequestedAt: null } } },
-        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
-        select: { role: true, sortOrder: true, altText: true, mediaAsset: { select: { altText: true, optimizedUrl: true, url: true, thumbnailUrl: true } } },
+    },
+    include: {
+      service: {
+        include: publicServiceDetailInclude,
       },
     },
   });
 
-  return service ? mapService(service) : null;
+  return alias ? { service: mapService(alias.service), isCanonical: false } : null;
+}
+
+export async function getPublicServiceBySlug(slug: string): Promise<Service | null> {
+  return (await resolvePublicServiceSlug(slug))?.service ?? null;
+}
+
+export async function resolvePublicBookingServiceSlug(
+  slug: string,
+): Promise<PublicBookingServiceSlugResolution | null> {
+  const service = await prisma.service.findFirst({
+    where: {
+      ...publicServiceVisibilityWhere,
+      slug,
+      category: {
+        is: {
+          isActive: true,
+        },
+      },
+    },
+    select: { slug: true },
+  });
+
+  if (service) {
+    return { slug: service.slug, isCanonical: true };
+  }
+
+  const alias = await prisma.serviceSlugAlias.findFirst({
+    where: {
+      slug,
+      service: {
+        is: {
+          ...publicServiceVisibilityWhere,
+          category: {
+            is: {
+              isActive: true,
+            },
+          },
+        },
+      },
+    },
+    select: {
+      service: {
+        select: { slug: true },
+      },
+    },
+  });
+
+  return alias ? { slug: alias.service.slug, isCanonical: false } : null;
 }
 
 export async function getPublicServiceSitemapEntries(): Promise<PublicServiceSitemapEntry[]> {

@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { connection } from 'next/server';
 
 import { MetaPixelViewContentTracker } from "@/features/analytics/meta-pixel-view-content-tracker";
-import { getPublicServiceBySlug } from '@/features/public/lib/public-services';
+import { resolvePublicServiceSlug } from '@/features/public/lib/public-services';
 import { ServiceDetailPage, buildPageMetadata, buildServiceBreadcrumbItems } from '@/features/public/components/public-site';
 import { SeoJsonLd, buildBreadcrumbListJsonLd, buildServiceJsonLd } from '@/features/public/components/seo-json-ld';
 import { getPublicSalonProfile } from '@/lib/site-settings';
@@ -13,9 +13,9 @@ type PageParams = Promise<{ slug: string }>;
 export async function generateMetadata({ params }: { params: PageParams }): Promise<Metadata> {
   await connection();
   const { slug } = await params;
-  const service = await getPublicServiceBySlug(slug);
+  const resolution = await resolvePublicServiceSlug(slug);
 
-  if (!service) {
+  if (!resolution) {
     return buildPageMetadata({
       title: 'Služba nebyla nalezena',
       description: 'Požadovaný detail služby nebyl nalezen.',
@@ -24,20 +24,26 @@ export async function generateMetadata({ params }: { params: PageParams }): Prom
   }
 
   return buildPageMetadata({
-    title: service.seoTitle ?? service.name,
-    description: service.seoDescription,
-    path: `/sluzby/${service.slug}`,
+    title: resolution.service.seoTitle ?? resolution.service.name,
+    description: resolution.service.seoDescription,
+    path: `/sluzby/${resolution.service.slug}`,
   });
 }
 
 export default async function Page({ params }: { params: PageParams }) {
   await connection();
   const { slug } = await params;
-  const service = await getPublicServiceBySlug(slug);
+  const resolution = await resolvePublicServiceSlug(slug);
 
-  if (!service) {
+  if (!resolution) {
     notFound();
   }
+
+  if (!resolution.isCanonical) {
+    permanentRedirect(`/sluzby/${encodeURIComponent(resolution.service.slug)}`);
+  }
+
+  const service = resolution.service;
 
   const salonProfile = await getPublicSalonProfile();
   const breadcrumbItems = buildServiceBreadcrumbItems(service);

@@ -1,0 +1,11 @@
+{
+  "cutoverId": "service-slug-cutover-2026-10-02",
+  "actorUserId": "DOPLNIT_ID_ADMINA",
+  "changes": [
+    {
+      "serviceId": "DOPLNIT_STABILNI_SERVICE_ID",
+      "expectedSlug": "refresh-treatment-60-min",
+      "targetSlug": "skin-balance"
+    }
+  ]
+}

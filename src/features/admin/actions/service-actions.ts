@@ -57,12 +57,18 @@ async function createUniqueServiceSlug(baseName: string) {
 
   for (let attempt = 0; attempt < 100; attempt += 1) {
     const slug = attempt === 0 ? baseSlug : `${baseSlug}-${attempt + 1}`;
-    const existing = await prisma.service.findUnique({
-      where: { slug },
-      select: { id: true },
-    });
+    const [existing, alias] = await Promise.all([
+      prisma.service.findUnique({
+        where: { slug },
+        select: { id: true },
+      }),
+      prisma.serviceSlugAlias.findUnique({
+        where: { slug },
+        select: { id: true },
+      }),
+    ]);
 
-    if (!existing) {
+    if (!existing && !alias) {
       return slug;
     }
   }

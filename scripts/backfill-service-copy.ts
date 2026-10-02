@@ -110,9 +110,10 @@ async function main() {
   try {
     const services = await prisma.service.findMany({
       where: {
-        slug: {
-          in: slugs,
-        },
+        OR: [
+          { slug: { in: slugs } },
+          { slugAliases: { some: { slug: { in: slugs } } } },
+        ],
       },
       orderBy: [{ slug: "asc" }],
       select: {
@@ -123,10 +124,18 @@ async function main() {
         includes: true,
         benefits: true,
         goodToKnow: true,
+        slugAliases: {
+          where: { slug: { in: slugs } },
+          select: { slug: true },
+        },
       },
     });
 
-    const foundSlugs = new Set(services.map((service) => service.slug));
+    const sourceSlugByServiceSlug = new Map(services.map((service) => [
+      service.slug,
+      slugs.includes(service.slug) ? service.slug : service.slugAliases[0]?.slug,
+    ]));
+    const foundSlugs = new Set(sourceSlugByServiceSlug.values().filter((slug): slug is string => Boolean(slug)));
     const missingSlugs = slugs.filter((slug) => !foundSlugs.has(slug));
 
     if (missingSlugs.length > 0) {
@@ -140,7 +149,8 @@ async function main() {
     }
 
     const changes = services.map((service) => {
-      const next = plannedUpdates.get(service.slug);
+      const sourceSlug = sourceSlugByServiceSlug.get(service.slug);
+      const next = sourceSlug ? plannedUpdates.get(sourceSlug) : undefined;
 
       if (!next) {
         throw new Error(`Interní chyba: pro slug ${service.slug} není připravený text.`);

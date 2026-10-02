@@ -171,46 +171,57 @@ async function main() {
         })).map((category) => [category.slug, category.id]),
       );
 
+      const importedServiceSlugs = serviceRows.map((service) => service.slug);
+      const [existingServices, matchingAliases] = await Promise.all([
+        tx.service.findMany({
+          where: { slug: { in: importedServiceSlugs } },
+          select: { id: true, slug: true },
+        }),
+        tx.serviceSlugAlias.findMany({
+          where: { slug: { in: importedServiceSlugs } },
+          select: { slug: true, serviceId: true },
+        }),
+      ]);
+      const existingServiceBySlug = new Map(existingServices.map((service) => [service.slug, service]));
+      const serviceAliasBySlug = new Map(matchingAliases.map((alias) => [alias.slug, alias]));
+
       for (const service of serviceRows) {
         const categoryId = categoryIds.get(service.categorySlug);
         if (!categoryId) {
           throw new Error(`Nepodařilo se dohledat categoryId pro "${service.categorySlug}".`);
         }
 
-        await tx.service.upsert({
-          where: { slug: service.slug },
-          create: {
-            name: service.name,
-            slug: service.slug,
-            publicName: service.publicName,
-            shortDescription: service.shortDescription,
-            description: service.description,
-            publicIntro: service.publicIntro,
-            seoDescription: service.seoDescription,
-            pricingShortDescription: service.pricingShortDescription,
-            pricingBadge: service.pricingBadge,
-            durationMinutes: service.durationMinutes,
-            priceFromCzk: service.priceFromCzk,
-            sortOrder: service.sortOrder,
-            isActive: service.isActive,
-            categoryId,
-          },
-          update: {
-            name: service.name,
-            publicName: service.publicName,
-            shortDescription: service.shortDescription,
-            description: service.description,
-            publicIntro: service.publicIntro,
-            seoDescription: service.seoDescription,
-            pricingShortDescription: service.pricingShortDescription,
-            pricingBadge: service.pricingBadge,
-            durationMinutes: service.durationMinutes,
-            priceFromCzk: service.priceFromCzk,
-            sortOrder: service.sortOrder,
-            isActive: service.isActive,
-            categoryId,
-          },
-        });
+        const data = {
+          name: service.name,
+          publicName: service.publicName,
+          shortDescription: service.shortDescription,
+          description: service.description,
+          publicIntro: service.publicIntro,
+          seoDescription: service.seoDescription,
+          pricingShortDescription: service.pricingShortDescription,
+          pricingBadge: service.pricingBadge,
+          durationMinutes: service.durationMinutes,
+          priceFromCzk: service.priceFromCzk,
+          sortOrder: service.sortOrder,
+          isActive: service.isActive,
+          categoryId,
+        };
+        const existingService = existingServiceBySlug.get(service.slug);
+        const alias = serviceAliasBySlug.get(service.slug);
+
+        if (existingService && alias && existingService.id !== alias.serviceId) {
+          throw new Error(`Slug služby "${service.slug}" je současně kanonický i historický alias.`);
+        }
+
+        if (alias) {
+          await tx.service.update({ where: { id: alias.serviceId }, data });
+        } else {
+          await tx.service.upsert({
+            where: { slug: service.slug },
+            create: { ...data, slug: service.slug },
+            update: data,
+          });
+        }
       }
     });
 

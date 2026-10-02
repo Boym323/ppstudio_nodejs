@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { permanentRedirect } from "next/navigation";
 import { connection } from "next/server";
 
 import { getPublicBookingCatalog } from "@/features/booking/lib/booking-public";
 import { BookingPage } from "@/features/booking/components/booking-page";
 import type { BookingEntrySource } from "@/features/booking/components/booking-flow/types";
 import { buildPageMetadata } from "@/features/public/components/public-site";
+import { resolvePublicBookingServiceSlug } from "@/features/public/lib/public-services";
 import { normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import { getPublicSalonProfile } from "@/lib/site-settings";
 
@@ -43,23 +45,41 @@ export default async function ReservationPage({
 }) {
   await connection();
 
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const serviceSlug = Array.isArray(resolvedSearchParams.service)
+    ? resolvedSearchParams.service[0]
+    : resolvedSearchParams.service;
+  const serviceSlugResolution = typeof serviceSlug === "string" && serviceSlug.length > 0
+    ? await resolvePublicBookingServiceSlug(serviceSlug)
+    : null;
+
+  if (serviceSlugResolution && !serviceSlugResolution.isCanonical) {
+    const canonicalSearchParams = new URLSearchParams();
+
+    for (const [key, value] of Object.entries(resolvedSearchParams)) {
+      if (key === "service" || value === undefined) continue;
+      for (const item of Array.isArray(value) ? value : [value]) {
+        canonicalSearchParams.append(key, item);
+      }
+    }
+
+    canonicalSearchParams.set("service", serviceSlugResolution.slug);
+    permanentRedirect(`/rezervace?${canonicalSearchParams.toString()}`);
+  }
+
   const [catalog, salonProfile] = await Promise.all([
     getPublicBookingCatalog(),
     getPublicSalonProfile(),
   ]);
-  const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const serviceSlug = Array.isArray(resolvedSearchParams?.service)
-    ? resolvedSearchParams?.service[0]
-    : resolvedSearchParams?.service;
   const initialSelectedServiceSlug =
     typeof serviceSlug === "string" && serviceSlug.length > 0 ? serviceSlug : undefined;
-  const voucherCode = Array.isArray(resolvedSearchParams?.voucher)
-    ? resolvedSearchParams?.voucher[0]
-    : resolvedSearchParams?.voucher;
+  const voucherCode = Array.isArray(resolvedSearchParams.voucher)
+    ? resolvedSearchParams.voucher[0]
+    : resolvedSearchParams.voucher;
   const normalizedVoucherCode = normalizeVoucherCode(voucherCode ?? "");
-  const source = Array.isArray(resolvedSearchParams?.source)
-    ? resolvedSearchParams?.source[0]
-    : resolvedSearchParams?.source;
+  const source = Array.isArray(resolvedSearchParams.source)
+    ? resolvedSearchParams.source[0]
+    : resolvedSearchParams.source;
   const bookingEntrySource = typeof source === "string" && bookingEntrySources.has(source as BookingEntrySource)
     ? source as BookingEntrySource
     : "direct_booking";

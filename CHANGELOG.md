@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Veřejné slugy služeb nyní podporují trvalé historické aliasy: přejmenované služby přesměrují staré detailní i rezervační odkazy na kanonickou URL, zatímco nové Matomo a Meta Pixel události používají aktuální slug.
 - Připravovaný cutover katalogu služeb nyní bezpečně mění název, cenu i délku existujících služeb podle stabilního ID; SERVICE vouchery i rezervace si zachovávají historické snapshoty a detail voucheru jasně odděluje údaje při vystavení od aktuální služby.
 - Prisma ORM, Prisma Client a PostgreSQL adapter byly aktualizovány z 7.9.1 na 7.10.0 včetně odpovídajících engine balíčků.
 - Nodemailer byl aktualizován z 9.1.1 na 10.0.12, což odstraňuje známou chybu v opakovaném použití TLS `servername` napříč SMTP transporty.
