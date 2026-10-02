@@ -26,6 +26,7 @@ import {
   resolveSavedFormSnapshot,
   serializeFormEntries,
 } from "@/features/admin/lib/admin-form-dirty-state";
+import { ChangeServiceSlugDialog } from "@/features/admin/components/change-service-slug-dialog";
 
 type CategoryOption = {
   id: string;
@@ -46,6 +47,7 @@ type EditServiceFormProps = BaseServiceFormProps & {
     id: string;
     name: string;
     slug: string;
+    slugAliases: Array<{ id: string; slug: string; createdAt: string }>;
     publicName: string | null;
     description: string | null;
     publicIntro: string | null;
@@ -459,6 +461,16 @@ export function AdminServiceForm(props: EditServiceFormProps | CreateServiceForm
           {presentationStatus === "inactive" && isPubliclyBookable ? <p className="mt-3 text-xs leading-5 text-white/52">Původní online režim zůstane uložený, aby se po opětovné aktivaci obnovil. Dokud je služba neaktivní, veřejně se nenabízí.</p> : null}
         </div>
       </SectionBlock>
+
+      {props.mode === "edit" ? (
+        <ChangeServiceSlugDialog
+          area={props.area}
+          returnTo={props.returnTo}
+          serviceId={props.service.id}
+          currentSlug={props.service.slug}
+          aliases={props.service.slugAliases}
+        />
+      ) : null}
 
       {props.mode === "edit" ? (
         <ServiceChangeImpact

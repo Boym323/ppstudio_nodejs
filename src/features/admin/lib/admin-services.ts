@@ -326,6 +326,10 @@ export async function getAdminServicesPageData(
               mediaAsset: { select: { id: true, title: true, fileName: true, altText: true, thumbnailUrl: true, optimizedUrl: true, url: true } },
             },
           },
+          slugAliases: {
+            orderBy: { createdAt: "asc" },
+            select: { id: true, slug: true, createdAt: true },
+          },
         },
       })
     : null;
@@ -355,6 +359,11 @@ export async function getAdminServicesPageData(
             thumbnailPublicUrl: item.mediaAsset.thumbnailUrl ?? item.mediaAsset.optimizedUrl ?? item.mediaAsset.url,
             publicUrl: item.mediaAsset.optimizedUrl ?? item.mediaAsset.url,
           },
+        })),
+        slugAliases: selectedService.slugAliases.map((alias) => ({
+          id: alias.id,
+          slug: alias.slug,
+          createdAt: alias.createdAt.toISOString(),
         })),
       }
     : null;

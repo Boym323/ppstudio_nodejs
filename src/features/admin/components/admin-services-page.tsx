@@ -124,6 +124,7 @@ export async function AdminServicesPage({
           isActive: data.selectedService.isActive,
           isPubliclyBookable: data.selectedService.isPubliclyBookable,
           slug: data.selectedService.slug,
+          slugAliases: data.selectedService.slugAliases,
           categoryId: data.selectedService.categoryId,
           category: data.selectedService.category,
           _count: data.selectedService._count,

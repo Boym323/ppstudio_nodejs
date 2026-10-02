@@ -1,5 +1,6 @@
 import { ServiceChangeOperation } from "@/generated/prisma/browser";
 import { runSerializableTransaction } from "@/lib/serializable-transaction";
+import { isValidServiceSlug } from "@/features/admin/lib/service-slug-validation";
 
 export const SERVICE_SLUG_CUTOVER_ID = "service-slug-cutover-2026-10-02";
 
@@ -22,8 +23,6 @@ export class ServiceSlugCutoverError extends Error {
   }
 }
 
-const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
 function assertPlan(plan: ServiceSlugCutoverPlan) {
   if (plan.cutoverId !== SERVICE_SLUG_CUTOVER_ID) {
     throw new ServiceSlugCutoverError(`Neznámý cutoverId: ${plan.cutoverId}`);
@@ -40,8 +39,8 @@ function assertPlan(plan: ServiceSlugCutoverPlan) {
       throw new ServiceSlugCutoverError("Každá změna musí mít jedinečné stabilní serviceId.");
     }
     if (
-      !slugPattern.test(change.expectedSlug)
-      || !slugPattern.test(change.targetSlug)
+      !isValidServiceSlug(change.expectedSlug)
+      || !isValidServiceSlug(change.targetSlug)
       || change.expectedSlug === change.targetSlug
       || expectedSlugs.has(change.expectedSlug)
       || targetSlugs.has(change.targetSlug)

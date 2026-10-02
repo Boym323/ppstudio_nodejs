@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { MAX_SERVICE_CLEANUP_MINUTES } from "@/features/booking/lib/booking-cleanup";
+import { SERVICE_SLUG_MAX_LENGTH, SERVICE_SLUG_PATTERN } from "@/features/admin/lib/service-slug-validation";
 
 export const serviceListSortValues = ["category", "name", "duration", "price", "order"] as const;
 export const serviceListStatusValues = ["all", "active", "inactive"] as const;
@@ -146,6 +147,17 @@ export const updateServiceSchema = z.object({
       message: "Na homepage vyberte jen aktivní veřejně rezervovatelnou službu.",
     });
   }
+});
+
+export const changeServiceSlugSchema = z.object({
+  area: z.enum(["owner", "salon"]),
+  serviceId: z.string().trim().min(1).max(64),
+  returnTo: z.string().trim().min(1).max(400).optional(),
+  targetSlug: z.string()
+    .trim()
+    .min(1, "Zadejte nový slug.")
+    .max(SERVICE_SLUG_MAX_LENGTH, `Slug může mít maximálně ${SERVICE_SLUG_MAX_LENGTH} znaků.`)
+    .regex(SERVICE_SLUG_PATTERN, "Slug smí obsahovat pouze malá písmena, číslice a spojovníky.")
 });
 
 export const createServiceSchema = z.object({

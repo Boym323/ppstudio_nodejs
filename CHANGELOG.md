@@ -12,6 +12,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Administrace nyní umožňuje samostatně a auditovaně měnit veřejný slug služby; staré adresy se trvale zachovají jako historické aliasy a kolize se službami i aliasy se odmítnou.
 - DB integration runner nyní na čisté lokální PostgreSQL automaticky a bezpečně připraví idempotentní voucher fixtures; voucher teardown uklízí i částečně vytvořené bookingy před odstraněním klienta.
 - Veřejné slugy služeb nyní podporují trvalé historické aliasy: přejmenované služby přesměrují staré detailní i rezervační odkazy na kanonickou URL, zatímco nové Matomo a Meta Pixel události používají aktuální slug.
 - Připravovaný cutover katalogu služeb nyní bezpečně mění název, cenu i délku existujících služeb podle stabilního ID; SERVICE vouchery i rezervace si zachovávají historické snapshoty a detail voucheru jasně odděluje údaje při vystavení od aktuální služby.

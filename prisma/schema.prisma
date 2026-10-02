@@ -233,6 +233,7 @@ enum VoucherChangeOperation {
 
 enum ServiceChangeOperation {
   UPDATE_OPERATIONAL_DETAILS
+  CHANGE_PUBLIC_SLUG
   TOGGLE_ACTIVE
   TOGGLE_BOOKABLE
 }

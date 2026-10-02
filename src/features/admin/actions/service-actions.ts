@@ -8,6 +8,7 @@ import { type AdminArea } from "@/config/navigation";
 import { type UpdateServiceActionState } from "@/features/admin/actions/update-service-action-state";
 import { requireAdminSectionAccess } from "@/features/admin/lib/admin-guards";
 import {
+  changeServiceSlugSchema,
   createServiceSchema,
   updateServiceSchema,
 } from "@/features/admin/lib/admin-service-validation";
@@ -16,6 +17,7 @@ import { runSerializableTransaction } from "@/lib/serializable-transaction";
 import { buildServiceOperationalAuditChange } from "@/features/admin/lib/service-audit-change";
 import { setServiceOperationalFlag } from "@/features/admin/lib/service-change-operations";
 import { getSafeAdminRedirectPath } from "@/features/admin/lib/admin-redirect";
+import { changeServiceSlug, ServiceSlugChangeError } from "@/features/admin/lib/service-slug";
 
 function readFormString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -41,6 +43,49 @@ function revalidateServicePaths(area: AdminArea) {
   }
 }
 
+export type ChangeServiceSlugActionState = {
+  status: "idle" | "success" | "error";
+  formError?: string;
+};
+
+export const initialChangeServiceSlugActionState: ChangeServiceSlugActionState = { status: "idle" };
+
+export async function changeServiceSlugAction(
+  _previousState: ChangeServiceSlugActionState,
+  formData: FormData,
+): Promise<ChangeServiceSlugActionState> {
+  const parsed = changeServiceSlugSchema.safeParse({
+    area: readFormString(formData, "area"),
+    serviceId: readFormString(formData, "serviceId"),
+    returnTo: readFormString(formData, "returnTo"),
+    targetSlug: readFormString(formData, "targetSlug"),
+  });
+  if (!parsed.success) {
+    return { status: "error", formError: parsed.error.issues[0]?.message ?? "Slug není platný." };
+  }
+
+  const area = parsed.data.area as AdminArea;
+  const session = await requireAdminSectionAccess(area, "sluzby");
+
+  try {
+    const result = await changeServiceSlug({
+      serviceId: parsed.data.serviceId,
+      targetSlug: parsed.data.targetSlug,
+      actorUserId: session.sub,
+    });
+    revalidateServicePaths(area);
+    return {
+      status: "success",
+      formError: result.changed ? "Veřejná URL byla změněna. Původní adresa zůstává trvale funkční." : "Slug už odpovídá aktuální URL.",
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      formError: error instanceof ServiceSlugChangeError ? error.message : "Veřejnou URL se nepodařilo změnit. Zkuste to prosím znovu.",
+    };
+  }
+}
+
 function slugifyValue(value: string) {
   return value
     .toLowerCase()
@@ -52,17 +97,20 @@ function slugifyValue(value: string) {
     .slice(0, 80);
 }
 
-async function createUniqueServiceSlug(baseName: string) {
+async function createUniqueServiceSlug(
+  baseName: string,
+  db: Pick<typeof prisma, "service" | "serviceSlugAlias"> = prisma,
+) {
   const baseSlug = slugifyValue(baseName) || "sluzba";
 
   for (let attempt = 0; attempt < 100; attempt += 1) {
     const slug = attempt === 0 ? baseSlug : `${baseSlug}-${attempt + 1}`;
     const [existing, alias] = await Promise.all([
-      prisma.service.findUnique({
+      db.service.findUnique({
         where: { slug },
         select: { id: true },
       }),
-      prisma.serviceSlugAlias.findUnique({
+      db.serviceSlugAlias.findUnique({
         where: { slug },
         select: { id: true },
       }),
@@ -230,41 +278,43 @@ export async function createServiceAction(
     };
   }
 
-  const [maxSortOrder, slug] = await Promise.all([
-    prisma.service.aggregate({
-      where: { categoryId: parsed.data.categoryId },
-      _max: { sortOrder: true },
-    }),
-    createUniqueServiceSlug(parsed.data.name),
-  ]);
+  const service = await runSerializableTransaction(async (tx) => {
+    const [maxSortOrder, slug] = await Promise.all([
+      tx.service.aggregate({
+        where: { categoryId: parsed.data.categoryId },
+        _max: { sortOrder: true },
+      }),
+      createUniqueServiceSlug(parsed.data.name, tx),
+    ]);
 
-  const service = await prisma.service.create({
-    data: {
-      categoryId: parsed.data.categoryId,
-      slug,
-      name: parsed.data.name,
-      publicName: parsed.data.publicName || null,
-      shortDescription: null,
-      description: parsed.data.description || null,
-      publicIntro: parsed.data.publicIntro || null,
-      seoTitle: parsed.data.seoTitle || null,
-      seoDescription: parsed.data.seoDescription || null,
-      idealFor: parsed.data.idealFor,
-      includes: parsed.data.includes,
-      benefits: parsed.data.benefits,
-      goodToKnow: parsed.data.goodToKnow,
-      pricingShortDescription: parsed.data.pricingShortDescription || null,
-      pricingBadge: parsed.data.pricingBadge || null,
-      durationMinutes: parsed.data.durationMinutes,
-      cleanupMinutes: parsed.data.cleanupMinutes,
-      priceFromCzk: parsed.data.priceFromCzk === "" ? null : parsed.data.priceFromCzk,
-      sortOrder: (maxSortOrder._max.sortOrder ?? 0) + 10,
-      isFeaturedOnHomepage: parsed.data.isFeaturedOnHomepage,
-      homepageSortOrder: parsed.data.homepageSortOrder,
-      isActive: parsed.data.isActive,
-      isPubliclyBookable: parsed.data.isPubliclyBookable,
-    },
-    select: { id: true },
+    return tx.service.create({
+      data: {
+        categoryId: parsed.data.categoryId,
+        slug,
+        name: parsed.data.name,
+        publicName: parsed.data.publicName || null,
+        shortDescription: null,
+        description: parsed.data.description || null,
+        publicIntro: parsed.data.publicIntro || null,
+        seoTitle: parsed.data.seoTitle || null,
+        seoDescription: parsed.data.seoDescription || null,
+        idealFor: parsed.data.idealFor,
+        includes: parsed.data.includes,
+        benefits: parsed.data.benefits,
+        goodToKnow: parsed.data.goodToKnow,
+        pricingShortDescription: parsed.data.pricingShortDescription || null,
+        pricingBadge: parsed.data.pricingBadge || null,
+        durationMinutes: parsed.data.durationMinutes,
+        cleanupMinutes: parsed.data.cleanupMinutes,
+        priceFromCzk: parsed.data.priceFromCzk === "" ? null : parsed.data.priceFromCzk,
+        sortOrder: (maxSortOrder._max.sortOrder ?? 0) + 10,
+        isFeaturedOnHomepage: parsed.data.isFeaturedOnHomepage,
+        homepageSortOrder: parsed.data.homepageSortOrder,
+        isActive: parsed.data.isActive,
+        isPubliclyBookable: parsed.data.isPubliclyBookable,
+      },
+      select: { id: true },
+    });
   });
 
   revalidateServicePaths(area);
