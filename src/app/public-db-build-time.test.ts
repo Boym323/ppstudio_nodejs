@@ -8,7 +8,7 @@ const projectRoot = path.resolve(import.meta.dirname, "../..");
 const requestTimePublicReads = [
   ["src/app/(public)/page.tsx", "await getHomepageFeaturedServices()"],
   ["src/app/(public)/sluzby/page.tsx", "await getPublicServices()"],
-  ["src/app/(public)/sluzby/[slug]/page.tsx", "await getPublicServiceBySlug(slug)"],
+  ["src/app/(public)/sluzby/[slug]/page.tsx", "await resolvePublicServiceSlug(slug)"],
   ["src/app/(public)/cenik/page.tsx", "await getPublicPricingCatalog()"],
   ["src/app/(public)/vouchery/page.tsx", "await getVoucherSuggestedServices()"],
   ["src/app/(public)/o-mne/page.tsx", "await Promise.all(["],

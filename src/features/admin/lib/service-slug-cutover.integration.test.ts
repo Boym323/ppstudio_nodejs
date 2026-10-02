@@ -73,4 +73,79 @@ dbTest("slugový cutover zachová starou URL jako alias a používá nový kanon
   assert.deepEqual(canonicalDetail && { slug: canonicalDetail.service.slug, isCanonical: canonicalDetail.isCanonical }, { slug: targetSlug, isCanonical: true });
   assert.deepEqual(oldBooking, { slug: targetSlug, isCanonical: false });
   assert.equal(await prisma.serviceSlugAlias.count({ where: { serviceId: service.id, slug: oldSlug } }), 1);
+
+  const sitemapEntries = await publicServices.getPublicServiceSitemapEntries();
+  assert.equal(sitemapEntries.some((entry) => entry.slug === targetSlug), true);
+  assert.equal(sitemapEntries.some((entry) => entry.slug === oldSlug), false);
+});
+
+dbTest("slugový cutover odmítne kolizi cílového slugu se službou i aliasem", async (t) => {
+  const [{ prisma }, cutover] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./service-slug-cutover"),
+  ]);
+  const suffix = randomUUID().slice(0, 8);
+  const actor = await prisma.adminUser.create({
+    data: { email: `slug-collision-${suffix}@example.com`, name: "Slug collision test", role: AdminRole.OWNER },
+  });
+  const category = await prisma.serviceCategory.create({ data: { name: `Collision ${suffix}`, slug: `collision-${suffix}` } });
+  const service = await prisma.service.create({
+    data: { categoryId: category.id, name: "Source", slug: `source-${suffix}`, publicIntro: "Veřejný popis.", durationMinutes: 60, isActive: true, isPubliclyBookable: true },
+  });
+  const targetService = await prisma.service.create({
+    data: { categoryId: category.id, name: "Target", slug: `target-${suffix}`, durationMinutes: 60 },
+  });
+  const aliasOwner = await prisma.service.create({
+    data: { categoryId: category.id, name: "Alias owner", slug: `alias-owner-${suffix}`, durationMinutes: 60 },
+  });
+  const aliasSlug = `reserved-${suffix}`;
+  await prisma.serviceSlugAlias.create({ data: { serviceId: aliasOwner.id, slug: aliasSlug } });
+  t.after(async () => {
+    await prisma.serviceSlugAlias.deleteMany({ where: { serviceId: { in: [service.id, aliasOwner.id] } } });
+    await prisma.service.deleteMany({ where: { id: { in: [service.id, targetService.id, aliasOwner.id] } } });
+    await prisma.serviceCategory.delete({ where: { id: category.id } });
+    await prisma.adminUser.delete({ where: { id: actor.id } });
+  });
+
+  const basePlan: ServiceSlugCutoverPlan = {
+    cutoverId: cutover.SERVICE_SLUG_CUTOVER_ID,
+    actorUserId: actor.id,
+    changes: [{ serviceId: service.id, expectedSlug: `source-${suffix}`, targetSlug: `target-${suffix}` }],
+  };
+  await assert.rejects(cutover.applyServiceSlugCutover(basePlan), /Cílový slug/);
+  await assert.rejects(
+    cutover.applyServiceSlugCutover({ ...basePlan, changes: [{ ...basePlan.changes[0], targetSlug: aliasSlug }] }),
+    /Cílový slug/,
+  );
+});
+
+dbTest("slugový cutover odmítne částečně aplikovaný stav", async (t) => {
+  const [{ prisma }, cutover] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./service-slug-cutover"),
+  ]);
+  const suffix = randomUUID().slice(0, 8);
+  const actor = await prisma.adminUser.create({
+    data: { email: `slug-partial-${suffix}@example.com`, name: "Slug partial test", role: AdminRole.OWNER },
+  });
+  const category = await prisma.serviceCategory.create({ data: { name: `Partial ${suffix}`, slug: `partial-${suffix}` } });
+  const service = await prisma.service.create({
+    data: { categoryId: category.id, name: "Partial", slug: `partial-target-${suffix}`, durationMinutes: 60 },
+  });
+  const oldSlug = `partial-old-${suffix}`;
+  t.after(async () => {
+    await prisma.serviceSlugAlias.deleteMany({ where: { serviceId: service.id } });
+    await prisma.service.delete({ where: { id: service.id } });
+    await prisma.serviceCategory.delete({ where: { id: category.id } });
+    await prisma.adminUser.delete({ where: { id: actor.id } });
+  });
+
+  await assert.rejects(
+    cutover.applyServiceSlugCutover({
+      cutoverId: cutover.SERVICE_SLUG_CUTOVER_ID,
+      actorUserId: actor.id,
+      changes: [{ serviceId: service.id, expectedSlug: oldSlug, targetSlug: service.slug }],
+    }),
+    /Cutover odmítnut/,
+  );
 });

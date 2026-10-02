@@ -19,6 +19,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Opravena kontrola odloženého veřejného čtení detailu služby po přechodu na resolver historických slugů; generování nového slugu nyní po vyčerpání kandidátů skončí bezpečnou chybou místo potenciální kolize s historickým aliasem.
 - Souběžné přidání médií do galerie nyní správně opakuje zápis i při Prisma 7.10 metadata tvaru `constraint.index`.
 
 ## [3.30.2] - 2026-09-29

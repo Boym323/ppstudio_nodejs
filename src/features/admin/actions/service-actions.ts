@@ -73,7 +73,7 @@ async function createUniqueServiceSlug(baseName: string) {
     }
   }
 
-  return `${baseSlug}-${Date.now()}`;
+  throw new Error(`Nepodařilo se vygenerovat volný slug pro službu po ${100} pokusech.`);
 }
 
 async function buildDuplicateServiceName(name: string) {

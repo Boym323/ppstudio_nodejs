@@ -7,6 +7,7 @@ import { BookingPage } from "@/features/booking/components/booking-page";
 import type { BookingEntrySource } from "@/features/booking/components/booking-flow/types";
 import { buildPageMetadata } from "@/features/public/components/public-site";
 import { resolvePublicBookingServiceSlug } from "@/features/public/lib/public-services";
+import { buildCanonicalBookingRedirectPath } from "@/features/public/lib/public-slug-routing";
 import { normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import { getPublicSalonProfile } from "@/lib/site-settings";
 
@@ -54,17 +55,7 @@ export default async function ReservationPage({
     : null;
 
   if (serviceSlugResolution && !serviceSlugResolution.isCanonical) {
-    const canonicalSearchParams = new URLSearchParams();
-
-    for (const [key, value] of Object.entries(resolvedSearchParams)) {
-      if (key === "service" || value === undefined) continue;
-      for (const item of Array.isArray(value) ? value : [value]) {
-        canonicalSearchParams.append(key, item);
-      }
-    }
-
-    canonicalSearchParams.set("service", serviceSlugResolution.slug);
-    permanentRedirect(`/rezervace?${canonicalSearchParams.toString()}`);
+    permanentRedirect(buildCanonicalBookingRedirectPath(resolvedSearchParams, serviceSlugResolution.slug));
   }
 
   const [catalog, salonProfile] = await Promise.all([
