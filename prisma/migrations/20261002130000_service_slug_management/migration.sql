@@ -16,3 +16,6 @@ CREATE INDEX "ServiceSlugAlias_serviceId_idx" ON "ServiceSlugAlias"("serviceId")
 
 -- AddForeignKey
 ALTER TABLE "ServiceSlugAlias" ADD CONSTRAINT "ServiceSlugAlias_serviceId_fkey" FOREIGN KEY ("serviceId") REFERENCES "Service"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AlterEnum
+ALTER TYPE "ServiceChangeOperation" ADD VALUE 'CHANGE_PUBLIC_SLUG';

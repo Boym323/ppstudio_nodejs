@@ -599,7 +599,7 @@ export async function duplicateServiceAction(formData: FormData): Promise<void> 
     createUniqueServiceSlug(`${source.name} kopie`),
   ]);
 
-  const duplicatedService = await prisma.$transaction(async (tx) => {
+  const duplicatedService = await runSerializableTransaction(async (tx) => {
     const created = await tx.service.create({
       data: {
         categoryId: source.categoryId,

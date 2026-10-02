@@ -1,1 +1,0 @@
-ALTER TYPE "ServiceChangeOperation" ADD VALUE 'CHANGE_PUBLIC_SLUG';
