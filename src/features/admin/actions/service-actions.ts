@@ -35,11 +35,14 @@ function getServiceBasePath(area: AdminArea) {
   return area === "owner" ? "/admin/sluzby" : "/admin/provoz/sluzby";
 }
 
-function revalidateServicePaths(area: AdminArea) {
+function revalidateServicePaths(area: AdminArea, serviceSlugs: string[] = []) {
   const servicePath = getServiceBasePath(area);
 
-  for (const path of [servicePath, "/admin", "/admin/provoz", "/", "/rezervace", "/sluzby", "/cenik"]) {
+  for (const path of [servicePath, "/admin", "/admin/provoz", "/", "/rezervace", "/sluzby", "/cenik", "/sitemap.xml"]) {
     revalidatePath(path);
+  }
+  for (const slug of serviceSlugs) {
+    revalidatePath(`/sluzby/${encodeURIComponent(slug)}`);
   }
 }
 
@@ -73,7 +76,7 @@ export async function changeServiceSlugAction(
       targetSlug: parsed.data.targetSlug,
       actorUserId: session.sub,
     });
-    revalidateServicePaths(area);
+    revalidateServicePaths(area, [result.beforeSlug, result.afterSlug]);
     return {
       status: "success",
       formError: result.changed ? "Veřejná URL byla změněna. Původní adresa zůstává trvale funkční." : "Slug už odpovídá aktuální URL.",
