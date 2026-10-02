@@ -206,16 +206,25 @@ async function createSeed(): Promise<TestContext> {
 async function cleanupSeed(context: TestContext) {
   const { prisma } = await loadModules();
 
+  const clientBookings = await prisma.booking.findMany({
+    where: { clientId: context.clientId },
+    select: { id: true },
+  });
+  const bookingIds = [...new Set([
+    ...context.bookingIds,
+    ...clientBookings.map((booking) => booking.id),
+  ])];
+
   await prisma.voucherRedemption.deleteMany({
     where: {
       OR: [
-        { bookingId: { in: context.bookingIds } },
+        { bookingId: { in: bookingIds } },
         { redeemedByUserId: context.actorUserId },
       ],
     },
   });
   await prisma.voucher.deleteMany({ where: { createdByUserId: context.actorUserId } });
-  await prisma.booking.deleteMany({ where: { id: { in: context.bookingIds } } });
+  await prisma.booking.deleteMany({ where: { id: { in: bookingIds } } });
   await prisma.availabilitySlot.deleteMany({ where: { id: { in: context.slotIds } } });
   await prisma.client.deleteMany({ where: { id: context.clientId } });
   await prisma.service.deleteMany({ where: { id: { in: [context.serviceId, context.otherServiceId] } } });

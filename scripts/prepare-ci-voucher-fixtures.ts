@@ -11,7 +11,25 @@ import { prisma } from "@/lib/prisma";
 const ownerEmail = process.env.ADMIN_OWNER_EMAIL ?? "owner@example.com";
 const ownerPassword = process.env.ADMIN_OWNER_PASSWORD ?? "change-me-owner";
 
+function assertIntegrationFixtureEnvironment() {
+  if (process.env.PPSTUDIO_INTEGRATION_FIXTURES !== "1") {
+    throw new Error("CI voucher fixtures lze připravit pouze přes DB integration runner.");
+  }
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("CI voucher fixtures nelze připravit v produkčním runtime.");
+  }
+
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) throw new Error("DATABASE_URL je pro CI voucher fixtures povinné.");
+
+  const host = new URL(databaseUrl).hostname;
+  if (!["localhost", "127.0.0.1", "::1"].includes(host)) {
+    throw new Error(`CI voucher fixtures jsou povolené pouze proti lokální DB, ne proti hostu ${host}.`);
+  }
+}
+
 async function prepareCiVoucherFixtures() {
+  assertIntegrationFixtureEnvironment();
   const passwordHash = await hashPassword(ownerPassword);
 
   await prisma.adminUser.upsert({
