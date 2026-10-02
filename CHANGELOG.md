@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.31.0] - 2026-10-02
+
 ### Zabezpečení
 
 - Aktualizovány zranitelné transitivní balíčky `brace-expansion`, `engine.io` a `fast-uri` a Next.js na bezpečné patch verze; odstraněny známé DoS, normalizační a `next/og` RCE zranitelnosti.
