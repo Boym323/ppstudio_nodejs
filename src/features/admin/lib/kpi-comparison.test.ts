@@ -18,3 +18,9 @@ test("interpretuje růst a pokles", () => {
 test("u negativního KPI je pokles příznivý", () => {
   assert.deepEqual(interpretKpiComparison(metric(5, 10, true), { lowerIsBetter: true }), { state: "available", direction: "down", isFavorable: true });
 });
+
+test("obsazenost lze srovnat bez hodnocení vyšší kapacity jako lepšího výsledku", () => {
+  assert.deepEqual(interpretKpiComparison(metric(95, 70, true), { neutral: true }), { state: "available", direction: "up", isFavorable: null });
+  assert.deepEqual(interpretKpiComparison(metric(70, 95, true), { neutral: true }), { state: "available", direction: "down", isFavorable: null });
+  assert.deepEqual(interpretKpiComparison(metric(70, 0, true), { neutral: true }), { state: "new", direction: "up", isFavorable: null });
+});

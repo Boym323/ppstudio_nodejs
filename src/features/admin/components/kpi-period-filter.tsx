@@ -52,7 +52,7 @@ export function KpiPeriodFilter({
         </button>
       </div>
 
-      {!isCustomOpen ? <p className="mt-3 text-sm text-white/65" aria-live="polite">Zobrazené období: {rangeLabel}</p> : null}
+      <p className="mt-3 text-sm text-white/65" aria-live="polite">Zobrazené období: {rangeLabel}</p>
 
       {isCustomOpen ? (
         <form

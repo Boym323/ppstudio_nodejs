@@ -45,3 +45,27 @@ test("dokončená manuální rezervace doplní pouze skutečně odpracovanou kap
   assert.equal(occupancy.availableMinutes, 240);
   assert.equal(occupancy.rawPercent, 100);
 });
+
+test("překrývající se návštěvy nezakryjí přesah evidované kapacity", () => {
+  const occupancy = calculateKpiOccupancy({
+    publishedAvailability: [interval(9, 13)],
+    manualCompletedWork: [],
+    completedWork: [interval(9, 12), interval(11, 13)],
+    range,
+  });
+  assert.equal(occupancy.bookableMinutes, 240);
+  assert.equal(occupancy.reservedMinutes, 300);
+  assert.equal(occupancy.percent, 125);
+});
+
+test("oběd sníží kapacitu, blokace po návštěvě zůstává využitým časem", () => {
+  const occupancy = calculateKpiOccupancy({
+    publishedAvailability: [interval(9, 14)],
+    manualCompletedWork: [],
+    completedWork: [interval(9, 13)],
+    lunchMinutes: 60,
+    range,
+  });
+  assert.equal(occupancy.bookableMinutes, 240);
+  assert.equal(occupancy.percent, 100);
+});

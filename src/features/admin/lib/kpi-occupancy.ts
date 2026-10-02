@@ -53,6 +53,6 @@ export function calculateKpiOccupancy(input: {
     bookableMinutes,
     reservedMinutes,
     rawPercent,
-    percent: Math.min(100, rawPercent),
+    percent: rawPercent,
   };
 }

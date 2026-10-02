@@ -12,6 +12,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- KPI přehled zvýrazňuje hlavní výkon salonu, spojuje skutečné a očekávané tržby i návštěvy, seskupuje klientky, storna a platby a uvádí přesná srovnávací období. Obsazenost ukazuje využité a dostupné hodiny i případný přesah kapacity; nová metrika zaplnění celého měsíce zahrnuje i budoucí potvrzené rezervace. Storna a no-show se hodnotí podle míry a chybějící kapacita se nezobrazuje jako nulová obsazenost. Karty a tabulky se přizpůsobují mobilnímu zobrazení bez přetékání stránky a zbytečně vysokých prázdných bloků; u výhledu zůstává viditelné srovnání skutečnosti i chybějící ceny rezervací.
 - Administrace nyní umožňuje samostatně a auditovaně měnit veřejný slug služby; přejmenování služby samo o sobě URL nemění, staré adresy se trvale zachovají jako historické aliasy a kolize se službami i aliasy se odmítnou.
 - DB integration runner nyní na čisté lokální PostgreSQL automaticky a bezpečně připraví idempotentní voucher fixtures; voucher teardown uklízí i částečně vytvořené bookingy před odstraněním klienta.
 - Veřejné slugy služeb nyní podporují trvalé historické aliasy: přejmenované služby přesměrují staré detailní i rezervační odkazy na kanonickou URL, zatímco nové Matomo a Meta Pixel události používají aktuální slug.

@@ -6,9 +6,9 @@ export type KpiComparison = {
   isFavorable: boolean | null;
 };
 
-export function interpretKpiComparison(metric: KpiMetric, options: { lowerIsBetter?: boolean } = {}): KpiComparison {
+export function interpretKpiComparison(metric: KpiMetric, options: { lowerIsBetter?: boolean; neutral?: boolean } = {}): KpiComparison {
   if (!metric.previousHasData) return { state: "unavailable", direction: "flat", isFavorable: null };
-  if (metric.previousValue === 0) return { state: "new", direction: metric.value > 0 ? "up" : "flat", isFavorable: metric.value > 0 ? !options.lowerIsBetter : null };
+  if (metric.previousValue === 0) return { state: "new", direction: metric.value > 0 ? "up" : "flat", isFavorable: metric.value > 0 && !options.neutral ? !options.lowerIsBetter : null };
   const direction = metric.difference > 0 ? "up" : metric.difference < 0 ? "down" : "flat";
-  return { state: "available", direction, isFavorable: direction === "flat" ? null : options.lowerIsBetter ? direction === "down" : direction === "up" };
+  return { state: "available", direction, isFavorable: direction === "flat" || options.neutral ? null : options.lowerIsBetter ? direction === "down" : direction === "up" };
 }

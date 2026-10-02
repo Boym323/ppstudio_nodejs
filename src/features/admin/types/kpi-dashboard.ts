@@ -19,6 +19,9 @@ export type KpiDashboardData = {
   range: KpiDateRange;
   previousRange: KpiDateRange;
   calculatedAt: Date;
+  occupancy: { reservedMinutes: number; bookableMinutes: number };
+  monthlyOccupancy: { reservedMinutes: number; bookableMinutes: number; percent: number } | null;
+  disruptionBookingCount: number;
   metrics: Record<"revenue" | "completed" | "averageSpend" | "occupancy" | "newClients" | "returningClients" | "repeatVisitClients" | "repeatVisitRate" | "cancellations" | "cancellationRate" | "cancellationValue" | "noShows" | "noShowRate" | "noShowValue" | "expectedRevenue" | "outstanding", KpiMetric>;
   revenueSeries: Array<{ periodStart: string; label: string; revenue: number }>;
   bookingSeries: Array<{ periodStart: string; label: string; completed: number; cancelled: number; noShow: number }>;
