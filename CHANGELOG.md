@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Zabezpečení
+
+- Aktualizovány zranitelné transitivní balíčky `brace-expansion`, `engine.io` a `fast-uri` a Next.js na bezpečné patch verze; odstraněny známé DoS, normalizační a `next/og` RCE zranitelnosti.
+
 ### Změněno
 
 - Veřejné slugy služeb nyní podporují trvalé historické aliasy: přejmenované služby přesměrují staré detailní i rezervační odkazy na kanonickou URL, zatímco nové Matomo a Meta Pixel události používají aktuální slug.

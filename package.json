@@ -80,7 +80,7 @@
     "@tanstack/react-table": "^8.21.3",
     "clsx": "^2.1.1",
     "jose": "^6.2.8",
-    "next": "16.3.4",
+    "next": "16.3.8",
     "nodemailer": "^10.0.12",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.3.289",
@@ -137,6 +137,7 @@
       }
     },
     "postcss": "8.5.23",
+    "next": "16.3.8",
     "find-my-way": "9.7.0",
     "sharp": "$sharp",
     "deepmerge-ts": "8.0.1",
