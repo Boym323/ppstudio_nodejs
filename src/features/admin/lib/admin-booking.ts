@@ -28,7 +28,6 @@ import { canPreserveAutoLunchForBooking } from "@/features/booking/lib/booking-a
 import {
   archiveDraftBookingSlotAfterCancellation,
   restoreArchivedBookingServiceSlotAfterCancellation,
-  archiveOrphanedManualOverrideSlotAfterCancellation,
   compactAdjacentEditableSlotsForBooking,
   preparePublishedAvailabilityForManualOverride,
   restoreArchivedAvailabilityAfterManualOverrideShortening,
@@ -880,6 +879,7 @@ export async function updateAdminBookingService({
     const isManualOverrideExtension = isManualOverrideDraftResize
       && nextBlockedUntil.getTime() > oldBlockedUntil.getTime();
 
+    let manualOverrideArchivedSlotIds: string[] = [];
     if (isManualOverrideExtension) {
       const protectedDraftOverlap = manualOverrideResizeSlots.some((candidate) => (
         candidate.status === AvailabilitySlotStatus.DRAFT
@@ -898,6 +898,8 @@ export async function updateAdminBookingService({
         nextBlockedUntil,
         booking.id,
       );
+
+      manualOverrideArchivedSlotIds = manualOverridePreparation.archivedSlotIds;
 
       if (manualOverridePreparation.protectedSlotIds.length > 0) {
         return { status: "conflict" as const };
@@ -960,6 +962,8 @@ export async function updateAdminBookingService({
     const normalizedReason = reason?.trim() ? reason.trim() : null;
     const metadata = {
       source: "admin-booking-service-change-v1",
+      manualOverrideSlotId: slot.id,
+      manualOverrideArchivedSlotIds,
       previousServiceId: booking.serviceId,
       previousServiceName: booking.serviceNameSnapshot,
       previousDurationMinutes: booking.serviceDurationMinutes,

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { BookingStatus } from "@/generated/prisma/browser";
+import type { Prisma } from "@/generated/prisma/client";
 
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
 process.env.NEXT_PUBLIC_APP_URL ??= "https://example.com";
@@ -13,6 +14,62 @@ process.env.ADMIN_OWNER_EMAIL ??= "owner@example.com";
 process.env.ADMIN_OWNER_PASSWORD ??= "password123";
 process.env.ADMIN_STAFF_EMAIL ??= "staff@example.com";
 process.env.ADMIN_STAFF_PASSWORD ??= "password123";
+
+for (const initialStatus of ["ARCHIVED", "DRAFT"] as const) {
+  test(`storno manualOverride ${initialStatus} obnovuje pouze prokázanou veřejnou dostupnost`, async () => {
+    const { applyAdminBookingStatusChangeInTransaction } = await import("./admin-booking");
+    const startsAt = new Date("2026-10-10T08:00:00Z");
+    const endsAt = new Date("2026-10-10T09:00:00Z");
+    const slot = {
+      id: "booking-slot", startsAt, endsAt, status: initialStatus as string,
+      publishedAt: initialStatus === "ARCHIVED" ? startsAt : null,
+      bookings: [], allowedServices: [],
+    };
+    const writes: unknown[] = [];
+    const tx = {
+      $queryRaw: async () => [],
+      booking: {
+        findUnique: async () => ({
+          id: "booking", slotId: slot.id, serviceId: "service",
+          status: BookingStatus.CONFIRMED, manualOverride: true,
+          scheduledStartsAt: startsAt, scheduledEndsAt: endsAt,
+          originalAvailabilityEndsAt: endsAt, voucherRedemptions: [],
+          communicationGeneration: 1, clientDeliveryLeaseToken: null,
+          clientDeliveryLeaseExpiresAt: null, clientEmailSnapshot: null,
+        }),
+        update: async () => ({}),
+        count: async () => 0,
+      },
+      availabilitySlot: {
+        findFirst: async ({ where }: { where: { id: string; status: string } }) => (
+          where.id === slot.id && where.status === slot.status ? { ...slot } : null
+        ),
+        findMany: async ({ where }: { where: { status: unknown } }) => {
+          // Obnova smí kontrolovat aktivní překryvy, nikoli hledat archivovanou historii.
+          assert.deepEqual(where.status, { in: ["DRAFT", "PUBLISHED"] });
+          return [];
+        },
+        update: async ({ where, data }: { where: { id: string }; data: { status: string } }) => {
+          writes.push({ id: where.id, status: data.status });
+          slot.status = data.status;
+          return slot;
+        },
+      },
+      bookingActionToken: { updateMany: async () => ({ count: 0 }) },
+      bookingStatusHistory: { create: async () => ({}), findMany: async () => [] },
+    } as unknown as Prisma.TransactionClient;
+
+    const result = await applyAdminBookingStatusChangeInTransaction(tx, {
+      bookingId: "booking", targetStatus: BookingStatus.CANCELLED,
+      actorUserId: null, notifyClient: false,
+    });
+
+    assert.equal(result.status, "success");
+    assert.deepEqual(writes, [{
+      id: slot.id, status: initialStatus === "ARCHIVED" ? "PUBLISHED" : "ARCHIVED",
+    }]);
+  });
+}
 
 test("canCompleteBookingAt allows completion only after the booking end", async () => {
   const { canCompleteBookingAt } = await import("./admin-booking");

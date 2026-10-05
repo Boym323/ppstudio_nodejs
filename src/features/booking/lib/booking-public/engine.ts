@@ -561,6 +561,7 @@ export async function createBookingWithEngine(
           let resolvedSlot = publishedCoverage?.anchor ?? null;
           let resolvedCoverageSlots = publishedCoverage?.coverage ?? [];
           let manualOverride = false;
+          let manualOverrideArchivedSlotIds: string[] = [];
           const isWithinPublicWindow = isBookingWithinWindow(
             requestedStartsAt,
             now,
@@ -621,6 +622,8 @@ export async function createBookingWithEngine(
               requestedStartsAt,
               requestedBlockedUntil,
             );
+
+            manualOverrideArchivedSlotIds = manualOverridePreparation.archivedSlotIds;
 
             if (manualOverridePreparation.protectedSlotIds.length > 0) {
               throw new PublicBookingError(
@@ -809,6 +812,8 @@ export async function createBookingWithEngine(
                 source: input.source,
                 isManual: input.isManual,
                 manualOverride,
+                manualOverrideSlotId: resolvedSlot.id,
+                manualOverrideArchivedSlotIds,
                 acquisitionSource: input.acquisition?.source ?? null,
                 acquisitionReferrerHost: input.acquisition?.referrerHost ?? null,
                 acquisitionUtmSource: input.acquisition?.utmSource ?? null,

@@ -2,6 +2,7 @@ import {
   AvailabilitySlotServiceRestrictionMode,
   AvailabilitySlotStatus,
   BookingActionTokenType,
+  BookingActorType,
   BookingStatus,
   EmailAudience,
   EmailLogStatus,
@@ -1092,6 +1093,20 @@ async function rescheduleBookingInTransaction(
       reason: normalizedReason,
     },
   });
+
+  if (preparedManualOverrideSlotIds.length > 0) {
+    await tx.bookingStatusHistory.create({
+      data: {
+        bookingId: booking.id,
+        status: booking.status,
+        actorType: BookingActorType.SYSTEM,
+        metadata: {
+          manualOverrideSlotId: resolvedSlot.id,
+          manualOverrideArchivedSlotIds: preparedManualOverrideSlotIds,
+        },
+      },
+    });
+  }
 
   if (preparedManualOverrideSlotIds.includes(booking.slotId)) {
     await compactAdjacentEditableSlotsForBooking(tx, booking.slotId);

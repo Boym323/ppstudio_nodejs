@@ -591,6 +591,14 @@ dbTest("createManualBooking ořízne částečný overlap zleva a cancellation o
   let bookingId: string | null = null;
 
   try {
+    const unrelatedHistory = await prisma.availabilitySlot.create({
+      data: {
+        startsAt: fixture.startsAt, endsAt: requestedEndsAt,
+        status: AvailabilitySlotStatus.ARCHIVED, capacity: 1,
+        publishedAt: new Date(fixture.startsAt.getTime() - 86_400_000),
+      },
+      select: { id: true },
+    });
     const result = await createManualBooking({
       serviceId: fixture.serviceId,
       allowManualOverride: true,
@@ -635,6 +643,15 @@ dbTest("createManualBooking ořízne částečný overlap zleva a cancellation o
     )), true);
     assert.equal(restoredSlots.some((slot) => slot.status === AvailabilitySlotStatus.DRAFT), false);
     assertNoActiveSlotOverlap(restoredSlots);
+    assert.equal(restoredSlots.every((slot) => (
+      slot.endsAt <= new Date(fixture.startsAt.getTime() + 60 * 60_000)
+    )), true);
+    const history = await prisma.availabilitySlot.findMany({
+      where: { id: { in: [...fixture.slotIds, unrelatedHistory.id] } },
+      select: { status: true },
+    });
+    assert.equal(history.length, fixture.slotIds.length + 1);
+    assert.equal(history.every((slot) => slot.status === AvailabilitySlotStatus.ARCHIVED), true);
   } finally {
     await cleanupManualOverlapFixture(
       prisma,

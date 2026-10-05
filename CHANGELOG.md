@@ -8,7 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
-- Storno rezervace znovu zveřejní pouze čas zrušené služby, včetně ručních výjimek z veřejné dostupnosti a rezervací přes více slotů; pozdější termíny a archivovaná historie zůstávají zachované. Pokud původní navazující sloty zanikly, obnovená část dovoluje pouze zrušenou službu, aby nerozšířila neznámá omezení původních slotů.
+- Storno rezervace znovu zveřejní pouze čas zrušené služby a zachová pozdější termíny i archivovanou historii. Výjimky z předstihu či automatického oběda nebrání obnově veřejného slotu; u ručních DRAFT výjimek se obnoví pouze překrytá dostupnost doložená při vytvoření, přesunu či prodloužení rezervace, bez změny archivovaných originálů. Pro rezervace přes zaniklé navazující sloty obnovená část dovoluje pouze zrušenou službu, aby nerozšířila neznámá omezení původních slotů.
 
 ## [3.31.0] - 2026-10-02
 

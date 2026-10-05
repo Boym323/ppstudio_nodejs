@@ -593,6 +593,7 @@ export async function restoreArchivedSlotAroundManualOverride(
   tx: Prisma.TransactionClient,
   slotId: string,
   manualOverrideSlotId: string,
+  releasedInterval?: { startsAt: Date; endsAt: Date },
 ) {
   void manualOverrideSlotId;
   const archivedSlot = await findRestorableCancelledSlotById(tx, slotId);
@@ -601,12 +602,18 @@ export async function restoreArchivedSlotAroundManualOverride(
     return null;
   }
 
+  const startsAt = releasedInterval && releasedInterval.startsAt > archivedSlot.startsAt
+    ? releasedInterval.startsAt : archivedSlot.startsAt;
+  const endsAt = releasedInterval && releasedInterval.endsAt < archivedSlot.endsAt
+    ? releasedInterval.endsAt : archivedSlot.endsAt;
+  if (startsAt >= endsAt) return null;
+
   // Historický slot musí zůstat vcelku. Jeho zkrácení na první volný fragment
   // by při pozdějším odstranění DRAFT override nenávratně ztratilo jeho střed.
   const restorationSlot = await tx.availabilitySlot.create({
     data: {
-      startsAt: archivedSlot.startsAt,
-      endsAt: archivedSlot.endsAt,
+      startsAt,
+      endsAt,
       capacity: archivedSlot.capacity,
       status: AvailabilitySlotStatus.ARCHIVED,
       publicNote: archivedSlot.publicNote,
@@ -695,7 +702,7 @@ export async function archiveOrphanedManualOverrideSlotAfterCancellation(
 
 /**
  * Ruční výjimka nebyla veřejná dostupnost, proto ji po stornu pouze
- * archivujeme. Běžný publikovaný slot zůstává samostatným volným termínem.
+ * archivujeme a obnovíme jen doložené překryté části původní dostupnosti.
  */
 export async function archiveDraftBookingSlotAfterCancellation(
   tx: Prisma.TransactionClient,
@@ -713,18 +720,45 @@ export async function archiveDraftBookingSlotAfterCancellation(
         },
       },
     },
-    select: { id: true },
+    select: { id: true, startsAt: true, endsAt: true },
   });
 
   if (!slot) {
     return null;
   }
 
-  return tx.availabilitySlot.update({
+  const archived = await tx.availabilitySlot.update({
     where: { id: slot.id },
     data: { status: AvailabilitySlotStatus.ARCHIVED },
     select: { id: true },
   });
+
+  // Časový překryv s historií není důkaz původu dostupnosti.
+  const history = await tx.bookingStatusHistory.findMany({
+    where: { metadata: { path: ["manualOverrideSlotId"], equals: slot.id } },
+    select: { metadata: true },
+  });
+  const sourceIds = history.flatMap(({ metadata }) => {
+    if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return [];
+    const ids = metadata.manualOverrideArchivedSlotIds;
+    return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string") : [];
+  });
+  if (sourceIds.length > 0) {
+    const sources = await tx.availabilitySlot.findMany({
+      where: {
+        id: { in: [...new Set(sourceIds)], not: slot.id },
+        ...restorableCancelledSlotWhere,
+        status: AvailabilitySlotStatus.ARCHIVED,
+        startsAt: { lt: slot.endsAt },
+        endsAt: { gt: slot.startsAt },
+      },
+      select: { id: true },
+    });
+    for (const source of sources) {
+      await restoreArchivedSlotAroundManualOverride(tx, source.id, slot.id, slot);
+    }
+  }
+  return archived;
 }
 
 /** Obnoví pouze čas zrušené služby, nikdy původní delší okno dostupnosti. */
