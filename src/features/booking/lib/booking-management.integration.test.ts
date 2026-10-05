@@ -1134,7 +1134,7 @@ describe("cancel booking flow", () => {
     }
   });
 
-  dbTest("cancellation restores an archived slot with a service restriction", async () => {
+  dbTest("cancellation restores an archived booking slot with its service restriction", async () => {
     const seed = await createSeed();
     const { prisma, cancelPublicBookingByToken, AvailabilitySlotStatus } = await loadModules();
 
@@ -1177,7 +1177,7 @@ describe("cancel booking flow", () => {
     }
   });
 
-  dbTest("public cancellation po manual override obnoví celý archivovaný původní interval", async () => {
+  dbTest("public cancellation po manual override nezveřejní archivovaný původní interval", async () => {
     const seed = await createSeed();
     const { prisma, cancelPublicBookingByToken, AvailabilitySlotStatus, BookingStatus } = await loadModules();
     let adminDraftSlotId: string | null = null;
@@ -1253,7 +1253,7 @@ describe("cancel booking flow", () => {
 
       assert.equal(booking.status, BookingStatus.CANCELLED);
       assert.equal(manualOverrideSlotAfterCancellation.status, AvailabilitySlotStatus.ARCHIVED);
-      assert.equal(archivedOriginalSlotAfterCancellation.status, AvailabilitySlotStatus.PUBLISHED);
+      assert.equal(archivedOriginalSlotAfterCancellation.status, AvailabilitySlotStatus.ARCHIVED);
       assert.equal(archivedOriginalSlotAfterCancellation.startsAt.toISOString(), originalStartsAt.toISOString());
       assert.equal(archivedOriginalSlotAfterCancellation.endsAt.toISOString(), originalEndsAt.toISOString());
       assert.equal(adminDraftSlotAfterCancellation.status, AvailabilitySlotStatus.DRAFT);
@@ -1268,7 +1268,7 @@ describe("cancel booking flow", () => {
     }
   });
 
-  dbTest("cancellation does not compact a SELECTED slot with an adjacent ANY slot", async () => {
+  dbTest("cancellation keeps a SELECTED slot separate from an adjacent ANY slot", async () => {
     const seed = await createSeed();
     const { prisma, cancelPublicBookingByToken, AvailabilitySlotStatus } = await loadModules();
     let adjacentSlotId: string | null = null;
@@ -1306,7 +1306,7 @@ describe("cancel booking flow", () => {
       const slots = await prisma.availabilitySlot.findMany({
         where: { id: { in: [seed.manageableCurrentSlotId, adjacentSlot.id] } },
         orderBy: { startsAt: "asc" },
-        select: { id: true, startsAt: true, endsAt: true, serviceRestrictionMode: true },
+        select: { id: true, startsAt: true, endsAt: true, status: true, serviceRestrictionMode: true },
       });
 
       assert.deepEqual(slots, [
@@ -1314,12 +1314,14 @@ describe("cancel booking flow", () => {
           id: seed.manageableCurrentSlotId,
           startsAt: slot.startsAt,
           endsAt: slot.endsAt,
+          status: AvailabilitySlotStatus.PUBLISHED,
           serviceRestrictionMode: "SELECTED",
         },
         {
           id: adjacentSlot.id,
           startsAt: slot.endsAt,
           endsAt: addHours(slot.endsAt, 0.5),
+          status: AvailabilitySlotStatus.PUBLISHED,
           serviceRestrictionMode: "ANY",
         },
       ]);
@@ -1361,7 +1363,7 @@ describe("cancel booking flow", () => {
     assert.equal(findFirstCalls[1].where.capacity, 1);
   });
 
-  dbTest("cancellation restores the unblocked part of an archived slot", async () => {
+  dbTest("cancellation fills only the missing part beside published availability", async () => {
     const seed = await createSeed();
     const { prisma, cancelPublicBookingByToken, AvailabilitySlotStatus } = await loadModules();
     let overlappingSlotId: string | null = null;
@@ -1400,18 +1402,85 @@ describe("cancel booking flow", () => {
         select: { status: true, startsAt: true, endsAt: true },
       });
 
-      assert.equal(restoredSlot.status, AvailabilitySlotStatus.PUBLISHED);
+      const restoredAvailability = await prisma.availabilitySlot.findMany({
+        where: {
+          createdByUserId: seed.actorUserId,
+          status: AvailabilitySlotStatus.PUBLISHED,
+          startsAt: { gte: originalSlot.startsAt, lt: originalSlot.endsAt },
+        },
+        orderBy: { startsAt: "asc" },
+        select: { startsAt: true, endsAt: true },
+      });
+      assert.deepEqual(restoredAvailability, [
+        { startsAt: originalSlot.startsAt, endsAt: overlapStartsAt },
+        { startsAt: overlapStartsAt, endsAt: originalSlot.endsAt },
+      ]);
+      assert.equal(restoredSlot.status, AvailabilitySlotStatus.ARCHIVED);
       assert.equal(restoredSlot.startsAt.toISOString(), originalSlot.startsAt.toISOString());
       assert.equal(restoredSlot.endsAt.toISOString(), originalSlot.endsAt.toISOString());
     } finally {
       if (overlappingSlotId) {
         await prisma.availabilitySlot.deleteMany({ where: { id: overlappingSlotId } });
       }
+      await prisma.availabilitySlot.deleteMany({
+        where: { createdByUserId: seed.actorUserId, id: { notIn: seed.createdSlotIds } },
+      });
       await cleanupSeed(seed);
     }
   });
 
-  dbTest("cancellation restores an archived historical slot without publishing its cleanup gap", async () => {
+  dbTest("cancellation restores chained coverage after the planner removed source segments", async () => {
+    const seed = await createSeed();
+    const { prisma, cancelPublicBookingByToken, AvailabilitySlotStatus } = await loadModules();
+    try {
+      const original = await prisma.availabilitySlot.findUniqueOrThrow({
+        where: { id: seed.manageableCurrentSlotId },
+        select: { startsAt: true, endsAt: true },
+      });
+      const firstSegmentEnd = addHours(original.startsAt, 0.5);
+      await prisma.booking.update({
+        where: { id: seed.manageableBookingId },
+        data: { originalAvailabilityEndsAt: addHours(original.endsAt, 4) },
+      });
+      // Stav po úpravě plánovače: první segment s rezervací je archivovaný,
+      // navazující segment bez vlastní vazby na rezervaci byl odstraněn.
+      await prisma.availabilitySlot.update({
+        where: { id: seed.manageableCurrentSlotId },
+        data: { status: AvailabilitySlotStatus.ARCHIVED, endsAt: firstSegmentEnd },
+      });
+      const result = await cancelPublicBookingByToken(seed.cancelTokenRaw);
+      assert.equal(result.status, "cancelled");
+      const restored = await prisma.availabilitySlot.findMany({
+        where: {
+          createdByUserId: seed.actorUserId,
+          status: AvailabilitySlotStatus.PUBLISHED,
+          startsAt: { gte: original.startsAt, lt: addHours(original.endsAt, 4) },
+        },
+        select: {
+          startsAt: true, endsAt: true, serviceRestrictionMode: true,
+          allowedServices: { select: { serviceId: true } },
+        },
+      });
+      assert.deepEqual(restored, [{
+        startsAt: original.startsAt,
+        endsAt: original.endsAt,
+        serviceRestrictionMode: "SELECTED",
+        allowedServices: [{ serviceId: seed.serviceId }],
+      }]);
+      const archived = await prisma.availabilitySlot.findUniqueOrThrow({
+        where: { id: seed.manageableCurrentSlotId },
+        select: { status: true, endsAt: true },
+      });
+      assert.deepEqual(archived, { status: AvailabilitySlotStatus.ARCHIVED, endsAt: firstSegmentEnd });
+    } finally {
+      await prisma.availabilitySlot.deleteMany({
+        where: { createdByUserId: seed.actorUserId, id: { notIn: seed.createdSlotIds } },
+      });
+      await cleanupSeed(seed);
+    }
+  });
+
+  dbTest("cancellation restores only the service interval from an archived slot", async () => {
     const {
       prisma,
       cancelPublicBookingByToken,
@@ -1490,8 +1559,8 @@ describe("cancel booking flow", () => {
       }),
       prisma.availabilitySlot.create({
         data: {
-          startsAt: beforeEndsAt,
-          endsAt: bookingEndsAt,
+          startsAt: baseStartAt,
+          endsAt: fullEndsAt,
           capacity: 1,
           status: AvailabilitySlotStatus.ARCHIVED,
           serviceRestrictionMode: "ANY",
@@ -1532,7 +1601,7 @@ describe("cancel booking flow", () => {
         scheduledStartsAt: beforeEndsAt,
         scheduledEndsAt: bookingEndsAt,
         blockedUntil: cleanupEndsAt,
-        originalAvailabilityEndsAt: bookingEndsAt,
+        originalAvailabilityEndsAt: fullEndsAt,
       },
       select: { id: true },
     });
@@ -1580,7 +1649,7 @@ describe("cancel booking flow", () => {
       });
 
       assert.deepEqual(
-        slots.map((slot) => ({
+        slots.filter((slot) => slot.status === AvailabilitySlotStatus.PUBLISHED).map((slot) => ({
           startsAt: slot.startsAt.toISOString(),
           endsAt: slot.endsAt.toISOString(),
           status: slot.status,
@@ -1588,6 +1657,11 @@ describe("cancel booking flow", () => {
         [
           {
             startsAt: baseStartAt.toISOString(),
+            endsAt: beforeEndsAt.toISOString(),
+            status: AvailabilitySlotStatus.PUBLISHED,
+          },
+          {
+            startsAt: beforeEndsAt.toISOString(),
             endsAt: bookingEndsAt.toISOString(),
             status: AvailabilitySlotStatus.PUBLISHED,
           },
@@ -1597,6 +1671,15 @@ describe("cancel booking flow", () => {
             status: AvailabilitySlotStatus.PUBLISHED,
           },
         ],
+      );
+      assert.deepEqual(
+        slots.find((slot) => slot.id === bookedSlot.id),
+        {
+          id: bookedSlot.id,
+          startsAt: baseStartAt,
+          endsAt: fullEndsAt,
+          status: AvailabilitySlotStatus.ARCHIVED,
+        },
       );
     } finally {
       await prisma.emailLog.deleteMany({

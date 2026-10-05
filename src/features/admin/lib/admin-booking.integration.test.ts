@@ -1037,7 +1037,7 @@ dbTest("applyAdminBookingStatusChange serverově odmítne předčasné no-show a
   }
 });
 
-dbTest("applyAdminBookingStatusChange compacts adjacent editable slot fragments on cancellation", async () => {
+dbTest("applyAdminBookingStatusChange restores only the cancelled slot and keeps later availability", async () => {
   const [{ prisma }, { applyAdminBookingStatusChange }] = await Promise.all([
     import("@/lib/prisma"),
     import("./admin-booking"),
@@ -1098,7 +1098,7 @@ dbTest("applyAdminBookingStatusChange compacts adjacent editable slot fragments 
       data: {
         startsAt: beforeEndsAt,
         endsAt: bookingEndsAt,
-        status: "PUBLISHED",
+        status: "ARCHIVED",
         capacity: 1,
         serviceRestrictionMode: "ANY",
         publishedAt: new Date(baseStartAt.getTime() - 24 * 60 * 60 * 1000),
@@ -1145,6 +1145,8 @@ dbTest("applyAdminBookingStatusChange compacts adjacent editable slot fragments 
       servicePriceFromCzk: 1200,
       scheduledStartsAt: beforeEndsAt,
       scheduledEndsAt: bookingEndsAt,
+      originalAvailabilityEndsAt: fullEndsAt,
+      manualOverride: true,
     },
     select: { id: true },
   });
@@ -1201,20 +1203,33 @@ dbTest("applyAdminBookingStatusChange compacts adjacent editable slot fragments 
         id: true,
         startsAt: true,
         endsAt: true,
+        status: true,
       },
     });
 
     assert.deepEqual(
       slots.map((slot) => ({
-        id: slot.id,
         startsAt: slot.startsAt.toISOString(),
         endsAt: slot.endsAt.toISOString(),
+        status: slot.status,
       })),
-      [{
-        id: bookedSlot.id,
-        startsAt: baseStartAt.toISOString(),
-        endsAt: fullEndsAt.toISOString(),
-      }],
+      [
+        {
+          startsAt: baseStartAt.toISOString(),
+          endsAt: beforeEndsAt.toISOString(),
+          status: "PUBLISHED",
+        },
+        {
+          startsAt: beforeEndsAt.toISOString(),
+          endsAt: bookingEndsAt.toISOString(),
+          status: "PUBLISHED",
+        },
+        {
+          startsAt: bookingEndsAt.toISOString(),
+          endsAt: fullEndsAt.toISOString(),
+          status: "PUBLISHED",
+        },
+      ],
     );
 
     const [emailLogs, actionTokens] = await Promise.all([
@@ -1484,7 +1499,7 @@ dbTest("applyAdminBookingStatusChange archives only its orphaned manual-override
 
     assert.equal(updatedBooking.status, BookingStatus.CANCELLED);
     assert.equal(manualOverrideSlotAfterCancellation.status, "ARCHIVED");
-    assert.equal(archivedOriginalSlotAfterCancellation.status, "PUBLISHED");
+    assert.equal(archivedOriginalSlotAfterCancellation.status, "ARCHIVED");
     assert.equal(adminDraftSlotAfterCancellation.status, "DRAFT");
   } finally {
     await prisma.bookingStatusHistory.deleteMany({ where: { bookingId: booking.id } });

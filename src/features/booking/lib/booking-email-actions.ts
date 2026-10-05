@@ -22,8 +22,8 @@ import {
 } from "@/features/booking/lib/booking-action-tokens";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
 import {
-  archiveOrphanedManualOverrideSlotAfterCancellation,
-  compactAdjacentEditableSlotsForBooking,
+  archiveDraftBookingSlotAfterCancellation,
+  restoreArchivedBookingServiceSlotAfterCancellation,
 } from "@/features/booking/lib/booking-slot-compaction";
 import { getBookingStatusLabel } from "@/features/booking/lib/booking-status-presentation";
 import { enqueueBookingReminder24hForBooking } from "@/features/booking/lib/booking-reminders";
@@ -61,6 +61,7 @@ type LoadedBookingActionToken = {
     serviceNameSnapshot: string;
     scheduledStartsAt: Date;
     scheduledEndsAt: Date;
+    originalAvailabilityEndsAt: Date | null;
     clientDeliveryLeaseToken?: string | null;
     clientDeliveryLeaseExpiresAt?: Date | null;
     reminder24hSentAt: Date | null;
@@ -214,6 +215,7 @@ async function findActionToken(tokenHash: string) {
           serviceNameSnapshot: true,
           scheduledStartsAt: true,
           scheduledEndsAt: true,
+          originalAvailabilityEndsAt: true,
           clientDeliveryLeaseToken: true,
           clientDeliveryLeaseExpiresAt: true,
           reminder24hSentAt: true,
@@ -439,6 +441,7 @@ export async function performBookingEmailAction(
               serviceNameSnapshot: true,
               scheduledStartsAt: true,
               scheduledEndsAt: true,
+              originalAvailabilityEndsAt: true,
               clientDeliveryLeaseToken: true,
               clientDeliveryLeaseExpiresAt: true,
               reminder24hSentAt: true,
@@ -494,11 +497,15 @@ export async function performBookingEmailAction(
       });
 
       if (targetStatus === BookingStatus.CANCELLED) {
-        await compactAdjacentEditableSlotsForBooking(tx, lockedToken.booking!.slotId);
-
-        if (lockedToken.booking!.manualOverride) {
-          await archiveOrphanedManualOverrideSlotAfterCancellation(tx, lockedToken.booking!.slotId);
-        }
+        await restoreArchivedBookingServiceSlotAfterCancellation(
+          tx,
+          lockedToken.booking!.slotId,
+          lockedToken.booking!.scheduledStartsAt,
+          lockedToken.booking!.scheduledEndsAt,
+          lockedToken.booking!.originalAvailabilityEndsAt,
+          lockedToken.booking!.serviceId,
+        );
+        await archiveDraftBookingSlotAfterCancellation(tx, lockedToken.booking!.slotId);
       }
 
       await tx.bookingActionToken.update({

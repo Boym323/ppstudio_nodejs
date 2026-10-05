@@ -692,3 +692,149 @@ export async function archiveOrphanedManualOverrideSlotAfterCancellation(
 
   return slot;
 }
+
+/**
+ * Ruční výjimka nebyla veřejná dostupnost, proto ji po stornu pouze
+ * archivujeme. Běžný publikovaný slot zůstává samostatným volným termínem.
+ */
+export async function archiveDraftBookingSlotAfterCancellation(
+  tx: Prisma.TransactionClient,
+  slotId: string,
+) {
+  const slot = await tx.availabilitySlot.findFirst({
+    where: {
+      id: slotId,
+      status: AvailabilitySlotStatus.DRAFT,
+      bookings: {
+        none: {
+          status: {
+            in: [...activeBookingStatuses],
+          },
+        },
+      },
+    },
+    select: { id: true },
+  });
+
+  if (!slot) {
+    return null;
+  }
+
+  return tx.availabilitySlot.update({
+    where: { id: slot.id },
+    data: { status: AvailabilitySlotStatus.ARCHIVED },
+    select: { id: true },
+  });
+}
+
+/** Obnoví pouze čas zrušené služby, nikdy původní delší okno dostupnosti. */
+export async function restoreArchivedBookingServiceSlotAfterCancellation(
+  tx: Prisma.TransactionClient,
+  slotId: string,
+  scheduledStartsAt: Date,
+  scheduledEndsAt: Date,
+  originalAvailabilityEndsAt: Date | null,
+  serviceId: string,
+) {
+  const slot = await tx.availabilitySlot.findFirst({
+    where: {
+      id: slotId,
+      status: AvailabilitySlotStatus.ARCHIVED,
+      publishedAt: { not: null },
+      startsAt: { lte: scheduledStartsAt },
+      endsAt: { gt: scheduledStartsAt },
+      bookings: {
+        none: { status: { in: [...activeBookingStatuses] } },
+      },
+    },
+    select: mergeableEditableSlotSelect,
+  });
+
+  if (!slot) {
+    return;
+  }
+
+  // Snapshot potvrzuje veřejné pokrytí i za koncem prvního zdrojového slotu.
+  // manualOverride může znamenat jen výjimku z lhůty nebo automatického oběda.
+  const spansMultipleSlots = slot.endsAt < scheduledEndsAt;
+  if (spansMultipleSlots
+    && (!originalAvailabilityEndsAt || originalAvailabilityEndsAt < scheduledEndsAt)) {
+    return;
+  }
+
+  const [overlappingSlots, overlappingBookings] = await Promise.all([
+    tx.availabilitySlot.findMany({
+      where: {
+        id: { not: slot.id },
+        status: { in: [AvailabilitySlotStatus.DRAFT, AvailabilitySlotStatus.PUBLISHED] },
+        startsAt: { lt: scheduledEndsAt },
+        endsAt: { gt: scheduledStartsAt },
+      },
+      select: { startsAt: true, endsAt: true, status: true },
+      orderBy: { startsAt: "asc" },
+    }),
+    tx.booking.count({
+      where: {
+        status: { in: [...activeBookingStatuses] },
+        scheduledStartsAt: { lt: scheduledEndsAt },
+        OR: [
+          { blockedUntil: { gt: scheduledStartsAt } },
+          { blockedUntil: null, scheduledEndsAt: { gt: scheduledStartsAt } },
+        ],
+      },
+    }),
+  ]);
+
+  if (overlappingBookings > 0
+    || overlappingSlots.some((item) => item.status === AvailabilitySlotStatus.DRAFT)) {
+    return;
+  }
+
+  // Již publikované části zachováme; doplníme jen chybějící části služby.
+  const intervals: Array<{ startsAt: Date; endsAt: Date }> = [];
+  let cursor = scheduledStartsAt;
+  for (const existing of overlappingSlots) {
+    if (cursor < existing.startsAt) {
+      intervals.push({ startsAt: cursor, endsAt: existing.startsAt });
+    }
+    if (existing.endsAt > cursor) {
+      cursor = existing.endsAt;
+    }
+  }
+  if (cursor < scheduledEndsAt) {
+    intervals.push({ startsAt: cursor, endsAt: scheduledEndsAt });
+  }
+
+  for (const interval of intervals) {
+    if (slot.startsAt.getTime() === interval.startsAt.getTime()
+      && slot.endsAt.getTime() === interval.endsAt.getTime()) {
+      await tx.availabilitySlot.update({
+        where: { id: slot.id },
+        data: { status: AvailabilitySlotStatus.PUBLISHED },
+      });
+      continue;
+    }
+
+    // U zaniklých navazujících slotů známe jen službu rezervace, nikoli jejich
+    // úplný seznam povolených služeb. Jejich oprávnění proto nerozšiřujeme.
+    const extendsBeyondSource = interval.endsAt > slot.endsAt;
+    const allowedServices = extendsBeyondSource ? [{ serviceId }] : slot.allowedServices;
+    await tx.availabilitySlot.create({
+      data: {
+        ...interval,
+        capacity: slot.capacity,
+        status: AvailabilitySlotStatus.PUBLISHED,
+        serviceRestrictionMode: extendsBeyondSource
+          ? AvailabilitySlotServiceRestrictionMode.SELECTED
+          : slot.serviceRestrictionMode,
+        publicNote: slot.publicNote,
+        internalNote: slot.internalNote,
+        publishedAt: new Date(),
+        createdByUserId: slot.createdByUserId,
+        allowedServices: allowedServices.length > 0
+          ? { createMany: { data: allowedServices.map(({ serviceId }) => ({ serviceId })) } }
+          : undefined,
+      },
+    });
+  }
+}

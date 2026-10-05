@@ -1392,47 +1392,20 @@ dbTest("performBookingEmailAction with admin actor records a user audit entry", 
   }
 });
 
-dbTest("performBookingEmailAction reject restores availability across an archived split slot", async () => {
+dbTest("performBookingEmailAction reject restores an archived booking slot", async () => {
   const seed = await createSeed({ withRejectToken: true });
   const { prisma, performBookingEmailAction, AvailabilitySlotStatus, BookingStatus } = await loadModules();
-  const fragmentIds: string[] = [];
 
   try {
-    const slot = await prisma.availabilitySlot.findUniqueOrThrow({
-      where: { id: seed.slotId },
-      select: { startsAt: true, endsAt: true },
-    });
-    const fragmentDuration = 30 * 60 * 1000;
-
     await prisma.availabilitySlot.update({
       where: { id: seed.slotId },
       data: { status: AvailabilitySlotStatus.ARCHIVED },
     });
 
-    const fragments = await prisma.availabilitySlot.createManyAndReturn({
-      data: [
-        {
-          startsAt: new Date(slot.startsAt.getTime() - fragmentDuration),
-          endsAt: slot.startsAt,
-          capacity: 1,
-          status: AvailabilitySlotStatus.PUBLISHED,
-          publishedAt: new Date(),
-          serviceRestrictionMode: "ANY",
-          createdByUserId: seed.actorUserId,
-        },
-        {
-          startsAt: slot.endsAt,
-          endsAt: new Date(slot.endsAt.getTime() + fragmentDuration),
-          capacity: 1,
-          status: AvailabilitySlotStatus.PUBLISHED,
-          publishedAt: new Date(),
-          serviceRestrictionMode: "ANY",
-          createdByUserId: seed.actorUserId,
-        },
-      ],
-      select: { id: true },
+    await prisma.booking.update({
+      where: { id: seed.bookingId },
+      data: { manualOverride: true },
     });
-    fragmentIds.push(...fragments.map((fragment) => fragment.id));
 
     const result = await performBookingEmailAction(
       "reject",
@@ -1443,59 +1416,20 @@ dbTest("performBookingEmailAction reject restores availability across an archive
 
     assert.equal(result.status, "completed");
 
-    const [booking, overlappingSlots, blockingBookings] = await Promise.all([
+    const [booking, slot] = await Promise.all([
       prisma.booking.findUniqueOrThrow({
         where: { id: seed.bookingId },
         select: { status: true },
       }),
-      prisma.availabilitySlot.findMany({
-        where: {
-          startsAt: { lt: slot.endsAt },
-          endsAt: { gt: slot.startsAt },
-        },
-        orderBy: { startsAt: "asc" },
-        select: {
-          id: true,
-          status: true,
-          startsAt: true,
-          endsAt: true,
-          bookings: {
-            select: { id: true, status: true, manualOverride: true },
-          },
-        },
-      }),
-      prisma.booking.findMany({
-        where: {
-          status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
-          scheduledStartsAt: { lt: slot.endsAt },
-          OR: [
-            { blockedUntil: { gt: slot.startsAt } },
-            { blockedUntil: null, scheduledEndsAt: { gt: slot.startsAt } },
-          ],
-        },
-        select: { id: true, status: true, manualOverride: true },
+      prisma.availabilitySlot.findUniqueOrThrow({
+        where: { id: seed.slotId },
+        select: { status: true },
       }),
     ]);
 
     assert.equal(booking.status, BookingStatus.CANCELLED);
-
-    let coveredUntil = slot.startsAt.getTime();
-    for (const publishedSlot of overlappingSlots.filter((item) => item.status === AvailabilitySlotStatus.PUBLISHED)) {
-      if (publishedSlot.startsAt.getTime() <= coveredUntil) {
-        coveredUntil = Math.max(coveredUntil, publishedSlot.endsAt.getTime());
-      }
-    }
-
-    assert.ok(coveredUntil >= slot.endsAt.getTime(), "Původní interval musí být celý pokryt publikovanou dostupností.");
-    assert.equal(
-      overlappingSlots.some((item) => item.status === AvailabilitySlotStatus.DRAFT
-        && item.bookings.some((bookingItem) => bookingItem.manualOverride && bookingItem.status === BookingStatus.CANCELLED)),
-      false,
-      "Osiřelý DRAFT slot ruční výjimky nesmí blokovat obnovenou dostupnost.",
-    );
-    assert.deepEqual(blockingBookings, []);
+    assert.equal(slot.status, AvailabilitySlotStatus.PUBLISHED);
   } finally {
-    await prisma.availabilitySlot.deleteMany({ where: { id: { in: fragmentIds } } });
     await cleanupSeed(seed);
   }
 });

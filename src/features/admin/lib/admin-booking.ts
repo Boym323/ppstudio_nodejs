@@ -26,6 +26,8 @@ import {
 import { resolveBookingTimingSnapshot } from "@/features/booking/lib/booking-cleanup";
 import { canPreserveAutoLunchForBooking } from "@/features/booking/lib/booking-auto-lunch-enforcement";
 import {
+  archiveDraftBookingSlotAfterCancellation,
+  restoreArchivedBookingServiceSlotAfterCancellation,
   archiveOrphanedManualOverrideSlotAfterCancellation,
   compactAdjacentEditableSlotsForBooking,
   preparePublishedAvailabilityForManualOverride,
@@ -142,6 +144,7 @@ export async function applyAdminBookingStatusChangeInTransaction(
         serviceNameSnapshot: true,
         scheduledStartsAt: true,
         scheduledEndsAt: true,
+        originalAvailabilityEndsAt: true,
         reminder24hSentAt: true,
         voucherRedemptions: {
           select: { id: true },
@@ -214,11 +217,15 @@ export async function applyAdminBookingStatusChangeInTransaction(
     });
 
     if (targetStatus === BookingStatus.CANCELLED) {
-      await compactAdjacentEditableSlotsForBooking(tx, booking.slotId);
-
-      if (booking.manualOverride) {
-        await archiveOrphanedManualOverrideSlotAfterCancellation(tx, booking.slotId);
-      }
+      await restoreArchivedBookingServiceSlotAfterCancellation(
+        tx,
+        booking.slotId,
+        booking.scheduledStartsAt,
+        booking.scheduledEndsAt,
+        booking.originalAvailabilityEndsAt,
+        booking.serviceId,
+      );
+      await archiveDraftBookingSlotAfterCancellation(tx, booking.slotId);
 
       await tx.bookingActionToken.updateMany({
         where: {
