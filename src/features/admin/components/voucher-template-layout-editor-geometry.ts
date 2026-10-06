@@ -1,6 +1,54 @@
-import { VOUCHER_PRINT_GEOMETRY } from "@/features/vouchers/lib/voucher-template-layout";
+import { browserTopToPdfBottom, pdfBottomToBrowserTop, VOUCHER_PRINT_GEOMETRY } from "@/features/vouchers/lib/voucher-template-layout";
 
 export type ResizeCorner = "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
+type AreaBounds = { xMm: number; yMm: number; widthMm: number; heightMm: number };
+export const KEYBOARD_NUDGE_MM = 0.1;
+export const KEYBOARD_NUDGE_LARGE_MM = 1;
+
+/** UI positions measure the area's top-left corner from the final trim. */
+export function internalToUiPosition(area: Pick<AreaBounds, "xMm" | "yMm" | "heightMm">) {
+  const trimTopMm = pdfBottomToBrowserTop(VOUCHER_PRINT_GEOMETRY.trimYmm, VOUCHER_PRINT_GEOMETRY.trimHeightMm);
+  return { xMm: area.xMm - VOUCHER_PRINT_GEOMETRY.trimXmm, yMm: pdfBottomToBrowserTop(area.yMm, area.heightMm) - trimTopMm };
+}
+
+export function uiToInternalPosition(position: { xMm: number; yMm: number }, heightMm: number) {
+  const trimTopMm = pdfBottomToBrowserTop(VOUCHER_PRINT_GEOMETRY.trimYmm, VOUCHER_PRINT_GEOMETRY.trimHeightMm);
+  return { xMm: position.xMm + VOUCHER_PRINT_GEOMETRY.trimXmm, yMm: browserTopToPdfBottom(position.yMm + trimTopMm, heightMm) };
+}
+
+export function updateAreaFromUi(area: AreaBounds, field: keyof AreaBounds, value: number, minimumMm: number, lockAspectRatio: boolean) {
+  const next = { ...internalToUiPosition(area), widthMm: area.widthMm, heightMm: area.heightMm, [field]: Math.round(value * 10) / 10 };
+  if (field === "widthMm" || field === "heightMm") {
+    next[field] = Math.max(minimumMm, next[field]);
+    if (lockAspectRatio) next.widthMm = next.heightMm = Math.min(next[field], VOUCHER_PRINT_GEOMETRY.trimWidthMm, VOUCHER_PRINT_GEOMETRY.trimHeightMm);
+  }
+  const internal = uiToInternalPosition(next, next.heightMm);
+  return constrainAreaToTrim({
+    widthMm: next.widthMm,
+    heightMm: next.heightMm,
+    xMm: field === "xMm" ? internal.xMm : area.xMm,
+    yMm: field === "yMm" || next.heightMm !== area.heightMm ? internal.yMm : area.yMm,
+  });
+}
+
+export function centerAreaInTrim(area: AreaBounds, axis: "horizontal" | "vertical") {
+  const trim = VOUCHER_PRINT_GEOMETRY;
+  return constrainAreaToTrim({
+    ...area,
+    ...(axis === "horizontal" ? { xMm: trim.trimXmm + (trim.trimWidthMm - area.widthMm) / 2 } : { yMm: trim.trimYmm + (trim.trimHeightMm - area.heightMm) / 2 }),
+  });
+}
+
+export function nudgeAreaInTrim(area: AreaBounds, direction: string, largeStep = false) {
+  const delta = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[direction];
+  if (!delta) return null;
+  const step = largeStep ? KEYBOARD_NUDGE_LARGE_MM : KEYBOARD_NUDGE_MM;
+  return constrainAreaToTrim({
+    ...area,
+    xMm: Number((area.xMm + delta[0] * step).toFixed(10)),
+    yMm: Number((area.yMm + delta[1] * step).toFixed(10)),
+  });
+}
 
 export function constrainAreaToTrim(area: { xMm: number; yMm: number; widthMm: number; heightMm: number }) {
   const trim = VOUCHER_PRINT_GEOMETRY;

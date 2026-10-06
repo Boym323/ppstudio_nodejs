@@ -5,8 +5,8 @@ import Image from "next/image";
 import { Rnd } from "react-rnd";
 
 import { saveVoucherTemplateLayoutAction } from "@/features/admin/actions/voucher-template-actions";
-import { constrainAreaToTrim, constrainBaselineToArea, getBaselineWithPreservedTopOffset, getLockedResizeSize, getResizeAnchor, snapToHalfMm } from "./voucher-template-layout-editor-geometry";
-import { getVoucherEditorOverlayState } from "./voucher-template-layout-editor-overlays";
+import { centerAreaInTrim, constrainAreaToTrim, constrainBaselineToArea, getBaselineWithPreservedTopOffset, getLockedResizeSize, getResizeAnchor, internalToUiPosition, nudgeAreaInTrim, snapToHalfMm, updateAreaFromUi } from "./voucher-template-layout-editor-geometry";
+import { getVoucherEditorGuideGeometry, getVoucherEditorOverlayState } from "./voucher-template-layout-editor-overlays";
 import {
   browserTopToPdfBottom,
   isVoucherTemplateTextAreaKey,
@@ -14,6 +14,7 @@ import {
   updateTypography,
   voucherTemplateLayoutSchema,
   VOUCHER_QR_MIN_SIZE_MM,
+  VOUCHER_PRINT_GEOMETRY,
   type VoucherTemplateTextAreaKey,
   type VoucherTemplateLayoutV1,
   type VoucherTemplateTypographyPatch,
@@ -31,8 +32,6 @@ const fieldLabels = { xMm: "X", yMm: "Y", widthMm: "Šířka", heightMm: "Výšk
 const inputClassName = "mt-1 min-h-10 w-full rounded-xl border border-white/10 bg-black/20 px-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-[var(--color-accent)]/70 focus:ring-2 focus:ring-[var(--color-accent)]/15";
 const compactButtonClassName = "inline-flex min-h-9 items-center justify-center rounded-full border px-3 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70";
 const MIN_TEXT_AREA_MM = 0.5;
-const KEYBOARD_NUDGE_MM = 0.1;
-const KEYBOARD_NUDGE_LARGE_MM = 1;
 const cornerResizeEnable = { top: false, right: false, bottom: false, left: false, topRight: true, bottomRight: true, bottomLeft: true, topLeft: true } as const;
 
 function isAspectRatioLocked(key: AreaKey) { return key === "qrArea"; }
@@ -72,10 +71,13 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
   const [renderedPreview, setRenderedPreviewSrc] = useState<{ src: string; layout: VoucherTemplateLayoutV1; previewType: string } | null>(null);
   const [previewFailure, setPreviewFailure] = useState<{ layout: VoucherTemplateLayoutV1; previewType: string; message: string } | null>(null);
   const canvasStageRef = useRef<HTMLDivElement>(null);
+  const livePositionRef = useRef<HTMLParagraphElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 648, height: 315 });
   const resizeStartRef = useRef<ResizeStart | null>(null);
-  const canvasScale = canvasSize.width * zoom / 216;
+  const canvasScale = canvasSize.width * zoom / VOUCHER_PRINT_GEOMETRY.widthMm;
   const area = selected === null ? layout.valueArea : layout[selected];
+  const uiPosition = internalToUiPosition(area);
+  const guides = getVoucherEditorGuideGeometry();
   const textArea = selected !== null && isVoucherTemplateTextAreaKey(selected) ? layout[selected] : null;
   const overlayState = getVoucherEditorOverlayState({ showGuides, showBleed, isInteracting });
   const isDirty = JSON.stringify(layout) !== savedLayout;
@@ -157,8 +159,8 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
       const verticalPadding = Number.parseFloat(styles.paddingTop) + Number.parseFloat(styles.paddingBottom);
       const availableWidth = Math.max(280, stage.clientWidth - horizontalPadding);
       const availableHeight = Math.max(180, stage.clientHeight - verticalPadding);
-      const width = Math.min(780, availableWidth, availableHeight * (216 / 105));
-      const height = width * (105 / 216);
+      const width = Math.min(780, availableWidth, availableHeight * (VOUCHER_PRINT_GEOMETRY.widthMm / VOUCHER_PRINT_GEOMETRY.heightMm));
+      const height = width * (VOUCHER_PRINT_GEOMETRY.heightMm / VOUCHER_PRINT_GEOMETRY.widthMm);
 
       setCanvasSize((current) => Math.abs(current.width - width) < 0.5 ? current : { width, height });
     };
@@ -193,20 +195,16 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
     setLayout(next);
     setSaveError(null);
   };
+  const updateAreaGeometry = (key: AreaKey, geometry: { xMm: number; yMm: number; widthMm: number; heightMm: number }) => {
+    const current = layoutRef.current[key];
+    const baselineArea = isVoucherTemplateTextAreaKey(key) && (current.yMm !== geometry.yMm || current.heightMm !== geometry.heightMm) ? current as VoucherTemplateLayoutV1[VoucherTemplateTextAreaKey] : null;
+    update(key, {
+      ...geometry,
+      ...(baselineArea ? { baselineMm: getBaselineWithPreservedTopOffset(baselineArea, geometry.yMm, geometry.heightMm) } : {}),
+    });
+  };
   const updateAreaField = (key: AreaKey, field: "xMm" | "yMm" | "widthMm" | "heightMm", value: number) => {
-    if (key === "qrArea" && (field === "widthMm" || field === "heightMm")) {
-      const sizeMm = Number.isFinite(value) ? Math.max(VOUCHER_QR_MIN_SIZE_MM, snapToHalfMm(value)) : value;
-      update(key, { widthMm: sizeMm, heightMm: sizeMm });
-      return;
-    }
-    if (isVoucherTemplateTextAreaKey(key) && (field === "yMm" || field === "heightMm")) {
-      const current = layoutRef.current[key] as VoucherTemplateLayoutV1[VoucherTemplateTextAreaKey];
-      const nextYmm = field === "yMm" ? value : current.yMm;
-      const nextHeightMm = field === "heightMm" ? value : current.heightMm;
-      update(key, { [field]: value, baselineMm: getBaselineWithPreservedTopOffset(current, nextYmm, nextHeightMm) });
-      return;
-    }
-    update(key, { [field]: value });
+    updateAreaGeometry(key, updateAreaFromUi(layoutRef.current[key], field, value, minimumSizeMm(key), isAspectRatioLocked(key)));
   };
   const updateSelectedTypography = (patch: VoucherTemplateTypographyPatch) => {
     if (selected === null || !isVoucherTemplateTextAreaKey(selected)) return;
@@ -223,8 +221,9 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
     const measuredWidthMm = snapToHalfMm(elementRef.getBoundingClientRect().width / scale);
     const measuredHeightMm = snapToHalfMm(elementRef.getBoundingClientRect().height / scale);
     const minimumMm = minimumSizeMm(key);
-    const maxWidthMm = direction.endsWith("Left") ? start.xMm + start.widthMm - 3 : 213 - start.xMm;
-    const maxHeightMm = direction.startsWith("top") ? 102 - start.yMm : start.yMm + start.heightMm - 3;
+    const trim = VOUCHER_PRINT_GEOMETRY;
+    const maxWidthMm = direction.endsWith("Left") ? start.xMm + start.widthMm - trim.trimXmm : trim.trimXmm + trim.trimWidthMm - start.xMm;
+    const maxHeightMm = direction.startsWith("top") ? trim.trimYmm + trim.trimHeightMm - start.yMm : start.yMm + start.heightMm - trim.trimYmm;
     const widthMm = isAspectRatioLocked(key)
       ? Math.min(maxWidthMm, maxHeightMm, getLockedResizeSize(measuredWidthMm, measuredHeightMm, minimumMm))
       : Math.min(maxWidthMm, Math.max(minimumMm, measuredWidthMm));
@@ -247,24 +246,11 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
     setSelected(nextArea);
   };
   const nudgeAreaByKeyboard = (event: KeyboardEvent<HTMLDivElement>, key: AreaKey) => {
-    const direction = {
-      ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1],
-    }[event.key];
-    if (!direction) return;
-
+    const geometry = nudgeAreaInTrim(layoutRef.current[key], event.key, event.shiftKey);
+    if (!geometry) return;
     event.preventDefault();
-    const item = layoutRef.current[key];
-    const step = event.shiftKey ? KEYBOARD_NUDGE_LARGE_MM : KEYBOARD_NUDGE_MM;
-    const [horizontal, vertical] = direction;
-    const xMm = Math.min(213 - item.widthMm, Math.max(3, item.xMm + horizontal * step));
-    const yMm = Math.min(102 - item.heightMm, Math.max(3, item.yMm + vertical * step));
-    const baselineArea = isVoucherTemplateTextAreaKey(key) ? item as VoucherTemplateLayoutV1[VoucherTemplateTextAreaKey] : null;
-
-    update(key, {
-      xMm,
-      yMm,
-      ...(baselineArea ? { baselineMm: getBaselineWithPreservedTopOffset(baselineArea, yMm, item.heightMm) } : {}),
-    });
+    selectArea(key);
+    updateAreaGeometry(key, geometry);
   };
 
   const save = () => {
@@ -340,8 +326,13 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
             <div className="relative m-auto shrink-0 overflow-visible border border-white/20 bg-neutral-900 shadow-[0_18px_50px_rgba(0,0,0,0.28)]" style={{ width: `${canvasSize.width * zoom}px`, height: `${canvasSize.height * zoom}px` }}>
               {displayedPreviewSrc ? <Image src={displayedPreviewSrc} alt={renderedPreview ? "Poslední vykreslený náhled voucheru" : "Náhled grafiky voucheru"} fill sizes="(min-width: 1280px) 780px, 100vw" unoptimized draggable={false} className="pointer-events-none select-none object-contain" /> : null}
               <div className="absolute inset-0 z-10" onClick={() => setSelected(null)}>
-                {overlayState.bleedVisible ? <div data-overlay="bleed" className="pointer-events-none absolute z-10 border border-dashed border-[var(--color-accent-soft)]/65" style={{ left: 3 * canvasScale, bottom: 3 * canvasScale, width: 210 * canvasScale, height: 99 * canvasScale }} /> : null}
-                {overlayState.guidesVisible ? <><div data-overlay="guides" className={`pointer-events-none absolute left-1/2 top-0 z-10 h-full border-l border-dashed ${overlayState.guidesEmphasized ? "border-[var(--color-accent-soft)]/75" : "border-white/20"}`} /><div className={`pointer-events-none absolute left-0 top-1/2 z-10 w-full border-t border-dashed ${overlayState.guidesEmphasized ? "border-[var(--color-accent-soft)]/75" : "border-white/20"}`} /></> : null}
+                {overlayState.bleedVisible ? <div data-overlay="bleed" className="pointer-events-none absolute inset-0 z-10" style={{ boxShadow: `inset 0 0 0 ${guides.trim.leftMm * canvasScale}px rgba(190, 160, 120, 0.22)` }} /> : null}
+                {overlayState.guidesVisible || overlayState.bleedVisible ? <div data-overlay="trim" className="pointer-events-none absolute z-10 border border-[var(--color-accent-soft)]/65" style={{ left: guides.trim.leftMm * canvasScale, top: guides.trim.topMm * canvasScale, width: guides.trim.widthMm * canvasScale, height: guides.trim.heightMm * canvasScale }} /> : null}
+                {overlayState.guidesVisible ? <>
+                  <div data-overlay="safe" className="pointer-events-none absolute z-10 border border-dotted border-sky-200/45" style={{ left: guides.safe.leftMm * canvasScale, top: guides.safe.topMm * canvasScale, width: guides.safe.widthMm * canvasScale, height: guides.safe.heightMm * canvasScale }} />
+                  <div data-overlay="guides" className={`pointer-events-none absolute z-10 border-l border-dashed ${overlayState.guidesEmphasized ? "border-[var(--color-accent-soft)]/75" : "border-white/20"}`} style={{ left: guides.center.xMm * canvasScale, top: guides.trim.topMm * canvasScale, height: guides.trim.heightMm * canvasScale }} />
+                  <div className={`pointer-events-none absolute z-10 border-t border-dashed ${overlayState.guidesEmphasized ? "border-[var(--color-accent-soft)]/75" : "border-white/20"}`} style={{ left: guides.trim.leftMm * canvasScale, top: guides.center.yMm * canvasScale, width: guides.trim.widthMm * canvasScale }} />
+                </> : null}
                 {areas.map((key) => {
                   const item = layout[key];
                   const isSelected = selected === key;
@@ -365,6 +356,11 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
                     onDragStart={() => { selectArea(key); setIsInteracting(true); }}
                     onResizeStart={(_, direction) => { resizeLayoutRef.current = layoutRef.current; resizeStartRef.current = { key, area: item, direction }; selectArea(key); setIsInteracting(true); }}
                     onResize={(_, direction, ref, __, pos) => applyResize(key, direction, ref, pos)}
+                    onDrag={(_, data) => {
+                      if (!livePositionRef.current) return;
+                      const constrained = constrainAreaToTrim({ ...item, xMm: snapToHalfMm(data.x / canvasScale), yMm: snapToHalfMm(browserTopToPdfBottom(data.y / canvasScale, item.heightMm)) });
+                      livePositionRef.current.textContent = formatPosition(internalToUiPosition(constrained));
+                    }}
                     onDragStop={(_, data) => {
                       setIsInteracting(false);
                       const constrained = constrainAreaToTrim({ ...item, xMm: snapToHalfMm(data.x / canvasScale), yMm: snapToHalfMm(browserTopToPdfBottom(data.y / canvasScale, item.heightMm)) });
@@ -386,12 +382,23 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
             </div>
           </div>
           <p className="mt-3 text-xs text-white/50">Klikněte na údaj a přetažením upravte jeho polohu. Velikost změníte tažením za roh.</p>
+          {overlayState.guidesVisible || overlayState.bleedVisible ? <p className="mt-1 text-[11px] text-white/40">{overlayState.bleedVisible ? "Tónovaný okraj: spadávka · " : ""}Ořez 210 × 99 mm{overlayState.guidesVisible ? ` · Tečkovaná modrá: bezpečná zóna ${guides.safeInsetMm} mm od ořezu (orientační)` : ""}</p> : null}
         </div>
 
         <aside key={selected ?? "none"} className="min-w-0 bg-white/[0.02] p-4 sm:p-6">
           {selected === null ? <div className="flex min-h-48 flex-col items-center justify-center text-center"><p className="text-sm font-semibold text-white/80">Nic není vybráno</p><p className="mt-2 max-w-xs text-xs leading-5 text-white/45">Kliknutím na prázdné místo jste zrušili výběr. Pro úpravu klikněte na oblast voucheru.</p></div> : <>
           <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-4"><div><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/50">Upravujete</p><h3 className="mt-1 text-lg font-semibold text-white">{labels[selected]}</h3></div><span className="rounded-lg border border-white/10 bg-black/15 px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-white/50">{selected === "qrArea" ? "Grafika" : "Textová oblast"}</span></div>
-          <details className="border-b border-white/10 py-3"><summary className="cursor-pointer text-sm font-semibold text-white/70">Přesná pozice a rozměry</summary><p className="my-3 text-xs leading-5 text-white/45">PDF souřadnice se počítají od levého spodního rohu.</p><div className="grid grid-cols-2 gap-3">{(["xMm", "yMm", "widthMm", "heightMm"] as const).map((field) => <NumberField key={field} label={`${fieldLabels[field]} (mm)`} value={area[field]} min={field === "xMm" || field === "yMm" ? 0 : minimumSizeMm(selected)} onChange={(value) => updateAreaField(selected, field, value)} />)}</div></details>
+          <section className="border-b border-white/10 py-3">
+            <SectionTitle title="Pozice a rozměry" />
+            <p className="mb-3 text-xs leading-5 text-white/45">X od levého a Y od horního okraje finálního voucheru 210 × 99 mm.</p>
+            <p className="mb-2 text-xs font-semibold text-white/60">Pozice</p>
+            <div className="grid grid-cols-2 gap-3">{(["xMm", "yMm"] as const).map((field) => <NumberField key={field} label={`${fieldLabels[field]} [mm]`} value={uiPosition[field]} step="0.1" min={0} decimalInput onChange={(value) => updateAreaField(selected, field, value)} />)}</div>
+            <p ref={livePositionRef} className="mt-2 text-[11px] tabular-nums text-white/45">{formatPosition(uiPosition)}</p>
+            <p className="mb-2 mt-3 text-xs font-semibold text-white/60">Rozměr</p>
+            <div className="grid grid-cols-2 gap-3">{(["widthMm", "heightMm"] as const).map((field) => <NumberField key={field} label={`${fieldLabels[field]} [mm]`} value={area[field]} step="0.1" min={minimumSizeMm(selected)} decimalInput onChange={(value) => updateAreaField(selected, field, value)} />)}</div>
+            <div className="mt-3 flex flex-wrap gap-2">{([["horizontal", "Na střed vodorovně"], ["vertical", "Na střed svisle"]] as const).map(([axis, label]) => <button key={axis} type="button" disabled={isInteracting} onClick={() => updateAreaGeometry(selected, centerAreaInTrim(layoutRef.current[selected], axis))} className={`${compactButtonClassName} border-white/10 text-white/65 hover:border-white/25 hover:text-white`}>{label}</button>)}</div>
+            <p className="mt-3 text-[11px] text-white/45">Šipky: 0,1 mm · Shift + šipky: 1 mm</p>
+          </section>
           {textArea ? <section className="border-b border-white/10 py-3"><SectionTitle title="Písmo" /><label className="block text-xs text-white/70">Písmo<select value={textArea.typography.fontFamilyKey} onChange={(event) => updateSelectedTypography({ fontFamilyKey: event.target.value })} className={inputClassName}>{Object.keys(VOUCHER_TEMPLATE_PREVIEW_FONT_FAMILIES).map((key) => <option key={key} value={key} className="text-black">{key === "noto-sans" ? "Noto Sans" : key}</option>)}</select></label><div className="mt-3 grid grid-cols-2 gap-3"><label className="block text-xs text-white/70">Řez<select value={textArea.typography.fontWeight} onChange={(event) => updateSelectedTypography({ fontWeight: event.target.value as "regular" | "bold" })} className={inputClassName}><option value="regular" className="text-black">Regular</option><option value="bold" className="text-black">Bold</option></select></label><NumberField label="Velikost (pt)" value={textArea.typography.preferredFontSizePt} step="0.1" onChange={(value) => updateSelectedTypography({ preferredFontSizePt: value })} /></div><label className="mt-3 block text-xs text-white/70">Zarovnání<select value={textArea.typography.alignment} onChange={(event) => updateSelectedTypography({ alignment: event.target.value as "left" | "center" })} className={inputClassName}><option value="left" className="text-black">Vlevo</option><option value="center" className="text-black">Na střed</option></select></label></section> : null}
           {textArea ? <details className="border-b border-white/10 py-3"><summary className="cursor-pointer list-none text-sm font-semibold text-white marker:hidden">Pokročilé nastavení <span className="float-right text-white/45">⌄</span></summary><div className="mt-3 grid gap-3"><NumberField label="Baseline (mm)" value={textArea.baselineMm} step="0.5" onChange={(value) => update(selected, { baselineMm: Number.isFinite(value) ? constrainBaselineToArea(textArea, value) : value })} /><div className="grid grid-cols-2 gap-3"><NumberField label="Min. velikost (pt)" value={textArea.typography.minFontSizePt} step="0.1" onChange={(value) => updateSelectedTypography({ minFontSizePt: value })} /><NumberField label="Max. řádků" value={textArea.maxLines} step="1" onChange={(value) => update(selected, { maxLines: value })} /></div><NumberField label="Řádkování (mm)" value={textArea.typography.lineHeightMm} step="0.1" onChange={(value) => updateSelectedTypography({ lineHeightMm: value })} /><p className="text-xs leading-5 text-white/45">Baseline, minimální velikost a řádkování ovlivňují přizpůsobení textu v PDF.</p></div></details> : null}
           </>}
@@ -412,12 +419,13 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
 }
 
 function SectionTitle({ title }: { title: string }) { return <h4 className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-white/60">{title}</h4>; }
-function NumberField({ label, value, step = "0.5", min, onChange }: { label: string; value: number; step?: string; min?: number; onChange: (value: number) => void }) {
+function NumberField({ label, value, step = "0.5", min, decimalInput = false, onChange }: { label: string; value: number; step?: string; min?: number; decimalInput?: boolean; onChange: (value: number) => void }) {
   const [draft, setDraft] = useState<string | null>(null);
-  return <label className="block min-w-0 text-xs text-white/70">{label}<input type="number" value={draft ?? formatNumericValue(value, step)} step={step} min={min}
+  return <label className="block min-w-0 text-xs text-white/70">{label}<input type={decimalInput ? "text" : "number"} inputMode={decimalInput ? "decimal" : undefined} value={draft ?? formatNumericValue(value, step)} step={step} min={min}
     onChange={(event) => setDraft(event.target.value)}
     onBlur={() => {
-      if (draft !== null && draft.trim() !== "" && Number.isFinite(Number(draft))) onChange(Number(draft));
+      const normalized = draft?.replace(",", ".").trim();
+      if (normalized && Number.isFinite(Number(normalized))) onChange(Number(normalized));
       setDraft(null);
     }}
     onKeyDown={(event) => {
@@ -425,6 +433,9 @@ function NumberField({ label, value, step = "0.5", min, onChange }: { label: str
       if (event.key === "Escape") { setDraft(null); event.preventDefault(); }
     }}
     className={`${inputClassName} tabular-nums`} /></label>;
+}
+function formatPosition(position: { xMm: number; yMm: number }) {
+  return `X ${position.xMm.toFixed(1).replace(".", ",")} mm · Y ${position.yMm.toFixed(1).replace(".", ",")} mm`;
 }
 function formatNumericValue(value: number, step: string) {
   if (!Number.isFinite(value)) return "";

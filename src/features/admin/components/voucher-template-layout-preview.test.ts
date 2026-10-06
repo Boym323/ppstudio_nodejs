@@ -211,13 +211,13 @@ test("editor používá pro obsah náhled vyrenderovaný stejným PDF rendererem
   assert.match(source, /onClick=\{\(\) => setSelected\(null\)\}/);
   assert.match(source, /event\.stopPropagation\(\); selectArea\(key\)/);
   assert.match(source, /Nic není vybráno/);
-  assert.match(source, /const canvasScale = canvasSize\.width \* zoom \/ 216/);
+  assert.match(source, /const canvasScale = canvasSize\.width \* zoom \/ VOUCHER_PRINT_GEOMETRY\.widthMm/);
   assert.match(source, /new ResizeObserver\(measure\)/);
   assert.match(source, /enableResizing=\{isSelected \? cornerResizeEnable : false\}/);
   assert.match(source, /resizeHandleStyles=\{cornerHandleStyles\}/);
   assert.match(source, /lockAspectRatio=\{isAspectRatioLocked\(key\)\}/);
   assert.match(source, /onResize=\{\(_, direction, ref, __, pos\) => applyResize\(key, direction, ref, pos\)\}/);
-  assert.match(source, /KEYBOARD_NUDGE_MM = 0\.1/);
+  assert.match(source, /nudgeAreaInTrim\(layoutRef\.current\[key\], event\.key, event\.shiftKey\)/);
   assert.match(source, /onKeyDown=\{\(event: KeyboardEvent<HTMLDivElement>\) => nudgeAreaByKeyboard\(event, key\)\}/);
   assert.match(source, /Šipkami posunete o 0,1 mm/);
   assert.match(source, /data\.x \/ canvasScale/);

@@ -8,6 +8,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Editor voucherových šablon umožňuje přesné zadání pozice v milimetrech od levého horního rohu finálního ořezu, vystředění prvků a jemné posuny šipkami; při tažení zobrazuje aktuální pozici a rozlišuje ořez, spadávku i orientační bezpečnou zónu. Uložené souřadnice a vykreslení PDF zůstávají zachované.
+
 - Správa voucherových šablon vede kroky Grafika → Umístění údajů → Publikace; PDF se nahrává po výběru souboru, stav vychází ze stávající tiskové kontroly a technické detaily jsou rozbalovací. Kontrola tiskového PDF i publikace zůstávají samostatnými akcemi.
 
 - Editor voucherů zachovává poslední náhled během úprav, umožňuje samostatný výběr typu voucheru, zoom a vracení změn; zobrazuje stav uložení a upozorňuje při odchodu s neuloženými změnami. Číselné hodnoty potvrzuje až po dokončení vstupu, takže vymazání pole nevloží nechtěnou nulu.
