@@ -28,7 +28,6 @@ import { canPreserveAutoLunchForBooking } from "@/features/booking/lib/booking-a
 import {
   archiveDraftBookingSlotAfterCancellation,
   restoreArchivedBookingServiceSlotAfterCancellation,
-  compactAdjacentEditableSlotsForBooking,
   preparePublishedAvailabilityForManualOverride,
   restoreArchivedAvailabilityAfterManualOverrideShortening,
 } from "@/features/booking/lib/booking-slot-compaction";
