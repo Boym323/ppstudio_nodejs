@@ -48,5 +48,13 @@ export function getBaselineWithPreservedTopOffset(
   heightMm: number,
 ) {
   const topOffsetMm = area.yMm + area.heightMm - area.baselineMm;
-  return yMm + heightMm - topOffsetMm;
+  const baselineMm = yMm + heightMm - topOffsetMm;
+  return Math.min(yMm + heightMm, Math.max(yMm, baselineMm));
+}
+
+export function constrainBaselineToArea(
+  area: Pick<{ yMm: number; heightMm: number }, "yMm" | "heightMm">,
+  baselineMm: number,
+) {
+  return Math.min(area.yMm + area.heightMm, Math.max(area.yMm, baselineMm));
 }

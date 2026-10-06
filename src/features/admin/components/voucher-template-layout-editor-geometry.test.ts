@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { constrainAreaToTrim, getBaselineWithPreservedTopOffset, getLockedResizeSize, getResizeAnchor, snapToHalfMm } from "./voucher-template-layout-editor-geometry";
+import { constrainAreaToTrim, constrainBaselineToArea, getBaselineWithPreservedTopOffset, getLockedResizeSize, getResizeAnchor, snapToHalfMm } from "./voucher-template-layout-editor-geometry";
 
 const area = { xMm: 20, yMm: 15, widthMm: 30, heightMm: 10 };
 
@@ -28,6 +28,14 @@ test("textová baseline při změně výšky zachová odstup od horní hrany", (
   const textArea = { yMm: 30.5, heightMm: 11.5, baselineMm: 41.2 };
 
   assert.equal(getBaselineWithPreservedTopOffset(textArea, textArea.yMm, 20), 49.7);
+});
+
+test("baseline při zmenšení oblasti zůstane uvnitř oblasti", () => {
+  const textArea = { yMm: 30.5, heightMm: 4, baselineMm: 34.5 };
+
+  assert.equal(getBaselineWithPreservedTopOffset(textArea, textArea.yMm, 2), 32.5);
+  assert.equal(constrainBaselineToArea(textArea, 20), 30.5);
+  assert.equal(constrainBaselineToArea(textArea, 40), 34.5);
 });
 
 

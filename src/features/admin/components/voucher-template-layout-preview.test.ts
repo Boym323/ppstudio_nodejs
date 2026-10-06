@@ -188,12 +188,15 @@ test("editor používá pro obsah náhled vyrenderovaný stejným PDF rendererem
   assert.match(source, /saveVoucherTemplateLayoutAction\(templateId, currentLayout, revision\)/);
   assert.match(source, /test-pdf\?format=preview/);
   assert.match(source, /JSON\.stringify\(\{ layout: layoutRef\.current \}\)/);
-  assert.match(source, /const layoutRef = useRef\(initialLayout\)/);
+  assert.match(source, /const initialEditorLayout = normalizeLayoutBaselines\(initialLayout\)/);
+  assert.match(source, /const layoutRef = useRef\(initialEditorLayout\)/);
+  assert.match(source, /voucherTemplateLayoutSchema\.safeParse\(layout\)/);
   assert.match(source, /Stáhnout testovací PDF/);
   assert.match(source, /selected === null \? <div className="flex min-h-48/);
   assert.match(source, /\{saveError \? <p role="alert"/);
-  assert.match(source, /const displayedPreviewSrc = hasRenderedPreview \? renderedPreview.src : previewSrc/);
-  assert.match(source, /previewType = selected === "serviceArea" \? "SERVICE" : "VALUE"/);
+  assert.match(source, /const displayedPreviewSrc = renderedPreview\?\.src \?\? previewSrc/);
+  assert.match(source, /aria-label="Typ náhledu voucheru"/);
+  assert.doesNotMatch(source, /previewType = selected ===/);
   assert.match(source, /format=preview&previewType=\$\{previewType\}/);
   assert.match(source, /setRenderedPreviewSrc/);
   assert.doesNotMatch(source, /PreviewCanvas/);
@@ -208,7 +211,7 @@ test("editor používá pro obsah náhled vyrenderovaný stejným PDF rendererem
   assert.match(source, /onClick=\{\(\) => setSelected\(null\)\}/);
   assert.match(source, /event\.stopPropagation\(\); selectArea\(key\)/);
   assert.match(source, /Nic není vybráno/);
-  assert.match(source, /const canvasScale = canvasSize\.width \/ 216/);
+  assert.match(source, /const canvasScale = canvasSize\.width \* zoom \/ 216/);
   assert.match(source, /new ResizeObserver\(measure\)/);
   assert.match(source, /enableResizing=\{isSelected \? cornerResizeEnable : false\}/);
   assert.match(source, /resizeHandleStyles=\{cornerHandleStyles\}/);

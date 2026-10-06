@@ -6,6 +6,16 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Změněno
+
+- Editor voucherů zachovává poslední náhled během úprav, umožňuje samostatný výběr typu voucheru, zoom a vracení změn; zobrazuje stav uložení a upozorňuje při odchodu s neuloženými změnami. Číselné hodnoty potvrzuje až po dokončení vstupu, takže vymazání pole nevloží nechtěnou nulu.
+
+### Opraveno
+
+- Editor voucherových šablon už při dočasně neplatné hodnotě během úpravy neposílá neúspěšné požadavky na náhled PDF.
+- Změna velikosti nebo baseline textové oblasti už nemůže umístit baseline mimo její oblast a zablokovat aktuální náhled.
+- Starší layout s baseline mimo textovou oblast se při otevření editoru automaticky srovná do platných hranic.
+
 ## [3.32.0] - 2026-10-06
 
 ### Opraveno
