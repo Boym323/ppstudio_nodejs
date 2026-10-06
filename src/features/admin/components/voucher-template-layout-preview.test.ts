@@ -191,7 +191,7 @@ test("editor používá pro obsah náhled vyrenderovaný stejným PDF rendererem
   assert.match(source, /const initialEditorLayout = normalizeLayoutBaselines\(initialLayout\)/);
   assert.match(source, /const layoutRef = useRef\(initialEditorLayout\)/);
   assert.match(source, /voucherTemplateLayoutSchema\.safeParse\(layout\)/);
-  assert.match(source, /Stáhnout testovací PDF/);
+  assert.match(source, /Zkontrolovat PDF pro tisk/);
   assert.match(source, /selected === null \? <div className="flex min-h-48/);
   assert.match(source, /\{saveError \? <p role="alert"/);
   assert.match(source, /const displayedPreviewSrc = renderedPreview\?\.src \?\? previewSrc/);
