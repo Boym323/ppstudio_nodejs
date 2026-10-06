@@ -24,4 +24,11 @@ test("panel editoru zobrazuje pozici od horního levého rohu ořezu a odděluje
   assert.match(html, /<details[^>]*><summary[^>]*>Pokročilé nastavení[\s\S]*?Baseline \(mm\)[\s\S]*?Min\. velikost \(pt\)[\s\S]*?Řádkování \(mm\)[\s\S]*?<\/details>/);
   for (const overlay of ["bleed", "trim", "safe", "guides"]) assert.match(html, new RegExp(`data-overlay="${overlay}"`));
   assert.deepEqual(original, defaultVoucherTemplateLayout, "zobrazení UI nesmí přepsat uložený layout");
+  assert.match(html, /Žádné neuložené změny/);
+  const legacy = structuredClone(original);
+  legacy.valueArea.baselineMm = legacy.valueArea.yMm;
+  const repaired = renderToStaticMarkup(<VoucherTemplateLayoutEditor templateId="legacy" initialLayout={legacy} initialUpdatedAt="2026-10-06T10:00:00Z" />);
+  assert.match(repaired, /Baseline \(mm\)<input[^>]*value="40\.7"/);
+  assert.match(repaired, /Neuložené změny/);
+  assert.equal(legacy.valueArea.baselineMm, legacy.valueArea.yMm, "oprava draftu nesmí mutovat uložený vstup");
 });

@@ -2,10 +2,22 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { defaultVoucherTemplateLayout } from "@/features/vouchers/lib/voucher-template-defaults";
+import { fitVoucherTextToArea, getVoucherTextBaselineRangeMm, voucherTextLineStackFits } from "@/features/vouchers/lib/voucher-text-fit";
 import { getVoucherQrRenderGeometry, getVoucherTextBaselineBrowserTopMm, pdfBottomToBrowserTop, voucherTemplateLayoutSchema } from "@/features/vouchers/lib/voucher-template-layout";
 import { centerAreaInTrim, constrainAreaToTrim, constrainBaselineToArea, getBaselineWithPreservedTopOffset, getLockedResizeSize, getResizeAnchor, internalToUiPosition, nudgeAreaInTrim, snapToHalfMm, uiToInternalPosition, updateAreaFromUi } from "./voucher-template-layout-editor-geometry";
 
 const area = { xMm: 20, yMm: 15, widthMm: 30, heightMm: 10 };
+
+test("editor nesmí ponechat baseline na hranách, kde glyph box VALUE přetéká", () => {
+  const valueArea = defaultVoucherTemplateLayout.valueArea;
+  for (const baselineMm of [valueArea.yMm, valueArea.yMm + valueArea.heightMm]) {
+    const constrained = constrainBaselineToArea(valueArea, baselineMm);
+    const candidate = { ...valueArea, baselineMm: constrained };
+    assert.equal(voucherTemplateLayoutSchema.safeParse({ ...defaultVoucherTemplateLayout, valueArea: candidate }).success, true);
+    const fit = fitVoucherTextToArea("1 500 Kč", candidate, (text, size) => text.length * size * 0.12);
+    assert.equal(fit.overflowed, false, `baseline ${baselineMm} musí respektovat ascent/descent`);
+  }
+});
 
 test("UI počátek je levý horní roh ořezu, včetně 3mm offsetu a výšky oblasti", () => {
   assert.deepEqual(internalToUiPosition({ xMm: 3, yMm: 92, heightMm: 10 }), { xMm: 0, yMm: 0 });
@@ -49,7 +61,7 @@ test("ruční rozměry zachovají horní hranu a QR čtverec, minimum a trim", (
   const resized = updateAreaFromUi(area, "heightMm", 12.3, 0.5, false);
   assert.equal(resized.heightMm, 12.3);
   assert.deepEqual(internalToUiPosition(resized), internalToUiPosition(area));
-  assert.equal(getBaselineWithPreservedTopOffset({ ...area, baselineMm: 23 }, resized.yMm, resized.heightMm), 23);
+  assert.equal(getBaselineWithPreservedTopOffset({ ...area, baselineMm: 23, typography: { minFontSizePt: 4 } }, resized.yMm, resized.heightMm), 23);
   assert.equal(updateAreaFromUi(area, "widthMm", 0, 0.5, false).widthMm, 0.5);
   for (const field of ["widthMm", "heightMm"] as const) {
     const qr = updateAreaFromUi(defaultVoucherTemplateLayout.qrArea, field, 24.3, 20, true);
@@ -102,23 +114,42 @@ test("locked resize zachová čtvercový poměr a snap 0,5 mm", () => {
 });
 
 test("textová baseline se při přesunu oblasti posune spolu s ní", () => {
-  const textArea = { yMm: 30.5, heightMm: 11.5, baselineMm: 41.2 };
+  const textArea = { yMm: 30.5, heightMm: 11.5, baselineMm: 37, typography: { minFontSizePt: 8 } };
 
-  assert.equal(getBaselineWithPreservedTopOffset(textArea, 55, textArea.heightMm), 65.7);
+  assert.equal(getBaselineWithPreservedTopOffset(textArea, 55, textArea.heightMm), 61.5);
 });
 
 test("textová baseline při změně výšky zachová odstup od horní hrany", () => {
-  const textArea = { yMm: 30.5, heightMm: 11.5, baselineMm: 41.2 };
+  const textArea = { yMm: 30.5, heightMm: 11.5, baselineMm: 37, typography: { minFontSizePt: 8 } };
 
-  assert.equal(getBaselineWithPreservedTopOffset(textArea, textArea.yMm, 20), 49.7);
+  assert.equal(getBaselineWithPreservedTopOffset(textArea, textArea.yMm, 20), 45.5);
 });
 
-test("baseline při zmenšení oblasti zůstane uvnitř oblasti", () => {
-  const textArea = { yMm: 30.5, heightMm: 4, baselineMm: 34.5 };
+test("resize clampne baseline na nejbližší bezpečnou hranici bez změny fontu", () => {
+  const textArea = { yMm: 30.5, heightMm: 10, baselineMm: 32, typography: { minFontSizePt: 8 } };
+  const resized = { ...textArea, heightMm: 4 };
+  const range = getVoucherTextBaselineRangeMm(resized, 8);
+  assert.equal(getBaselineWithPreservedTopOffset(textArea, textArea.yMm, 4), range.minBaselineMm);
+  assert.equal(constrainBaselineToArea(resized, 40), range.maxBaselineMm);
+  assert.equal(voucherTextLineStackFits({ ...resized, baselineMm: range.minBaselineMm }, 1, 0, 8), true);
+  assert.equal(voucherTextLineStackFits({ ...resized, baselineMm: range.maxBaselineMm }, 1, 0, 8), true);
+  assert.equal(textArea.typography.minFontSizePt, 8);
+});
 
-  assert.equal(getBaselineWithPreservedTopOffset(textArea, textArea.yMm, 2), 32.5);
-  assert.equal(constrainBaselineToArea(textArea, 20), 30.5);
-  assert.equal(constrainBaselineToArea(textArea, 40), 34.5);
+test("platné baseline všech výchozích oblastí zůstanou přesně zachované", () => {
+  for (const key of ["valueArea", "serviceArea", "validityArea", "codeArea"] as const) {
+    const stored = defaultVoucherTemplateLayout[key];
+    assert.equal(constrainBaselineToArea(stored, stored.baselineMm), stored.baselineMm);
+  }
+});
+
+test("příliš nízká oblast nemá bezpečný rozsah a clamp nezmění font ani výšku", () => {
+  const small = { ...defaultVoucherTemplateLayout.valueArea, heightMm: 0.5 };
+  const range = getVoucherTextBaselineRangeMm(small, small.typography.minFontSizePt);
+  assert.ok(range.minBaselineMm > range.maxBaselineMm);
+  assert.equal(constrainBaselineToArea(small, small.baselineMm), small.yMm + small.heightMm);
+  assert.equal(small.typography.minFontSizePt, 16.5);
+  assert.equal(small.heightMm, 0.5);
 });
 
 

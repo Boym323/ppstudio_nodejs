@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { generateResolvedVoucherPrintPdf, buildVoucherPrintPdfFilename } from "@/features/vouchers/lib/voucher-pdf";
 import { voucherTemplateLayoutSchema } from "@/features/vouchers/lib/voucher-template-layout";
+import { VoucherTemplateError } from "@/features/vouchers/lib/voucher-template-error";
 import { renderVoucherTemplatePreview } from "@/features/vouchers/lib/voucher-template-preview";
 import { VOUCHER_TEMPLATE_TEST_DATA } from "@/features/vouchers/lib/voucher-template-test-data";
 import { requireVoucherTemplateById, resolveVoucherTemplate } from "@/features/vouchers/lib/voucher-template-repository";
@@ -72,6 +73,17 @@ export async function POST(
     });
   } catch (error) {
     console.error("Voucher template test PDF generation failed", { templateId: (await params).templateId, error });
+    if (error instanceof VoucherTemplateError) {
+      const safeMessages = {
+        unknown_template: "Vzhled voucheru není dostupný.",
+        invalid_master_page_size: "Grafika šablony nemá správný rozměr stránky.",
+        invalid_print_pdf: "Finální tiskové PDF neprošlo interní kontrolou.",
+      };
+      return NextResponse.json({
+        code: error.code,
+        message: error.code === "text_overflow" ? error.message : safeMessages[error.code],
+      }, { status: 422, headers: { "Cache-Control": "private, no-store" } });
+    }
     return new NextResponse("Zkušební PDF se nepodařilo vygenerovat. Zkontrolujte layout a fitting textu.", { status: 422 });
   }
 }

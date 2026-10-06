@@ -20,6 +20,8 @@ import {
   type VoucherTemplateTypographyPatch,
 } from "@/features/vouchers/lib/voucher-template-layout";
 import { VOUCHER_TEMPLATE_PREVIEW_FONT_FAMILIES } from "./voucher-template-layout-preview";
+import { getVoucherTextBaselineRangeMm } from "@/features/vouchers/lib/voucher-text-fit";
+import { readVoucherTemplatePreviewError } from "./voucher-template-preview-error";
 
 const areas = ["valueArea", "serviceArea", "validityArea", "codeArea", "qrArea"] as const;
 type AreaKey = (typeof areas)[number];
@@ -69,7 +71,8 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
   const [showBleed, setShowBleed] = useState(true);
   const [isInteracting, setIsInteracting] = useState(false);
   const [renderedPreview, setRenderedPreviewSrc] = useState<{ src: string; layout: VoucherTemplateLayoutV1; previewType: string } | null>(null);
-  const [previewFailure, setPreviewFailure] = useState<{ layout: VoucherTemplateLayoutV1; previewType: string; message: string } | null>(null);
+  const [previewFailure, setPreviewFailure] = useState<{ key: string; message: string } | null>(null);
+  const failedPreviewRef = useRef<string | null>(null);
   const canvasStageRef = useRef<HTMLDivElement>(null);
   const livePositionRef = useRef<HTMLParagraphElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 648, height: 315 });
@@ -82,7 +85,13 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
   const overlayState = getVoucherEditorOverlayState({ showGuides, showBleed, isInteracting });
   const isDirty = JSON.stringify(layout) !== savedLayout;
   const validation = voucherTemplateLayoutSchema.safeParse(layout);
-  const validationError = validation.success ? null : validation.error.issues[0]?.message ?? "Zkontrolujte hodnoty layoutu.";
+  const tooShortArea = areas.find((key) => {
+    if (!isVoucherTemplateTextAreaKey(key)) return false;
+    const range = getVoucherTextBaselineRangeMm(layout[key], layout[key].typography.minFontSizePt);
+    return range.minBaselineMm > range.maxBaselineMm;
+  });
+  const validationError = !validation.success ? validation.error.issues[0]?.message ?? "Zkontrolujte hodnoty layoutu." : tooShortArea ? `Oblast „${labels[tooShortArea]}“ je příliš nízká i pro minimální velikost písma. Zvětšete oblast nebo snižte minimální velikost písma.` : null;
+  const previewKey = JSON.stringify({ templateId, layout, previewType });
 
   useEffect(() => {
     if (!isDirty) return;
@@ -104,12 +113,14 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
   }, [isDirty]);
 
   useEffect(() => {
+    if (failedPreviewRef.current !== previewKey) failedPreviewRef.current = null;
     if (isInteracting) return;
 
     // During editing a numeric field can be temporarily empty/invalid (for
     // example while replacing its value). Do not send that transient state to
     // the API, where JSON turns NaN into null and the layout schema returns 400.
-    if (!voucherTemplateLayoutSchema.safeParse(layout).success) return;
+    if (validationError) return;
+    if (failedPreviewRef.current === previewKey) return;
 
     const controller = new AbortController();
     const timer = window.setTimeout(() => { void (async () => {
@@ -121,7 +132,14 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
           signal: controller.signal,
         });
         if (controller.signal.aborted) return;
-        if (!response.ok) throw new Error(await response.text());
+        if (!response.ok) {
+          const failure = await readVoucherTemplatePreviewError(response);
+          if (controller.signal.aborted) return;
+          const failedPreview = { key: previewKey, message: failure.message };
+          if (failure.code === "text_overflow") failedPreviewRef.current = previewKey;
+          setPreviewFailure(failedPreview);
+          return;
+        }
         const nextUrl = URL.createObjectURL(await response.blob());
         if (controller.signal.aborted) {
           URL.revokeObjectURL(nextUrl);
@@ -130,7 +148,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
         setRenderedPreviewSrc({ src: nextUrl, layout, previewType });
       } catch (error) {
         if (!controller.signal.aborted) {
-          setPreviewFailure({ layout, previewType, message: error instanceof Error ? error.message : "Náhled se nepodařilo aktualizovat." });
+          setPreviewFailure({ key: previewKey, message: error instanceof Error ? error.message : "Náhled se nepodařilo aktualizovat." });
         }
       }
     })(); }, 250);
@@ -139,7 +157,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [isInteracting, layout, previewType, templateId]);
+  }, [isInteracting, layout, previewType, templateId, previewKey, validationError]);
 
   useEffect(() => () => {
     if (renderedPreview) URL.revokeObjectURL(renderedPreview.src);
@@ -147,7 +165,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
 
   const hasRenderedPreview = renderedPreview?.layout === layout && renderedPreview.previewType === previewType;
   const displayedPreviewSrc = renderedPreview?.src ?? previewSrc;
-  const previewError = !hasRenderedPreview && previewFailure?.layout === layout && previewFailure.previewType === previewType ? previewFailure.message : null;
+  const previewError = !hasRenderedPreview && previewFailure?.key === previewKey ? previewFailure.message : null;
 
   useEffect(() => {
     const stage = canvasStageRef.current;
@@ -189,6 +207,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
   const update = (key: AreaKey, patch: Record<string, unknown>) => {
     const current = layoutRef.current;
     const next = { ...current, [key]: { ...current[key], ...patch } } as VoucherTemplateLayoutV1;
+    if (isVoucherTemplateTextAreaKey(key)) next[key].baselineMm = constrainBaselineToArea(next[key], next[key].baselineMm);
     if (JSON.stringify(current) === JSON.stringify(next)) return;
     if (!resizeLayoutRef.current) remember(current);
     layoutRef.current = next;
@@ -209,6 +228,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
   const updateSelectedTypography = (patch: VoucherTemplateTypographyPatch) => {
     if (selected === null || !isVoucherTemplateTextAreaKey(selected)) return;
     const next = updateTypography(layoutRef.current, selected, patch);
+    next[selected].baselineMm = constrainBaselineToArea(next[selected], next[selected].baselineMm);
     if (JSON.stringify(next) === JSON.stringify(layoutRef.current)) return;
     remember(layoutRef.current);
     layoutRef.current = next;
@@ -256,8 +276,8 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
   const save = () => {
     const currentLayout = layoutRef.current;
     const parsed = voucherTemplateLayoutSchema.safeParse(currentLayout);
-    if (!parsed.success) {
-      setSaveError(parsed.error.issues[0]?.message ?? "Umístění údajů obsahuje neplatné hodnoty.");
+    if (!parsed.success || validationError) {
+      setSaveError(validationError ?? "Umístění údajů obsahuje neplatné hodnoty.");
       return;
     }
     startTransition(async () => {
@@ -282,7 +302,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ layout: layoutRef.current }),
       });
-      if (!response.ok) throw new Error(await response.text());
+      if (!response.ok) throw new Error((await readVoucherTemplatePreviewError(response)).message);
       const url = URL.createObjectURL(await response.blob());
       const link = document.createElement("a");
       link.href = url;

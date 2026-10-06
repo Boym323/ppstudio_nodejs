@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { VoucherTemplateError } from "@/features/vouchers/lib/voucher-template-error";
 
 process.env.NEXT_PUBLIC_APP_URL ??= "https://ppstudio.cz";
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
@@ -17,6 +18,8 @@ test("test PDF používá layout z requestu a vrací tiskové PDF pouze OWNERovi
     qrArea: { xMm: 173.7, yMm: 20, widthMm: 28, heightMm: 28 },
   };
   let receivedLayout: unknown;
+  let renderError: Error | null = null;
+  let receivedOptions: unknown;
   let receivedVoucher: { type: string; serviceNameSnapshot: string | null } | undefined;
 
   t.mock.module("@/lib/auth/session", { exports: { getSession: async () => ({ role }) } });
@@ -29,7 +32,7 @@ test("test PDF používá layout z requestu a vrací tiskové PDF pouze OWNERovi
   t.mock.module("@/features/vouchers/lib/voucher-pdf", {
     exports: {
       buildVoucherPrintPdfFilename: (code: string) => `voucher-${code}.pdf`,
-      generateResolvedVoucherPrintPdf: async (voucher: { type: string; serviceNameSnapshot: string | null }, template: { layout: unknown }) => { receivedVoucher = voucher; receivedLayout = template.layout; return Buffer.from("%PDF-test"); },
+      generateResolvedVoucherPrintPdf: async (voucher: { type: string; serviceNameSnapshot: string | null }, template: { layout: unknown }, options: unknown) => { receivedOptions = options; if (renderError) throw renderError; receivedVoucher = voucher; receivedLayout = template.layout; return Buffer.from("%PDF-test"); },
     },
   });
   t.mock.module("@/features/vouchers/lib/voucher-template-preview", {
@@ -44,6 +47,7 @@ test("test PDF používá layout z requestu a vrací tiskové PDF pouze OWNERovi
   assert.equal(response.headers.get("content-type"), "application/pdf");
   assert.equal(response.headers.get("content-disposition"), 'attachment; filename="voucher-TEST-2026-ABCDEF.pdf"');
   assert.deepEqual(receivedLayout, changedLayout);
+  assert.deepEqual(receivedOptions, { failOnTextOverflow: true });
   const preview = await POST(new Request("https://example.com?format=preview", { method: "POST", body: JSON.stringify({ layout: changedLayout }), headers: { "content-type": "application/json" } }), { params: Promise.resolve({ templateId: "template-1" }) });
   assert.equal(preview.status, 200);
   assert.equal(preview.headers.get("content-type"), "image/png");
@@ -55,6 +59,28 @@ test("test PDF používá layout z requestu a vrací tiskové PDF pouze OWNERovi
     assert.equal(receivedVoucher?.type, "SERVICE");
     assert.ok(receivedVoucher?.serviceNameSnapshot);
   }
+  const logged: unknown[][] = [];
+  t.mock.method(console, "error", (...args: unknown[]) => { logged.push(args); });
+  for (const format of ["", "?format=preview"]) {
+    renderError = new VoucherTemplateError("internal-template-key", { code: "text_overflow", message: "Dynamický text se nevejde do oblasti „Hodnota“ ani při minimální velikosti písma." });
+    const overflow = await POST(new Request(`https://example.com${format}`, { method: "POST", body: JSON.stringify({ layout: changedLayout }) }), { params: Promise.resolve({ templateId: "template-1" }) });
+    assert.equal(overflow.status, 422);
+    assert.deepEqual(await overflow.json(), { code: "text_overflow", message: renderError.message });
+  }
+  for (const code of ["unknown_template", "invalid_master_page_size", "invalid_print_pdf"] as const) {
+    renderError = new VoucherTemplateError("internal-template-key", { code, message: "Internal stack /private/master.pdf" });
+    const known = await POST(new Request("https://example.com", { method: "POST", body: JSON.stringify({ layout: changedLayout }) }), { params: Promise.resolve({ templateId: "template-1" }) });
+    assert.equal(known.status, 422);
+    const error = await known.json();
+    assert.equal(error.code, code);
+    assert.doesNotMatch(error.message, /Internal|private|template-key/);
+    assert.deepEqual(Object.keys(error).sort(), ["code", "message"]);
+  }
+  renderError = new Error("Internal stack /private/master.pdf");
+  const unexpected = await POST(new Request("https://example.com?format=preview", { method: "POST", body: JSON.stringify({ layout: changedLayout }) }), { params: Promise.resolve({ templateId: "template-1" }) });
+  assert.equal(unexpected.status, 422);
+  assert.equal(await unexpected.text(), "Zkušební PDF se nepodařilo vygenerovat. Zkontrolujte layout a fitting textu.");
+  assert.ok(logged.some((args) => (args[1] as { error?: unknown }).error === renderError));
   role = "SALON";
   const forbidden = await POST(new Request("https://example.com", { method: "POST", body: "{}" }), { params: Promise.resolve({ templateId: "template-1" }) });
   assert.equal(forbidden.status, 403);

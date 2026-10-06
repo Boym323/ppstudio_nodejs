@@ -1,9 +1,24 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fitVoucherTextToArea, getVoucherTextLineHeightMm, getVoucherTextMinimumLineHeightMm } from "./voucher-text-fit";
+import { fitVoucherTextToArea, getVoucherTextBaselineRangeMm, getVoucherTextLineHeightMm, getVoucherTextMinimumLineHeightMm, voucherTextLineStackFits } from "./voucher-text-fit";
 
 const measure = (text: string, fontSizePt: number) => text.length * fontSizePt * 0.12;
+
+test("sdílený baseline range odpovídá rendereru pro jeden i více řádků", () => {
+  const area = { yMm: 10, heightMm: 25 };
+  for (const lineCount of [1, 2, 3]) {
+    for (const configuredLineHeightMm of [0, 0.1, 7]) {
+      const range = getVoucherTextBaselineRangeMm(area, 10, lineCount, configuredLineHeightMm);
+      const lineHeight = getVoucherTextLineHeightMm(configuredLineHeightMm, 10);
+      for (const baselineMm of [range.minBaselineMm, range.maxBaselineMm]) {
+        assert.equal(voucherTextLineStackFits({ ...area, baselineMm }, lineCount, lineHeight, 10), true);
+      }
+      assert.equal(voucherTextLineStackFits({ ...area, baselineMm: range.minBaselineMm - 0.01 }, lineCount, lineHeight, 10), false);
+      assert.equal(voucherTextLineStackFits({ ...area, baselineMm: range.maxBaselineMm + 0.01 }, lineCount, lineHeight, 10), false);
+    }
+  }
+});
 
 test("automatické řádkování při lineHeightMm=0 nikdy neskládá řádky přes sebe", () => {
   const lineHeightMm = getVoucherTextLineHeightMm(0, 10);

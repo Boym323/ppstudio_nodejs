@@ -17,8 +17,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Opraveno
 
 - Editor voucherových šablon už při dočasně neplatné hodnotě během úpravy neposílá neúspěšné požadavky na náhled PDF.
-- Změna velikosti nebo baseline textové oblasti už nemůže umístit baseline mimo její oblast a zablokovat aktuální náhled.
-- Starší layout s baseline mimo textovou oblast se při otevření editoru automaticky srovná do platných hranic.
+- Editor voucherových šablon při úpravách i otevření draftu drží baseline v bezpečném rozsahu podle výšky písma nad a pod účařím, zachovává platné pozice a upozorní na příliš nízkou oblast. Přetečení náhledu označí konkrétní oblast a nabídne opravu; stejný neúspěšný náhled bez změny layoutu či typu neopakuje. PDF a uložený souřadnicový systém zůstávají zachované.
 
 ## [3.32.0] - 2026-10-06
 

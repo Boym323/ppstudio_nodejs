@@ -35,6 +35,24 @@ const FIT_STEP_PT = 0.25;
 const VOUCHER_TEXT_ASCENT_EM = 1.07;
 const VOUCHER_TEXT_DESCENT_EM = 0.3;
 
+/** Baseline of the bottom line, in the stored PDF coordinate system.
+ * An inverted range means the line stack cannot fit at this font size.
+ * maxLines is a limit, not the number of lines actually rendered.
+ */
+export function getVoucherTextBaselineRangeMm(
+  area: Pick<VoucherTextFitArea, "yMm" | "heightMm">,
+  fontSizePt: number,
+  lineCount = 1,
+  configuredLineHeightMm = 0,
+) {
+  const fontSizeMm = fontSizePt * PT_TO_MM;
+  const lineHeightMm = getVoucherTextLineHeightMm(configuredLineHeightMm, fontSizePt);
+  return {
+    minBaselineMm: area.yMm + fontSizeMm * VOUCHER_TEXT_DESCENT_EM,
+    maxBaselineMm: area.yMm + area.heightMm - fontSizeMm * VOUCHER_TEXT_ASCENT_EM - Math.max(0, lineCount - 1) * lineHeightMm,
+  };
+}
+
 export function getVoucherTextLineHeightMm(configuredLineHeightMm: number, fontSizePt: number) {
   const minimum = getVoucherTextMinimumLineHeightMm(fontSizePt);
   return configuredLineHeightMm > 0 ? Math.max(configuredLineHeightMm, minimum) : minimum;

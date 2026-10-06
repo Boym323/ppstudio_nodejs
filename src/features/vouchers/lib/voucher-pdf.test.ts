@@ -313,6 +313,30 @@ test("strict render odmítne layout, který by dynamický text musel oříznout"
   );
 });
 
+test("VALUE 1 500 Kč projde ve výchozí oblasti, příliš úzká i hraniční baseline dál vrací text_overflow", async () => {
+  const { generateResolvedVoucherPrintPdf } = await import("./voucher-pdf-core");
+  const template = {
+    id: "value-fit-test", key: "value-fit-test", label: "VALUE fit", status: "DRAFT" as const,
+    allowedTypes: [VoucherType.VALUE], layout: structuredClone(defaultVoucherTemplateLayout),
+    masterSha256: "test", masterBytes: await readFile("src/features/vouchers/bootstrap-assets/classic-v1.pdf"),
+  };
+  const voucher = buildVoucherFixture({ originalValueCzk: 1500, remainingValueCzk: 1500 });
+  const before = structuredClone(template.layout);
+  const pdf = await generateResolvedVoucherPrintPdf(voucher, template, { failOnTextOverflow: true });
+  assert.equal((await PDFDocument.load(pdf)).getPageCount(), 1);
+  assert.deepEqual(template.layout, before);
+  for (const patch of [
+    { widthMm: 4 },
+    { baselineMm: template.layout.valueArea.yMm },
+    { baselineMm: template.layout.valueArea.yMm + template.layout.valueArea.heightMm },
+  ]) {
+    await assert.rejects(
+      () => generateResolvedVoucherPrintPdf(voucher, { ...template, layout: { ...template.layout, valueArea: { ...template.layout.valueArea, ...patch } } }, { failOnTextOverflow: true }),
+      (error: unknown) => error instanceof VoucherTemplateError && error.code === "text_overflow" && error.message.includes("„Hodnota“"),
+    );
+  }
+});
+
 test("overlay ignoruje osobní a interní voucherová pole", async () => {
   const { buildVoucherPdfOverlayData } = await import("./voucher-pdf-test-renderers");
   const data = buildVoucherPdfOverlayData(buildVoucherFixture());

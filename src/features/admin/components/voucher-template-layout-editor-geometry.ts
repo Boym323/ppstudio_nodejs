@@ -1,7 +1,9 @@
 import { browserTopToPdfBottom, pdfBottomToBrowserTop, VOUCHER_PRINT_GEOMETRY } from "@/features/vouchers/lib/voucher-template-layout";
+import { getVoucherTextBaselineRangeMm, type VoucherTextFitArea } from "@/features/vouchers/lib/voucher-text-fit";
 
 export type ResizeCorner = "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
 type AreaBounds = { xMm: number; yMm: number; widthMm: number; heightMm: number };
+type BaselineArea = Pick<VoucherTextFitArea, "yMm" | "heightMm"> & { typography: Pick<VoucherTextFitArea["typography"], "minFontSizePt"> };
 export const KEYBOARD_NUDGE_MM = 0.1;
 export const KEYBOARD_NUDGE_LARGE_MM = 1;
 
@@ -91,18 +93,26 @@ export function getResizeAnchor(
  * when the area itself moves or changes height.
  */
 export function getBaselineWithPreservedTopOffset(
-  area: Pick<{ yMm: number; heightMm: number; baselineMm: number }, "yMm" | "heightMm" | "baselineMm">,
+  area: BaselineArea & { baselineMm: number },
   yMm: number,
   heightMm: number,
 ) {
   const topOffsetMm = area.yMm + area.heightMm - area.baselineMm;
   const baselineMm = yMm + heightMm - topOffsetMm;
-  return Math.min(yMm + heightMm, Math.max(yMm, baselineMm));
+  return constrainBaselineToArea({ ...area, yMm, heightMm }, baselineMm);
 }
 
 export function constrainBaselineToArea(
-  area: Pick<{ yMm: number; heightMm: number }, "yMm" | "heightMm">,
+  area: BaselineArea,
   baselineMm: number,
 ) {
-  return Math.min(area.yMm + area.heightMm, Math.max(area.yMm, baselineMm));
+  // Preserve every baseline at which the permitted minimum can fit. Reserving
+  // preferredFontSizePt or maxLines here would move otherwise valid layouts.
+  const { minBaselineMm, maxBaselineMm } = getVoucherTextBaselineRangeMm(area, area.typography.minFontSizePt);
+  if (minBaselineMm > maxBaselineMm) {
+    // There is no safe baseline. Keep storage geometry valid; the editor must
+    // report the insufficient height instead of silently lowering the font.
+    return Math.min(area.yMm + area.heightMm, Math.max(area.yMm, baselineMm));
+  }
+  return Math.min(maxBaselineMm, Math.max(minBaselineMm, baselineMm));
 }
