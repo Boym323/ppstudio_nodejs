@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.33.0] - 2026-10-07
+
 ### Změněno
 
 - QR kód v editoru voucherů má nenápadné značky os místo překrývajícího rámečku a úchytů. Jeho střed lze umístit kliknutím do čistého podkladu a změna velikosti zachovává vystředění v mezích voucheru.
