@@ -5,8 +5,9 @@ import { generateResolvedVoucherPrintPdf, buildVoucherPrintPdfFilename } from "@
 import { voucherTemplateLayoutSchema } from "@/features/vouchers/lib/voucher-template-layout";
 import { VoucherTemplateError } from "@/features/vouchers/lib/voucher-template-error";
 import { renderVoucherTemplatePreview } from "@/features/vouchers/lib/voucher-template-preview";
-import { VOUCHER_TEMPLATE_TEST_DATA } from "@/features/vouchers/lib/voucher-template-test-data";
+import { VOUCHER_TEMPLATE_PUBLISH_SERVICE_NAMES, VOUCHER_TEMPLATE_TEST_DATA } from "@/features/vouchers/lib/voucher-template-test-data";
 import { requireVoucherTemplateById, resolveVoucherTemplate } from "@/features/vouchers/lib/voucher-template-repository";
+import { VOUCHER_VALUE_MAX_CZK } from "@/features/vouchers/lib/voucher-value-limits";
 import { getSession } from "@/lib/auth/session";
 
 export async function POST(
@@ -52,6 +53,16 @@ export async function POST(
     // cannot be faithfully reproduced by drawing browser overlays over a
     // rasterised master preview.
     if (searchParams.get("format") === "preview") {
+      // Validate the publication text scenarios even when the editor displays
+      // the other voucher type or a short service name.
+      if (template.allowedTypes.includes(VoucherType.VALUE)) {
+        await generateResolvedVoucherPrintPdf({ ...voucher, type: VoucherType.VALUE, originalValueCzk: VOUCHER_VALUE_MAX_CZK, remainingValueCzk: VOUCHER_VALUE_MAX_CZK, serviceNameSnapshot: null, servicePriceSnapshotCzk: null }, { ...resolved, layout: layout.data }, { failOnTextOverflow: true });
+      }
+      if (template.allowedTypes.includes(VoucherType.SERVICE)) {
+        for (const serviceNameSnapshot of VOUCHER_TEMPLATE_PUBLISH_SERVICE_NAMES) {
+          await generateResolvedVoucherPrintPdf({ ...voucher, type: VoucherType.SERVICE, remainingValueCzk: null, serviceNameSnapshot, servicePriceSnapshotCzk: VOUCHER_TEMPLATE_TEST_DATA.valueCzk }, { ...resolved, layout: layout.data }, { failOnTextOverflow: true });
+        }
+      }
       const preview = await renderVoucherTemplatePreview(Buffer.from(pdf));
 
       return new NextResponse(Uint8Array.from(preview), {

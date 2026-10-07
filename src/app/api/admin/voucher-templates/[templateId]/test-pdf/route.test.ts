@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { VOUCHER_TEMPLATE_PUBLISH_SERVICE_NAMES } from "@/features/vouchers/lib/voucher-template-test-data";
+import { VOUCHER_VALUE_MAX_CZK } from "@/features/vouchers/lib/voucher-value-limits";
 import { VoucherTemplateError } from "@/features/vouchers/lib/voucher-template-error";
 
 process.env.NEXT_PUBLIC_APP_URL ??= "https://ppstudio.cz";
@@ -17,22 +19,24 @@ test("test PDF používá layout z requestu a vrací tiskové PDF pouze OWNERovi
     codeArea: { xMm: 81, yMm: 16, widthMm: 67, heightMm: 8, baselineMm: 18.35, maxLines: 1, typography: { fontFamilyKey: "noto-sans", preferredFontSizePt: 7.4, minFontSizePt: 5.8, lineHeightMm: 0, fontWeight: "bold", alignment: "center", color: { c: 0, m: 0, y: 0, k: 1 } } },
     qrArea: { xMm: 173.7, yMm: 20, widthMm: 28, heightMm: 28 },
   };
+  let allowedTypes = ["VALUE"];
+  let rejectLongService = false;
+  const renderedVouchers: Array<{ type: string; serviceNameSnapshot: string | null; originalValueCzk?: number }> = [];
   let receivedLayout: unknown;
   let renderError: Error | null = null;
   let receivedOptions: unknown;
-  let receivedVoucher: { type: string; serviceNameSnapshot: string | null } | undefined;
 
   t.mock.module("@/lib/auth/session", { exports: { getSession: async () => ({ role }) } });
   t.mock.module("@/features/vouchers/lib/voucher-template-repository", {
     exports: {
-      requireVoucherTemplateById: async () => ({ id: "template-1", key: "classic-v1", status: "DRAFT", allowedTypes: ["VALUE"], label: "Classic", layout, masterStoragePath: "master.pdf", masterSha256: "hash" }),
-      resolveVoucherTemplate: async (template: { layout: unknown }) => ({ id: "template-1", key: "classic-v1", status: "DRAFT", allowedTypes: ["VALUE"], label: "Classic", layout: template.layout, masterSha256: "hash", masterBytes: Buffer.from("%PDF-") }),
+      requireVoucherTemplateById: async () => ({ id: "template-1", key: "classic-v1", status: "DRAFT", allowedTypes, label: "Classic", layout, masterStoragePath: "master.pdf", masterSha256: "hash" }),
+      resolveVoucherTemplate: async (template: { layout: unknown }) => ({ id: "template-1", key: "classic-v1", status: "DRAFT", allowedTypes, label: "Classic", layout: template.layout, masterSha256: "hash", masterBytes: Buffer.from("%PDF-") }),
     },
   });
   t.mock.module("@/features/vouchers/lib/voucher-pdf", {
     exports: {
       buildVoucherPrintPdfFilename: (code: string) => `voucher-${code}.pdf`,
-      generateResolvedVoucherPrintPdf: async (voucher: { type: string; serviceNameSnapshot: string | null }, template: { layout: unknown }, options: unknown) => { receivedOptions = options; if (renderError) throw renderError; receivedVoucher = voucher; receivedLayout = template.layout; return Buffer.from("%PDF-test"); },
+      generateResolvedVoucherPrintPdf: async (voucher: { type: string; serviceNameSnapshot: string | null }, template: { layout: unknown }, options: unknown) => { receivedOptions = options; renderedVouchers.push(voucher); if (rejectLongService && voucher.serviceNameSnapshot === VOUCHER_TEMPLATE_PUBLISH_SERVICE_NAMES[1]) throw new VoucherTemplateError("classic-v1", { code: "text_overflow", message: "Dynamický text se nevejde do oblasti „Služba“ ani při minimální velikosti písma." }); if (renderError) throw renderError; receivedLayout = template.layout; return Buffer.from("%PDF-test"); },
     },
   });
   t.mock.module("@/features/vouchers/lib/voucher-template-preview", {
@@ -53,14 +57,29 @@ test("test PDF používá layout z requestu a vrací tiskové PDF pouze OWNERovi
   assert.equal(preview.headers.get("content-type"), "image/png");
   assert.deepEqual(Buffer.from(await preview.arrayBuffer()), Buffer.from([137, 80, 78, 71]));
   for (const format of ["", "&format=preview"]) {
+    renderedVouchers.length = 0;
     const service = await POST(new Request(`https://example.com?previewType=SERVICE${format}`, { method: "POST", body: JSON.stringify({ layout: changedLayout }), headers: { "content-type": "application/json" } }), { params: Promise.resolve({ templateId: "template-1" }) });
     assert.equal(service.status, 200);
     assert.equal(service.headers.get("content-type"), format ? "image/png" : "application/pdf");
-    assert.equal(receivedVoucher?.type, "SERVICE");
-    assert.ok(receivedVoucher?.serviceNameSnapshot);
+    assert.equal(renderedVouchers[0]?.type, "SERVICE");
+    assert.ok(renderedVouchers[0]?.serviceNameSnapshot);
   }
   const logged: unknown[][] = [];
   t.mock.method(console, "error", (...args: unknown[]) => { logged.push(args); });
+  allowedTypes = ["VALUE", "SERVICE"];
+  rejectLongService = true;
+  renderedVouchers.length = 0;
+  const requestPreview = () => POST(new Request("https://example.com?format=preview&previewType=VALUE", { method: "POST", body: JSON.stringify({ layout: changedLayout }) }), { params: Promise.resolve({ templateId: "template-1" }) });
+  const hiddenOverflow = await requestPreview();
+  assert.equal(hiddenOverflow.status, 422, "VALUE náhled musí odhalit přetečení dlouhé služby před publikací");
+  assert.match((await hiddenOverflow.json()).message, /„Služba“/);
+  assert.ok(renderedVouchers.some((voucher) => voucher.type === "VALUE" && voucher.originalValueCzk === VOUCHER_VALUE_MAX_CZK));
+  for (const name of VOUCHER_TEMPLATE_PUBLISH_SERVICE_NAMES) assert.ok(renderedVouchers.some((voucher) => voucher.serviceNameSnapshot === name));
+  allowedTypes = ["VALUE"];
+  assert.equal((await requestPreview()).status, 200, "zakázaný SERVICE nesmí blokovat hodnotovou šablonu");
+  allowedTypes = ["VALUE", "SERVICE"];
+  rejectLongService = false;
+  assert.equal((await requestPreview()).status, 200, "opravený layout znovu poskytne náhled");
   for (const format of ["", "?format=preview"]) {
     renderError = new VoucherTemplateError("internal-template-key", { code: "text_overflow", message: "Dynamický text se nevejde do oblasti „Hodnota“ ani při minimální velikosti písma." });
     const overflow = await POST(new Request(`https://example.com${format}`, { method: "POST", body: JSON.stringify({ layout: changedLayout }) }), { params: Promise.resolve({ templateId: "template-1" }) });

@@ -10,6 +10,7 @@ import { preflightFinalVoucherPrint, preflightVoucherTemplateMaster } from "./vo
 import { type ResolvedVoucherTemplate } from "./voucher-template-repository";
 import { VoucherTemplateError } from "./voucher-template-error";
 import { voucherTemplateLayoutSchema } from "./voucher-template-layout";
+import { VOUCHER_TEMPLATE_PUBLISH_SERVICE_NAMES } from "./voucher-template-test-data";
 import { VOUCHER_VALUE_MAX_CZK } from "./voucher-value-limits";
 
 export async function preflightVoucherTemplateForPublish(template: ResolvedVoucherTemplate) {
@@ -19,7 +20,7 @@ export async function preflightVoucherTemplateForPublish(template: ResolvedVouch
   if (master.errors.length) return { ok: false, errors: master.errors };
   const scenarios: Array<{ type: VoucherType; serviceName?: string }> = [];
   if (template.allowedTypes.includes(VoucherType.VALUE)) scenarios.push({ type: VoucherType.VALUE });
-  if (template.allowedTypes.includes(VoucherType.SERVICE)) scenarios.push({ type: VoucherType.SERVICE, serviceName: "Korejský Lash lifting" }, { type: VoucherType.SERVICE, serviceName: "Velmi dlouhý název služby s českou diakritikou pro ověření zalomení a minimální velikosti písma" });
+  if (template.allowedTypes.includes(VoucherType.SERVICE)) scenarios.push(...VOUCHER_TEMPLATE_PUBLISH_SERVICE_NAMES.map((serviceName) => ({ type: VoucherType.SERVICE, serviceName })));
   const errors: string[] = [];
   for (const scenario of scenarios) {
     const valueCzk = scenario.type === VoucherType.VALUE ? VOUCHER_VALUE_MAX_CZK : 1500;

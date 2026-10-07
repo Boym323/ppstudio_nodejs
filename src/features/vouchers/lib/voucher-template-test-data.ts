@@ -9,3 +9,10 @@ export const VOUCHER_TEMPLATE_TEST_DATA = {
   validity: "31. 12. 2027",
   code: "TEST-2026-ABCDEF",
 } as const;
+
+// Shared by the editor and publication so a normal preview cannot hide a
+// layout that fails the publication text checks.
+export const VOUCHER_TEMPLATE_PUBLISH_SERVICE_NAMES = [
+  "Korejský Lash lifting",
+  "Velmi dlouhý název služby s českou diakritikou pro ověření zalomení a minimální velikosti písma",
+] as const;
