@@ -205,7 +205,7 @@ test("editor používá pro obsah náhled vyrenderovaný stejným PDF rendererem
   assert.match(source, /-top-6 left-0 z-20/);
   assert.match(source, /labels\[key\]/);
   assert.match(source, /relative .*overflow-visible border/);
-  assert.match(source, /isQrArea \? "z-20 border border-dashed/);
+  assert.match(source, /isQrArea \? "border-0 z-20/);
   assert.match(source, /QR kód/);
   assert.match(source, /useState<AreaKey \| null>\("valueArea"\)/);
   assert.match(source, /onClick=\{\(\) => setSelected\(null\)\}/);
@@ -213,7 +213,7 @@ test("editor používá pro obsah náhled vyrenderovaný stejným PDF rendererem
   assert.match(source, /Nic není vybráno/);
   assert.match(source, /const canvasScale = canvasSize\.width \* zoom \/ VOUCHER_PRINT_GEOMETRY\.widthMm/);
   assert.match(source, /new ResizeObserver\(measure\)/);
-  assert.match(source, /enableResizing=\{isSelected \? cornerResizeEnable : false\}/);
+  assert.match(source, /enableResizing=\{isSelected && !isQrArea \? cornerResizeEnable : false\}/);
   assert.match(source, /resizeHandleStyles=\{cornerHandleStyles\}/);
   assert.match(source, /lockAspectRatio=\{isAspectRatioLocked\(key\)\}/);
   assert.match(source, /onResize=\{\(_, direction, ref, __, pos\) => applyResize\(key, direction, ref, pos\)\}/);

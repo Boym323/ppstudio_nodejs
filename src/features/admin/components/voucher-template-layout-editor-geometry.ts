@@ -24,6 +24,13 @@ export function updateAreaFromUi(area: AreaBounds, field: keyof AreaBounds, valu
     next[field] = Math.max(minimumMm, next[field]);
     if (lockAspectRatio) next.widthMm = next.heightMm = Math.min(next[field], VOUCHER_PRINT_GEOMETRY.trimWidthMm, VOUCHER_PRINT_GEOMETRY.trimHeightMm);
   }
+  if (lockAspectRatio && (field === "widthMm" || field === "heightMm")) {
+    return constrainAreaToTrim({
+      widthMm: next.widthMm, heightMm: next.heightMm,
+      xMm: area.xMm + (area.widthMm - next.widthMm) / 2,
+      yMm: area.yMm + (area.heightMm - next.heightMm) / 2,
+    });
+  }
   const internal = uiToInternalPosition(next, next.heightMm);
   return constrainAreaToTrim({
     widthMm: next.widthMm,
@@ -115,4 +122,13 @@ export function constrainBaselineToArea(
     return Math.min(area.yMm + area.heightMm, Math.max(area.yMm, baselineMm));
   }
   return Math.min(maxBaselineMm, Math.max(minBaselineMm, baselineMm));
+}
+
+/** Center on a point measured from the full preview's top-left corner. */
+export function centerAreaAtPreviewPoint(area: AreaBounds, xMm: number, topMm: number) {
+  return constrainAreaToTrim({
+    ...area,
+    xMm: xMm - area.widthMm / 2,
+    yMm: browserTopToPdfBottom(topMm, 0) - area.heightMm / 2,
+  });
 }

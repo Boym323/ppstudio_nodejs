@@ -8,6 +8,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- QR kód v editoru voucherů má nenápadné značky os místo překrývajícího rámečku a úchytů. Jeho střed lze umístit kliknutím do čistého podkladu a změna velikosti zachovává vystředění v mezích voucheru.
+
 - Editor voucherových šablon umožňuje přesné zadání pozice v milimetrech od levého horního rohu finálního ořezu, vystředění prvků a jemné posuny šipkami; při tažení zobrazuje aktuální pozici a rozlišuje ořez, spadávku i orientační bezpečnou zónu. Uložené souřadnice a vykreslení PDF zůstávají zachované.
 
 - Správa voucherových šablon vede kroky Grafika → Umístění údajů → Publikace; PDF se nahrává po výběru souboru, stav vychází ze stávající tiskové kontroly a technické detaily jsou rozbalovací. Kontrola tiskového PDF i publikace zůstávají samostatnými akcemi.

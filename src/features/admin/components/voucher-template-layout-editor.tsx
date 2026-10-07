@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Rnd } from "react-rnd";
 
 import { saveVoucherTemplateLayoutAction } from "@/features/admin/actions/voucher-template-actions";
-import { centerAreaInTrim, constrainAreaToTrim, constrainBaselineToArea, getBaselineWithPreservedTopOffset, getLockedResizeSize, getResizeAnchor, internalToUiPosition, nudgeAreaInTrim, snapToHalfMm, updateAreaFromUi } from "./voucher-template-layout-editor-geometry";
+import { centerAreaAtPreviewPoint, centerAreaInTrim, constrainAreaToTrim, constrainBaselineToArea, getBaselineWithPreservedTopOffset, getLockedResizeSize, getResizeAnchor, internalToUiPosition, nudgeAreaInTrim, snapToHalfMm, updateAreaFromUi } from "./voucher-template-layout-editor-geometry";
 import { getVoucherEditorGuideGeometry, getVoucherEditorOverlayState } from "./voucher-template-layout-editor-overlays";
 import {
   browserTopToPdfBottom,
@@ -67,6 +67,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
   const [testPdfError, setTestPdfError] = useState<string | null>(null);
   const [testPdfPending, setTestPdfPending] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [placingQrCenter, setPlacingQrCenter] = useState(false);
   const [showGuides, setShowGuides] = useState(true);
   const [showBleed, setShowBleed] = useState(true);
   const [isInteracting, setIsInteracting] = useState(false);
@@ -165,6 +166,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
 
   const hasRenderedPreview = renderedPreview?.layout === layout && renderedPreview.previewType === previewType;
   const displayedPreviewSrc = renderedPreview?.src ?? previewSrc;
+  const canvasPreviewSrc = placingQrCenter ? previewSrc : displayedPreviewSrc;
   const previewError = hasGraphics && !hasRenderedPreview && previewFailure?.key === previewKey ? previewFailure.message : null;
 
   useEffect(() => {
@@ -263,6 +265,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
     });
   };
   const selectArea = (nextArea: AreaKey) => {
+    setPlacingQrCenter(false);
     setSelected(nextArea);
   };
   const nudgeAreaByKeyboard = (event: KeyboardEvent<HTMLDivElement>, key: AreaKey) => {
@@ -345,9 +348,9 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
         <div className="min-w-0 p-4 sm:p-6 xl:border-r xl:border-white/10">
           <div ref={canvasStageRef} className="flex h-[360px] overflow-auto rounded-2xl border border-white/8 bg-[#0b0a0c] p-4 shadow-inner sm:h-[480px] sm:p-8">
             <div className="relative m-auto shrink-0 overflow-visible border border-white/20 bg-neutral-900 shadow-[0_18px_50px_rgba(0,0,0,0.28)]" style={{ width: `${canvasSize.width * zoom}px`, height: `${canvasSize.height * zoom}px` }}>
-              {displayedPreviewSrc ? <Image src={displayedPreviewSrc} alt={renderedPreview ? "Poslední vykreslený náhled voucheru" : "Náhled grafiky voucheru"} fill sizes="(min-width: 1280px) 780px, 100vw" unoptimized draggable={false} className="pointer-events-none select-none object-contain" /> : null}
+              {canvasPreviewSrc ? <Image src={canvasPreviewSrc} alt={!placingQrCenter && renderedPreview ? "Poslední vykreslený náhled voucheru" : "Náhled grafiky voucheru"} fill sizes="(min-width: 1280px) 780px, 100vw" unoptimized draggable={false} className="pointer-events-none select-none object-contain" /> : null}
               {!hasGraphics ? <div className="absolute inset-0 z-20 flex items-center justify-center p-6 text-center text-sm text-white/60">Nejprve nahrajte grafiku voucheru.</div> : null}
-              <div className="absolute inset-0 z-10" onClick={() => setSelected(null)}>
+              <div className={`absolute inset-0 z-10 ${placingQrCenter ? "invisible" : ""}`} onClick={() => setSelected(null)}>
                 {overlayState.bleedVisible ? <div data-overlay="bleed" className="pointer-events-none absolute inset-0 z-10" style={{ boxShadow: `inset 0 0 0 ${guides.trim.leftMm * canvasScale}px rgba(190, 160, 120, 0.22)` }} /> : null}
                 {overlayState.guidesVisible || overlayState.bleedVisible ? <div data-overlay="trim" className="pointer-events-none absolute z-10 border border-[var(--color-accent-soft)]/65" style={{ left: guides.trim.leftMm * canvasScale, top: guides.trim.topMm * canvasScale, width: guides.trim.widthMm * canvasScale, height: guides.trim.heightMm * canvasScale }} /> : null}
                 {overlayState.guidesVisible ? <>
@@ -367,7 +370,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
                     lockAspectRatio={isAspectRatioLocked(key)}
                     minWidth={minimumSizeMm(key) * canvasScale}
                     minHeight={minimumSizeMm(key) * canvasScale}
-                    enableResizing={isSelected ? cornerResizeEnable : false}
+                    enableResizing={isSelected && !isQrArea ? cornerResizeEnable : false}
                     dragGrid={[canvasScale / 2, canvasScale / 2]}
                     resizeGrid={[canvasScale / 2, canvasScale / 2]}
                     tabIndex={0}
@@ -394,16 +397,29 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
                     }}
                     onResizeStop={(_, direction, ref, __, pos) => { setIsInteracting(false); applyResize(key, direction, ref, pos); resizeStartRef.current = null; if (resizeLayoutRef.current && JSON.stringify(resizeLayoutRef.current) !== JSON.stringify(layoutRef.current)) remember(resizeLayoutRef.current); resizeLayoutRef.current = null; }}
                     resizeHandleStyles={cornerHandleStyles}
-                    className={`group relative cursor-move overflow-visible border transition-colors ${isSelected ? `${isQrArea ? "z-20 border border-dashed border-[var(--color-accent-soft)]" : "z-20 border border-[var(--color-accent-soft)]"} outline outline-1 outline-offset-1 outline-[var(--color-accent)]/55` : "border-white/8 bg-transparent hover:border-white/40"}`}
+                    className={`group relative cursor-move overflow-visible ${isQrArea ? "border-0 z-20 focus-visible:outline-dotted focus-visible:outline-1" : `border transition-colors ${isSelected ? "z-20 border-[var(--color-accent-soft)] outline outline-1 outline-offset-1 outline-[var(--color-accent)]/55" : "border-white/8 bg-transparent hover:border-white/40"}`}`}
                   >
-                    {isSelected ? <span className="pointer-events-none absolute -top-6 left-0 z-20 rounded-md border border-[var(--color-accent)]/50 bg-[#1c1714] px-1.5 py-1 text-[9px] font-bold leading-none tracking-[0.08em] text-[var(--color-accent-soft)]">{isQrArea ? "QR kód" : labels[key]}</span> : <span className="pointer-events-none absolute -top-5 left-0 z-20 rounded-md border border-white/10 bg-black/75 px-1.5 py-1 text-[9px] font-bold leading-none tracking-[0.08em] text-white/70 opacity-0 transition-opacity group-hover:opacity-100">{shortLabels[key]}</span>}
+                    {isQrArea ? <div aria-hidden="true" className={`pointer-events-none absolute -inset-1 text-sky-600 ${isSelected ? "opacity-80" : "opacity-0 group-hover:opacity-60 group-focus-visible:opacity-80"}`}>
+                      <span className="absolute left-0 top-1/2 h-px w-2 -translate-x-full bg-current" />
+                      <span className="absolute right-0 top-1/2 h-px w-2 translate-x-full bg-current" />
+                      <span className="absolute left-1/2 top-0 h-2 w-px -translate-y-full bg-current" />
+                      <span className="absolute bottom-0 left-1/2 h-2 w-px translate-y-full bg-current" />
+                    </div> : isSelected ? <span className="pointer-events-none absolute -top-6 left-0 z-20 rounded-md border border-[var(--color-accent)]/50 bg-[#1c1714] px-1.5 py-1 text-[9px] font-bold leading-none tracking-[0.08em] text-[var(--color-accent-soft)]">{labels[key]}</span> : <span className="pointer-events-none absolute -top-5 left-0 z-20 rounded-md border border-white/10 bg-black/75 px-1.5 py-1 text-[9px] font-bold leading-none tracking-[0.08em] text-white/70 opacity-0 transition-opacity group-hover:opacity-100">{shortLabels[key]}</span>}
                     <div className="pointer-events-none absolute inset-0 overflow-hidden" />
                   </Rnd>;
                 })}
               </div>
+              {placingQrCenter ? <button type="button" aria-label="Klikněte na požadovaný střed QR kódu" className="absolute inset-0 z-30 cursor-crosshair focus-visible:outline focus-visible:outline-sky-500"
+                onKeyDown={(event) => { if (event.key === "Escape") setPlacingQrCenter(false); }}
+                onClick={(event) => {
+                  if (event.detail === 0) return;
+                  const bounds = event.currentTarget.getBoundingClientRect();
+                  updateAreaGeometry("qrArea", centerAreaAtPreviewPoint(layoutRef.current.qrArea, (event.clientX - bounds.left) / canvasScale, (event.clientY - bounds.top) / canvasScale));
+                  setPlacingQrCenter(false);
+                }} /> : null}
             </div>
           </div>
-          <p className="mt-3 text-xs text-white/50">Klikněte na údaj a přetažením upravte jeho polohu. Velikost změníte tažením za roh.</p>
+          <p className="mt-3 text-xs text-white/50">Klikněte na údaj a přetažením upravte jeho polohu. Velikost textové oblasti změníte tažením za roh, velikost QR v bočním panelu.</p>
           {overlayState.guidesVisible || overlayState.bleedVisible ? <p className="mt-1 text-[11px] text-white/40">{overlayState.bleedVisible ? "Tónovaný okraj: spadávka · " : ""}Ořez 210 × 99 mm{overlayState.guidesVisible ? ` · Tečkovaná modrá: bezpečná zóna ${guides.safeInsetMm} mm od ořezu (orientační)` : ""}</p> : null}
         </div>
 
@@ -416,9 +432,14 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
             <p className="mb-2 text-xs font-semibold text-white/60">Pozice</p>
             <div className="grid grid-cols-2 gap-3">{(["xMm", "yMm"] as const).map((field) => <NumberField key={field} label={`${fieldLabels[field]} [mm]`} value={uiPosition[field]} step="0.1" min={0} decimalInput onChange={(value) => updateAreaField(selected, field, value)} />)}</div>
             <p ref={livePositionRef} className="mt-2 text-[11px] tabular-nums text-white/45">{formatPosition(uiPosition)}</p>
+            {selected === "qrArea" ? <div className="mt-3 space-y-2">
+              <button type="button" disabled={!previewSrc || isInteracting} aria-pressed={placingQrCenter} onClick={() => setPlacingQrCenter((current) => !current)} className={`${compactButtonClassName} border-sky-400/40 text-sky-200 disabled:opacity-40`}>{placingQrCenter ? "Zrušit umístění středu" : "Umístit střed QR"}</button>
+              <p role="status" className="text-xs leading-5 text-white/55">{placingQrCenter ? "Klikněte doprostřed vyhrazeného čtverce v čistém podkladu. Zrušit můžete tlačítkem nebo klávesou Escape v náhledu." : "Značky vně QR ukazují jeho osy. Střed umístěte kliknutím do podkladu a dolaďte šipkami. Změna velikosti zachová střed, pokud to dovolí okraje voucheru."}</p>
+            </div> : null}
             <p className="mb-2 mt-3 text-xs font-semibold text-white/60">Rozměr</p>
-            <div className="grid grid-cols-2 gap-3">{(["widthMm", "heightMm"] as const).map((field) => <NumberField key={field} label={`${fieldLabels[field]} [mm]`} value={area[field]} step="0.1" min={minimumSizeMm(selected)} decimalInput onChange={(value) => updateAreaField(selected, field, value)} />)}</div>
-            <div className="mt-3 flex flex-wrap gap-2">{([["horizontal", "Na střed vodorovně"], ["vertical", "Na střed svisle"]] as const).map(([axis, label]) => <button key={axis} type="button" disabled={isInteracting} onClick={() => updateAreaGeometry(selected, centerAreaInTrim(layoutRef.current[selected], axis))} className={`${compactButtonClassName} border-white/10 text-white/65 hover:border-white/25 hover:text-white`}>{label}</button>)}</div>
+            <div className="grid grid-cols-2 gap-3">{(selected === "qrArea" ? ["widthMm"] as const : ["widthMm", "heightMm"] as const).map((field) => <NumberField key={field} label={`${selected === "qrArea" ? "Strana QR" : fieldLabels[field]} [mm]`} value={area[field]} step="0.1" min={minimumSizeMm(selected)} decimalInput onChange={(value) => updateAreaField(selected, field, value)} />)}</div>
+            <p className="mt-3 text-[11px] text-white/45">Zarovnat vůči celému voucheru</p>
+            <div className="mt-2 flex flex-wrap gap-2">{([["horizontal", "Na střed vodorovně"], ["vertical", "Na střed svisle"]] as const).map(([axis, label]) => <button key={axis} type="button" disabled={isInteracting} onClick={() => updateAreaGeometry(selected, centerAreaInTrim(layoutRef.current[selected], axis))} className={`${compactButtonClassName} border-white/10 text-white/65 hover:border-white/25 hover:text-white`}>{label}</button>)}</div>
             <p className="mt-3 text-[11px] text-white/45">Šipky: 0,1 mm · Shift + šipky: 1 mm</p>
           </section>
           {textArea ? <section className="border-b border-white/10 py-3"><SectionTitle title="Písmo" /><label className="block text-xs text-white/70">Písmo<select value={textArea.typography.fontFamilyKey} onChange={(event) => updateSelectedTypography({ fontFamilyKey: event.target.value })} className={inputClassName}>{Object.keys(VOUCHER_TEMPLATE_PREVIEW_FONT_FAMILIES).map((key) => <option key={key} value={key} className="text-black">{key === "noto-sans" ? "Noto Sans" : key}</option>)}</select></label><div className="mt-3 grid grid-cols-2 gap-3"><label className="block text-xs text-white/70">Řez<select value={textArea.typography.fontWeight} onChange={(event) => updateSelectedTypography({ fontWeight: event.target.value as "regular" | "bold" })} className={inputClassName}><option value="regular" className="text-black">Regular</option><option value="bold" className="text-black">Bold</option></select></label><NumberField label="Velikost (pt)" value={textArea.typography.preferredFontSizePt} step="0.1" onChange={(value) => updateSelectedTypography({ preferredFontSizePt: value })} /></div><label className="mt-3 block text-xs text-white/70">Zarovnání<select value={textArea.typography.alignment} onChange={(event) => updateSelectedTypography({ alignment: event.target.value as "left" | "center" })} className={inputClassName}><option value="left" className="text-black">Vlevo</option><option value="center" className="text-black">Na střed</option></select></label></section> : null}

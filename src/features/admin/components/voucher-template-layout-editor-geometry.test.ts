@@ -4,7 +4,7 @@ import test from "node:test";
 import { defaultVoucherTemplateLayout } from "@/features/vouchers/lib/voucher-template-defaults";
 import { fitVoucherTextToArea, getVoucherTextBaselineRangeMm, voucherTextLineStackFits } from "@/features/vouchers/lib/voucher-text-fit";
 import { getVoucherQrRenderGeometry, getVoucherTextBaselineBrowserTopMm, pdfBottomToBrowserTop, voucherTemplateLayoutSchema } from "@/features/vouchers/lib/voucher-template-layout";
-import { centerAreaInTrim, constrainAreaToTrim, constrainBaselineToArea, getBaselineWithPreservedTopOffset, getLockedResizeSize, getResizeAnchor, internalToUiPosition, nudgeAreaInTrim, snapToHalfMm, uiToInternalPosition, updateAreaFromUi } from "./voucher-template-layout-editor-geometry";
+import { centerAreaAtPreviewPoint, centerAreaInTrim, constrainAreaToTrim, constrainBaselineToArea, getBaselineWithPreservedTopOffset, getLockedResizeSize, getResizeAnchor, internalToUiPosition, nudgeAreaInTrim, snapToHalfMm, uiToInternalPosition, updateAreaFromUi } from "./voucher-template-layout-editor-geometry";
 
 const area = { xMm: 20, yMm: 15, widthMm: 30, heightMm: 10 };
 
@@ -67,7 +67,9 @@ test("ruční rozměry zachovají horní hranu a QR čtverec, minimum a trim", (
     const qr = updateAreaFromUi(defaultVoucherTemplateLayout.qrArea, field, 24.3, 20, true);
     assert.equal(qr.widthMm, 24.3);
     assert.equal(qr.heightMm, 24.3);
-    assert.deepEqual(internalToUiPosition(qr), internalToUiPosition(defaultVoucherTemplateLayout.qrArea));
+    const original = defaultVoucherTemplateLayout.qrArea;
+    assert.equal(qr.xMm + qr.widthMm / 2, original.xMm + original.widthMm / 2);
+    assert.equal(qr.yMm + qr.heightMm / 2, original.yMm + original.heightMm / 2);
     assert.equal(updateAreaFromUi(qr, field, 5, 20, true).widthMm, 20);
     assert.equal(updateAreaFromUi(qr, field, 999, 20, true).widthMm, 99);
     assert.equal(voucherTemplateLayoutSchema.safeParse({ ...defaultVoucherTemplateLayout, qrArea: qr }).success, true);
@@ -165,4 +167,17 @@ test("resize nepřesáhne rozměry ořezové oblasti", () => {
   assert.equal(qr.widthMm, qr.heightMm);
   assert.equal(qr.xMm + qr.widthMm, 213);
   assert.equal(qr.yMm + qr.heightMm, 102);
+});
+
+test("umístění středu v náhledu zachová rozměry a omezí QR na ořez", () => {
+  const qr = { xMm: 150, yMm: 20, widthMm: 24, heightMm: 24 };
+  const centered = centerAreaAtPreviewPoint(qr, 180.25, 65.75);
+  assert.equal(centered.xMm + centered.widthMm / 2, 180.25);
+  assert.equal(pdfBottomToBrowserTop(centered.yMm, centered.heightMm) + centered.heightMm / 2, 65.75);
+  assert.equal(centered.widthMm, 24);
+  assert.equal(centered.heightMm, 24);
+  assert.deepEqual(centerAreaAtPreviewPoint(qr, 0, 0), { ...qr, xMm: 3, yMm: 78 });
+  assert.deepEqual(centerAreaAtPreviewPoint(qr, 216, 105), { ...qr, xMm: 189, yMm: 3 });
+  const resized = updateAreaFromUi({ ...qr, xMm: 3, yMm: 3 }, "widthMm", 30, 20, true);
+  assert.deepEqual(resized, { xMm: 3, yMm: 3, widthMm: 30, heightMm: 30 });
 });
