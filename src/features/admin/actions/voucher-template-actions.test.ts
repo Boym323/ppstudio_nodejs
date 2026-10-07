@@ -74,7 +74,7 @@ test("template lifecycle actions vyžadují OWNER a volají domain operace", asy
     ["clone", "template-1", "owner-1"],
     ["delete", "template-1", "owner-1"],
   ]);
-  assert.deepEqual(redirects, ["/admin/vouchery/sablony/clone-1", "/admin/vouchery/sablony"]);
+  assert.deepEqual(redirects, ["/admin/vouchery/sablony/template-1", "/admin/vouchery/sablony/clone-1", "/admin/vouchery/sablony"], "úspěšná publikace musí přejít na detail bez starého parametru error");
   assert.deepEqual(revalidated, [
     "/admin/vouchery/sablony/template-1",
     "/admin/vouchery/sablony",

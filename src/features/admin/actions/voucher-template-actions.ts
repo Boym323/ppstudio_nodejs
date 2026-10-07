@@ -84,6 +84,7 @@ export async function publishVoucherTemplateAction(templateId: string) {
   }
   revalidatePath(`/admin/vouchery/sablony/${templateId}`);
   revalidatePath("/admin/vouchery/sablony");
+  redirect(`/admin/vouchery/sablony/${templateId}`);
 }
 
 export async function deactivateVoucherTemplateAction(templateId: string) {

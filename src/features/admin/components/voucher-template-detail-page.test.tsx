@@ -39,8 +39,8 @@ test("detail odlišuje chybějící grafiku, platný draft, publikovanou a histo
   ]) t.mock.module(`@/features/admin/components/${file}`, { exports: { [name]: () => null } });
 
   const { default: Page } = await import("@/app/(admin)/admin/vouchery/sablony/[templateId]/page");
-  const page = () => Page({ params: Promise.resolve({ templateId: template.id }), searchParams: Promise.resolve({}) });
-  const render = async () => renderToStaticMarkup(await page());
+  const page = (error?: string) => Page({ params: Promise.resolve({ templateId: template.id }), searchParams: Promise.resolve({ error }) });
+  const render = async (error?: string) => renderToStaticMarkup(await page(error));
   function editorKey(node: ReactNode): string | null {
     for (const child of Children.toArray(node)) {
       if (!isValidElement<{ children?: ReactNode }>(child)) continue;
@@ -72,11 +72,22 @@ test("detail odlišuje chybějící grafiku, platný draft, publikovanou a histo
   template.previewStoragePath = "new-upload-preview";
   assert.notEqual(editorKey(await page()), initialEditorKey, "výměna grafiky musí načíst editor s aktuální revizí i při shodném PDF");
 
+  const overflowError = "Dynamický text se nevejde do oblasti „Služba“ ani při minimální velikosti písma.";
+  html = await render(overflowError);
+  assert.match(html, /Publikace se nezdařila/);
+  assert.match(html, /Přizpůsobení textu/);
+  assert.match(html, /href="#umisteni"/);
+
   template.status = "PUBLISHED";
   template.validationPolicy = CURRENT_VOUCHER_TEMPLATE_VALIDATION_POLICY;
   html = await render();
   assert.match(html, /Připraveno pro tisk/);
   assert.doesNotMatch(html, /Nahrát grafiku voucheru|>Publikovat</);
+  html = await render(overflowError);
+  assert.doesNotMatch(html, /role="alert"|Dynamický text se nevejde|Publikace se nezdařila/, "stará chyba z URL nesmí odporovat úspěšně publikované verzi");
+  html = await render("Testovací e-mail se nepodařilo odeslat.");
+  assert.match(html, /role="alert"/);
+  assert.match(html, /Testovací e-mail se nepodařilo odeslat/);
 
   template.validationPolicy = null;
   html = await render();

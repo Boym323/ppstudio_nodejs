@@ -29,7 +29,10 @@ export default async function VoucherTemplateDetailPage({ params, searchParams }
   }
 
   const templateId = template.id;
-  const error = (await searchParams).error;
+  const requestedError = (await searchParams).error;
+  const overflowLabel = requestedError?.match(/^Dynamický text se nevejde do oblasti „(Hodnota|Služba|Platnost|Kód)“ ani při minimální velikosti písma\.$/)?.[1];
+  // A query-string error describes a past action, not the published layout.
+  const error = template.status !== "DRAFT" && overflowLabel ? undefined : requestedError;
   const errorMessage = error ? voucherTemplateUploadErrorMessage(error) : undefined;
   let preflight: VoucherTemplatePreflight | null = null;
   let graphicsError: string | null = null;
@@ -64,7 +67,7 @@ export default async function VoucherTemplateDetailPage({ params, searchParams }
       }
     >
       <div className="space-y-5">
-        {errorMessage ? <div role="alert" className="rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">{errorMessage}{error && errorMessage !== error ? <details className="mt-2 text-xs"><summary className="cursor-pointer">Technické detaily</summary><p className="mt-2">{error}</p></details> : null}</div> : null}
+        {errorMessage ? <div role="alert" className="rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">{overflowLabel ? <><p>Publikace se nezdařila: text v oblasti „{overflowLabel}“ potřebuje více místa.</p><p className="mt-2 text-xs leading-5">V editoru vyberte „{overflowLabel}“ a otevřete „Přizpůsobení textu“. Upravte povolený počet řádků nebo nejmenší písmo; podle potřeby zvětšete šířku či výšku oblasti. Náhled ukáže výsledek kontroly. Poté změny uložte a publikaci zopakujte.</p><a href="#umisteni" className="mt-3 inline-flex font-semibold underline underline-offset-4">Přejít k úpravě textu</a></> : errorMessage}{error && (overflowLabel || errorMessage !== error) ? <details className="mt-2 text-xs"><summary className="cursor-pointer">Technické detaily</summary><p className="mt-2">{error}</p></details> : null}</div> : null}
         <AdminVoucherTabs area="owner" active="templates" />
         <ol aria-label="Postup přípravy voucheru" className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/65">
           <li><a href="#grafika" className="hover:text-white">1. Grafika{graphicsValid ? " ✓" : ""}</a></li>

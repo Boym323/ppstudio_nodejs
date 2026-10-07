@@ -18,6 +18,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Po úspěšné publikaci voucherové šablony se odstraní předchozí chyba z URL; publikované verze už nezobrazují zastaralé upozornění na přetečení textu. Neúspěšná publikace draftu nabízí konkrétní postup a odkaz na úpravu textu.
+
 - Přetečení textu v editoru voucherů nyní ukazuje konkrétní nevyhovující zkušební název služby, aktuální limity a postup opravy; zvýrazňuje oblast a přímo navádí na viditelné nastavení nejmenšího písma a počtu řádků.
 
 - Editor voucherových šablon průběžně odhaluje přetečení i pro dlouhý název služby a nejvyšší hodnotu voucheru kontrolované při publikaci, bez ohledu na zvolený typ náhledu; upozorní na chybnou oblast a nabídne přechod k její úpravě.
