@@ -1,7 +1,13 @@
 const fallbackMessage = "Náhled se nepodařilo aktualizovat. Zkontrolujte layout a fitting textu.";
 
+type VoucherTemplatePreviewError = {
+  code: string | null;
+  message: string;
+  sampleText?: string;
+};
+
 /** Shared by the image preview and the test PDF download. */
-export async function readVoucherTemplatePreviewError(response: Response) {
+export async function readVoucherTemplatePreviewError(response: Response): Promise<VoucherTemplatePreviewError> {
   const text = await response.text();
   if (!response.headers.get("content-type")?.includes("application/json")) {
     return { code: null, message: text || fallbackMessage };
