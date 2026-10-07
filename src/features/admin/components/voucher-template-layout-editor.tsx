@@ -50,7 +50,7 @@ function normalizeLayoutBaselines(layout: VoucherTemplateLayoutV1): VoucherTempl
   }), layout);
 }
 
-export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initialUpdatedAt, previewSrc }: { templateId: string; initialLayout: VoucherTemplateLayoutV1; initialUpdatedAt: string; previewSrc?: string }) {
+export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initialUpdatedAt, previewSrc, hasGraphics = false }: { templateId: string; initialLayout: VoucherTemplateLayoutV1; initialUpdatedAt: string; previewSrc?: string; hasGraphics?: boolean }) {
   const initialEditorLayout = normalizeLayoutBaselines(initialLayout);
   const [layout, setLayout] = useState(initialEditorLayout);
   const layoutRef = useRef(initialEditorLayout);
@@ -114,7 +114,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
 
   useEffect(() => {
     if (failedPreviewRef.current !== previewKey) failedPreviewRef.current = null;
-    if (isInteracting) return;
+    if (!hasGraphics || isInteracting) return;
 
     // During editing a numeric field can be temporarily empty/invalid (for
     // example while replacing its value). Do not send that transient state to
@@ -157,7 +157,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [isInteracting, layout, previewType, templateId, previewKey, validationError]);
+  }, [hasGraphics, isInteracting, layout, previewType, templateId, previewKey, validationError]);
 
   useEffect(() => () => {
     if (renderedPreview) URL.revokeObjectURL(renderedPreview.src);
@@ -165,7 +165,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
 
   const hasRenderedPreview = renderedPreview?.layout === layout && renderedPreview.previewType === previewType;
   const displayedPreviewSrc = renderedPreview?.src ?? previewSrc;
-  const previewError = !hasRenderedPreview && previewFailure?.key === previewKey ? previewFailure.message : null;
+  const previewError = hasGraphics && !hasRenderedPreview && previewFailure?.key === previewKey ? previewFailure.message : null;
 
   useEffect(() => {
     const stage = canvasStageRef.current;
@@ -294,6 +294,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
   };
 
   const downloadTestPdf = async () => {
+    if (!hasGraphics) return;
     setTestPdfPending(true);
     setTestPdfError(null);
     try {
@@ -345,6 +346,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
           <div ref={canvasStageRef} className="flex h-[360px] overflow-auto rounded-2xl border border-white/8 bg-[#0b0a0c] p-4 shadow-inner sm:h-[480px] sm:p-8">
             <div className="relative m-auto shrink-0 overflow-visible border border-white/20 bg-neutral-900 shadow-[0_18px_50px_rgba(0,0,0,0.28)]" style={{ width: `${canvasSize.width * zoom}px`, height: `${canvasSize.height * zoom}px` }}>
               {displayedPreviewSrc ? <Image src={displayedPreviewSrc} alt={renderedPreview ? "Poslední vykreslený náhled voucheru" : "Náhled grafiky voucheru"} fill sizes="(min-width: 1280px) 780px, 100vw" unoptimized draggable={false} className="pointer-events-none select-none object-contain" /> : null}
+              {!hasGraphics ? <div className="absolute inset-0 z-20 flex items-center justify-center p-6 text-center text-sm text-white/60">Nejprve nahrajte grafiku voucheru.</div> : null}
               <div className="absolute inset-0 z-10" onClick={() => setSelected(null)}>
                 {overlayState.bleedVisible ? <div data-overlay="bleed" className="pointer-events-none absolute inset-0 z-10" style={{ boxShadow: `inset 0 0 0 ${guides.trim.leftMm * canvasScale}px rgba(190, 160, 120, 0.22)` }} /> : null}
                 {overlayState.guidesVisible || overlayState.bleedVisible ? <div data-overlay="trim" className="pointer-events-none absolute z-10 border border-[var(--color-accent-soft)]/65" style={{ left: guides.trim.leftMm * canvasScale, top: guides.trim.topMm * canvasScale, width: guides.trim.widthMm * canvasScale, height: guides.trim.heightMm * canvasScale }} /> : null}
@@ -424,12 +426,12 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
           </>}
           {previewError ? <p role="alert" className="mt-3 rounded-xl border border-red-300/30 bg-red-950/30 p-3 text-sm text-red-200">Náhled není aktuální: {previewError}</p> : null}
           {validationError ? <p role="alert" className="mt-3 text-sm text-red-200">{validationError}</p> : null}
-          {(!hasRenderedPreview || isInteracting) && !previewError && !validationError ? <p role="status" className="mt-3 text-xs text-white/60">{isInteracting ? "Upravujete umístění údajů; náhled se obnoví po dokončení." : "Aktualizuji náhled; zobrazen je předchozí výsledek…"}</p> : null}
+          {hasGraphics && (!hasRenderedPreview || isInteracting) && !previewError && !validationError ? <p role="status" className="mt-3 text-xs text-white/60">{isInteracting ? "Upravujete umístění údajů; náhled se obnoví po dokončení." : "Aktualizuji náhled; zobrazen je předchozí výsledek…"}</p> : null}
           {saveError ? <p role="alert" className="mt-3 rounded-xl border border-red-300/30 bg-red-950/30 p-3 text-sm text-red-200">{saveError}</p> : null}
           {testPdfError ? <p role="alert" className="mt-3 rounded-xl border border-red-300/30 bg-red-950/30 p-3 text-sm text-red-200">{testPdfError}</p> : null}
           <p role="status" className="mt-3 text-xs text-white/70">{pending ? "Ukládám…" : isDirty ? "Neuložené změny" : hasSaved ? "Uloženo" : "Žádné neuložené změny"}</p>
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            <button type="button" disabled={testPdfPending || pending || !!validationError || isInteracting} onClick={downloadTestPdf} className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/15 px-4 py-2.5 text-sm font-semibold text-white/80 transition hover:border-white/30 hover:text-white disabled:cursor-wait disabled:opacity-50">{testPdfPending ? "Připravuji PDF…" : "Zkontrolovat PDF pro tisk"}</button>
+            <button type="button" disabled={!hasGraphics || testPdfPending || pending || !!validationError || isInteracting} onClick={downloadTestPdf} className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/15 px-4 py-2.5 text-sm font-semibold text-white/80 transition hover:border-white/30 hover:text-white disabled:cursor-wait disabled:opacity-50">{testPdfPending ? "Připravuji PDF…" : "Zkontrolovat PDF pro tisk"}</button>
             <button type="button" disabled={pending || testPdfPending || !!validationError || isInteracting} onClick={save} className="inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-contrast)] transition hover:brightness-105 disabled:cursor-wait disabled:opacity-50">{pending ? "Ukládám změny…" : "Uložit změny"}</button>
           </div>
         </aside>

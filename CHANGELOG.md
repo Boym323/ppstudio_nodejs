@@ -16,6 +16,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Editor voucherových šablon už při otevření draftu bez nahrané grafiky nevolá testovací PDF endpoint; náhled a kontrola tisku se aktivují až po nahrání masteru.
+
 - Editor voucherových šablon už při dočasně neplatné hodnotě během úpravy neposílá neúspěšné požadavky na náhled PDF.
 - Editor voucherových šablon při úpravách i otevření draftu drží baseline v bezpečném rozsahu podle výšky písma nad a pod účařím, zachovává platné pozice a upozorní na příliš nízkou oblast. Přetečení náhledu označí konkrétní oblast a nabídne opravu; stejný neúspěšný náhled bez změny layoutu či typu neopakuje. PDF a uložený souřadnicový systém zůstávají zachované.
 
