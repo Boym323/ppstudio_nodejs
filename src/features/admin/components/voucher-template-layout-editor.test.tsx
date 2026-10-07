@@ -21,7 +21,14 @@ test("panel editoru zobrazuje pozici od horního levého rohu ořezu a odděluje
   assert.match(positionSection, /Šipky: 0,1 mm · Shift \+ šipky: 1 mm/);
   assert.match(positionSection, /X 15,0 mm · Y 53,0 mm/);
   assert.doesNotMatch(positionSection, /Baseline|Min\. velikost|Řádkování|PDF souřadnice/);
-  assert.match(html, /<details[^>]*><summary[^>]*>Pokročilé nastavení[\s\S]*?Baseline \(mm\)[\s\S]*?Min\. velikost \(pt\)[\s\S]*?Řádkování \(mm\)[\s\S]*?<\/details>/);
+  assert.match(html, /<details[^>]*><summary[^>]*>Pokročilé nastavení[\s\S]*?Baseline \(mm\)[\s\S]*?Řádkování \(mm\)[\s\S]*?<\/details>/);
+  const fitting = html.match(/<div[^>]*tabindex="-1"[^>]*>([\s\S]*?)<\/div><p class="mt-2/)?.[1];
+  assert.ok(fitting, "nastavení fittingu musí být viditelné mimo sbalené details");
+  assert.match(fitting, /Přizpůsobení textu/);
+  assert.match(fitting, /Nejmenší písmo \(pt\)/);
+  assert.match(fitting, /Povolený počet řádků/);
+  const advanced = html.match(/<details[\s\S]*?<\/details>/)?.[0] ?? "";
+  assert.doesNotMatch(advanced, /Nejmenší písmo|Povolený počet řádků/);
   for (const overlay of ["bleed", "trim", "safe", "guides"]) assert.match(html, new RegExp(`data-overlay="${overlay}"`));
   assert.deepEqual(original, defaultVoucherTemplateLayout, "zobrazení UI nesmí přepsat uložený layout");
   assert.match(html, /Žádné neuložené změny/);

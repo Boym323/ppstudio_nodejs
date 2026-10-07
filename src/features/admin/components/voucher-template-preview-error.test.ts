@@ -21,3 +21,12 @@ test("ostatní bezpečné odpovědi fungují jako text i JSON, poškozený JSON 
     assert.match(error.message, /Náhled se nepodařilo aktualizovat/);
   }
 });
+
+test("chyba služby přenese skutečný kontrolní text a ignoruje neplatná metadata", async () => {
+  const base = { code: "text_overflow", message: "Dynamický text se nevejde do oblasti „Služba“ ani při minimální velikosti písma." };
+  const result = await readVoucherTemplatePreviewError(Response.json({ ...base, sampleText: "Dlouhý kontrolní název" }));
+  assert.equal(result.sampleText, "Dlouhý kontrolní název");
+  for (const sampleText of [null, 123, {}]) {
+    assert.equal((await readVoucherTemplatePreviewError(Response.json({ ...base, sampleText }))).sampleText, undefined);
+  }
+});

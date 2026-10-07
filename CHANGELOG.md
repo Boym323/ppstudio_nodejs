@@ -18,6 +18,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Přetečení textu v editoru voucherů nyní ukazuje konkrétní nevyhovující zkušební název služby, aktuální limity a postup opravy; zvýrazňuje oblast a přímo navádí na viditelné nastavení nejmenšího písma a počtu řádků.
+
 - Editor voucherových šablon průběžně odhaluje přetečení i pro dlouhý název služby a nejvyšší hodnotu voucheru kontrolované při publikaci, bez ohledu na zvolený typ náhledu; upozorní na chybnou oblast a nabídne přechod k její úpravě.
 
 - Editor voucherových šablon už při otevření draftu bez nahrané grafiky nevolá testovací PDF endpoint; náhled a kontrola tisku se aktivují až po nahrání masteru.

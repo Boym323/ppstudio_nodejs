@@ -28,6 +28,7 @@ export async function POST(
   const layout = voucherTemplateLayoutSchema.safeParse((body as { layout?: unknown })?.layout);
   if (!layout.success) return new NextResponse(layout.error.issues[0]?.message ?? "Layout šablony není platný.", { status: 400 });
 
+  let checkedServiceName: string | null = null;
   try {
     const template = await requireVoucherTemplateById((await params).templateId);
     if (template.status !== "DRAFT") return new NextResponse("Zkušební PDF lze stáhnout pouze z draftu.", { status: 409 });
@@ -46,6 +47,7 @@ export async function POST(
       servicePriceSnapshotCzk: isServicePreview ? VOUCHER_TEMPLATE_TEST_DATA.valueCzk : null,
       validUntil: new Date(VOUCHER_TEMPLATE_TEST_DATA.validUntilIso),
     } as Parameters<typeof generateResolvedVoucherPrintPdf>[0];
+    checkedServiceName = voucher.serviceNameSnapshot;
     const pdf = await generateResolvedVoucherPrintPdf(voucher, { ...resolved, layout: layout.data }, { failOnTextOverflow: true });
 
     // Editor needs the very same composition order as the downloadable PDF.
@@ -56,10 +58,12 @@ export async function POST(
       // Validate the publication text scenarios even when the editor displays
       // the other voucher type or a short service name.
       if (template.allowedTypes.includes(VoucherType.VALUE)) {
+        checkedServiceName = null;
         await generateResolvedVoucherPrintPdf({ ...voucher, type: VoucherType.VALUE, originalValueCzk: VOUCHER_VALUE_MAX_CZK, remainingValueCzk: VOUCHER_VALUE_MAX_CZK, serviceNameSnapshot: null, servicePriceSnapshotCzk: null }, { ...resolved, layout: layout.data }, { failOnTextOverflow: true });
       }
       if (template.allowedTypes.includes(VoucherType.SERVICE)) {
         for (const serviceNameSnapshot of VOUCHER_TEMPLATE_PUBLISH_SERVICE_NAMES) {
+          checkedServiceName = serviceNameSnapshot;
           await generateResolvedVoucherPrintPdf({ ...voucher, type: VoucherType.SERVICE, remainingValueCzk: null, serviceNameSnapshot, servicePriceSnapshotCzk: VOUCHER_TEMPLATE_TEST_DATA.valueCzk }, { ...resolved, layout: layout.data }, { failOnTextOverflow: true });
         }
       }
@@ -92,6 +96,7 @@ export async function POST(
       };
       return NextResponse.json({
         code: error.code,
+        ...(error.code === "text_overflow" && error.message.includes("„Služba“") && checkedServiceName ? { sampleText: checkedServiceName } : {}),
         message: error.code === "text_overflow" ? error.message : safeMessages[error.code],
       }, { status: 422, headers: { "Cache-Control": "private, no-store" } });
     }

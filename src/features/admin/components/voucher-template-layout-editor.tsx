@@ -72,8 +72,10 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
   const [showBleed, setShowBleed] = useState(true);
   const [isInteracting, setIsInteracting] = useState(false);
   const [renderedPreview, setRenderedPreviewSrc] = useState<{ src: string; layout: VoucherTemplateLayoutV1; previewType: string } | null>(null);
-  const [previewFailure, setPreviewFailure] = useState<{ key: string; message: string } | null>(null);
+  const [previewFailure, setPreviewFailure] = useState<{ key: string; message: string; sampleText?: string } | null>(null);
   const failedPreviewRef = useRef<string | null>(null);
+  const textFitRef = useRef<HTMLDivElement>(null);
+  const [textFitFocusRequest, setTextFitFocusRequest] = useState(0);
   const canvasStageRef = useRef<HTMLDivElement>(null);
   const livePositionRef = useRef<HTMLParagraphElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 648, height: 315 });
@@ -136,7 +138,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
         if (!response.ok) {
           const failure = await readVoucherTemplatePreviewError(response);
           if (controller.signal.aborted) return;
-          const failedPreview = { key: previewKey, message: failure.message };
+          const failedPreview = { key: previewKey, ...failure };
           if (failure.code === "text_overflow") failedPreviewRef.current = previewKey;
           setPreviewFailure(failedPreview);
           return;
@@ -170,6 +172,12 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
   const previewError = hasGraphics && !hasRenderedPreview && previewFailure?.key === previewKey ? previewFailure.message : null;
 
   const overflowArea = previewError ? areas.find((key) => previewError.startsWith(`${labels[key]} se nevejde`)) : undefined;
+
+  useEffect(() => {
+    if (!textFitFocusRequest) return;
+    textFitRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    textFitRef.current?.focus({ preventScroll: true });
+  }, [textFitFocusRequest]);
 
   useEffect(() => {
     const stage = canvasStageRef.current;
@@ -407,6 +415,7 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
                       <span className="absolute left-1/2 top-0 h-2 w-px -translate-y-full bg-current" />
                       <span className="absolute bottom-0 left-1/2 h-2 w-px translate-y-full bg-current" />
                     </div> : isSelected ? <span className="pointer-events-none absolute -top-6 left-0 z-20 rounded-md border border-[var(--color-accent)]/50 bg-[#1c1714] px-1.5 py-1 text-[9px] font-bold leading-none tracking-[0.08em] text-[var(--color-accent-soft)]">{labels[key]}</span> : <span className="pointer-events-none absolute -top-5 left-0 z-20 rounded-md border border-white/10 bg-black/75 px-1.5 py-1 text-[9px] font-bold leading-none tracking-[0.08em] text-white/70 opacity-0 transition-opacity group-hover:opacity-100">{shortLabels[key]}</span>}
+                    {overflowArea === key ? <div aria-hidden="true" className="pointer-events-none absolute inset-0 border-2 border-red-500 bg-red-500/10" /> : null}
                     <div className="pointer-events-none absolute inset-0 overflow-hidden" />
                   </Rnd>;
                 })}
@@ -426,6 +435,17 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
         </div>
 
         <aside key={selected ?? "none"} className="min-w-0 bg-white/[0.02] p-4 sm:p-6">
+          {previewError ? <div role="alert" className="mb-4 rounded-xl border border-red-300/30 bg-red-950/30 p-3 text-sm text-red-200">
+            {overflowArea && isVoucherTemplateTextAreaKey(overflowArea) ? <>
+              <p className="font-semibold">{labels[overflowArea]}: text potřebuje více místa</p>
+              {previewFailure?.sampleText ? <><p className="mt-2 text-xs">Do oblasti se nevejde tento zkušební název služby:</p><blockquote className="mt-2 rounded-lg bg-black/20 p-2 text-xs leading-5">{previewFailure.sampleText}</blockquote><p className="mt-2 text-xs">Jde o kontrolní text pro dlouhé názvy, ne o název vaší služby.</p></> : null}
+              <p className="mt-2 text-xs leading-5">Oblast má {formatNumericValue(layout[overflowArea].widthMm, "0.1")} × {formatNumericValue(layout[overflowArea].heightMm, "0.1")} mm, povolený počet řádků: {layout[overflowArea].maxLines}, nejmenší písmo: {layout[overflowArea].typography.minFontSizePt} pt.</p>
+              <p className="mt-2 text-xs leading-5">Začněte nastavením „Přizpůsobení textu“ níže. Povolte více řádků, pokud je pro ně místo, nebo snižte „Nejmenší písmo“. Pokud chcete zachovat čitelnost, zvětšete „Šířka“ či „Výška“ v sekci „Pozice a rozměry“. Samotný posun textu nepomůže.</p>
+              <button type="button" className={`${compactButtonClassName} mt-3 border-red-300/40`} onClick={() => { selectArea(overflowArea); setTextFitFocusRequest((current) => current + 1); }}>Nastavit text: {labels[overflowArea]}</button>
+              <p className="mt-2 text-xs text-red-200/70">Červený rámeček v náhledu označuje tuto oblast. Zobrazený obrázek je poslední úspěšný náhled; po úpravě se kontrola zopakuje automaticky.</p>
+            </> : <p>{previewError}</p>}
+          </div> : null}
+
           {selected === null ? <div className="flex min-h-48 flex-col items-center justify-center text-center"><p className="text-sm font-semibold text-white/80">Nic není vybráno</p><p className="mt-2 max-w-xs text-xs leading-5 text-white/45">Kliknutím na prázdné místo jste zrušili výběr. Pro úpravu klikněte na oblast voucheru.</p></div> : <>
           <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-4"><div><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/50">Upravujete</p><h3 className="mt-1 text-lg font-semibold text-white">{labels[selected]}</h3></div><span className="rounded-lg border border-white/10 bg-black/15 px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-white/50">{selected === "qrArea" ? "Grafika" : "Textová oblast"}</span></div>
           <section className="border-b border-white/10 py-3">
@@ -445,9 +465,18 @@ export function VoucherTemplateLayoutEditor({ templateId, initialLayout, initial
             <p className="mt-3 text-[11px] text-white/45">Šipky: 0,1 mm · Shift + šipky: 1 mm</p>
           </section>
           {textArea ? <section className="border-b border-white/10 py-3"><SectionTitle title="Písmo" /><label className="block text-xs text-white/70">Písmo<select value={textArea.typography.fontFamilyKey} onChange={(event) => updateSelectedTypography({ fontFamilyKey: event.target.value })} className={inputClassName}>{Object.keys(VOUCHER_TEMPLATE_PREVIEW_FONT_FAMILIES).map((key) => <option key={key} value={key} className="text-black">{key === "noto-sans" ? "Noto Sans" : key}</option>)}</select></label><div className="mt-3 grid grid-cols-2 gap-3"><label className="block text-xs text-white/70">Řez<select value={textArea.typography.fontWeight} onChange={(event) => updateSelectedTypography({ fontWeight: event.target.value as "regular" | "bold" })} className={inputClassName}><option value="regular" className="text-black">Regular</option><option value="bold" className="text-black">Bold</option></select></label><NumberField label="Velikost (pt)" value={textArea.typography.preferredFontSizePt} step="0.1" onChange={(value) => updateSelectedTypography({ preferredFontSizePt: value })} /></div><label className="mt-3 block text-xs text-white/70">Zarovnání<select value={textArea.typography.alignment} onChange={(event) => updateSelectedTypography({ alignment: event.target.value as "left" | "center" })} className={inputClassName}><option value="left" className="text-black">Vlevo</option><option value="center" className="text-black">Na střed</option></select></label></section> : null}
-          {textArea ? <details className="border-b border-white/10 py-3"><summary className="cursor-pointer list-none text-sm font-semibold text-white marker:hidden">Pokročilé nastavení <span className="float-right text-white/45">⌄</span></summary><div className="mt-3 grid gap-3"><NumberField label="Baseline (mm)" value={textArea.baselineMm} step="0.5" onChange={(value) => update(selected, { baselineMm: Number.isFinite(value) ? constrainBaselineToArea(textArea, value) : value })} /><div className="grid grid-cols-2 gap-3"><NumberField label="Min. velikost (pt)" value={textArea.typography.minFontSizePt} step="0.1" onChange={(value) => updateSelectedTypography({ minFontSizePt: value })} /><NumberField label="Max. řádků" value={textArea.maxLines} step="1" onChange={(value) => update(selected, { maxLines: value })} /></div><NumberField label="Řádkování (mm)" value={textArea.typography.lineHeightMm} step="0.1" onChange={(value) => updateSelectedTypography({ lineHeightMm: value })} /><p className="text-xs leading-5 text-white/45">Baseline, minimální velikost a řádkování ovlivňují přizpůsobení textu v PDF.</p></div></details> : null}
+          {textArea ? <div ref={textFitRef} tabIndex={-1} className="border-b border-white/10 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/60">
+            <SectionTitle title="Přizpůsobení textu" />
+            <p className="mb-3 text-xs leading-5 text-white/55">Dlouhý text se automaticky zmenšuje a zalamuje podle těchto mezí. Změna běžné velikosti písma sama o sobě nestačí, pokud text narazil na minimum.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <NumberField label="Nejmenší písmo (pt)" value={textArea.typography.minFontSizePt} step="0.1" onChange={(value) => updateSelectedTypography({ minFontSizePt: value })} />
+              <NumberField label="Povolený počet řádků" value={textArea.maxLines} step="1" onChange={(value) => update(selected, { maxLines: value })} />
+            </div>
+            <p className="mt-2 text-xs leading-5 text-white/45">Více řádků potřebuje dostatečnou výšku oblasti. Menší písmo může zhoršit čitelnost tisku. Každou změnu znovu ověří náhled; vrátit ji můžete tlačítkem Zpět.</p>
+          </div> : null}
+          {textArea ? <details className="border-b border-white/10 py-3"><summary className="cursor-pointer list-none text-sm font-semibold text-white marker:hidden">Pokročilé nastavení <span className="float-right text-white/45">⌄</span></summary><div className="mt-3 grid gap-3"><NumberField label="Baseline (mm)" value={textArea.baselineMm} step="0.5" onChange={(value) => update(selected, { baselineMm: Number.isFinite(value) ? constrainBaselineToArea(textArea, value) : value })} /><NumberField label="Řádkování (mm)" value={textArea.typography.lineHeightMm} step="0.1" onChange={(value) => updateSelectedTypography({ lineHeightMm: value })} /><p className="text-xs leading-5 text-white/45">Baseline, minimální velikost a řádkování ovlivňují přizpůsobení textu v PDF.</p></div></details> : null}
           </>}
-          {previewError ? <div role="alert" className="mt-3 rounded-xl border border-red-300/30 bg-red-950/30 p-3 text-sm text-red-200"><p>Náhled není aktuální: {previewError}</p>{overflowArea ? <><p className="mt-2 text-xs">Kontrola zahrnuje i dlouhý název služby a nejvyšší hodnotu voucheru podle povolených typů.</p><button type="button" className={`${compactButtonClassName} mt-2 border-red-300/40`} onClick={() => { selectArea(overflowArea); if (overflowArea === "serviceArea") setPreviewType("SERVICE"); if (overflowArea === "valueArea") setPreviewType("VALUE"); }}>Upravit oblast {labels[overflowArea]}</button></> : null}</div> : null}
+
           {validationError ? <p role="alert" className="mt-3 text-sm text-red-200">{validationError}</p> : null}
           {hasGraphics && (!hasRenderedPreview || isInteracting) && !previewError && !validationError ? <p role="status" className="mt-3 text-xs text-white/60">{isInteracting ? "Upravujete umístění údajů; náhled se obnoví po dokončení." : "Aktualizuji náhled; zobrazen je předchozí výsledek…"}</p> : null}
           {saveError ? <p role="alert" className="mt-3 rounded-xl border border-red-300/30 bg-red-950/30 p-3 text-sm text-red-200">{saveError}</p> : null}

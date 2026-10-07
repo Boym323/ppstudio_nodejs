@@ -72,7 +72,9 @@ test("test PDF používá layout z requestu a vrací tiskové PDF pouze OWNERovi
   const requestPreview = () => POST(new Request("https://example.com?format=preview&previewType=VALUE", { method: "POST", body: JSON.stringify({ layout: changedLayout }) }), { params: Promise.resolve({ templateId: "template-1" }) });
   const hiddenOverflow = await requestPreview();
   assert.equal(hiddenOverflow.status, 422, "VALUE náhled musí odhalit přetečení dlouhé služby před publikací");
-  assert.match((await hiddenOverflow.json()).message, /„Služba“/);
+  const failure = await hiddenOverflow.json();
+  assert.match(failure.message, /„Služba“/);
+  assert.equal(failure.sampleText, VOUCHER_TEMPLATE_PUBLISH_SERVICE_NAMES[1]);
   assert.ok(renderedVouchers.some((voucher) => voucher.type === "VALUE" && voucher.originalValueCzk === VOUCHER_VALUE_MAX_CZK));
   for (const name of VOUCHER_TEMPLATE_PUBLISH_SERVICE_NAMES) assert.ok(renderedVouchers.some((voucher) => voucher.serviceNameSnapshot === name));
   allowedTypes = ["VALUE"];

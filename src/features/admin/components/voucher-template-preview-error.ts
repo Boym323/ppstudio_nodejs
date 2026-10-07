@@ -7,7 +7,7 @@ export async function readVoucherTemplatePreviewError(response: Response) {
     return { code: null, message: text || fallbackMessage };
   }
 
-  let error: { code?: unknown; message?: unknown } | null;
+  let error: { code?: unknown; message?: unknown; sampleText?: unknown } | null;
   try {
     error = JSON.parse(text);
   } catch {
@@ -20,6 +20,7 @@ export async function readVoucherTemplatePreviewError(response: Response) {
   const label = message.match(/do oblasti „(Hodnota|Služba|Platnost|Kód)“/)?.[1];
   return {
     code,
+    ...(label === "Služba" && typeof error?.sampleText === "string" ? { sampleText: error.sampleText.slice(0, 500) } : {}),
     message: `${label ? `${label} se nevejde do vybrané oblasti.` : "Text se nevejde do vybrané oblasti."} Zvětšete oblast nebo snižte minimální velikost písma.`,
   };
 }
