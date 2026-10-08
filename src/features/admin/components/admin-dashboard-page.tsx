@@ -230,15 +230,7 @@ function getCompactTodayStatus(data: AdminDashboardData) {
     return "1 aktivní rezervace";
   }
 
-  return `${data.todayBookingsCount} aktivní rezervace`;
-}
-
-function getCompactNextStatus(data: AdminDashboardData) {
-  if (data.nextClient) {
-    return `další ${data.nextClient.timeRangeLabel}`;
-  }
-
-  return data.todayBookingsCount > 0 ? "další klientka dnes už není" : "dnes zatím bez rezervace";
+  return `${data.todayBookingsCount} ${data.todayBookingsCount < 5 ? "aktivní rezervace" : "aktivních rezervací"}`;
 }
 
 function getCompactCurrentStatus(value: string) {
@@ -269,55 +261,55 @@ export function DashboardPage({ data }: DashboardPageProps) {
 
 export function DashboardTodayHero({ data }: DashboardPageProps) {
   return (
-    <Card className="overflow-hidden p-4">
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+    <Card className="overflow-hidden px-4 py-3">
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] xl:items-center">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <h1 className="text-base font-semibold text-white">Provozní přehled</h1>
+            <h1 className="text-lg font-semibold text-white">Provozní přehled</h1>
             <span className="text-sm font-medium text-white/52">{data.todayLabel}</span>
           </div>
 
-          <p className="mt-1 truncate text-sm text-white/72">
-            {getCompactTodayStatus(data)} · {getCompactNextStatus(data)}
+          <p className="mt-1 text-sm text-white/72">
+            {getCompactTodayStatus(data)}
+            {!data.nextClient && data.todayBookingsCount > 0 ? " · Další klientka dnes už není" : null}
           </p>
 
           {data.currentReservationSummary ? (
-            <p className="mt-1 truncate text-sm font-medium text-[var(--color-accent-soft)]">
+            <p className="mt-2 border-l-2 border-[var(--color-accent)] pl-3 text-sm font-medium leading-6 text-[var(--color-accent-soft)]">
               {getCompactCurrentStatus(data.currentReservationSummary)}
             </p>
           ) : null}
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap xl:justify-end">
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
           {data.nextClient ? (
-            <div className="min-w-0 rounded-lg border border-white/9 bg-white/[0.035] px-3 py-2 sm:min-w-[17rem]">
+            <div className="min-w-0 flex-1 border-t border-white/10 pt-2 xl:border-t-0 xl:border-l xl:pt-0 xl:pl-4">
               <Link
                 href={data.nextClient.detailHref}
-                className="flex min-h-12 min-w-0 items-center justify-between gap-3 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55"
+                className="flex min-h-12 min-w-0 items-center justify-between gap-3 rounded-md transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55"
               >
                 <span className="min-w-0">
-                  <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">
+                  <span className="block text-xs font-semibold uppercase tracking-[0.12em] text-white/60">
                     Další rezervace
                   </span>
-                  <span className="block truncate text-sm font-medium text-white">
+                  <span className="block text-sm font-semibold leading-5 text-white">
                     {data.nextClient.timeRangeLabel} · {data.nextClient.clientName}
                   </span>
-                  <span className="block truncate text-xs text-white/52">{data.nextClient.serviceName}</span>
+                  <span className="block text-sm leading-5 text-white/70">{data.nextClient.serviceName}</span>
                 </span>
-                <span className="text-xs font-semibold text-[var(--color-accent-soft)]">Otevřít</span>
+                <span className="shrink-0 text-sm font-semibold text-[var(--color-accent-soft)]">Otevřít</span>
               </Link>
 
-              <div className="mt-2">
+              <div className="mt-1">
                 <DashboardContactActions
                   phoneHref={data.nextClient.phoneHref}
                   emailHref={data.nextClient.emailHref}
-                  compact
                 />
               </div>
             </div>
           ) : null}
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex shrink-0 items-center">
             <DashboardButton href={data.createBookingHref} label="Vytvořit rezervaci" tone="primary" />
           </div>
         </div>
@@ -345,56 +337,31 @@ export function DashboardAttentionAlert({ data }: DashboardPageProps) {
   }
 
   return (
-    <Card
-      className={cn(
-        "overflow-hidden p-3.5 sm:p-4",
-        "border-amber-300/16 bg-[linear-gradient(135deg,rgba(120,53,15,0.18),rgba(24,24,27,0.92))]",
-      )}
-    >
-      <div className="grid gap-3 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
-        <div className="flex shrink-0 items-center gap-2">
-          <span
-            className={cn(
-              "rounded-lg border p-2",
-              "border-amber-300/18 bg-black/14 text-amber-100",
-            )}
-          >
-            <DashboardIcon name="warning" className="size-4" />
-          </span>
-          <h2 className="text-sm font-semibold text-white">Vyžaduje pozornost</h2>
-        </div>
-
-        <div
-          className={cn(
-            "grid min-w-0 gap-2",
-            secondaryAlerts.length > 0 && "xl:grid-cols-[minmax(18rem,1.15fr)_minmax(0,2fr)]",
-          )}
-        >
-          {primaryAlert ? (
-            <AlertCard
-              tone={primaryAlert.tone}
-              text={primaryAlert.text}
-              href={primaryAlert.href}
-              actionLabel={primaryAlert.actionLabel}
-              priority="primary"
-            />
-          ) : null}
-
-          {secondaryAlerts.length > 0 ? (
-            <div className="grid min-w-0 gap-2 md:grid-cols-2">
-              {secondaryAlerts.map((alert) => (
-                <AlertCard
-                  key={alert.id}
-                  tone={alert.tone}
-                  text={alert.text}
-                  href={alert.href}
-                  actionLabel={alert.actionLabel}
-                  priority="secondary"
-                />
-              ))}
-            </div>
-          ) : null}
-        </div>
+    <Card className="overflow-hidden border-amber-300/16 bg-amber-400/[0.035] px-4 py-2">
+      <div className="mb-2 flex items-center gap-2">
+        <DashboardIcon name="warning" className="size-4 shrink-0 text-amber-200" />
+        <h2 className="text-sm font-semibold text-white">Vyžaduje pozornost</h2>
+      </div>
+      <div className={cn("grid gap-2", secondaryAlerts.length > 0 && "lg:grid-cols-2")}>
+        {primaryAlert ? (
+          <AlertCard
+            tone={primaryAlert.tone}
+            text={primaryAlert.text}
+            href={primaryAlert.href}
+            actionLabel={primaryAlert.actionLabel}
+            priority="primary"
+          />
+        ) : null}
+        {secondaryAlerts.map((alert) => (
+          <AlertCard
+            key={alert.id}
+            tone={alert.tone}
+            text={alert.text}
+            href={alert.href}
+            actionLabel={alert.actionLabel}
+            priority="secondary"
+          />
+        ))}
       </div>
     </Card>
   );
@@ -437,20 +404,18 @@ function AlertCard({
   return (
     <article
       className={cn(
-        "min-w-0 overflow-hidden rounded-lg border",
-        priority === "primary" ? "px-3.5 py-3" : "px-3 py-2",
+        "min-w-0 rounded-r-lg border-l-2 px-3 py-1",
         toneStyles[tone],
       )}
     >
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+      <div className="flex h-full flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
         <div className="flex min-w-0 items-start gap-2">
-          <span className="rounded-lg border border-current/15 bg-black/10 p-1.5">
+          <span className="mt-0.5 shrink-0">
             <DashboardIcon name={toneIcons[tone]} className="size-4" />
           </span>
           <p
             className={cn(
-              "min-w-0 font-medium break-words",
-              priority === "primary" ? "text-[15px] leading-6" : "text-sm leading-5",
+              "min-w-0 text-sm font-medium leading-6 break-words",
             )}
           >
             {text}
@@ -460,8 +425,7 @@ function AlertCard({
         <Link
           href={href}
           className={cn(
-            "inline-flex min-h-11 w-fit items-center justify-center rounded-md border border-current/20 px-3 py-2 text-sm font-semibold text-current transition hover:bg-black/10",
-            priority === "primary" && "sm:min-w-[6.5rem]",
+            "inline-flex min-h-9 max-w-full sm:max-w-[45%] shrink-0 items-center rounded-md px-2 py-1 text-sm font-semibold text-current underline decoration-current/30 underline-offset-4 transition hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current",
           )}
         >
           {actionLabel}

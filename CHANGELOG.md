@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Změněno
+
+- Horní souhrn Provozního přehledu čitelněji odděluje probíhající a další návštěvu, zachovává celé texty a zobrazuje kompaktní akce; upozornění mají jednodušší rozložení bez přerostlých tlačítek. Menší mezery a akce vedle obsahu na širších obrazovkách šetří výšku obou sekcí.
+
 ## [3.33.0] - 2026-10-07
 
 ### Změněno
