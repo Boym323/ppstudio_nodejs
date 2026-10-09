@@ -11,9 +11,7 @@ import { prisma } from "@/lib/prisma";
 
 const formatDate = new Intl.DateTimeFormat("cs-CZ", { day: "numeric", month: "numeric", year: "numeric", timeZone: "Europe/Prague" });
 const formatTime = new Intl.DateTimeFormat("cs-CZ", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Prague" });
-const defaultReservationLimit = 30;
-const reservationLimitStep = 30;
-const reservationLimitMax = 200;
+const reservationPageSize = 30;
 const activeBookingStatuses = [BookingStatus.PENDING, BookingStatus.CONFIRMED] as const;
 
 function isActiveBookingStatus(status: BookingStatus) {
@@ -34,7 +32,7 @@ export type ReservationsDashboardData = {
     source: BookingListSourceValue;
     dateFrom: string;
     dateTo: string;
-    limit: number;
+    page: number;
     hasActiveFilters: boolean;
   };
   views: Array<{ key: BookingListViewValue; label: string; count: number; href: string; isActive: boolean }>;
@@ -42,6 +40,9 @@ export type ReservationsDashboardData = {
   summary: {
     totalCount: number;
     visibleCount: number;
+    page: number;
+    pageCount: number;
+    previousHref: string | null;
     emptyState: "today" | "upcoming" | "attention" | "history" | "all";
     showMoreHref: string | null;
   };
@@ -103,7 +104,7 @@ function normalizeReservationsSearchParams(
     dateFrom: typeof searchParams?.dateFrom === "string" ? searchParams.dateFrom : undefined,
     dateTo: typeof searchParams?.dateTo === "string" ? searchParams.dateTo : undefined,
     showPast: typeof searchParams?.showPast === "string" ? searchParams.showPast : undefined,
-    limit: typeof searchParams?.limit === "string" ? searchParams.limit : undefined,
+    page: typeof searchParams?.page === "string" ? searchParams.page : undefined,
   });
 
   const defaults = {
@@ -113,7 +114,7 @@ function normalizeReservationsSearchParams(
     view: "today" as BookingListViewValue,
     dateFrom: "",
     dateTo: "",
-    limit: defaultReservationLimit,
+    page: 1,
   };
 
   if (!parsed.success) {
@@ -133,7 +134,7 @@ function normalizeReservationsSearchParams(
     view: query ? "all" : requestedView,
     dateFrom: dateFrom <= dateTo || !dateFrom || !dateTo ? dateFrom : dateTo,
     dateTo: dateFrom <= dateTo || !dateFrom || !dateTo ? dateTo : dateFrom,
-    limit: parsed.data.limit ?? defaults.limit,
+    page: parsed.data.page ?? defaults.page,
   };
 }
 
@@ -251,7 +252,7 @@ function buildReservationsHref(
   if (values.source !== "all") params.set("source", values.source);
   if (values.dateFrom) params.set("dateFrom", values.dateFrom);
   if (values.dateTo) params.set("dateTo", values.dateTo);
-  if (next.limit && next.limit !== defaultReservationLimit) params.set("limit", String(next.limit));
+  if (next.page && next.page > 1) params.set("page", String(next.page));
   return `${currentPath}?${params.toString()}`;
 }
 
@@ -287,9 +288,11 @@ export async function getReservationsData(area: AdminArea, searchParams?: Record
   const where: Prisma.BookingWhereInput = { AND: [detailWhere, activeWhere] };
   const viewKeys: BookingListViewValue[] = ["today", "upcoming", "attention", "history", "all"];
   const viewLabels: Record<BookingListViewValue, string> = { today: "Dnes", upcoming: "Nadcházející", attention: "Pozornost", history: "Historie", all: "Vše" };
-  const [totalCount, bookings, pendingCount, needsClosureCount, bookingCatalog, ...viewCounts] = await Promise.all([
-    prisma.booking.count({ where }),
-    prisma.booking.findMany({ where, orderBy: reservationOrder(filters.view), take: Math.min(filters.limit, reservationLimitMax), include: { client: { select: { fullName: true } } } }),
+  const totalCount = await prisma.booking.count({ where });
+  const pageCount = Math.max(1, Math.ceil(totalCount / reservationPageSize));
+  const page = Math.min(filters.page, pageCount);
+  const [bookings, pendingCount, needsClosureCount, bookingCatalog, ...viewCounts] = await Promise.all([
+    prisma.booking.findMany({ where, orderBy: reservationOrder(filters.view), skip: (page - 1) * reservationPageSize, take: reservationPageSize, include: { client: { select: { fullName: true } } } }),
     prisma.booking.count({ where: { status: BookingStatus.PENDING } }),
     prisma.booking.count({ where: { status: { in: [...activeBookingStatuses] }, scheduledEndsAt: { lt: now } } }),
     getAdminBookingAvailabilityCatalog(),
@@ -321,12 +324,21 @@ export async function getReservationsData(area: AdminArea, searchParams?: Record
   const baseFilters = { view: filters.view, query: filters.query, status: filters.status, source: filters.source, dateFrom: filters.dateFrom, dateTo: filters.dateTo };
   const attentionHref = buildReservationsHref(currentPath, baseFilters, { view: "attention" });
   const hasActiveFilters = Boolean(filters.query || filters.status !== "all" || filters.source !== "all" || filters.dateFrom || filters.dateTo);
+  const currentPage = page;
   return {
     currentPath,
-    filters: { ...baseFilters, limit: filters.limit, hasActiveFilters },
+    filters: { ...baseFilters, page: currentPage, hasActiveFilters },
     views: viewKeys.map((key, index) => ({ key, label: viewLabels[key], count: viewCounts[index] ?? 0, href: buildReservationsHref(currentPath, baseFilters, { view: key }), isActive: key === filters.view })),
     attention: { pendingCount, needsClosureCount, totalCount: pendingCount + needsClosureCount, href: attentionHref },
-    summary: { totalCount, visibleCount: rows.length, emptyState: filters.view, showMoreHref: totalCount > rows.length ? buildReservationsHref(currentPath, baseFilters, { limit: Math.min(filters.limit + reservationLimitStep, reservationLimitMax) }) : null },
+    summary: {
+      totalCount,
+      visibleCount: rows.length,
+      page: currentPage,
+      pageCount,
+      previousHref: currentPage > 1 ? buildReservationsHref(currentPath, baseFilters, { page: currentPage - 1 }) : null,
+      emptyState: filters.view,
+      showMoreHref: currentPage < pageCount ? buildReservationsHref(currentPath, baseFilters, { page: currentPage + 1 }) : null,
+    },
     sections: Array.from(sections.values()),
     manualBooking: { services: bookingCatalog.services.map((service) => ({ id: service.id, categoryName: service.categoryName, name: service.name, durationMinutes: service.durationMinutes, cleanupBlockMinutes: service.cleanupBlockMinutes, priceFromCzk: service.priceFromCzk })), slots: bookingCatalog.slots, scheduleOptimization: bookingCatalog.scheduleOptimization, clients: [] },
   } satisfies ReservationsDashboardData;

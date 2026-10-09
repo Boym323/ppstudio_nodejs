@@ -38,7 +38,7 @@ export const bookingListSearchParamsSchema = z.object({
   dateFrom: isoDateSchema,
   dateTo: isoDateSchema,
   showPast: z.enum(["0", "1"]).optional(),
-  limit: z.coerce.number().int().min(1).max(200).optional(),
+  page: z.coerce.number().int().min(1).optional(),
 });
 
 export type BookingListStatusValue = (typeof bookingListStatusValues)[number];

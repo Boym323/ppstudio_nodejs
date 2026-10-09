@@ -12,6 +12,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Historie rezervací už není omezena na 200 položek; seznam používá skutečné serverové stránkování a lze projít všechny záznamy odpovídající filtrům.
+
 - Seznam voucherů už nezobrazuje pouze prvních 100 záznamů: stránkuje po 50 položkách, uvádí celkový počet odpovídající filtrům a při procházení zachovává aktivní filtry.
 
 - Přehled rezervací se po ručním vytvoření rezervace a dalších aktualizacích už nezasekává v nekonečném překreslování tabulky; zpráva o uložené interní výjimce na mobilu nevytlačuje tlačítko pro další rezervaci mimo obrazovku.

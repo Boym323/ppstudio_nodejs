@@ -3,19 +3,19 @@ import assert from "node:assert/strict";
 
 import { bookingListSearchParamsSchema } from "./admin-booking-list-validation";
 
-test("booking list search params schema accepts view and limit", () => {
+test("booking list search params schema accepts view and page", () => {
   const parsed = bookingListSearchParamsSchema.parse({
     view: "attention",
-    limit: "60",
+    page: "3",
   });
 
   assert.equal(parsed.view, "attention");
-  assert.equal(parsed.limit, 60);
+  assert.equal(parsed.page, 3);
 });
 
-test("booking list search params schema rejects invalid limit", () => {
+test("booking list search params schema rejects invalid page", () => {
   const parsed = bookingListSearchParamsSchema.safeParse({
-    limit: "999",
+    page: "0",
   });
 
   assert.equal(parsed.success, false);
