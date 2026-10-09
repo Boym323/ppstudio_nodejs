@@ -624,6 +624,7 @@ model Booking {
 
   @@index([slotId, status])
   @@index([clientId, createdAt])
+  @@index([clientId, status, scheduledStartsAt])
   @@index([serviceId, scheduledStartsAt])
   @@index([status, scheduledStartsAt])
   @@index([status, reminder24hSentAt, scheduledStartsAt])

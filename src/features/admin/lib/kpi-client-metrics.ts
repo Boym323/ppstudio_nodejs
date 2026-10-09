@@ -6,6 +6,12 @@ export type CompletedClientVisit = {
   isCompleted?: boolean;
 };
 
+export type KpiClientAggregate = {
+  clientId: string;
+  visitCount: number;
+  firstVisitAt: Date | null;
+};
+
 export type KpiClientMetrics = {
   newClients: number;
   returningClients: number;
@@ -54,5 +60,48 @@ export function getKpiClientMetrics(
     returningClients,
     repeatVisitClients,
     repeatVisitRate: periodCounts.size ? (repeatVisitClients / periodCounts.size) * 100 : 0,
+  };
+}
+
+/**
+ * Stejný výpočet jako getKpiClientMetrics, ale nad agregovanými výsledky z DB.
+ * `earlierPeriodVisits` pokrývá období bezprostředně před `periodVisits` a
+ * `historicalVisits` všechna starší dokončení pouze pro relevantní klientky.
+ */
+export function getKpiClientMetricsFromAggregates(
+  periodVisits: readonly KpiClientAggregate[],
+  earlierPeriodVisits: readonly KpiClientAggregate[],
+  historicalVisits: readonly KpiClientAggregate[],
+  range: KpiDateRange,
+): KpiClientMetrics {
+  const firstVisitAt = new Map<string, Date>();
+  const considerFirstVisit = (visits: readonly KpiClientAggregate[]) => {
+    for (const visit of visits) {
+      if (!visit.firstVisitAt) continue;
+      const first = firstVisitAt.get(visit.clientId);
+      if (!first || visit.firstVisitAt < first) firstVisitAt.set(visit.clientId, visit.firstVisitAt);
+    }
+  };
+
+  considerFirstVisit(historicalVisits);
+  considerFirstVisit(earlierPeriodVisits);
+  considerFirstVisit(periodVisits);
+
+  let newClients = 0;
+  let returningClients = 0;
+  let repeatVisitClients = 0;
+  for (const visit of periodVisits) {
+    const first = firstVisitAt.get(visit.clientId);
+    if (!first) continue;
+    if (first >= range.start) newClients += 1;
+    if (first < range.start) returningClients += 1;
+    if (visit.visitCount >= 2) repeatVisitClients += 1;
+  }
+
+  return {
+    newClients,
+    returningClients,
+    repeatVisitClients,
+    repeatVisitRate: periodVisits.length ? (repeatVisitClients / periodVisits.length) * 100 : 0,
   };
 }

@@ -1,13 +1,14 @@
 import "server-only";
 
 import { AvailabilitySlotStatus, BookingStatus } from "@/generated/prisma/browser";
+import { Prisma } from "@/generated/prisma/client";
 
 import { getAdminSectionPath } from "@/features/admin/lib/admin-paths";
 import { getKpiDateKey, getKpiDateRanges, getKpiPercentChange, getKpiPeriodStart, getKpiExpectedRevenueRange, getKpiSeriesPeriodStarts, getPragueDateParts, getPragueMidnight, usesMonthlyKpiBuckets } from "@/features/admin/lib/kpi-date-range";
 import { calculateExpectedRevenue } from "@/features/admin/lib/kpi-expected-revenue";
 import { getBookingPaymentSummary } from "@/features/booking/payments/lib/booking-payment-summary";
 import { aggregateAcquisition } from "@/features/admin/lib/kpi-acquisition";
-import { getKpiClientMetrics } from "@/features/admin/lib/kpi-client-metrics";
+import { getKpiClientMetricsFromAggregates, type KpiClientAggregate, type KpiClientMetrics } from "@/features/admin/lib/kpi-client-metrics";
 import { calculateKpiOccupancy, mergeKpiTimeIntervals } from "@/features/admin/lib/kpi-occupancy";
 import { getKpiMetricPreviousAvailability } from "@/features/admin/lib/kpi-metric-availability";
 import { calculateDisruptionMetrics } from "@/features/admin/lib/kpi-disruption-metrics";
@@ -84,12 +85,11 @@ function price(row: BookingRow) { return row.finalPriceCzk ?? row.servicePriceFr
 function summarize(
   rows: BookingRow[],
   range: KpiDateRange,
-  allCompleted: Array<Pick<BookingRow, "clientId" | "scheduledStartsAt">>,
+  clientMetrics: KpiClientMetrics,
 ) {
   const listed = rows.filter((row) => inRange(row.scheduledStartsAt, range));
   const visits = listed.filter((row) => row.status === completed);
   const revenue = visits.reduce((sum, row) => sum + price(row), 0);
-  const clientMetrics = getKpiClientMetrics(allCompleted, range);
   const disruptions = calculateDisruptionMetrics(listed.map((row) => ({
     status: row.status,
     slotPublishedAt: row.slot?.publishedAt ?? null,
@@ -107,6 +107,62 @@ function summarize(
   return { listed, visits, revenue, clientMetrics, disruptions, noShowValue: disruptions.noShowValue, outstanding };
 }
 
+async function getKpiClientVisitAggregates(previous: KpiDateRange, current: KpiDateRange) {
+  const rows = await prisma.$queryRaw<Array<{
+    clientId: string;
+    currentVisitCount: number;
+    currentFirstVisitAt: Date | null;
+    previousVisitCount: number;
+    previousFirstVisitAt: Date | null;
+    historicalFirstVisitAt: Date | null;
+  }>>(Prisma.sql`
+    SELECT
+      booking."clientId" AS "clientId",
+      COUNT(*) FILTER (
+        WHERE booking."scheduledStartsAt" >= ${current.start}
+          AND booking."scheduledStartsAt" < ${current.end}
+      )::int AS "currentVisitCount",
+      MIN(booking."scheduledStartsAt") FILTER (
+        WHERE booking."scheduledStartsAt" >= ${current.start}
+          AND booking."scheduledStartsAt" < ${current.end}
+      ) AS "currentFirstVisitAt",
+      COUNT(*) FILTER (
+        WHERE booking."scheduledStartsAt" >= ${previous.start}
+          AND booking."scheduledStartsAt" < ${previous.end}
+      )::int AS "previousVisitCount",
+      MIN(booking."scheduledStartsAt") FILTER (
+        WHERE booking."scheduledStartsAt" >= ${previous.start}
+          AND booking."scheduledStartsAt" < ${previous.end}
+      ) AS "previousFirstVisitAt",
+      (
+        SELECT MIN(history."scheduledStartsAt")
+        FROM "Booking" AS history
+        WHERE history."clientId" = booking."clientId"
+          AND history."status" = ${completed}::"BookingStatus"
+          AND history."scheduledStartsAt" < ${previous.start}
+      ) AS "historicalFirstVisitAt"
+    FROM "Booking" AS booking
+    WHERE booking."status" = ${completed}::"BookingStatus"
+      AND booking."scheduledStartsAt" >= ${previous.start}
+      AND booking."scheduledStartsAt" < ${current.end}
+    GROUP BY booking."clientId"
+  `);
+  const currentAggregates = rows.flatMap((row): KpiClientAggregate[] => row.currentVisitCount > 0
+    ? [{ clientId: row.clientId, visitCount: row.currentVisitCount, firstVisitAt: row.currentFirstVisitAt }]
+    : []);
+  const previousAggregates = rows.flatMap((row): KpiClientAggregate[] => row.previousVisitCount > 0
+    ? [{ clientId: row.clientId, visitCount: row.previousVisitCount, firstVisitAt: row.previousFirstVisitAt }]
+    : []);
+  const historicalAggregates = rows.flatMap((row): KpiClientAggregate[] => row.historicalFirstVisitAt
+    ? [{ clientId: row.clientId, visitCount: 1, firstVisitAt: row.historicalFirstVisitAt }]
+    : []);
+  return {
+    current: currentAggregates,
+    previous: previousAggregates,
+    historical: historicalAggregates,
+  };
+}
+
 export async function getKpiDashboardData(area: "owner" | "salon", searchParams?: Record<string, string | string[] | undefined>): Promise<KpiDashboardData> {
   const { current, previous } = getKpiDateRanges(searchParams);
   const now = new Date();
@@ -116,17 +172,18 @@ export async function getKpiDashboardData(area: "owner" | "salon", searchParams?
   const retentionReference = new Date(Math.min(now.getTime(), current.end.getTime() - 1));
   const expectedRange = getKpiExpectedRevenueRange(current, now);
   const expectedIsHistorical = current.end <= now;
-  const [periodRows, allCompleted, slots, activeClients, expectedBookings] = await Promise.all([
+  const [periodRows, clientVisitAggregates, slots, activeClients, expectedBookings] = await Promise.all([
     getBookings(previous.start, dataEnd),
-    prisma.booking.findMany({ where: { status: completed, scheduledStartsAt: { lt: current.end } }, select: { clientId: true, scheduledStartsAt: true } }),
+    getKpiClientVisitAggregates(previous, current),
     prisma.availabilitySlot.findMany({ where: { status: { in: [AvailabilitySlotStatus.PUBLISHED, AvailabilitySlotStatus.ARCHIVED] }, publishedAt: { not: null }, startsAt: { lt: dataEnd }, endsAt: { gt: previous.start } }, select: { startsAt: true, endsAt: true } }),
     prisma.client.findMany({ where: { isActive: true, bookings: { some: { status: completed, scheduledStartsAt: { lt: retentionReference } } } }, select: { id: true, bookings: { where: { status: completed, scheduledStartsAt: { lt: retentionReference } }, orderBy: { scheduledStartsAt: "desc" }, take: 1, select: { scheduledStartsAt: true } } } }),
     expectedRange ? getExpectedBookings(expectedRange.start, expectedRange.end) : Promise.resolve([]),
   ]);
-  const allCompletedRows = allCompleted.map((row) => ({ clientId: row.clientId, scheduledStartsAt: row.scheduledStartsAt }));
   const extendedRows = periodRows as BookingRow[];
-  const currentSummary = summarize(extendedRows, current, allCompletedRows);
-  const previousSummary = summarize(extendedRows, previous, allCompletedRows);
+  const currentClientMetrics = getKpiClientMetricsFromAggregates(clientVisitAggregates.current, clientVisitAggregates.previous, clientVisitAggregates.historical, current);
+  const previousClientMetrics = getKpiClientMetricsFromAggregates(clientVisitAggregates.previous, [], clientVisitAggregates.historical, previous);
+  const currentSummary = summarize(extendedRows, current, currentClientMetrics);
+  const previousSummary = summarize(extendedRows, previous, previousClientMetrics);
   const occupancy = async (summary: ReturnType<typeof summarize>, range: KpiDateRange) => {
     const occupancySlots = mergeKpiTimeIntervals(slots, range);
     const completedWork = summary.visits.map((row) => ({ startsAt: row.scheduledStartsAt, endsAt: row.blockedUntil ?? row.scheduledEndsAt }));

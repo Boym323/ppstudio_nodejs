@@ -8,6 +8,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- KPI statistiky agregují dokončené návštěvy klientek přímo v databázi a pro historické metriky přenášejí pouze souhrny relevantních klientek; otevření statistik tak nezpracovává celou historii rezervací v aplikační vrstvě.
+
 - Horní souhrn Provozního přehledu čitelněji odděluje probíhající a další návštěvu, zachovává celé texty a zobrazuje kompaktní akce; upozornění mají jednodušší rozložení bez přerostlých tlačítek. Menší mezery a akce vedle obsahu na širších obrazovkách šetří výšku obou sekcí.
 
 ### Opraveno

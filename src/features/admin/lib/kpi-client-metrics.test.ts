@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { getKpiClientMetrics } from "./kpi-client-metrics";
+import { getKpiClientMetrics, getKpiClientMetricsFromAggregates } from "./kpi-client-metrics";
 
 const range = {
   start: new Date("2026-06-01T00:00:00.000Z"),
@@ -38,6 +38,40 @@ test("storno, no-show a rezervace bez clientId nejsou vstupem do dokončených k
   assert.deepEqual(result, {
     newClients: 1,
     returningClients: 0,
+    repeatVisitClients: 0,
+    repeatVisitRate: 0,
+  });
+});
+
+test("agregované KPI klientek zachovají výsledek bez načtení celé historie", () => {
+  const result = getKpiClientMetricsFromAggregates([
+    { clientId: "new-repeat", visitCount: 2, firstVisitAt: new Date("2026-06-03T10:00:00.000Z") },
+    { clientId: "returning", visitCount: 1, firstVisitAt: new Date("2026-06-10T10:00:00.000Z") },
+    { clientId: "single", visitCount: 1, firstVisitAt: new Date("2026-06-12T10:00:00.000Z") },
+  ], [
+    { clientId: "returning", visitCount: 1, firstVisitAt: new Date("2026-05-20T10:00:00.000Z") },
+  ], [], range);
+
+  assert.equal(result.newClients, 2);
+  assert.equal(result.returningClients, 1);
+  assert.equal(result.repeatVisitClients, 1);
+  assert.ok(Math.abs(result.repeatVisitRate - 100 / 3) < 0.000_001);
+});
+
+test("agregované KPI používají historické minimum i pro předchozí období", () => {
+  const result = getKpiClientMetricsFromAggregates([
+    { clientId: "returning", visitCount: 1, firstVisitAt: new Date("2026-05-20T10:00:00.000Z") },
+  ], [], [
+    { clientId: "returning", visitCount: 3, firstVisitAt: new Date("2026-04-20T10:00:00.000Z") },
+  ], {
+    ...range,
+    start: new Date("2026-05-01T00:00:00.000Z"),
+    end: new Date("2026-06-01T00:00:00.000Z"),
+  });
+
+  assert.deepEqual(result, {
+    newClients: 0,
+    returningClients: 1,
     repeatVisitClients: 0,
     repeatVisitRate: 0,
   });
