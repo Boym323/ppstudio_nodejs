@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 
 import { releaseStuckEmailLogAction, retryEmailLogAction } from "../actions/email-log-actions";
@@ -18,6 +19,16 @@ const views: Array<{ value: AdminLogView; label: string; hint: string; ownerOnly
 ];
 
 const severityLabel = { info: "Informace", success: "V pořádku", warning: "Varování", error: "Chyba" } as const;
+const sourceLabels: Record<AdminLogItem["sourceType"], string> = {
+  booking: "Rezervace",
+  voucher: "Voucher",
+  service: "Služba",
+  availability: "Termíny",
+  settings: "Nastavení",
+  email: "E-mail",
+  admin: "Přístupy",
+  submission: "Systém",
+};
 const severityClasses = {
   info: "border-sky-300/25 bg-sky-400/10 text-sky-100",
   success: "border-emerald-300/25 bg-emerald-400/10 text-emerald-100",
@@ -52,6 +63,10 @@ function hrefWith(data: AdminLogsData, changes: AdminLogUrlChanges) {
 
 function SeverityPill({ severity }: { severity: AdminLogItem["severity"] }) {
   return <span className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${severityClasses[severity]}`}><span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${severityDotClasses[severity]}`} />{severityLabel[severity]}</span>;
+}
+
+function SourceLabel({ source }: { source: AdminLogItem["sourceType"] }) {
+  return <span className="inline-flex shrink-0 rounded-md border border-white/10 bg-white/[.045] px-2 py-0.5 text-[11px] font-medium text-white/60">{sourceLabels[source]}</span>;
 }
 
 function ActionButton({ children }: { children: React.ReactNode }) {
@@ -124,12 +139,15 @@ function AttentionSummary({ data }: { data: AdminLogsData }) {
 
 function LogStatus({ item, view }: { item: AdminLogItem; view: AdminLogView }) {
   const warning = item.severity === "error" || item.severity === "warning";
-  return <div className="space-y-1 text-xs text-white/70">{view === "emails" ? <><p>{item.queueState}</p><p>{item.trackingState}</p></> : null}{warning ? <SeverityPill severity={item.severity} /> : null}</div>;
+  return <div className="space-y-1 text-xs text-white/70">{view === "emails" ? <><p>{item.queueState}</p><p>{item.trackingState}</p></> : null}{warning ? <SeverityPill severity={item.severity} /> : (view === "events" || view === "system") ? <span className="inline-flex items-center gap-1.5 text-xs text-white/55"><span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${severityDotClasses[item.severity]}`} />{severityLabel[item.severity]}</span> : null}</div>;
 }
 
 function LogDescription({ item, view }: { item: AdminLogItem; view: AdminLogView }) {
   if (!item.description) return null;
   if (view === "attention" || view === "emails") return <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-5 text-white/70">{item.description}</p>;
+  if ((item.sourceType === "service" || item.sourceType === "voucher") && item.description.length <= 120 && !item.description.includes("\n")) {
+    return <p className="mt-1 whitespace-pre-wrap break-words text-sm text-white/65">{item.description}</p>;
+  }
   return <details className="mt-1 text-sm text-white/65"><summary className="cursor-pointer py-1">Podrobnosti změny</summary><p className="whitespace-pre-wrap break-words py-1">{item.description}</p></details>;
 }
 
@@ -140,7 +158,7 @@ function EntityLink({ item }: { item: AdminLogItem }) {
 function LogCard({ item, view }: { item: AdminLogItem; view: AdminLogView }) {
   return <article className={`min-w-0 border-b border-white/8 px-3 py-3 last:border-b-0 sm:px-4 ${view === "attention" && item.severity === "error" ? "border-l-2 border-l-rose-400 bg-rose-400/[.035]" : ""}`}>
     <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-      <h3 className="min-w-0 break-words text-sm font-medium text-white">{item.title}</h3>
+      <div className="flex min-w-0 flex-wrap items-center gap-2">{(view === "events" || view === "system") ? <SourceLabel source={item.sourceType} /> : null}<h3 className="min-w-0 break-words text-sm font-medium text-white">{item.title}</h3></div>
       <time dateTime={item.occurredAt} className="shrink-0 text-xs text-white/55">{formatLogTime(item.occurredAt)}</time>
     </div>
     <EntityLink item={item} />
@@ -166,7 +184,7 @@ function LogTable({ data }: { data: AdminLogsData }) {
   return <><div className="hidden overflow-x-auto rounded-xl border border-white/8 md:block"><table className="w-full min-w-[680px] text-left text-sm">
     <thead className="border-b border-white/10 text-xs text-white/60"><tr><th scope="col" className="p-3 font-medium">{emails ? "Zpráva a příjemce" : "Událost"}</th><th scope="col" className="p-3 font-medium">{emails ? "Doručování" : "Stav"}</th><th scope="col" className="p-3 font-medium">Čas</th><th scope="col" className="p-3"><span className="sr-only">Akce</span></th></tr></thead>
     <tbody>{data.items.map((item) => <tr key={item.id} className="border-b border-white/8 last:border-0 hover:bg-white/[.025]">
-      <td className="max-w-xl p-3 align-top"><p className="break-words font-medium text-white">{item.title}</p><EntityLink item={item} /><LogDescription item={item} view={data.view} />{item.actorLabel ? <p className="mt-1 text-xs text-white/55">{item.actorLabel}</p> : null}</td>
+      <td className="max-w-xl p-3 align-top">{data.view === "system" ? <SourceLabel source={item.sourceType} /> : null}<p className="break-words font-medium text-white">{item.title}</p><EntityLink item={item} /><LogDescription item={item} view={data.view} />{item.actorLabel ? <p className="mt-1 text-xs text-white/55">{item.actorLabel}</p> : null}</td>
       <td className="p-3 align-top"><LogStatus item={item} view={data.view} /></td>
       <td className="whitespace-nowrap p-3 align-top text-xs text-white/55"><time dateTime={item.occurredAt}>{formatLogTime(item.occurredAt)}</time></td>
       <td className="p-3 align-top"><Action item={item} /></td>
@@ -175,6 +193,8 @@ function LogTable({ data }: { data: AdminLogsData }) {
 }
 
 export function AdminLogsPage({ data }: { data: AdminLogsData }) {
+  const router = useRouter();
+  const [isRefreshing, startRefresh] = useTransition();
   const isOwner = data.area === "owner";
   const currentView = views.find((view) => view.value === data.view) ?? views[1];
   const filtered = hasActiveFilters(data);
@@ -183,7 +203,10 @@ export function AdminLogsPage({ data }: { data: AdminLogsData }) {
   const rangeEnd = Math.min(data.page * data.pageSize, data.total);
   return <AdminPageShell eyebrow={isOwner ? "Administrace" : "Provoz salonu"} title="Události" description="" mobileCompactIntro denseIntro>
     <div className="min-w-0 space-y-4">
-      <nav className="flex gap-1 overflow-x-auto border-b border-white/10" aria-label="Pohledy událostí">{views.filter((item) => !item.ownerOnly || isOwner).map((item) => <Link key={item.value} href={hrefWith(data, { view: item.value, source: undefined, emailType: undefined, page: undefined })} aria-current={data.view === item.value ? "page" : undefined} className={`inline-flex min-h-11 shrink-0 items-center border-b-2 px-3 text-sm transition ${data.view === item.value ? "border-[var(--color-accent)] font-semibold text-[var(--color-accent-soft)]" : "border-transparent text-white/60 hover:text-white"}`}>{item.label}</Link>)}</nav>
+      <div className="flex min-w-0 items-end justify-between gap-2">
+      <nav className="flex min-w-0 flex-1 gap-1 overflow-x-auto border-b border-white/10" aria-label="Pohledy událostí">{views.filter((item) => !item.ownerOnly || isOwner).map((item) => <Link key={item.value} href={hrefWith(data, { view: item.value, source: undefined, emailType: undefined, page: undefined })} aria-current={data.view === item.value ? "page" : undefined} className={`inline-flex min-h-11 shrink-0 items-center border-b-2 px-3 text-sm transition ${data.view === item.value ? "border-[var(--color-accent)] font-semibold text-[var(--color-accent-soft)]" : "border-transparent text-white/60 hover:text-white"}`}>{item.label}</Link>)}</nav>
+        <button type="button" aria-label="Obnovit události" onClick={() => startRefresh(() => router.refresh())} disabled={isRefreshing} className="mb-1 inline-flex min-h-10 shrink-0 items-center justify-center rounded-full border border-white/15 px-3 text-xs font-medium text-white/75 transition hover:bg-white/5 disabled:opacity-50 sm:text-sm">{isRefreshing ? "Obnovuji…" : "Obnovit"}</button>
+      </div>
       {data.view === "attention" ? <AttentionSummary data={data} /> : null}
       <LogsToolbar key={`${data.view}:${buildAdminLogsSearchParams(data.view, data.filters)}`} data={data} />
       <section aria-label={currentView.label} className="min-w-0 space-y-3">

@@ -8,6 +8,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Přehled Události nově rozlišuje zdroje záznamů, zobrazuje stav i u běžných událostí, zpřístupňuje stručné detaily změn služeb a voucherů a umožňuje ručně obnovit aktuální data bez ztráty filtrů.
+
 - Administrace Události načítá pohledy E-maily a Technické po stránkách přímo z databáze, takže s rostoucí historií nenačítá všechny záznamy do paměti serveru. Přehled Historie změn už nespouští nepotřebné souhrnné dotazy e-mailové fronty.
 
 - KPI statistiky agregují dokončené návštěvy klientek přímo v databázi a pro historické metriky přenášejí pouze souhrny relevantních klientek; otevření statistik tak nezpracovává celou historii rezervací v aplikační vrstvě.
