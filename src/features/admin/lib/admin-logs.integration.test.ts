@@ -380,3 +380,58 @@ dbTest("admin logy filtrují a popisují oba lifecycle e-maily rezervace", async
     await prisma.emailLog.deleteMany({ where: { subject: { contains: suffix } } });
   }
 });
+
+dbTest("E-maily a Technické stránkují více než 50 záznamů bez ztráty pořadí", async () => {
+  const [{ prisma }, { getAdminLogsData }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-data"),
+  ]);
+  const suffix = `admin-log-pages-${randomUUID()}`;
+  const count = 65;
+  const start = new Date("2030-01-01T12:00:00.000Z").getTime();
+
+  try {
+    await Promise.all([
+      prisma.emailLog.createMany({
+        data: Array.from({ length: count }, (_, index) => ({
+          type: EmailLogType.GENERIC,
+          status: EmailLogStatus.SENT,
+          recipientEmail: `${index}-${suffix}@example.test`,
+          subject: `Zpráva ${suffix} ${index}`,
+          templateKey: "admin-log-pagination-test",
+          createdAt: new Date(start + index * 1_000),
+        })),
+      }),
+      prisma.bookingSubmissionLog.createMany({
+        data: Array.from({ length: count }, (_, index) => ({
+          outcome: BookingSubmissionOutcome.FAILED,
+          failureCode: "VALIDATION_ERROR",
+          failureReason: `Zápis ${suffix} ${index}`,
+          createdAt: new Date(start + index * 1_000),
+        })),
+      }),
+    ]);
+
+    for (const view of ["emails", "system"] as const) {
+      const common = { area: "owner" as const, view, query: suffix };
+      const first = await getAdminLogsData(common);
+      const second = await getAdminLogsData({ ...common, page: "2" });
+      const last = await getAdminLogsData({ ...common, page: "999" });
+
+      assert.equal(first.total, count);
+      assert.equal(first.pageCount, 2);
+      assert.equal(first.items.length, 50);
+      assert.equal(second.total, count);
+      assert.equal(second.items.length, 15);
+      assert.equal(last.page, 2);
+      assert.deepEqual(last.items.map((item) => item.id), second.items.map((item) => item.id));
+      assert.equal(new Set([...first.items, ...second.items].map((item) => item.id)).size, count);
+      assert.equal(first.items.at(-1)!.occurredAt > second.items[0]!.occurredAt, true);
+    }
+  } finally {
+    await Promise.all([
+      prisma.emailLog.deleteMany({ where: { subject: { contains: suffix } } }),
+      prisma.bookingSubmissionLog.deleteMany({ where: { failureReason: { contains: suffix } } }),
+    ]);
+  }
+});
