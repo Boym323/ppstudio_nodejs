@@ -1526,6 +1526,17 @@ test.describe("rezervační toky", () => {
     });
 
     expect(booking.status).toBe(BookingStatus.CONFIRMED);
+    const bookingDrawer = page.getByRole("dialog", { name: "Nová rezervace" });
+    await expect(bookingDrawer).toHaveCount(0);
+    await expect(page).toHaveURL((url) => url.pathname === "/admin/rezervace" && !url.searchParams.has("create"));
+
+    // Uložení musí ponechat tabulku i další akce ovladatelné, nejen zapsat rezervaci do DB.
+    await page.getByRole("button", { name: "Přidat rezervaci", exact: true }).first().click();
+    await expect(bookingDrawer).toBeVisible();
+    await bookingDrawer.getByRole("button", { name: "Zavřít", exact: true }).click();
+    await expect(bookingDrawer).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Rezervace", exact: true })).toBeVisible();
   });
 
   test("salon sees manual booking action on client detail and gets the same prefilled flow", async ({ page }) => {

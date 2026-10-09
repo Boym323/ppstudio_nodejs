@@ -240,7 +240,7 @@ export function CreateManualBookingDrawer({
       </div>
 
       {!open && serverState.status === "success" && (serverState.manualOverrideWarning || createdBookingHref) ? (
-        <div className="mt-3 max-w-full overflow-hidden rounded-[1rem] border border-emerald-300/18 bg-emerald-500/10 px-4 py-3">
+        <div className="mt-3 max-w-56 overflow-hidden rounded-[1rem] border border-emerald-300/18 bg-emerald-500/10 px-4 py-3 sm:max-w-sm">
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               {serverState.manualOverrideWarning ? (

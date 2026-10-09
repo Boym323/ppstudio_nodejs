@@ -13,7 +13,7 @@ import { AdminBookingsQuickActions } from "./admin-bookings-quick-actions";
 type Booking = ReservationsDashboardData["sections"][number]["items"][number];
 export function AdminBookingsWorkspace({ area, data }: { area: AdminArea; data: ReservationsDashboardData }) {
   const router = useRouter(); const { toast } = useToast(); const refs = useRef<Array<HTMLTableRowElement | null>>([]); const showToast = useCallback((message: string) => toast({ message }), [toast]);
-  const rows = data.sections.flatMap((section) => section.items);
+  const rows = useMemo(() => data.sections.flatMap((section) => section.items), [data.sections]);
   const columns = useMemo(() => createBookingColumns(area, showToast), [area, showToast]);
   // TanStack Table returns mutable table helpers; these remain local to this non-memoized component.
   // eslint-disable-next-line react-hooks/incompatible-library
