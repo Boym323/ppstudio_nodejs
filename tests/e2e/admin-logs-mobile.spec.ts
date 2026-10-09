@@ -62,9 +62,14 @@ test.describe("mobilní Události a logy", () => {
       });
       await expect(page.getByText("Provozní historie").last()).toBeVisible();
       await expect(page.getByRole("list", { name: /Události dne/ })).toBeVisible();
+      await expect(page.getByText("1 záznam · od nejnovějších · filtrováno")).toBeVisible();
+      await expect(page.getByRole("navigation", { name: "Stránkování událostí" })).toHaveCount(0);
       await expect(page.getByRole("heading", { name: "Voucher vytvořen" })).toBeVisible();
       await expect(page.getByRole("list", { name: /Události dne/ }).getByText("Voucher", { exact: true })).toBeVisible();
       await page.setViewportSize({ width: 320, height: 700 });
+      for (const tab of ["K vyřešení", "Historie změn", "E-maily", "Technické"]) {
+        await expect(page.getByRole("navigation", { name: "Pohledy událostí" }).getByRole("link", { name: tab })).toBeInViewport();
+      }
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
       await test.info().attach("události-historie-320", {
         body: await page.screenshot({ fullPage: true }),
@@ -72,6 +77,12 @@ test.describe("mobilní Události a logy", () => {
       });
       if (test.info().project.name === "chromium") {
         await page.setViewportSize({ width: 1440, height: 900 });
+        const desktopSearch = page.getByPlaceholder("Hledat rezervaci, voucher nebo službu…");
+        const advancedFilters = page.getByText("Další filtry", { exact: true });
+        await expect(advancedFilters).toBeInViewport();
+        const searchBox = await desktopSearch.boundingBox();
+        const advancedBox = await advancedFilters.boundingBox();
+        expect(searchBox && advancedBox && Math.abs(searchBox.y - advancedBox.y) < 10).toBeTruthy();
         await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
         await test.info().attach("události-historie-desktop-1440", {
           body: await page.screenshot({ fullPage: true }),

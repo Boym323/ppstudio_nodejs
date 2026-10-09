@@ -101,6 +101,11 @@ function LogsFiltersDialog({ data }: { data: AdminLogsData }) {
   return <Sheet.Content asChild className="md:hidden"><form method="get" className="scroll-pb-28"><input type="hidden" name="view" value={data.view} /><input type="hidden" name="query" value={data.filters.query} /><Sheet.Description className="sr-only">Upřesnění filtrů provozních logů.</Sheet.Description><div className="flex items-center justify-between"><div><p className="text-[10px] uppercase tracking-[.2em] text-[var(--color-accent-soft)]">Upřesnit přehled</p><Sheet.Title className="mt-1 text-xl">Filtry událostí</Sheet.Title></div><Sheet.Close asChild><button type="button" className="min-h-11 px-3 text-white/72">Zavřít</button></Sheet.Close></div><div className="mt-4 grid gap-3"><FilterFields data={data} /></div><div className="sticky bottom-0 mt-5 flex gap-2 border-t border-white/10 bg-[#111015]/96 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3"><Link href={`?view=${data.view}`} className="inline-flex min-h-11 items-center px-3 text-sm text-white/72 underline">Vymazat</Link><button className="min-h-11 flex-1 rounded-full bg-[var(--color-accent)] px-4 font-semibold text-[var(--color-accent-contrast)]">Použít filtry</button></div></form></Sheet.Content>;
 }
 
+function formatLogRecordCount(count: number) {
+  const noun = count === 1 ? "záznam" : count >= 2 && count <= 4 ? "záznamy" : "záznamů";
+  return `${count.toLocaleString("cs-CZ")} ${noun}`;
+}
+
 function hasActiveFilters(data: AdminLogsData) {
   return data.filters.query.length > 0 || data.filters.severity !== "all" || data.filters.source !== "all" || data.filters.emailType !== "all" || data.filters.dateFrom.length > 0 || data.filters.dateTo.length > 0;
 }
@@ -115,6 +120,7 @@ function LogsToolbar({ data }: { data: AdminLogsData }) {
     return () => mediaQuery.removeEventListener("change", closeOnTablet);
   }, []);
   const activeFilters = hasActiveFilters(data);
+  const advancedFiltersActive = data.filters.severity !== "all" || data.filters.source !== "all" || data.filters.emailType !== "all";
   const searchPlaceholder = data.view === "events"
     ? "Hledat rezervaci, voucher nebo službu…"
     : data.view === "emails"
@@ -125,7 +131,57 @@ function LogsToolbar({ data }: { data: AdminLogsData }) {
   const mobilePreservedFilters = [...buildAdminLogsSearchParams(data.view, data.filters).entries()]
     .filter(([name]) => name !== "view" && name !== "query");
 
-  return <Sheet.Root open={open} onOpenChange={setOpen}><form method="get" className="hidden md:block"><input type="hidden" name="view" value={data.view} /><div className="flex flex-wrap items-center gap-2"><input name="query" defaultValue={data.filters.query} placeholder={searchPlaceholder} className="min-h-11 min-w-[16rem] flex-1 rounded-xl border border-white/10 bg-black/25 px-3 text-sm text-white placeholder:text-white/35" /><label className="text-xs text-white/65">Od<input type="date" name="dateFrom" defaultValue={data.filters.dateFrom} className="ml-2 min-h-11 rounded-xl border border-white/10 bg-black/25 px-2 text-sm text-white [color-scheme:dark]" /></label><label className="text-xs text-white/65">Do<input type="date" name="dateTo" defaultValue={data.filters.dateTo} className="ml-2 min-h-11 rounded-xl border border-white/10 bg-black/25 px-2 text-sm text-white [color-scheme:dark]" /></label><details className="basis-full" open={data.filters.severity !== "all" || data.filters.source !== "all" || data.filters.emailType !== "all"}><summary className="min-h-11 cursor-pointer py-3 text-sm text-white/70">Další filtry</summary><div className="flex flex-wrap gap-2 pb-2"><FilterFields data={data} dates={false} /></div></details><button className="min-h-11 rounded-full border border-[var(--color-accent)]/50 bg-[rgba(190,160,120,.1)] px-4 text-sm font-semibold text-[var(--color-accent-soft)]">Použít</button>{activeFilters ? <Link href={`?view=${data.view}`} className="min-h-11 px-2 text-sm leading-[2.75rem] text-white/62 underline">Vymazat filtry</Link> : null}</div></form><form method="get" className="flex gap-2 md:hidden"><input type="hidden" name="view" value={data.view} />{mobilePreservedFilters.map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}<input name="query" defaultValue={data.filters.query} placeholder="Hledat…" className="min-h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-black/25 px-3 text-sm text-white placeholder:text-white/35" /><Sheet.Trigger asChild><button type="button" className={`min-h-11 rounded-full border px-4 text-sm ${activeFilters ? "border-[var(--color-accent)]/55 bg-[rgba(190,160,120,.15)] text-[var(--color-accent-soft)]" : "border-white/15 text-white/78"}`}>Filtry{activeFilters ? " •" : ""}</button></Sheet.Trigger></form><LogsFiltersDialog data={data} /></Sheet.Root>;
+  return (
+    <Sheet.Root open={open} onOpenChange={setOpen}>
+      <form method="get" className="hidden md:block">
+        <input type="hidden" name="view" value={data.view} />
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-white/[.025] p-2.5">
+          <input name="query" defaultValue={data.filters.query} placeholder={searchPlaceholder}
+            className="min-h-11 min-w-[12rem] flex-[2_1_14rem] rounded-xl border border-white/10 bg-black/25 px-3 text-sm text-white placeholder:text-white/35" />
+          <div className="flex min-w-0 flex-[2_1_20rem] flex-wrap items-center gap-2">
+            <label className="flex min-w-[9rem] flex-1 items-center gap-2 text-xs text-white/65">
+              Od
+              <input type="date" name="dateFrom" defaultValue={data.filters.dateFrom}
+                className="min-h-11 min-w-0 w-full rounded-xl border border-white/10 bg-black/25 px-2 text-sm text-white [color-scheme:dark]" />
+            </label>
+            <label className="flex min-w-[9rem] flex-1 items-center gap-2 text-xs text-white/65">
+              Do
+              <input type="date" name="dateTo" defaultValue={data.filters.dateTo}
+                className="min-h-11 min-w-0 w-full rounded-xl border border-white/10 bg-black/25 px-2 text-sm text-white [color-scheme:dark]" />
+            </label>
+          </div>
+          <details className="relative shrink-0">
+            <summary className={`flex min-h-11 cursor-pointer list-none items-center rounded-full border px-3 text-sm transition hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70 [&::-webkit-details-marker]:hidden ${advancedFiltersActive ? "border-[var(--color-accent)]/45 text-[var(--color-accent-soft)]" : "border-white/15 text-white/75"}`}>
+              Další filtry{advancedFiltersActive ? " •" : ""}
+            </summary>
+            <div className="absolute right-0 top-full z-30 mt-2 grid min-w-[min(18rem,80vw)] gap-2 rounded-xl border border-white/15 bg-[#19171c] p-3 shadow-xl sm:min-w-[20rem]">
+              <p className="text-xs font-medium text-white/65">Upřesnit výsledky</p>
+              <FilterFields data={data} dates={false} />
+              <button type="submit" className="min-h-11 rounded-full bg-[var(--color-accent)] px-4 text-sm font-semibold text-[var(--color-accent-contrast)]">
+                Použít filtry
+              </button>
+            </div>
+          </details>
+          <button type="submit" className="min-h-11 rounded-full border border-[var(--color-accent)]/50 bg-[rgba(190,160,120,.1)] px-4 text-sm font-semibold text-[var(--color-accent-soft)]">
+            Použít
+          </button>
+          {activeFilters ? <Link href={`?view=${data.view}`} className="inline-flex min-h-11 items-center px-2 text-sm text-white/65 underline underline-offset-4">Vymazat</Link> : null}
+        </div>
+      </form>
+      <form method="get" className="flex gap-2 md:hidden">
+        <input type="hidden" name="view" value={data.view} />
+        {mobilePreservedFilters.map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}
+        <input name="query" defaultValue={data.filters.query} placeholder="Hledat…"
+          className="min-h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-black/25 px-3 text-sm text-white placeholder:text-white/35" />
+        <Sheet.Trigger asChild>
+          <button type="button" className={`min-h-11 rounded-full border px-4 text-sm ${activeFilters ? "border-[var(--color-accent)]/55 bg-[rgba(190,160,120,.15)] text-[var(--color-accent-soft)]" : "border-white/15 text-white/78"}`}>
+            Filtry{activeFilters ? " •" : ""}
+          </button>
+        </Sheet.Trigger>
+      </form>
+      <LogsFiltersDialog data={data} />
+    </Sheet.Root>
+  );
 }
 
 function AttentionSummary({ data }: { data: AdminLogsData }) {
@@ -243,20 +299,41 @@ export function AdminLogsPage({ data }: { data: AdminLogsData }) {
   const rangeEnd = Math.min(data.page * data.pageSize, data.total);
   return <AdminPageShell eyebrow={isOwner ? "Administrace" : "Provoz salonu"} title="Události" description={currentView.hint} mobileCompactIntro denseIntro>
     <div className="min-w-0 space-y-4">
-      <div className="flex min-w-0 items-end justify-between gap-2">
-        <nav className="flex min-w-0 flex-1 gap-1 overflow-x-auto border-b border-white/10" aria-label="Pohledy událostí">{views.filter((item) => !item.ownerOnly || isOwner).map((item) => <Link key={item.value} href={hrefWith(data, { view: item.value, source: undefined, emailType: undefined, page: undefined })} aria-current={data.view === item.value ? "page" : undefined} className={`inline-flex min-h-11 shrink-0 items-center border-b-2 px-3 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70 ${data.view === item.value ? "border-[var(--color-accent)] font-semibold text-[var(--color-accent-soft)]" : "border-transparent text-white/60 hover:text-white"}`}>{item.label}</Link>)}</nav>
-        <button type="button" aria-label="Obnovit události" onClick={() => startRefresh(() => router.refresh())} disabled={isRefreshing} className="mb-1 inline-flex min-h-10 shrink-0 items-center justify-center rounded-full border border-white/15 px-3 text-xs font-medium text-white/75 transition hover:bg-white/5 disabled:opacity-50 sm:text-sm">{isRefreshing ? "Obnovuji…" : "Obnovit"}</button>
+      <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <nav className="grid w-full grid-cols-2 gap-1 rounded-xl border border-white/10 bg-white/[.025] p-1 md:flex md:min-w-0 md:flex-1 md:gap-1 md:overflow-x-auto md:rounded-none md:border-0 md:border-b md:bg-transparent md:p-0" aria-label="Pohledy událostí">
+          {views.filter((item) => !item.ownerOnly || isOwner).map((item) => (
+            <Link key={item.value}
+              href={hrefWith(data, { view: item.value, source: undefined, emailType: undefined, page: undefined })}
+              aria-current={data.view === item.value ? "page" : undefined}
+              className={`inline-flex min-h-11 min-w-0 items-center justify-center rounded-lg border px-2 text-center text-sm leading-tight transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70 md:shrink-0 md:rounded-none md:border-0 md:border-b-2 md:px-3 ${data.view === item.value ? "border-[var(--color-accent)]/50 bg-[rgba(190,160,120,.12)] font-semibold text-[var(--color-accent-soft)] md:border-[var(--color-accent)] md:bg-transparent" : "border-transparent text-white/70 hover:bg-white/5 hover:text-white md:bg-transparent"}`}>
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+        <button type="button" aria-label="Obnovit události"
+          onClick={() => startRefresh(() => router.refresh())} disabled={isRefreshing}
+          className="inline-flex min-h-10 shrink-0 items-center justify-center self-end rounded-full border border-white/15 px-3 text-xs font-medium text-white/75 transition hover:bg-white/5 disabled:opacity-50 md:mb-1 md:self-auto sm:text-sm">
+          {isRefreshing ? "Obnovuji…" : "Obnovit"}
+        </button>
       </div>
       {data.view === "attention" ? <AttentionSummary data={data} /> : null}
       <LogsToolbar key={`${data.view}:${buildAdminLogsSearchParams(data.view, data.filters)}`} data={data} />
       <section aria-label={currentView.label} className="min-w-0 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/8 bg-white/[.025] px-3.5 py-2.5">
           <p className="text-sm font-medium text-white/80">{currentView.label}</p>
-          <p className="text-xs tabular-nums text-white/60">{data.total.toLocaleString("cs-CZ")} záznamů · od nejnovějších{filtered ? " · filtrováno" : ""}</p>
+          <p className="text-xs tabular-nums text-white/60">{formatLogRecordCount(data.total)} · od nejnovějších{filtered ? " · filtrováno" : ""}</p>
         </div>
         {data.items.length ? data.view === "attention" ? <div className="overflow-hidden rounded-xl border border-white/8">{data.items.map((item) => <LogCard key={item.id} item={item} view={data.view} />)}</div> : data.view === "events" ? <HistoryList items={data.items} /> : <LogTable data={data} /> : <div className={`rounded-xl px-4 py-7 text-sm ${data.view === "attention" && !filtered ? "bg-emerald-400/[.04] text-emerald-100" : "bg-white/[.025] text-white/75"}`}><p>{empty}</p>{filtered ? <Link href={`?view=${data.view}`} className="mt-2 inline-flex min-h-11 items-center underline underline-offset-4">Vymazat filtry</Link> : null}</div>}
       </section>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/8 pt-3 text-sm text-white/60"><p>{rangeStart}–{rangeEnd} z {data.total} · stránka {data.page} z {data.pageCount}</p><div className="flex gap-3">{data.page > 1 ? <Link href={hrefWith(data, { page: String(data.page - 1) })} className="inline-flex min-h-11 items-center underline underline-offset-4">Předchozí</Link> : null}{data.page < data.pageCount ? <Link href={hrefWith(data, { page: String(data.page + 1) })} className="inline-flex min-h-11 items-center underline underline-offset-4">Další</Link> : null}</div></div>
+      {data.pageCount > 1 ? (
+        <nav aria-label="Stránkování událostí" className="flex flex-wrap items-center justify-between gap-3 border-t border-white/8 pt-3 text-sm text-white/60">
+          <p>{rangeStart}–{rangeEnd} z {data.total} · stránka {data.page} z {data.pageCount}</p>
+          <div className="flex gap-3">
+            {data.page > 1 ? <Link href={hrefWith(data, { page: String(data.page - 1) })} className="inline-flex min-h-11 items-center underline underline-offset-4">Předchozí</Link> : null}
+            {data.page < data.pageCount ? <Link href={hrefWith(data, { page: String(data.page + 1) })} className="inline-flex min-h-11 items-center underline underline-offset-4">Další</Link> : null}
+          </div>
+        </nav>
+      ) : null}
       {isOwner && data.view === "system" ? <details className="border-t border-white/8 pt-3"><summary className="min-h-11 cursor-pointer text-sm text-white/65">Technický stav e-mailové fronty</summary><p className="text-sm text-white/60">{data.workerSummary}</p></details> : null}
     </div>
   </AdminPageShell>;
