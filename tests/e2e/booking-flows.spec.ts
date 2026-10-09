@@ -131,7 +131,7 @@ async function selectAvailableSlot(
     const candidate = slotButtons.nth(index);
     await expect(candidate).toBeVisible();
     await expect(candidate).toBeEnabled();
-    await candidate.dispatchEvent("click");
+    await candidate.click();
     await expect(candidate).toHaveAttribute("aria-pressed", "true");
 
     const slotId = await page.locator('input[name="slotId"]').inputValue();
@@ -166,7 +166,7 @@ async function submitRescheduleUntilSuccess(
     const candidate = slotButtons.nth(index);
     await expect(candidate).toBeVisible();
     await expect(candidate).toBeEnabled();
-    await candidate.dispatchEvent("click");
+    await candidate.click();
     await expect(candidate).toHaveAttribute("aria-pressed", "true");
 
     if ((await successHeading.count()) > 0) {
