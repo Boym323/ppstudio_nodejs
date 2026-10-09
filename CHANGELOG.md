@@ -10,6 +10,10 @@ Formát je inspirovaný Keep a Changelog.
 
 - Horní souhrn Provozního přehledu čitelněji odděluje probíhající a další návštěvu, zachovává celé texty a zobrazuje kompaktní akce; upozornění mají jednodušší rozložení bez přerostlých tlačítek. Menší mezery a akce vedle obsahu na širších obrazovkách šetří výšku obou sekcí.
 
+### Opraveno
+
+- E2E kontrola dokončení návštěvy nyní skutečně čeká na dokončení přihlášení i v mobilním Safari; předchozí kontrola akceptovala samotnou URL přihlašovací stránky jako administraci. Produkční závislosti `sharp` a `source-map-js` byly aktualizovány na verze bez známých high zranitelností.
+
 ## [3.33.0] - 2026-10-07
 
 ### Změněno
