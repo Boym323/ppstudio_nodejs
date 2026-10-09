@@ -27,6 +27,8 @@ test.describe("mobilní Události a logy", () => {
     await expect(page.getByRole("heading", { name: "Události" })).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await expect(page.getByRole("link", { name: "E-maily" })).toBeVisible();
+    await page.getByRole("button", { name: "Obnovit události" }).click();
+    await expect(page.getByRole("heading", { name: "Události" })).toBeVisible();
     const filters = page.getByRole("button", { name: "Filtry" });
     await expect(filters).toBeVisible();
     await filters.click();
