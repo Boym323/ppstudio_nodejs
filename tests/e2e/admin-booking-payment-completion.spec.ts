@@ -72,7 +72,7 @@ test.describe("dokončení návštěvy s úhradou", () => {
     await page.getByLabel("E-mail").fill(admin.email);
     await page.getByLabel("Heslo").fill(admin.password);
     await page.getByRole("button", { name: "Přihlásit se" }).click();
-    await expect(page).toHaveURL(/\/admin\/(?!prihlaseni(?:[/?]|$))/);
+    await expect(page).toHaveURL(/\/admin(?:$|\?.*|\/(?!prihlaseni(?:[/?]|$)))/);
 
     await openBookingDetail(page, fixture.bookingId!);
     const completionPanel = page.locator('[aria-label="Způsob dokončení návštěvy"]').locator("..");
