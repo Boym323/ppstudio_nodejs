@@ -989,7 +989,8 @@ export async function getAdminLogsData(input: {
     ? emailTotal + adminAuditTotal + submissionTotal
     : null;
   const simpleMeta = exactSimpleTotal === null ? null : getAdminLogCandidatePlan(exactSimpleTotal, requestedPage);
-  const simpleCandidateTake = simpleMeta?.take;
+  const simpleCandidateTake = safeView === "emails" ? adminLogPageSize : simpleMeta?.take;
+  const emailPageSkip = safeView === "emails" ? (simpleMeta?.offset ?? 0) : 0;
 
   // Přesný total potřebuje zjistit jen identity potenciálně duplicitních auditů,
   // nikoliv načíst celou tabulku VoucherRedemption.
@@ -1053,7 +1054,7 @@ export async function getAdminLogsData(input: {
           ...incidents.map((incident) => ({ representativeEmailLog: incident.incidentResends[0] ?? incident, incidentRoot: incident })),
           ...supplementary.map((log) => ({ representativeEmailLog: log, incidentRoot: log.resendRoot ?? log })),
         ])
-        : prisma.emailLog.findMany({ where: emailWhere, ...(simpleCandidateTake ? { take: simpleCandidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, client: { select: { fullName: true } }, resendRoot: { select: { incidentResolvedAt: true, incidentResolvedByEmailLogId: true, incidentResolutionKind: true } } } }).then((logs) => logs.map((log) => ({ representativeEmailLog: log, incidentRoot: log.resendRoot ?? log })))
+        : prisma.emailLog.findMany({ where: emailWhere, ...(emailPageSkip ? { skip: emailPageSkip } : {}), ...(simpleCandidateTake ? { take: simpleCandidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, client: { select: { fullName: true } }, resendRoot: { select: { incidentResolvedAt: true, incidentResolvedByEmailLogId: true, incidentResolutionKind: true } } } }).then((logs) => logs.map((log) => ({ representativeEmailLog: log, incidentRoot: log.resendRoot ?? log })))
       : Promise.resolve([]),
     bookingActive ? prisma.bookingStatusHistory.findMany({ where: bookingHistoryWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
     bookingActive ? prisma.bookingRescheduleLog.findMany({ where: rescheduleWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, changedByUser: { select: { name: true } } } }) : Promise.resolve([]),
@@ -1141,7 +1142,7 @@ export async function getAdminLogsData(input: {
   });
   const deduplicatedTotal = exactEventTotal ?? exactSimpleTotal ?? visible.length;
   const deduplicatedMeta = eventMeta ?? simpleMeta ?? getAdminLogPageMeta(deduplicatedTotal, requestedPage);
-  return { area: input.area, view: safeView, items: sortAndPageAdminLogItems(visible, deduplicatedMeta.page), total: deduplicatedTotal, page: deduplicatedMeta.page, pageCount: deduplicatedMeta.pageCount, pageSize: adminLogPageSize, filters: { query, severity, source, emailType, dateFrom: input.dateFrom ?? "", dateTo: input.dateTo ?? "" }, attention: { failed, retry, stuck, critical }, queueStats: [{ label: "Čeká", value: String(pending), tone: pending ? "accent" : "muted" }, { label: "Retry", value: String(retry), tone: retry ? "accent" : "muted" }, { label: "Zpracovává se", value: String(processing), tone: processing ? "accent" : "muted" }, { label: "Aktivní incidenty", value: String(failed), tone: failed ? "accent" : "muted" }], workerSummary: getWorkerSummary({ pending, retrying: retry, processing, failed }) };
+  return { area: input.area, view: safeView, items: sortAndPageAdminLogItems(visible, safeView === "emails" ? 1 : deduplicatedMeta.page), total: deduplicatedTotal, page: deduplicatedMeta.page, pageCount: deduplicatedMeta.pageCount, pageSize: adminLogPageSize, filters: { query, severity, source, emailType, dateFrom: input.dateFrom ?? "", dateTo: input.dateTo ?? "" }, attention: { failed, retry, stuck, critical }, queueStats: [{ label: "Čeká", value: String(pending), tone: pending ? "accent" : "muted" }, { label: "Retry", value: String(retry), tone: retry ? "accent" : "muted" }, { label: "Zpracovává se", value: String(processing), tone: processing ? "accent" : "muted" }, { label: "Aktivní incidenty", value: String(failed), tone: failed ? "accent" : "muted" }], workerSummary: getWorkerSummary({ pending, retrying: retry, processing, failed }) };
 }
 
 export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLogDetailData | null> {
