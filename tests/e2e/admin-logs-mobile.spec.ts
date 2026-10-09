@@ -59,7 +59,7 @@ test.describe("mobilní Události a logy", () => {
       await expect(page.getByText("Provozní historie")).toBeVisible();
       await expect(page.getByRole("list", { name: /Události dne/ })).toBeVisible();
       await expect(page.getByRole("heading", { name: "Voucher vytvořen" })).toBeVisible();
-      await expect(page.getByText("Voucher", { exact: true })).toBeVisible();
+      await expect(page.getByRole("list", { name: /Události dne/ }).getByText("Voucher", { exact: true })).toBeVisible();
       await page.setViewportSize({ width: 320, height: 700 });
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     } finally {
