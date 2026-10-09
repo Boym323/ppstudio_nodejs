@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 
 import { expect, test } from "@playwright/test";
-import { AdminRole, EmailLogStatus, EmailLogType } from "@/generated/prisma/client";
+import { AdminRole, EmailLogStatus, EmailLogType, VoucherType } from "@/generated/prisma/client";
 
 import { createSessionToken, SESSION_COOKIE_NAME } from "../../src/lib/auth/session-token";
 import { cleanupE2eData, createAdminFixture, prisma } from "./helpers/fixtures";
@@ -42,4 +42,29 @@ test.describe("mobilní Události a logy", () => {
     await expect(page.getByRole("button", { name: "Zopakovat odeslání" })).toBeVisible();
     await expect(page.getByRole("article").getByText(`${runId}@example.test`)).toBeVisible();
   });
+  test("historie voucherů zobrazuje denní časovou osu čitelně i na úzkém mobilu", async ({ page }) => {
+    const voucher = await prisma.voucher.create({
+      data: {
+        code: `VISUAL-${runId}`,
+        type: VoucherType.VALUE,
+        originalValueCzk: 100,
+        remainingValueCzk: 100,
+        purchaserName: "E2E historie",
+      },
+    });
+
+    try {
+      await page.goto(`/admin/logy?view=events&source=voucher&query=${runId}`);
+      await expect(page.getByRole("heading", { name: "Události" })).toBeVisible();
+      await expect(page.getByText("Provozní historie")).toBeVisible();
+      await expect(page.getByRole("list", { name: /Události dne/ })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Voucher vytvořen" })).toBeVisible();
+      await expect(page.getByText("Voucher", { exact: true })).toBeVisible();
+      await page.setViewportSize({ width: 320, height: 700 });
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    } finally {
+      await prisma.voucher.delete({ where: { id: voucher.id } });
+    }
+  });
+
 });

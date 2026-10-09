@@ -42,6 +42,8 @@ const severityDotClasses = {
   error: "bg-rose-300",
 } as const;
 
+const pragueClock = new Intl.DateTimeFormat("cs-CZ", { timeZone: "Europe/Prague", hour: "2-digit", minute: "2-digit", hour12: false });
+
 const pragueDateTime = new Intl.DateTimeFormat("cs-CZ", {
   timeZone: "Europe/Prague",
   day: "2-digit",
@@ -52,9 +54,9 @@ const pragueDateTime = new Intl.DateTimeFormat("cs-CZ", {
   hour12: false,
 });
 
-function formatLogTime(occurredAt: string) {
+function formatLogTime(occurredAt: string, clockOnly = false) {
   const date = new Date(occurredAt);
-  return Number.isNaN(date.getTime()) ? "—" : pragueDateTime.format(date);
+  return Number.isNaN(date.getTime()) ? "—" : (clockOnly ? pragueClock : pragueDateTime).format(date);
 }
 
 function hrefWith(data: AdminLogsData, changes: AdminLogUrlChanges) {
@@ -134,7 +136,12 @@ function AttentionSummary({ data }: { data: AdminLogsData }) {
     ...(data.area === "owner" ? [{ label: "Systémové chyby", value: data.attention.critical }] : []),
   ].filter((item) => item.value > 0);
   if (!items.length) return null;
-  return <div aria-label="Aktuální stav doručování" className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/70">{items.map((item) => <span key={item.label}>{item.label}: <strong className="text-white">{item.value}</strong></span>)}</div>;
+  return <div aria-label="Aktuální stav doručování" className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{items.map((item) => (
+    <div key={item.label} className="flex min-h-16 items-center justify-between gap-3 rounded-xl border border-amber-300/15 bg-amber-400/[.045] px-4 py-3">
+      <span className="text-sm leading-5 text-white/75">{item.label}</span>
+      <strong className="text-xl font-semibold tabular-nums text-amber-100">{item.value}</strong>
+    </div>
+  ))}</div>;
 }
 
 function LogStatus({ item, view }: { item: AdminLogItem; view: AdminLogView }) {
@@ -156,15 +163,27 @@ function EntityLink({ item }: { item: AdminLogItem }) {
 }
 
 function LogCard({ item, view }: { item: AdminLogItem; view: AdminLogView }) {
-  return <article className={`min-w-0 border-b border-white/8 px-3 py-3 last:border-b-0 sm:px-4 ${view === "attention" && item.severity === "error" ? "border-l-2 border-l-rose-400 bg-rose-400/[.035]" : ""}`}>
-    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-      <div className="flex min-w-0 flex-wrap items-center gap-2">{(view === "events" || view === "system") ? <SourceLabel source={item.sourceType} /> : null}<h3 className="min-w-0 break-words text-sm font-medium text-white">{item.title}</h3></div>
-      <time dateTime={item.occurredAt} className="shrink-0 text-xs text-white/55">{formatLogTime(item.occurredAt)}</time>
-    </div>
-    <EntityLink item={item} />
-    <LogDescription item={item} view={view} />
-    <div className="mt-2 flex flex-wrap items-center justify-between gap-2"><div className="flex flex-wrap items-center gap-2"><LogStatus item={item} view={view} />{item.actorLabel ? <span className="text-xs text-white/55">{item.actorLabel}</span> : null}</div><Action item={item} /></div>
-  </article>;
+  const isHistory = view === "events";
+  return (
+    <article className={`min-w-0 px-3 py-3 sm:px-4 ${isHistory ? "rounded-xl border border-white/10 bg-white/[.035] transition-colors hover:border-white/20 hover:bg-white/[.055]" : "border-b border-white/8 last:border-b-0"} ${view === "attention" && item.severity === "error" ? "border-l-2 border-l-rose-400 bg-rose-400/[.035]" : ""}`}>
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {(isHistory || view === "system") ? <SourceLabel source={item.sourceType} /> : null}
+          <h3 className="min-w-0 break-words text-[15px] font-semibold leading-5 text-white">{item.title}</h3>
+        </div>
+        <time dateTime={item.occurredAt} className="shrink-0 text-xs font-medium tabular-nums text-white/55">{formatLogTime(item.occurredAt, isHistory)}</time>
+      </div>
+      <EntityLink item={item} />
+      <LogDescription item={item} view={view} />
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <LogStatus item={item} view={view} />
+          {item.actorLabel ? <span className="break-words text-xs text-white/55">Autor: {item.actorLabel}</span> : null}
+        </div>
+        <Action item={item} />
+      </div>
+    </article>
+  );
 }
 
 const logDay = new Intl.DateTimeFormat("cs-CZ", { timeZone: "Europe/Prague", day: "numeric", month: "long", year: "numeric" });
@@ -176,7 +195,28 @@ function HistoryList({ items }: { items: AdminLogItem[] }) {
     const day = Number.isNaN(date.getTime()) ? "Bez data" : logDay.format(date);
     groups.set(day, [...(groups.get(day) ?? []), item]);
   }
-  return <div className="space-y-4">{[...groups].map(([day, entries]) => <section key={day} aria-label={day}><h2 className="px-3 pb-2 text-sm font-medium text-white/65">{day}</h2><div className="rounded-xl border border-white/8">{entries.map((item) => <LogCard key={item.id} item={item} view="events" />)}</div></section>)}</div>;
+  return (
+    <div className="space-y-6">
+      {[...groups].map(([day, entries]) => (
+        <section key={day} aria-label={day}>
+          <div className="mb-3 flex flex-wrap items-center gap-3">
+            <h2 className="text-sm font-semibold text-white/85">{day}</h2>
+            <span className="rounded-full border border-white/10 bg-white/[.035] px-2.5 py-1 text-xs tabular-nums text-white/55">
+              {entries.length} {entries.length === 1 ? "změna" : entries.length < 5 ? "změny" : "změn"}
+            </span>
+          </div>
+          <ol aria-label={`Události dne ${day}`} className="ml-2 space-y-3 border-l border-white/15 pl-5">
+            {entries.map((item) => (
+              <li key={item.id} className="relative min-w-0">
+                <span aria-hidden="true" className={`absolute -left-[1.58rem] top-5 h-2.5 w-2.5 rounded-full ring-4 ring-[#111015] ${severityDotClasses[item.severity]}`} />
+                <LogCard item={item} view="events" />
+              </li>
+            ))}
+          </ol>
+        </section>
+      ))}
+    </div>
+  );
 }
 
 function LogTable({ data }: { data: AdminLogsData }) {
@@ -201,16 +241,19 @@ export function AdminLogsPage({ data }: { data: AdminLogsData }) {
   const empty = filtered ? "Zadaným filtrům neodpovídají žádné záznamy." : data.view === "attention" ? "Vše je v pořádku. Nic nyní nevyžaduje pozornost." : data.view === "emails" ? "Zatím nejsou evidované žádné e-maily." : "Zatím nejsou evidované žádné události.";
   const rangeStart = data.total === 0 ? 0 : (data.page - 1) * data.pageSize + 1;
   const rangeEnd = Math.min(data.page * data.pageSize, data.total);
-  return <AdminPageShell eyebrow={isOwner ? "Administrace" : "Provoz salonu"} title="Události" description="" mobileCompactIntro denseIntro>
+  return <AdminPageShell eyebrow={isOwner ? "Administrace" : "Provoz salonu"} title="Události" description={currentView.hint} mobileCompactIntro denseIntro>
     <div className="min-w-0 space-y-4">
       <div className="flex min-w-0 items-end justify-between gap-2">
-      <nav className="flex min-w-0 flex-1 gap-1 overflow-x-auto border-b border-white/10" aria-label="Pohledy událostí">{views.filter((item) => !item.ownerOnly || isOwner).map((item) => <Link key={item.value} href={hrefWith(data, { view: item.value, source: undefined, emailType: undefined, page: undefined })} aria-current={data.view === item.value ? "page" : undefined} className={`inline-flex min-h-11 shrink-0 items-center border-b-2 px-3 text-sm transition ${data.view === item.value ? "border-[var(--color-accent)] font-semibold text-[var(--color-accent-soft)]" : "border-transparent text-white/60 hover:text-white"}`}>{item.label}</Link>)}</nav>
+        <nav className="flex min-w-0 flex-1 gap-1 overflow-x-auto border-b border-white/10" aria-label="Pohledy událostí">{views.filter((item) => !item.ownerOnly || isOwner).map((item) => <Link key={item.value} href={hrefWith(data, { view: item.value, source: undefined, emailType: undefined, page: undefined })} aria-current={data.view === item.value ? "page" : undefined} className={`inline-flex min-h-11 shrink-0 items-center border-b-2 px-3 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70 ${data.view === item.value ? "border-[var(--color-accent)] font-semibold text-[var(--color-accent-soft)]" : "border-transparent text-white/60 hover:text-white"}`}>{item.label}</Link>)}</nav>
         <button type="button" aria-label="Obnovit události" onClick={() => startRefresh(() => router.refresh())} disabled={isRefreshing} className="mb-1 inline-flex min-h-10 shrink-0 items-center justify-center rounded-full border border-white/15 px-3 text-xs font-medium text-white/75 transition hover:bg-white/5 disabled:opacity-50 sm:text-sm">{isRefreshing ? "Obnovuji…" : "Obnovit"}</button>
       </div>
       {data.view === "attention" ? <AttentionSummary data={data} /> : null}
       <LogsToolbar key={`${data.view}:${buildAdminLogsSearchParams(data.view, data.filters)}`} data={data} />
       <section aria-label={currentView.label} className="min-w-0 space-y-3">
-        <p className="text-xs text-white/55">{data.total} záznamů · od nejnovějších{filtered ? " · filtrováno" : ""}</p>
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/8 bg-white/[.025] px-3.5 py-2.5">
+          <p className="text-sm font-medium text-white/80">{currentView.label}</p>
+          <p className="text-xs tabular-nums text-white/60">{data.total.toLocaleString("cs-CZ")} záznamů · od nejnovějších{filtered ? " · filtrováno" : ""}</p>
+        </div>
         {data.items.length ? data.view === "attention" ? <div className="overflow-hidden rounded-xl border border-white/8">{data.items.map((item) => <LogCard key={item.id} item={item} view={data.view} />)}</div> : data.view === "events" ? <HistoryList items={data.items} /> : <LogTable data={data} /> : <div className={`rounded-xl px-4 py-7 text-sm ${data.view === "attention" && !filtered ? "bg-emerald-400/[.04] text-emerald-100" : "bg-white/[.025] text-white/75"}`}><p>{empty}</p>{filtered ? <Link href={`?view=${data.view}`} className="mt-2 inline-flex min-h-11 items-center underline underline-offset-4">Vymazat filtry</Link> : null}</div>}
       </section>
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/8 pt-3 text-sm text-white/60"><p>{rangeStart}–{rangeEnd} z {data.total} · stránka {data.page} z {data.pageCount}</p><div className="flex gap-3">{data.page > 1 ? <Link href={hrefWith(data, { page: String(data.page - 1) })} className="inline-flex min-h-11 items-center underline underline-offset-4">Předchozí</Link> : null}{data.page < data.pageCount ? <Link href={hrefWith(data, { page: String(data.page + 1) })} className="inline-flex min-h-11 items-center underline underline-offset-4">Další</Link> : null}</div></div>

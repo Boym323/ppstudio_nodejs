@@ -8,6 +8,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Události v administraci mají čitelnější denní časovou osu s vizuálním rozlišením stavů, přehlednější karty, počty změn po dnech a výraznější upozornění. Mobilní rozložení zachovává kompletní historii bez horizontálního posouvání.
+
 - Přehled Události nově rozlišuje zdroje záznamů, zobrazuje stav i u běžných událostí, zpřístupňuje stručné detaily změn služeb a voucherů a umožňuje ručně obnovit aktuální data bez ztráty filtrů.
 
 - Administrace Události načítá pohledy E-maily a Technické po stránkách přímo z databáze, takže s rostoucí historií nenačítá všechny záznamy do paměti serveru. Přehled Historie změn už nespouští nepotřebné souhrnné dotazy e-mailové fronty.
