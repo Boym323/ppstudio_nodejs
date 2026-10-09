@@ -60,8 +60,24 @@ test.describe("mobilní Události a logy", () => {
       await expect(page.getByRole("list", { name: /Události dne/ })).toBeVisible();
       await expect(page.getByRole("heading", { name: "Voucher vytvořen" })).toBeVisible();
       await expect(page.getByRole("list", { name: /Události dne/ }).getByText("Voucher", { exact: true })).toBeVisible();
+      await test.info().attach("události-historie-390", {
+        body: await page.screenshot({ fullPage: true }),
+        contentType: "image/png",
+      });
       await page.setViewportSize({ width: 320, height: 700 });
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      await test.info().attach("události-historie-320", {
+        body: await page.screenshot({ fullPage: true }),
+        contentType: "image/png",
+      });
+      if (test.info().project.name === "chromium") {
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+        await test.info().attach("události-historie-desktop-1440", {
+          body: await page.screenshot({ fullPage: true }),
+          contentType: "image/png",
+        });
+      }
     } finally {
       await prisma.voucher.delete({ where: { id: voucher.id } });
     }
