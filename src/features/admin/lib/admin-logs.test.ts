@@ -284,7 +284,12 @@ test("read-model používá bounded kandidáty, přesný total a cílenou vouche
   assert.ok(source.includes("const eventMeta = exactEventTotal === null ? null : getAdminLogCandidatePlan(exactEventTotal, requestedPage)"));
   assert.ok(source.includes("...(candidateTake ? { take: candidateTake } : {})"));
   assert.ok(source.includes("where: { OR: candidateVoucherIdentities }"));
-  assert.ok(source.includes("const deduplicatedTotal = exactEventTotal ?? visible.length"));
+  assert.ok(source.includes('const exactSimpleTotal = safeView === "emails" || safeView === "system"'));
+  assert.ok(source.includes("const deduplicatedTotal = exactEventTotal ?? exactSimpleTotal ?? visible.length"));
+  assert.ok(source.includes("...(simpleCandidateTake ? { take: simpleCandidateTake } : {})"));
+  assert.ok(source.includes('safeView === "emails" && emailActive ? prisma.emailLog.count'));
+  assert.ok(source.includes('safeView === "system" && adminAuditActive ? prisma.adminUserAuditEvent.count'));
+  assert.ok(source.includes('safeView === "system" && submissionActive ? prisma.bookingSubmissionLog.count'));
   assert.equal(source.includes("findMany({ where: canonicalRedemptionWhere"), false);
   assert.equal(source.includes("requestedOffset + adminLogPageSize"), false);
   assert.ok(source.includes('const attentionHealthActive = safeView === "attention"'));
