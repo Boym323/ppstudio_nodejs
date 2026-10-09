@@ -9,6 +9,7 @@ import {
   getAdminVouchersHref,
   getAdminVouchersPageData,
   type AdminVoucherFilters,
+  type AdminVoucherPagination,
 } from "@/features/admin/lib/admin-vouchers";
 import { getAdminVoucherActivationHref } from "@/features/admin/lib/admin-voucher-stock";
 import { cn } from "@/lib/utils";
@@ -141,7 +142,7 @@ export async function AdminVouchersPage({
         <AdminVoucherStatsStrip stats={data.stats} />
 
         <AdminPanel
-          title={`Seznam voucherů · ${data.vouchers.length} záznamů`}
+          title={`Seznam voucherů · ${data.pagination.totalCount} záznamů`}
           compact
           denseHeader
         >
@@ -159,16 +160,103 @@ export async function AdminVouchersPage({
               </div>
             ) : null}
 
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-white/58">
+              <p>
+                V seznamu:{" "}
+                <span className="text-white/82">
+                  {data.pagination.firstItemNumber}–{data.pagination.lastItemNumber}
+                </span>{" "}
+                z <span className="text-white/82">{data.pagination.totalCount}</span> voucherů
+              </p>
+              {data.pagination.totalPages > 1 ? (
+                <p>
+                  Stránka {data.pagination.page} z {data.pagination.totalPages}
+                </p>
+              ) : null}
+            </div>
+
             <AdminVouchersList
               vouchers={data.vouchers}
               currentPath={data.currentPath}
               filters={data.filters}
               createHref={createHref}
             />
+            {data.pagination.totalPages > 1 ? (
+              <AdminVouchersPagination
+                currentPath={data.currentPath}
+                filters={data.filters}
+                pagination={data.pagination}
+              />
+            ) : null}
           </div>
         </AdminPanel>
       </div>
     </AdminPageShell>
+  );
+}
+
+function buildVoucherPageHref(currentPath: string, filters: AdminVoucherFilters, page: number) {
+  const params = new URLSearchParams();
+
+  if (filters.q) {
+    params.set("q", filters.q);
+  }
+  if (filters.type !== "all") {
+    params.set("type", filters.type);
+  }
+  if (filters.status !== "all") {
+    params.set("status", filters.status);
+  }
+  if (page > 1) {
+    params.set("page", String(page));
+  }
+
+  const query = params.toString();
+  return query ? `${currentPath}?${query}` : currentPath;
+}
+
+function AdminVouchersPagination({
+  currentPath,
+  filters,
+  pagination,
+}: {
+  currentPath: string;
+  filters: AdminVoucherFilters;
+  pagination: AdminVoucherPagination;
+}) {
+  return (
+    <nav
+      aria-label="Stránkování voucherů"
+      className="grid min-w-0 grid-cols-3 items-center gap-2 text-center text-xs text-white/72 sm:flex sm:flex-wrap sm:justify-center sm:gap-3 sm:text-sm"
+    >
+      {pagination.hasPreviousPage ? (
+        <Link
+          href={buildVoucherPageHref(currentPath, filters, pagination.page - 1)}
+          className="inline-flex min-h-10 min-w-0 items-center justify-center rounded-full border border-white/10 px-2 transition hover:border-white/18 hover:bg-white/6 sm:px-4"
+        >
+          Předchozí
+        </Link>
+      ) : (
+        <span className="inline-flex min-h-10 min-w-0 items-center justify-center rounded-full border border-white/6 px-2 text-white/30 sm:px-4">
+          Předchozí
+        </span>
+      )}
+      <span className="min-w-0 whitespace-nowrap">
+        Stránka {pagination.page} z {pagination.totalPages}
+      </span>
+      {pagination.hasNextPage ? (
+        <Link
+          href={buildVoucherPageHref(currentPath, filters, pagination.page + 1)}
+          className="inline-flex min-h-10 min-w-0 items-center justify-center rounded-full border border-white/10 px-2 transition hover:border-white/18 hover:bg-white/6 sm:px-4"
+        >
+          Další
+        </Link>
+      ) : (
+        <span className="inline-flex min-h-10 min-w-0 items-center justify-center rounded-full border border-white/6 px-2 text-white/30 sm:px-4">
+          Další
+        </span>
+      )}
+    </nav>
   );
 }
 

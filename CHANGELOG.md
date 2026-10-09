@@ -12,6 +12,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Seznam voucherů už nezobrazuje pouze prvních 100 záznamů: stránkuje po 50 položkách, uvádí celkový počet odpovídající filtrům a při procházení zachovává aktivní filtry.
+
 - Přehled rezervací se po ručním vytvoření rezervace a dalších aktualizacích už nezasekává v nekonečném překreslování tabulky; zpráva o uložené interní výjimce na mobilu nevytlačuje tlačítko pro další rezervaci mimo obrazovku.
 
 - E2E kontrola dokončení návštěvy nyní skutečně čeká na dokončení přihlášení i v mobilním Safari; předchozí kontrola akceptovala samotnou URL přihlašovací stránky jako administraci. Produkční závislosti `sharp` a `source-map-js` byly aktualizovány na verze bez známých high zranitelností.

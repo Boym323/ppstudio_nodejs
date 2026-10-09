@@ -1,7 +1,7 @@
 import { Prisma, type VoucherStatus, type VoucherType } from "@/generated/prisma/client";
 
 import { type AdminArea } from "@/config/navigation";
-import { getVoucherDetail, listVouchers } from "@/features/vouchers/lib/voucher-read-models";
+import { countVouchers as countMatchingVouchers, getVoucherDetail, listVouchers } from "@/features/vouchers/lib/voucher-read-models";
 import { prisma } from "@/lib/prisma";
 import { getVoucherTemplateById, listVoucherTemplatesForIssuance } from "@/features/vouchers/lib/voucher-template-repository";
 import { getSiteSettings } from "@/lib/site-settings";
@@ -27,6 +27,19 @@ export type AdminVoucherFilters = {
   status: AdminVoucherStatusFilter;
 };
 
+export type AdminVoucherPagination = {
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  firstItemNumber: number;
+  lastItemNumber: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+};
+
+export const ADMIN_VOUCHER_PAGE_SIZE = 50;
+
 const typeFilterToVoucherType: Record<Exclude<AdminVoucherTypeFilter, "all">, VoucherType> = {
   value: "VALUE",
   service: "SERVICE",
@@ -43,6 +56,11 @@ const statusFilterToVoucherStatus: Record<Exclude<AdminVoucherStatusFilter, "all
 
 function getSingleParam(value: string | string[] | undefined) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizePage(value: string) {
+  const page = Number.parseInt(value, 10);
+  return Number.isSafeInteger(page) && page > 0 ? page : 1;
 }
 
 function normalizeSearchParams(
@@ -168,6 +186,13 @@ export async function getAdminVouchersPageData(
     ${validFromPragueDate} <= ${currentPragueDate}::date
     AND (v."validUntil" IS NULL OR ${validUntilPragueDate} >= ${currentPragueDate}::date)
   `;
+  const requestedPage = normalizePage(getSingleParam(searchParams?.page));
+  const voucherListFilters = {
+    query: filters.q,
+    type: filters.type === "all" ? "all" : typeFilterToVoucherType[filters.type],
+    status: filters.status === "all" ? "all" : statusFilterToVoucherStatus[filters.status],
+    now,
+  } as const;
 
   const [
     openCount,
@@ -177,7 +202,7 @@ export async function getAdminVouchersPageData(
     cancelledCount,
     remainingValueResult,
     remainingServiceCount,
-    vouchers,
+    totalVoucherCount,
   ] =
     await Promise.all([
       countVouchers(Prisma.sql`
@@ -214,14 +239,16 @@ export async function getAdminVouchersPageData(
           AND v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
           AND ${activeVoucherValidity}
       `),
-      listVouchers({
-        query: filters.q,
-        type: filters.type === "all" ? "all" : typeFilterToVoucherType[filters.type],
-        status: filters.status === "all" ? "all" : statusFilterToVoucherStatus[filters.status],
-        now,
-        take: 100,
-      }),
+      countMatchingVouchers(voucherListFilters),
     ]);
+
+  const totalPages = totalVoucherCount === 0 ? 1 : Math.ceil(totalVoucherCount / ADMIN_VOUCHER_PAGE_SIZE);
+  const page = Math.min(requestedPage, totalPages);
+  const vouchers = await listVouchers({
+    ...voucherListFilters,
+    take: ADMIN_VOUCHER_PAGE_SIZE,
+    skip: (page - 1) * ADMIN_VOUCHER_PAGE_SIZE,
+  });
 
   const remainingValueCzk = remainingValueResult[0]?.remainingValueCzk ?? 0;
   const remainingWorkload = formatRemainingWorkload(remainingValueCzk, remainingServiceCount);
@@ -234,6 +261,16 @@ export async function getAdminVouchersPageData(
       ...voucher,
       detailHref: getAdminVoucherHref(area, voucher.id),
     })),
+    pagination: {
+      page,
+      pageSize: ADMIN_VOUCHER_PAGE_SIZE,
+      totalCount: totalVoucherCount,
+      totalPages,
+      firstItemNumber: totalVoucherCount === 0 ? 0 : (page - 1) * ADMIN_VOUCHER_PAGE_SIZE + 1,
+      lastItemNumber: Math.min(page * ADMIN_VOUCHER_PAGE_SIZE, totalVoucherCount),
+      hasPreviousPage: page > 1,
+      hasNextPage: page < totalPages,
+    } satisfies AdminVoucherPagination,
     stats: [
       {
         label: "Zbývá k uplatnění",

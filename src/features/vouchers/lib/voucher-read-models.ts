@@ -16,6 +16,7 @@ export type VoucherListFilters = {
   type?: VoucherType | "all";
   status?: VoucherStatus | "all";
   take?: number;
+  skip?: number;
   now?: Date;
 };
 
@@ -71,8 +72,21 @@ function buildVoucherSqlWhere(filters: VoucherListFilters, now: Date): Prisma.Sq
     : Prisma.empty;
 }
 
+export async function countVouchers(filters: VoucherListFilters = {}) {
+  const now = filters.now ?? new Date();
+  const where = buildVoucherSqlWhere(filters, now);
+  const rows = await prisma.$queryRaw<Array<{ count: number }>>(Prisma.sql`
+    SELECT COUNT(*)::int AS "count"
+    FROM "Voucher" v
+    ${where}
+  `);
+
+  return rows[0]?.count ?? 0;
+}
+
 export async function listVouchers(filters: VoucherListFilters = {}) {
   const take = Math.min(Math.max(filters.take ?? 50, 1), 200);
+  const skip = Math.max(Math.floor(filters.skip ?? 0), 0);
   const now = filters.now ?? new Date();
   const where = buildVoucherSqlWhere(filters, now);
   const vouchers = await prisma.$queryRaw<
@@ -118,6 +132,7 @@ export async function listVouchers(filters: VoucherListFilters = {}) {
     ${where}
     ORDER BY v."createdAt" DESC, v."code" ASC
     LIMIT ${take}
+    OFFSET ${skip}
   `);
 
   return vouchers.map((voucher) => {

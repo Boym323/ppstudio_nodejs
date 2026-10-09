@@ -247,6 +247,54 @@ dbTest("getVoucherDetail limits voucher email history to five newest records", a
   }
 });
 
+dbTest("admin seznam voucherů stránkuje výsledky a vrací celkový počet podle filtrů", async () => {
+  const { prisma, getAdminVouchersPageData } = await loadModules();
+  const suffix = randomUUID().slice(0, 8).toUpperCase();
+  const now = new Date("2030-01-01T12:00:00.000Z");
+  const codes = Array.from({ length: 55 }, (_, index) => `PP-PAGE-${suffix}-${String(index).padStart(2, "0")}`);
+
+  try {
+    await prisma.voucher.createMany({
+      data: codes.map((code, index) => ({
+        code,
+        type: VoucherType.VALUE,
+        status: VoucherStatus.ACTIVE,
+        originalValueCzk: 500,
+        remainingValueCzk: 500,
+        validFrom: new Date("2029-01-01T00:00:00.000Z"),
+        validUntil: new Date("2031-01-01T00:00:00.000Z"),
+        createdAt: new Date(now.getTime() + index * 1_000),
+      })),
+    });
+
+    const firstPage = await getAdminVouchersPageData("owner", { q: suffix }, now);
+    const secondPage = await getAdminVouchersPageData("owner", {
+      q: suffix,
+      type: "value",
+      status: "active",
+      page: "2",
+    }, now);
+    const clampedPage = await getAdminVouchersPageData("owner", { q: suffix, page: "999" }, now);
+
+    assert.equal(firstPage.pagination.totalCount, 55);
+    assert.equal(firstPage.pagination.totalPages, 2);
+    assert.equal(firstPage.pagination.page, 1);
+    assert.equal(firstPage.pagination.firstItemNumber, 1);
+    assert.equal(firstPage.pagination.lastItemNumber, 50);
+    assert.equal(firstPage.vouchers.length, 50);
+    assert.equal(secondPage.pagination.totalCount, 55);
+    assert.equal(secondPage.pagination.page, 2);
+    assert.equal(secondPage.pagination.firstItemNumber, 51);
+    assert.equal(secondPage.pagination.lastItemNumber, 55);
+    assert.equal(secondPage.vouchers.length, 5);
+    assert.equal(clampedPage.pagination.page, 2);
+    assert.equal(clampedPage.vouchers.length, 5);
+    assert.equal(new Set([...firstPage.vouchers, ...secondPage.vouchers].map((voucher) => voucher.id)).size, 55);
+  } finally {
+    await prisma.voucher.deleteMany({ where: { code: { in: codes } } });
+  }
+});
+
 dbTest("seznamy, filtry a statistiky nezapočítávají budoucí aktivní vouchery", async () => {
   const { prisma, listVouchers, getAdminVouchersPageData } = await loadModules();
   const suffix = randomUUID().slice(0, 8).toUpperCase();
