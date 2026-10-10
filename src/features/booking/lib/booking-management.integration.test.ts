@@ -1453,6 +1453,9 @@ describe("cancel booking flow", () => {
       const restored = await prisma.availabilitySlot.findMany({
         where: {
           createdByUserId: seed.actorUserId,
+          // Výběr zahrnuje jen nové úseky obnovené stornem. Ostatní úseky
+          // fixture se mohou časově překrývat s rozšířeným kontrolním oknem.
+          id: { notIn: seed.createdSlotIds },
           status: AvailabilitySlotStatus.PUBLISHED,
           startsAt: { gte: original.startsAt, lt: addHours(original.endsAt, 4) },
         },

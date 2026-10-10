@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 
 import { expect, test } from "@playwright/test";
-import { AdminRole, EmailLogStatus, EmailLogType } from "@/generated/prisma/client";
+import { AdminRole, EmailLogStatus, EmailLogType, VoucherType } from "@/generated/prisma/client";
 
 import { createSessionToken, SESSION_COOKIE_NAME } from "../../src/lib/auth/session-token";
 import { cleanupE2eData, createAdminFixture, prisma } from "./helpers/fixtures";
@@ -42,4 +42,56 @@ test.describe("mobilní Události a logy", () => {
     await expect(page.getByRole("button", { name: "Zopakovat odeslání" })).toBeVisible();
     await expect(page.getByRole("article").getByText(`${runId}@example.test`)).toBeVisible();
   });
+  test("historie voucherů zobrazuje denní časovou osu čitelně i na úzkém mobilu", async ({ page }) => {
+    const voucher = await prisma.voucher.create({
+      data: {
+        code: `VISUAL-${runId}`,
+        type: VoucherType.VALUE,
+        originalValueCzk: 100,
+        remainingValueCzk: 100,
+        purchaserName: "E2E historie",
+      },
+    });
+
+    try {
+      await page.goto(`/admin/logy?view=events&source=voucher&query=${runId}`);
+      await expect(page.getByRole("heading", { name: "Události" })).toBeVisible();
+      await test.info().attach("události-historie-390", {
+        body: await page.screenshot({ fullPage: true }),
+        contentType: "image/png",
+      });
+      await expect(page.getByText("Provozní historie").last()).toBeVisible();
+      await expect(page.getByRole("list", { name: /Události dne/ })).toBeVisible();
+      await expect(page.getByText("1 záznam · od nejnovějších · filtrováno")).toBeVisible();
+      await expect(page.getByRole("navigation", { name: "Stránkování událostí" })).toHaveCount(0);
+      await expect(page.getByRole("heading", { name: "Voucher vytvořen" })).toBeVisible();
+      await expect(page.getByRole("list", { name: /Události dne/ }).getByText("Voucher", { exact: true })).toBeVisible();
+      await page.setViewportSize({ width: 320, height: 700 });
+      for (const tab of ["K vyřešení", "Historie změn", "E-maily", "Technické"]) {
+        await expect(page.getByRole("navigation", { name: "Pohledy událostí" }).getByRole("link", { name: tab })).toBeInViewport();
+      }
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      await test.info().attach("události-historie-320", {
+        body: await page.screenshot({ fullPage: true }),
+        contentType: "image/png",
+      });
+      if (test.info().project.name === "chromium") {
+        await page.setViewportSize({ width: 1440, height: 900 });
+        const desktopSearch = page.getByPlaceholder("Hledat rezervaci, voucher nebo službu…");
+        const advancedFilters = page.locator("summary").filter({ hasText: /^Další filtry/ });
+        await expect(advancedFilters).toBeInViewport();
+        const searchBox = await desktopSearch.boundingBox();
+        const advancedBox = await advancedFilters.boundingBox();
+        expect(searchBox && advancedBox && Math.abs(searchBox.y - advancedBox.y) < 10).toBeTruthy();
+        await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+        await test.info().attach("události-historie-desktop-1440", {
+          body: await page.screenshot({ fullPage: true }),
+          contentType: "image/png",
+        });
+      }
+    } finally {
+      await prisma.voucher.delete({ where: { id: voucher.id } });
+    }
+  });
+
 });
