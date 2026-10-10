@@ -397,6 +397,7 @@ export type AdminLogItem = {
   emailLogId?: string;
   queueState?: string;
   trackingState?: string;
+  emailBadge?: { label: string; severity: AdminLogSeverity; detail: string | null };
 };
 
 export type AdminLogsData = {
@@ -1020,7 +1021,8 @@ export async function getAdminLogsData(input: {
   const attentionHealthActive = safeView === "attention";
   const ownerQueueHealthActive = isOwner && safeView === "system";
   const [failed, retry, stuck, pending, processing, critical] = await Promise.all([
-    attentionHealthActive || ownerQueueHealthActive ? prisma.emailLog.count({ where: getUnresolvedEmailDeliveryIncidentRootWhere() }) : Promise.resolve(0),
+    // Jeden root = jeden incident i při více resend pokusech; badge viditelný ve všech pohledech.
+    prisma.emailLog.count({ where: getUnresolvedEmailDeliveryIncidentRootWhere() }),
     attentionHealthActive || ownerQueueHealthActive ? prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, attemptCount: { gt: 0 }, processingStartedAt: null } }) : Promise.resolve(0),
     attentionHealthActive || ownerQueueHealthActive ? prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, processingStartedAt: { lt: staleBefore } } }) : Promise.resolve(0),
     ownerQueueHealthActive ? prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, attemptCount: 0, processingStartedAt: null } }) : Promise.resolve(0),
@@ -1107,12 +1109,30 @@ export async function getAdminLogsData(input: {
         : null;
       const incidentResolutionKind = incidentRoot.incidentResolutionKind
         ?? (incidentRoot.incidentResolvedByEmailLogId ? EmailIncidentResolutionKind.DELIVERED_RESEND : null);
-      const incidentResolutionLabel = incidentRoot.incidentResolvedAt && tracking.value === "failed"
+      const failure = tracking.value === "failed" || log.status === EmailLogStatus.FAILED;
+      const emailBadge: NonNullable<AdminLogItem["emailBadge"]> = failure
+        ? incidentRoot.incidentResolvedAt
+          ? { label: "Incident uzavřen", severity: "info", detail: tracking.value === "failed" ? tracking.label : null }
+          : { label: "Nedoručeno", severity: "error", detail: tracking.value === "failed" ? tracking.label : null }
+        : tracking.value === "retry"
+          ? { label: log.trackingComplainedAt ? "Spam" : "Zpožděno", severity: "warning", detail: tracking.label }
+          : tracking.value === "sent"
+            ? { label: "Doručeno", severity: "success", detail: tracking.label === "Doručeno" ? null : tracking.label }
+            : log.status === EmailLogStatus.SENT || tracking.value === "processing"
+              ? { label: "Odesláno", severity: "info", detail: tracking.value === "processing" ? tracking.label : "Doručení zatím nepotvrzeno webhookem" }
+              : isStuck
+                ? { label: "Zdržení", severity: "warning", detail: "Odesílání trvá neobvykle dlouho" }
+                : status === "retry"
+                  ? { label: "Další pokus", severity: "warning", detail: getEmailRecentStatusLabel(log.status, log.processingStartedAt, log.attemptCount) }
+                  : status === "processing"
+                    ? { label: "Odesílá se", severity: "info", detail: null }
+                    : { label: "Ve frontě", severity: "info", detail: null };
+      const incidentResolutionLabel = incidentRoot.incidentResolvedAt && failure
         ? incidentResolutionKind === EmailIncidentResolutionKind.MANUAL
           ? " • Ručně uzavřeno"
           : " • Vyřešeno následným odesláním"
         : "";
-      return { id: `email:${log.id}`, occurredAt: log.createdAt.toISOString(), category: "email" as const, severity: logSeverity, title: log.subject, description: `${log.recipientEmail}${tracking.value !== "pending" ? ` • ${tracking.label}` : ""}${incidentResolutionLabel}${log.errorMessage ? ` • ${getErrorSummary(log.errorMessage)}` : ""}`, actorLabel: null, entityLabel: log.booking ? `${log.booking.clientNameSnapshot} • ${log.booking.serviceNameSnapshot}` : log.client?.fullName ?? null, entityHref: log.booking ? bookingHref(log.booking.id) : null, sourceType: "email" as const, sourceId: log.id, primaryAction, emailLogId: log.id, queueState: getEmailRecentStatusLabel(log.status, log.processingStartedAt, log.attemptCount), trackingState: tracking.label };
+      return { id: `email:${log.id}`, occurredAt: log.createdAt.toISOString(), category: "email" as const, severity: logSeverity, title: log.subject, description: `${log.recipientEmail}${incidentResolutionLabel}${log.errorMessage ? ` • ${getErrorSummary(log.errorMessage)}` : ""}`, actorLabel: null, entityLabel: log.booking ? `${log.booking.clientNameSnapshot} • ${log.booking.serviceNameSnapshot}` : log.client?.fullName ?? null, entityHref: log.booking ? bookingHref(log.booking.id) : null, sourceType: "email" as const, sourceId: log.id, primaryAction, emailLogId: log.id, queueState: getEmailRecentStatusLabel(log.status, log.processingStartedAt, log.attemptCount), trackingState: tracking.label, emailBadge };
     }),
     ...visibleBookingHistory.map((entry) => {
       const presentation = getBookingHistoryPresentation(entry);
