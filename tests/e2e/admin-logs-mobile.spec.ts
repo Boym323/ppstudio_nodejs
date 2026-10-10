@@ -78,7 +78,7 @@ test.describe("mobilní Události a logy", () => {
       if (test.info().project.name === "chromium") {
         await page.setViewportSize({ width: 1440, height: 900 });
         const desktopSearch = page.getByPlaceholder("Hledat rezervaci, voucher nebo službu…");
-        const advancedFilters = page.getByText("Další filtry", { exact: true });
+        const advancedFilters = page.locator("summary").filter({ hasText: /^Další filtry/ });
         await expect(advancedFilters).toBeInViewport();
         const searchBox = await desktopSearch.boundingBox();
         const advancedBox = await advancedFilters.boundingBox();
