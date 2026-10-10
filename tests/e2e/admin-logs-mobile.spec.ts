@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 
 import { expect, test } from "@playwright/test";
-import { AdminRole, EmailLogStatus, EmailLogType, VoucherType } from "@/generated/prisma/client";
+import { AdminRole, EmailLogStatus, EmailLogType, VoucherChangeOperation, VoucherType } from "@/generated/prisma/client";
 
 import { createSessionToken, SESSION_COOKIE_NAME } from "../../src/lib/auth/session-token";
 import { cleanupE2eData, createAdminFixture, prisma } from "./helpers/fixtures";
@@ -42,6 +42,32 @@ test.describe("mobilní Události a logy", () => {
     await expect(page.getByRole("button", { name: "Zopakovat odeslání" })).toBeVisible();
     await expect(page.getByRole("article").getByText(`${runId}@example.test`)).toBeVisible();
   });
+  test("badge e-mailů rozlišují webhookové doručení, odeslání a bounce", async ({ page }) => {
+    const now = new Date();
+    await prisma.emailLog.createMany({
+      data: [
+        { type: EmailLogType.GENERIC, status: EmailLogStatus.SENT, recipientEmail: `delivered-${runId}@example.test`,
+          subject: `Doručený e-mail ${runId}`, templateKey: "generic-v1", sentAt: now,
+          trackingLastEvent: "email.delivered", trackingDeliveredAt: now },
+        { type: EmailLogType.GENERIC, status: EmailLogStatus.SENT, recipientEmail: `sent-${runId}@example.test`,
+          subject: `Odeslaný e-mail ${runId}`, templateKey: "generic-v1", sentAt: now },
+        { type: EmailLogType.GENERIC, status: EmailLogStatus.SENT, recipientEmail: `bounced-${runId}@example.test`,
+          subject: `Odmítnutý e-mail ${runId}`, templateKey: "generic-v1", sentAt: now,
+          trackingLastEvent: "email.bounced", trackingBouncedAt: now },
+      ],
+    });
+    await page.goto(`/admin/logy?view=emails&query=${runId}`);
+    const byRecipient = (prefix: string) =>
+      page.getByRole("article").filter({ hasText: `${prefix}-${runId}@example.test` });
+    await expect(byRecipient("delivered").getByText("Doručeno", { exact: true })).toBeVisible();
+    await expect(byRecipient("sent").getByText("Odesláno", { exact: true })).toBeVisible();
+    await expect(byRecipient("sent").getByText("Doručení zatím nepotvrzeno webhookem")).toBeVisible();
+    await expect(byRecipient("bounced").getByText("Nedoručeno", { exact: true })).toBeVisible();
+    const emailTab = page.getByRole("navigation", { name: "Pohledy událostí" }).getByRole("link", { name: "E-maily" });
+    await expect(emailTab).toHaveAttribute("aria-describedby", "email-unresolved-incident-count");
+    await expect(emailTab.locator('[aria-hidden="true"]')).toBeVisible();
+  });
+
   test("historie voucherů zobrazuje denní časovou osu čitelně i na úzkém mobilu", async ({ page }) => {
     const voucher = await prisma.voucher.create({
       data: {
@@ -50,6 +76,17 @@ test.describe("mobilní Události a logy", () => {
         originalValueCzk: 100,
         remainingValueCzk: 100,
         purchaserName: "E2E historie",
+      },
+    });
+
+    const actor = await prisma.adminUser.findUniqueOrThrow({ where: { email: admin.email } });
+    const audit = await prisma.voucherChangeLog.create({
+      data: {
+        voucherId: voucher.id,
+        actorUserId: actor.id,
+        operation: VoucherChangeOperation.UPDATE_OPERATIONAL_DETAILS,
+        before: { purchaserNameChanged: false },
+        after: { purchaserNameChanged: true },
       },
     });
 
@@ -62,10 +99,13 @@ test.describe("mobilní Události a logy", () => {
       });
       await expect(page.getByText("Provozní historie").last()).toBeVisible();
       await expect(page.getByRole("list", { name: /Události dne/ })).toBeVisible();
-      await expect(page.getByText("1 záznam · od nejnovějších · filtrováno")).toBeVisible();
+      await expect(page.getByText("2 záznamy · od nejnovějších · filtrováno")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Voucher upraven" })).toBeVisible();
+      await expect(page.getByText("Jméno kupujícího: upraveno")).toBeVisible();
+      await expect(page.getByText("Podrobnosti změny")).toHaveCount(0);
       await expect(page.getByRole("navigation", { name: "Stránkování událostí" })).toHaveCount(0);
       await expect(page.getByRole("heading", { name: "Voucher vytvořen" })).toBeVisible();
-      await expect(page.getByRole("list", { name: /Události dne/ }).getByText("Voucher", { exact: true })).toBeVisible();
+      await expect(page.getByRole("list", { name: /Události dne/ }).getByText("Voucher", { exact: true }).first()).toBeVisible();
       await page.setViewportSize({ width: 320, height: 700 });
       for (const tab of ["K vyřešení", "Historie změn", "E-maily", "Technické"]) {
         await expect(page.getByRole("navigation", { name: "Pohledy událostí" }).getByRole("link", { name: tab })).toBeInViewport();
@@ -90,6 +130,7 @@ test.describe("mobilní Události a logy", () => {
         });
       }
     } finally {
+      await prisma.voucherChangeLog.delete({ where: { id: audit.id } });
       await prisma.voucher.delete({ where: { id: voucher.id } });
     }
   });

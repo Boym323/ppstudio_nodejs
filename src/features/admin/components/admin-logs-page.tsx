@@ -201,16 +201,25 @@ function AttentionSummary({ data }: { data: AdminLogsData }) {
 }
 
 function LogStatus({ item, view }: { item: AdminLogItem; view: AdminLogView }) {
+  if (view === "emails" && item.emailBadge) {
+    return (
+      <div className="flex flex-col items-start gap-1">
+        <span className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${severityClasses[item.emailBadge.severity]}`}>
+          <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${severityDotClasses[item.emailBadge.severity]}`} />
+          {item.emailBadge.label}
+        </span>
+        {item.emailBadge.detail ? <p className="max-w-[18rem] break-words text-xs leading-4 text-white/55">{item.emailBadge.detail}</p> : null}
+      </div>
+    );
+  }
   const warning = item.severity === "error" || item.severity === "warning";
-  return <div className="space-y-1 text-xs text-white/70">{view === "emails" ? <><p>{item.queueState}</p><p>{item.trackingState}</p></> : null}{warning ? <SeverityPill severity={item.severity} /> : (view === "events" || view === "system") ? <span className="inline-flex items-center gap-1.5 text-xs text-white/55"><span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${severityDotClasses[item.severity]}`} />{severityLabel[item.severity]}</span> : null}</div>;
+  return <div className="space-y-1 text-xs text-white/70">{warning ? <SeverityPill severity={item.severity} /> : (view === "events" || view === "system") ? <span className="inline-flex items-center gap-1.5 text-xs text-white/55"><span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${severityDotClasses[item.severity]}`} />{severityLabel[item.severity]}</span> : null}</div>;
 }
 
 function LogDescription({ item, view }: { item: AdminLogItem; view: AdminLogView }) {
   if (!item.description) return null;
+  if (view === "events") return <p className="mt-1 whitespace-pre-wrap break-words text-xs leading-5 text-white/70">{item.description}</p>;
   if (view === "attention" || view === "emails") return <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-5 text-white/70">{item.description}</p>;
-  if ((item.sourceType === "service" || item.sourceType === "voucher") && item.description.length <= 120 && !item.description.includes("\n")) {
-    return <p className="mt-1 whitespace-pre-wrap break-words text-sm text-white/65">{item.description}</p>;
-  }
   return <details className="mt-1 text-sm text-white/65"><summary className="cursor-pointer py-1">Podrobnosti změny</summary><p className="whitespace-pre-wrap break-words py-1">{item.description}</p></details>;
 }
 
@@ -221,7 +230,7 @@ function EntityLink({ item }: { item: AdminLogItem }) {
 function LogCard({ item, view }: { item: AdminLogItem; view: AdminLogView }) {
   const isHistory = view === "events";
   return (
-    <article className={`min-w-0 px-3 py-3 sm:px-4 ${isHistory ? "rounded-xl border border-white/10 bg-white/[.035] transition-colors hover:border-white/20 hover:bg-white/[.055]" : "border-b border-white/8 last:border-b-0"} ${view === "attention" && item.severity === "error" ? "border-l-2 border-l-rose-400 bg-rose-400/[.035]" : ""}`}>
+    <article className={`min-w-0 px-3 ${isHistory ? "py-2.5 sm:px-3" : "py-3 sm:px-4"} ${isHistory ? "rounded-xl border border-white/10 bg-white/[.035] transition-colors hover:border-white/20 hover:bg-white/[.055]" : "border-b border-white/8 last:border-b-0"} ${view === "attention" && item.severity === "error" ? "border-l-2 border-l-rose-400 bg-rose-400/[.035]" : ""}`}>
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1.5">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           {(isHistory || view === "system") ? <SourceLabel source={item.sourceType} /> : null}
@@ -231,7 +240,7 @@ function LogCard({ item, view }: { item: AdminLogItem; view: AdminLogView }) {
       </div>
       <EntityLink item={item} />
       <LogDescription item={item} view={view} />
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+      <div className={`${isHistory ? "mt-1" : "mt-2"} flex flex-wrap items-center justify-between gap-x-3 gap-y-1`}>
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <LogStatus item={item} view={view} />
           {item.actorLabel ? <span className="break-words text-xs text-white/55">Autor: {item.actorLabel}</span> : null}
@@ -252,16 +261,16 @@ function HistoryList({ items }: { items: AdminLogItem[] }) {
     groups.set(day, [...(groups.get(day) ?? []), item]);
   }
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {[...groups].map(([day, entries]) => (
         <section key={day} aria-label={day}>
-          <div className="mb-3 flex flex-wrap items-center gap-3">
+          <div className="mb-2 flex flex-wrap items-center gap-3">
             <h2 className="text-sm font-semibold text-white/85">{day}</h2>
             <span className="rounded-full border border-white/10 bg-white/[.035] px-2.5 py-1 text-xs tabular-nums text-white/55">
               {entries.length} {entries.length === 1 ? "změna" : entries.length < 5 ? "změny" : "změn"}
             </span>
           </div>
-          <ol aria-label={`Události dne ${day}`} className="ml-2 space-y-3 border-l border-white/15 pl-5">
+          <ol aria-label={`Události dne ${day}`} className="ml-2 space-y-2 border-l border-white/15 pl-5">
             {entries.map((item) => (
               <li key={item.id} className="relative min-w-0">
                 <span aria-hidden="true" className={`absolute -left-[1.58rem] top-5 h-2.5 w-2.5 rounded-full ring-4 ring-[#111015] ${severityDotClasses[item.severity]}`} />
@@ -305,8 +314,20 @@ export function AdminLogsPage({ data }: { data: AdminLogsData }) {
             <Link key={item.value}
               href={hrefWith(data, { view: item.value, source: undefined, emailType: undefined, page: undefined })}
               aria-current={data.view === item.value ? "page" : undefined}
+              aria-label={item.label}
+              aria-describedby={item.value === "emails" && data.attention.failed > 0 ? "email-unresolved-incident-count" : undefined}
               className={`inline-flex min-h-11 min-w-0 items-center justify-center rounded-lg border px-2 text-center text-sm leading-tight transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/70 md:shrink-0 md:rounded-none md:border-0 md:border-b-2 md:px-3 ${data.view === item.value ? "border-[var(--color-accent)]/50 bg-[rgba(190,160,120,.12)] font-semibold text-[var(--color-accent-soft)] md:border-[var(--color-accent)] md:bg-transparent" : "border-transparent text-white/70 hover:bg-white/5 hover:text-white md:bg-transparent"}`}>
               {item.label}
+              {item.value === "emails" && data.attention.failed > 0 ? (
+                <>
+                  <span aria-hidden="true" className="ml-1 inline-flex min-w-5 justify-center rounded-full border border-rose-300/30 bg-rose-400/15 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums leading-4 text-rose-100">
+                    {data.attention.failed > 99 ? "99+" : data.attention.failed}
+                  </span>
+                  <span id="email-unresolved-incident-count" className="sr-only">
+                    {data.attention.failed} nevyřešených incidentů doručení
+                  </span>
+                </>
+              ) : null}
             </Link>
           ))}
         </nav>

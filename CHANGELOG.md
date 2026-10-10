@@ -8,6 +8,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- E-maily v Událostech mají badge podle skutečného stavu Resend webhooků (odesláno, doručeno, zpožděno, nedoručeno nebo uzavřený incident). Záložka E-maily počítá aktivní doručovací incidenty bez duplicitních resendů. Historie změn vypisuje podrobnosti přímo a má úspornější časovou osu.
+
 - Události v administraci mají čitelnější denní časovou osu s vizuálním rozlišením stavů, přehlednější karty, počty změn po dnech a výraznější upozornění. Mobilní záložky jsou dostupné bez horizontálního posouvání; desktopové filtry jsou kompaktnější, počty záznamů mají správné české tvary a stránkování se ukazuje jen při více stránkách.
 
 - Přehled Události nově rozlišuje zdroje záznamů, zobrazuje stav i u běžných událostí, zpřístupňuje stručné detaily změn služeb a voucherů a umožňuje ručně obnovit aktuální data bez ztráty filtrů.
