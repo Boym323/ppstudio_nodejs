@@ -105,7 +105,7 @@ test.describe("mobilní Události a logy", () => {
       await expect(page.getByText("Podrobnosti změny")).toHaveCount(0);
       await expect(page.getByRole("navigation", { name: "Stránkování událostí" })).toHaveCount(0);
       await expect(page.getByRole("heading", { name: "Voucher vytvořen" })).toBeVisible();
-      await expect(page.getByRole("list", { name: /Události dne/ }).getByText("Voucher", { exact: true })).toBeVisible();
+      await expect(page.getByRole("list", { name: /Události dne/ }).getByText("Voucher", { exact: true }).first()).toBeVisible();
       await page.setViewportSize({ width: 320, height: 700 });
       for (const tab of ["K vyřešení", "Historie změn", "E-maily", "Technické"]) {
         await expect(page.getByRole("navigation", { name: "Pohledy událostí" }).getByRole("link", { name: tab })).toBeInViewport();
