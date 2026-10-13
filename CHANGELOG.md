@@ -6,6 +6,14 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Nasazení mění systemd unity a runtime oprávnění až po úspěšném buildu a zastavení služeb; při selhání aktivace obnoví původní unity. Neověřitelný stav služeb blokuje migraci, retence zachovává skutečně nejnovější záložní verze a chyba úklidu už neoznačí úspěšné nasazení za neúspěšné.
+
+### Zabezpečení
+
+- Produkční release odmítá souběžné nasazení a nebezpečné datové cesty, vynucuje vypnutí DB integračních testů a při úklidu chrání aktivní i předchozí release také přes symlink. Selhání po zahájení odstávky zastaví služby a vypíše postup pro ruční obnovu.
+
 ## [3.34.0] - 2026-10-13
 
 ### Změněno

@@ -29,7 +29,10 @@ SKIP_CONFIRM=0
 BRANCH="main"
 RELEASE_BUILD_DIR=""
 KEEP_RELEASE_WORKSPACE=0
+RELEASE_WRITERS_STOPPED=0
 RELEASE_STARTED_AT=""
+SYSTEMD_BACKUP_DIR=""
+SYSTEMD_UNITS_CHANGED=0
 RELEASE_STEP_DURATIONS=()
 
 usage() {
@@ -98,6 +101,22 @@ install_unit_file() {
   fi
 
   sudo install -m 0644 "${source_file}" "${target_file}"
+}
+
+acquire_release_lock() {
+  local lock_dir
+  lock_dir="$(git -C "${REPO_DIR}" rev-parse --git-common-dir)" || return 1
+  [[ "${lock_dir}" == /* ]] || lock_dir="${REPO_DIR}/${lock_dir}"
+  exec {RELEASE_LOCK_FD}> "${lock_dir}/ppstudio-release.lock" || return 1
+  if ! flock -n "${RELEASE_LOCK_FD}"; then
+    echo "Jiný release právě běží; souběžné nasazení není povolené." >&2
+    return 1
+  fi
+}
+
+run_release_tests() {
+  # Dotenv nesmí ani při zděděném RUN_DB_INTEGRATION_TESTS=1 zapnout zápisy do DB.
+  RUN_DB_INTEGRATION_TESTS=0 npm run test:release
 }
 
 require_cmd() {
@@ -267,10 +286,30 @@ cleanup_release_workspace() {
   fi
 }
 
+finish_release() {
+  local exit_status=$?
+  if [[ "${exit_status}" -ne 0 && "${RELEASE_WRITERS_STOPPED}" -eq 1 ]]; then
+    sudo systemctl stop "${WEB_UNIT_NAME}" "${WORKER_UNIT_NAME}" || echo "Nepodařilo se zastavit služby; ověř jejich stav ručně." >&2
+    echo "Release selhal po zahájení odstávky. Služby zůstávají zastavené; před ručním startem ověř migrace a kompatibilitu DB. Záloha ani DB rollback se neprovádí automaticky." >&2
+  fi
+  if [[ "${exit_status}" -ne 0 && "${SYSTEMD_UNITS_CHANGED}" -eq 1 ]]; then
+    if ! restore_systemd_units; then
+      echo "Obnova systemd unitů selhala; záloha zůstává v ${SYSTEMD_BACKUP_DIR}." >&2
+      return "${exit_status}"
+    fi
+  fi
+  if [[ -n "${SYSTEMD_BACKUP_DIR}" ]]; then
+    rm -rf -- "${SYSTEMD_BACKUP_DIR}" || echo "Nepodařilo se uklidit zálohu unitů ${SYSTEMD_BACKUP_DIR}." >&2
+  fi
+  cleanup_release_workspace || echo "Nepodařilo se uklidit staging workspace." >&2
+  return "${exit_status}"
+}
+
 cleanup_old_releases() {
   local current_target=""
   local previous_target=""
   local release_dir
+  local releases_root
   local additional_kept=0
 
   if ! [[ "${RETAIN_RELEASES}" =~ ^[0-9]+$ ]]; then
@@ -278,14 +317,27 @@ cleanup_old_releases() {
     return 1
   fi
 
-  [[ -L "${CURRENT_RELEASE_LINK}" ]] && current_target="$(readlink -f "${CURRENT_RELEASE_LINK}")"
-  [[ -L "${PREVIOUS_RELEASE_LINK}" ]] && previous_target="$(readlink -f "${PREVIOUS_RELEASE_LINK}")"
+  releases_root="$(readlink -f -- "${RELEASES_DIR}")" || return 1
+
+  if [[ -L "${CURRENT_RELEASE_LINK}" ]]; then
+    current_target="$(readlink -f "${CURRENT_RELEASE_LINK}")" || return 1
+  fi
+  if [[ -L "${PREVIOUS_RELEASE_LINK}" ]]; then
+    previous_target="$(readlink -f "${PREVIOUS_RELEASE_LINK}")" || return 1
+  fi
 
   while IFS= read -r -d '' release_dir; do
+    release_dir="${RELEASES_DIR}/${release_dir}"
     case "$(basename "${release_dir}")" in
       [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]) ;;
       *) continue ;;
     esac
+
+    release_dir="$(readlink -f -- "${release_dir}")" || return 1
+    if [[ "$(dirname "${release_dir}")" != "${releases_root}" ]]; then
+      echo "Úklid odmítá cestu mimo release adresář: ${release_dir}." >&2
+      return 1
+    fi
 
     if [[ "${release_dir}" == "${current_target}" || "${release_dir}" == "${previous_target}" ]]; then
       continue
@@ -301,8 +353,8 @@ cleanup_old_releases() {
     # adresáře, ke kterým deploy účet nemá právo traversalu. Cíl je už výše
     # omezený na release adresář mimo current/previous, proto je odstranění
     # přes sudo bezpečné a nezávislé na runtime vlastnictví cache.
-    sudo rm -rf -- "${release_dir}"
-  done < <(find "${RELEASES_DIR}" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z -r)
+    sudo rm -rf -- "${release_dir}" || return 1
+  done < <(find "${RELEASES_DIR}" -mindepth 1 -maxdepth 1 -type d -printf '%f\0' | sort -z -t '-' -k2,2r)
 }
 
 set_release_link() {
@@ -325,13 +377,20 @@ run_voucher_template_bootstrap() {
 }
 
 assert_release_writers_stopped() {
-  local unit_name
+  local unit_name active_state
 
   for unit_name in "${WEB_UNIT_NAME}" "${WORKER_UNIT_NAME}"; do
-    if systemctl is-active --quiet "${unit_name}"; then
-      echo "Služba ${unit_name} je stále aktivní; databázovou migraci nelze bezpečně spustit." >&2
+    if ! active_state="$(sudo systemctl show --property=ActiveState --value "${unit_name}")"; then
+      echo "Nelze ověřit stav služby ${unit_name}; migrace je zakázaná." >&2
       return 1
     fi
+    case "${active_state}" in
+      inactive|failed) ;;
+      *)
+        echo "Služba ${unit_name} nemá potvrzený zastavený stav (${active_state:-unknown}); migrace je zakázaná." >&2
+        return 1
+        ;;
+    esac
   done
 }
 
@@ -473,6 +532,30 @@ ensure_unit_installed() {
   exit 1
 }
 
+backup_systemd_units() {
+  local unit_name unit_file
+  SYSTEMD_BACKUP_DIR="$(mktemp -d)"
+  for unit_name in "${WEB_UNIT_NAME}" "${WORKER_UNIT_NAME}"; do
+    unit_file="$(unit_file_name "${unit_name}")"
+    if sudo test -e "${SYSTEMD_DIR}/${unit_file}" || sudo test -L "${SYSTEMD_DIR}/${unit_file}"; then
+      sudo cp -a -- "${SYSTEMD_DIR}/${unit_file}" "${SYSTEMD_BACKUP_DIR}/${unit_file}"
+    fi
+  done
+}
+
+restore_systemd_units() {
+  local unit_name unit_file
+  for unit_name in "${WEB_UNIT_NAME}" "${WORKER_UNIT_NAME}"; do
+    unit_file="$(unit_file_name "${unit_name}")"
+    sudo rm -f -- "${SYSTEMD_DIR}/${unit_file}" || return 1
+    if [[ -e "${SYSTEMD_BACKUP_DIR}/${unit_file}" || -L "${SYSTEMD_BACKUP_DIR}/${unit_file}" ]]; then
+      sudo cp -a -- "${SYSTEMD_BACKUP_DIR}/${unit_file}" "${SYSTEMD_DIR}/${unit_file}" || return 1
+    fi
+  done
+  sudo systemctl daemon-reload || return 1
+  SYSTEMD_UNITS_CHANGED=0
+}
+
 sync_systemd_units() {
   log "synchronizuji systemd unity z deploy/systemd"
   sudo install -d -m 0755 /etc/sysusers.d /etc/tmpfiles.d
@@ -492,15 +575,21 @@ validate_runtime_path() {
   local label="$2"
   local resolved_path
 
-  resolved_path="$(readlink -m -- "${path_value}")" || {
-    echo "${label} nelze normalizovat: ${path_value}." >&2
-    return 1
-  }
-
-  if [[ "${resolved_path}" != /* || "${resolved_path}" == "/" || "${resolved_path}" == "/var" || "${resolved_path}" == "/var/www" ]]; then
-    echo "${label} musí být bezpečná absolutní cesta, ne ${path_value}." >&2
+  if [[ "${path_value}" != /* ]]; then
+    echo "${label} musí být absolutní cesta: ${path_value}." >&2
     return 1
   fi
+  resolved_path="$(readlink -m -- "${path_value}")" || return 1
+
+  # Povolené jsou vyhrazené datové adresáře, nikdy systémové kořeny.
+  # U mountů požadujeme podadresář, aby se neměnila práva celého mountu.
+  case "${resolved_path}" in
+    /var/www/*|/var/lib/ppstudio|/var/lib/ppstudio/*|/srv/*|/mnt/*/*|/media/*/*|/tmp/*) ;;
+    *)
+      echo "${label} není bezpečná datová cesta: ${path_value}. Použij vyhrazený adresář pod /var/www, /var/lib/ppstudio nebo /srv, případně podadresář mountu v /mnt či /media." >&2
+      return 1
+      ;;
+  esac
 }
 
 prepare_runtime_storage() {
@@ -509,20 +598,26 @@ prepare_runtime_storage() {
   local legacy_snapshot_path="${REPO_DIR}/site-settings-snapshot.json"
   local snapshot_dir
   local repo_path
+  validate_runtime_path "${media_root}" "MEDIA_STORAGE_ROOT" || return 1
+  validate_runtime_path "${snapshot_path}" "SITE_SETTINGS_SNAPSHOT_PATH" || return 1
   media_root="$(readlink -m -- "${media_root}")"
   snapshot_path="$(readlink -m -- "${snapshot_path}")"
   snapshot_dir="$(dirname "${snapshot_path}")"
   repo_path="$(readlink -m -- "${REPO_DIR}")"
 
-  validate_runtime_path "${media_root}" "MEDIA_STORAGE_ROOT"
-  validate_runtime_path "${snapshot_dir}" "Adresář SITE_SETTINGS_SNAPSHOT_PATH"
-  if [[ "${media_root}" == "${repo_path}" || ( "${media_root}" == "${repo_path}"/* && "${media_root}" != "${repo_path}/uploads" ) ]]; then
+  validate_runtime_path "${media_root}" "MEDIA_STORAGE_ROOT" || return 1
+  validate_runtime_path "${snapshot_dir}" "Adresář SITE_SETTINGS_SNAPSHOT_PATH" || return 1
+  if [[ "${media_root}" == "${repo_path}" || "${repo_path}" == "${media_root}"/* || ( "${media_root}" == "${repo_path}"/* && "${media_root}" != "${repo_path}/uploads" ) ]]; then
     echo "MEDIA_STORAGE_ROOT nesmí mířit do checkoutu ${repo_path}; použij externí storage nebo ${repo_path}/uploads." >&2
     return 1
   fi
-  if [[ "${snapshot_dir}" == "${repo_path}" || "${snapshot_dir}" == "${repo_path}"/* ]]; then
+  if [[ "${snapshot_dir}" == "${repo_path}" || "${snapshot_dir}" == "${repo_path}"/* || "${repo_path}" == "${snapshot_dir}"/* ]]; then
     echo "SITE_SETTINGS_SNAPSHOT_PATH nesmí ležet v checkoutu ${repo_path}; použij /var/lib/ppstudio/site-settings-snapshot.json." >&2
     return 1
+  fi
+
+  if [[ "${1:-}" == "--validate-only" ]]; then
+    return 0
   fi
 
   sudo install -d -o "${RUNTIME_USER}" -g "${RUNTIME_GROUP}" -m 0750 "${media_root}" "${snapshot_dir}"
@@ -545,6 +640,15 @@ prepare_runtime_storage() {
 
 prepare_runtime_release() {
   local release_dir="$1"
+  local releases_root repo_path
+  release_dir="$(readlink -f -- "${release_dir}")" || return 1
+  releases_root="$(readlink -m -- "${RELEASES_DIR}")" || return 1
+  repo_path="$(readlink -f -- "${REPO_DIR}")" || return 1
+  # První provisioning může mít current přímo na checkout; jinak jen release.
+  if [[ "${release_dir}" != "${repo_path}" && "$(dirname "${release_dir}")" != "${releases_root}" ]]; then
+    echo "Oprávnění odmítám měnit mimo checkout a release adresář: ${release_dir}." >&2
+    return 1
+  fi
 
   # Build zůstává ve vlastnictví deploy uživatele; runtime skupina dostane
   # read/traverse a Next.js cache navíc zápis pro zachování ISR/cache chování.
@@ -623,9 +727,11 @@ ensure_clean_worktree() {
 }
 
 run_release() {
+  REPO_DIR="$(cd "${REPO_DIR}" && pwd -P)"
   cd "${REPO_DIR}"
 
   require_cmd git
+  require_cmd flock
   require_cmd tar
   require_cmd mktemp
   require_cmd node
@@ -641,7 +747,20 @@ run_release() {
     exit 1
   fi
 
+  acquire_release_lock || exit 1
+  if ! [[ "${RETAIN_RELEASES}" =~ ^[0-9]+$ ]]; then
+    echo "--keep-releases musí být nezáporné celé číslo." >&2
+    exit 1
+  fi
+  validate_runtime_path "${RELEASES_DIR}" "PPSTUDIO_RELEASES_DIR"
+  RELEASES_DIR="$(readlink -m -- "${RELEASES_DIR}")"
+  if [[ "${REPO_DIR}" == "${RELEASES_DIR}" || "${REPO_DIR}" == "${RELEASES_DIR}"/* ]]; then
+    echo "PPSTUDIO_RELEASES_DIR nesmí obsahovat pracovní checkout." >&2
+    exit 1
+  fi
+
   load_runtime_env
+  prepare_runtime_storage --validate-only
   validate_server_actions_encryption_key
 
   local current_branch
@@ -669,17 +788,11 @@ run_release() {
     log "Přeskakuji git pull (--skip-pull)."
   fi
 
-  run_timed_step "synchronizace systemd unitů" sync_systemd_units
-  run_timed_step "příprava runtime storage" prepare_runtime_storage
-  if [[ -L "${CURRENT_RELEASE_LINK}" ]]; then
-    run_timed_step "oprávnění aktivního release" prepare_runtime_release "$(readlink -f "${CURRENT_RELEASE_LINK}")"
-  fi
-
   run_timed_step "kontrola lokálních migrací" check_local_migration_directories
 
   run_timed_step "příprava deployment environmentu" prepare_deployment_env
 
-  trap cleanup_release_workspace EXIT
+  trap finish_release EXIT
   run_timed_step "vytvoření staging workspace" create_release_workspace
 
   cd "${RELEASE_BUILD_DIR}"
@@ -709,7 +822,7 @@ run_release() {
   # Produkční .env nesmí spouštět zapisující DB integrační testy. Tento běh
   # ověřuje unit/regresní testy; DB integrační a E2E zůstávají CI bránou.
   log "npm run test:release (bez produkční DB)"
-  run_timed_step "test:release" npm run test:release
+  run_timed_step "test:release" run_release_tests
 
   log "npm run build"
   run_timed_step "build" npm run build
@@ -722,10 +835,15 @@ run_release() {
   release_dir="${RELEASES_DIR}/${release_name}"
   run_timed_step "finalizace release workspace" mv "${RELEASE_BUILD_DIR}" "${release_dir}"
   RELEASE_BUILD_DIR=""
-  run_timed_step "runtime oprávnění release" prepare_runtime_release "${release_dir}"
-
   cd "${REPO_DIR}"
+  RELEASE_WRITERS_STOPPED=1
   run_timed_step "zastavení a ověření writerů" stop_release_writers
+
+  run_timed_step "záloha systemd unitů" backup_systemd_units
+  SYSTEMD_UNITS_CHANGED=1
+  run_timed_step "synchronizace systemd unitů" sync_systemd_units
+  run_timed_step "příprava runtime storage" prepare_runtime_storage
+  run_timed_step "runtime oprávnění release" prepare_runtime_release "${release_dir}"
 
   cd "${release_dir}"
   log "npx prisma migrate deploy (writeři jsou ověřeně zastavení)"
@@ -736,7 +854,13 @@ run_release() {
 
   cd "${REPO_DIR}"
   run_timed_step "aktivace release" activate_release "${release_dir}"
-  run_timed_step "úklid starších releasů" cleanup_old_releases
+  RELEASE_WRITERS_STOPPED=0
+  SYSTEMD_UNITS_CHANGED=0
+  local cleanup_started_at=${SECONDS}
+  if ! cleanup_old_releases; then
+    log "VAROVÁNÍ: release je nasazený, ale úklid starších verzí selhal."
+  fi
+  RELEASE_STEP_DURATIONS+=("úklid starších releasů: $((SECONDS - cleanup_started_at)) s.")
 
   log "status ${WEB_UNIT_NAME}"
   run_timed_step "kontrola služby ${WEB_UNIT_NAME}" systemctl --no-pager --lines=20 status "${WEB_UNIT_NAME}"
