@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.34.0] - 2026-10-13
+
 ### Změněno
 
 - E-maily v Událostech mají badge podle skutečného stavu Resend webhooků (odesláno, doručeno, zpožděno, nedoručeno nebo uzavřený incident). Záložka E-maily počítá aktivní doručovací incidenty bez duplicitních resendů. Historie změn vypisuje podrobnosti přímo a má úspornější časovou osu.
