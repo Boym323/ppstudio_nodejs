@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Změněno
+
+- Veřejná rezervace zrychluje výpočet doporučených termínů a automatického oběda opakovaným využitím již vypočtených kontextů a hodnocení bez změny dostupnosti, pořadí ani pravidel rezervace.
+
 ### Opraveno
 
 - Nasazení mění systemd unity a runtime oprávnění až po úspěšném buildu a zastavení služeb; při selhání aktivace obnoví původní unity. Neověřitelný stav služeb blokuje migraci, retence zachovává skutečně nejnovější záložní verze a chyba úklidu už neoznačí úspěšné nasazení za neúspěšné.

@@ -5,13 +5,16 @@ import {
   resolvePragueLocalDateTime,
 } from "./booking-local-time";
 import {
-  canPreserveAutoLunch,
-  generateLunchCandidates,
-  shouldApplyAutoLunch,
+  canPreserveAutoLunchInContext,
+  createAutoLunchDayContext,
+  type AutoLunchDayContext,
+  type ScheduleInterval,
 } from "./booking-schedule-optimization";
 
 const BOOKING_START_STEP_MINUTES = 30;
 const QUARTER_HOUR_MS = 15 * 60 * 1000;
+
+const autoLunchDayContextCache = new WeakMap<object, Map<string, AutoLunchDayContext>>();
 
 export type TimeSlotOption = {
   key: string;
@@ -57,6 +60,49 @@ function resolveSlotIdForStart(
 
 function getSlotStartTime(value: string) {
   return new Date(value).getTime();
+}
+
+function getCachedAutoLunchDayContext(
+  scheduleOptimization: PublicBookingCatalog["scheduleOptimization"],
+  localDate: string,
+  availability: ScheduleInterval[],
+  bookedBlocks: ScheduleInterval[],
+) {
+  let contexts = autoLunchDayContextCache.get(scheduleOptimization);
+  if (!contexts) {
+    contexts = new Map();
+    autoLunchDayContextCache.set(scheduleOptimization, contexts);
+  }
+
+  const cached = contexts.get(localDate);
+  if (cached) return cached;
+
+  const nextLocalDate = getNextCalendarDate(localDate);
+  const dayStartsAt = resolvePragueLocalDateTime(localDate, "00:00")?.getTime();
+  const dayEndsAt = nextLocalDate
+    ? resolvePragueLocalDateTime(nextLocalDate, "00:00")?.getTime()
+    : undefined;
+  const dayAvailability = availability.filter(
+    (interval) => dayStartsAt !== undefined
+      && dayEndsAt !== undefined
+      && interval.startsAt < dayEndsAt
+      && interval.endsAt > dayStartsAt,
+  );
+  const dayBookedBlocks = bookedBlocks.filter(
+    (interval) => dayStartsAt !== undefined
+      && dayEndsAt !== undefined
+      && interval.startsAt < dayEndsAt
+      && interval.endsAt > dayStartsAt,
+  );
+  const context = createAutoLunchDayContext({
+    localDate,
+    availability: dayAvailability,
+    bookedBlocks: dayBookedBlocks,
+    globalAutoLunchEnabled: scheduleOptimization.globalAutoLunchEnabled,
+    dayLunchMode: scheduleOptimization.dayLunchModes[localDate] ?? "AUTO",
+  });
+  contexts.set(localDate, context);
+  return context;
 }
 
 export function floorToQuarterHour(valueMs: number) {
@@ -253,23 +299,15 @@ export function getAutoLunchBoundaryStartCandidates(
 
     if (dayStartsAt === undefined || dayEndsAt === undefined) return [];
 
-    const dayAvailability = availability.filter(
-      (interval) => interval.startsAt < dayEndsAt && interval.endsAt > dayStartsAt,
-    );
-    const dayBookedBlocks = bookedBlocks.filter(
-      (interval) => interval.startsAt < dayEndsAt && interval.endsAt > dayStartsAt,
-    );
-    const active = shouldApplyAutoLunch({
+    const context = getCachedAutoLunchDayContext(
+      scheduleOptimization,
       localDate,
-      availability: dayAvailability,
-      bookedBlocks: dayBookedBlocks,
-      globalAutoLunchEnabled: scheduleOptimization.globalAutoLunchEnabled,
-      dayLunchMode: scheduleOptimization.dayLunchModes[localDate] ?? "AUTO",
-    });
+      availability,
+      bookedBlocks,
+    );
 
-    return active
-      ? generateLunchCandidates({ localDate, availability: dayAvailability })
-        .map((candidate) => new Date(candidate.endsAt).toISOString())
+    return context.active
+      ? context.lunchCandidates.map((candidate) => new Date(candidate.endsAt).toISOString())
       : [];
   });
 }
@@ -295,12 +333,8 @@ export function filterTimeOptionsForAutoLunch(
     startsAt: new Date(interval.startsAt).getTime(),
     endsAt: new Date(interval.endsAt).getTime(),
   }));
-  const dayContexts = new Map<string, {
-    active: boolean;
-    availability: typeof availability;
-    lunchCandidates: ReturnType<typeof generateLunchCandidates>;
-    bookedBlocks: typeof bookedBlocks;
-  }>();
+  const dayContexts = new Map<string, AutoLunchDayContext>();
+  const feasibilityByBlock = new Map<string, boolean>();
 
   return options.filter((option) => {
     if (option.isDisabled) {
@@ -308,51 +342,34 @@ export function filterTimeOptionsForAutoLunch(
     }
 
     const startsAt = new Date(option.startsAt);
+    const startsAtMs = startsAt.getTime();
+    const endsAtMs = startsAtMs
+      + (input.serviceDurationMinutes + input.cleanupBlockMinutes) * 60_000;
+    const blockKey = `${startsAtMs}:${endsAtMs}`;
+    const cachedFeasibility = feasibilityByBlock.get(blockKey);
+    if (cachedFeasibility !== undefined) {
+      return cachedFeasibility;
+    }
+
     const localDate = getPragueLocalDate(startsAt);
     let dayContext = dayContexts.get(localDate);
 
     if (!dayContext) {
-      const nextLocalDate = getNextCalendarDate(localDate);
-      const dayStartsAt = resolvePragueLocalDateTime(localDate, "00:00")?.getTime();
-      const dayEndsAt = nextLocalDate
-        ? resolvePragueLocalDateTime(nextLocalDate, "00:00")?.getTime()
-        : undefined;
-      const dayAvailability = availability.filter(
-        (interval) => dayStartsAt !== undefined
-          && dayEndsAt !== undefined
-          && interval.startsAt < dayEndsAt
-          && interval.endsAt > dayStartsAt,
-      );
-      const dayBookedBlocks = bookedBlocks.filter(
-        (interval) => dayStartsAt !== undefined
-          && dayEndsAt !== undefined
-          && interval.startsAt < dayEndsAt
-          && interval.endsAt > dayStartsAt,
-      );
-      const active = shouldApplyAutoLunch({
+      dayContext = getCachedAutoLunchDayContext(
+        input.scheduleOptimization,
         localDate,
-        availability: dayAvailability,
-        bookedBlocks: dayBookedBlocks,
-        globalAutoLunchEnabled: input.scheduleOptimization.globalAutoLunchEnabled,
-        dayLunchMode: input.scheduleOptimization.dayLunchModes[localDate] ?? "AUTO",
-      });
-      dayContext = {
-        active,
-        availability: dayAvailability,
-        lunchCandidates: generateLunchCandidates({ localDate, availability: dayAvailability }),
-        bookedBlocks: dayBookedBlocks,
-      };
+        availability,
+        bookedBlocks,
+      );
       dayContexts.set(localDate, dayContext);
     }
 
-    return canPreserveAutoLunch({
-      ...dayContext,
-      hypotheticalBlock: {
-        startsAt: startsAt.getTime(),
-        endsAt: startsAt.getTime()
-          + (input.serviceDurationMinutes + input.cleanupBlockMinutes) * 60_000,
-      },
-    }).feasible;
+    const feasible = canPreserveAutoLunchInContext({
+      context: dayContext,
+      hypotheticalBlock: { startsAt: startsAtMs, endsAt: endsAtMs },
+    });
+    feasibilityByBlock.set(blockKey, feasible);
+    return feasible;
   });
 }
 
