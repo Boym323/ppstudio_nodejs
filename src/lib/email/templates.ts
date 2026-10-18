@@ -164,8 +164,6 @@ const clientStudio = {
   phone: "+420 732 856 036",
 };
 
-const clientStudioMapUrl = "https://maps.app.goo.gl/iRdsWbiX99fw3Q36A";
-
 type EmailSalonContact = {
   name: string;
   address: string;
@@ -194,6 +192,10 @@ function buildReminderParkingUrl() {
   return url.toString();
 }
 
+function buildClientStudioMapUrl() {
+  return new URL("/mapa", env.NEXT_PUBLIC_APP_URL).toString();
+}
+
 function buildEmailSalonContact({
   salonProfile,
   emailBranding,
@@ -220,7 +222,7 @@ function buildEmailSalonContact({
     address,
     email,
     phone,
-    mapUrl: clientStudioMapUrl,
+    mapUrl: buildClientStudioMapUrl(),
   };
 }
 

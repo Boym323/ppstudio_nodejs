@@ -18,6 +18,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Odkaz na mapu v klientských rezervačních e-mailech nyní vede přes vlastní doménu a následně přesměruje na Google Maps, aby odpovídal kontrole domény v Resendu a zachoval přímé otevření mapy.
+
 - V užším zobrazení otevře kliknutí na název služby i akce v nabídce přímo její editační formulář.
 
 - Přehled rezervací na menších obrazovkách používá kompaktní karty s akcemi vedle údajů, sjednoceným vzhledem stavu a tlačítek a úspornější filtry místo široké tabulky; aktivní sekci administrace oznamuje také čtečkám obrazovky.

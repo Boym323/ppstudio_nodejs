@@ -347,7 +347,7 @@ test("renderEmailTemplate creates approved email", async () => {
   assert.match(email.text, /Datum: .+/);
   assert.match(email.text, /Čas: \d{2}:\d{2} – \d{2}:\d{2}/);
   assert.match(email.text, /Místo:\nPP Studio\nSadová 2, 760 01 Zlín/);
-  assert.match(email.text, /Zobrazit na mapě: https:\/\/maps\.app\.goo\.gl\/iRdsWbiX99fw3Q36A/);
+  assert.match(email.text, /Zobrazit na mapě: https:\/\/example\.com\/mapa/);
   assert.match(email.text, /přiložené kalendářové události/i);
   assert.match(email.text, /Napište nám: info@ppstudio\.cz/);
   assert.match(email.text, /Zavolejte: \+420 732 856 036/);
