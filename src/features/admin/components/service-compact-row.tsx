@@ -41,7 +41,7 @@ export function ServiceCompactRow({
         <div className="grid gap-2 px-3 py-2.5 sm:px-4 xl:grid-cols-[minmax(0,1.8fr)_78px_110px_118px_286px_44px] xl:items-center xl:gap-3">
           <div className="min-w-0">
             <Link
-              href={detailHref}
+              href={mobileDetailHref}
               className="block truncate text-sm font-semibold text-white transition hover:text-[var(--color-accent-soft)] sm:text-[0.97rem]"
               title={service.name}
             >
@@ -82,12 +82,12 @@ export function ServiceCompactRow({
               href={mobileDetailHref}
               className="inline-flex rounded-full border border-white/10 px-3 py-2 text-xs text-white/74 transition hover:border-white/18 hover:bg-white/6 xl:hidden"
             >
-              Detail
+              Upravit
             </Link>
             <ServiceActionsMenu
               area={area}
               categoryId={service.category.id}
-              detailHref={detailHref}
+              detailHref={mobileDetailHref}
               isActive={service.isActive}
               isPubliclyBookable={service.isPubliclyBookable}
               returnTo={returnTo}
