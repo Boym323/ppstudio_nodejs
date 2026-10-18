@@ -11,11 +11,9 @@ type StaticSitemapRoute = {
   dependsOnServices?: boolean;
 };
 
-const STATIC_PAGE_LAST_MODIFIED = new Date("2026-04-27T00:00:00.000Z");
-
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: StaticSitemapRoute[] = [
-    { route: "", changeFrequency: "weekly", priority: 1 },
+    { route: "", changeFrequency: "weekly", priority: 1, dependsOnServices: true },
     { route: "/rezervace", changeFrequency: "monthly", priority: 0.9 },
     { route: "/vouchery", changeFrequency: "monthly", priority: 0.8 },
     { route: "/sluzby", changeFrequency: "monthly", priority: 0.7, dependsOnServices: true },
@@ -42,7 +40,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     ...staticRoutes.map((item) => ({
       url: `${siteConfig.canonicalUrl}${item.route}`,
-      lastModified: item.dependsOnServices ? (latestServiceUpdate ?? STATIC_PAGE_LAST_MODIFIED) : STATIC_PAGE_LAST_MODIFIED,
+      ...(item.dependsOnServices && latestServiceUpdate ? { lastModified: latestServiceUpdate } : {}),
       changeFrequency: item.changeFrequency,
       priority: item.priority,
     })),

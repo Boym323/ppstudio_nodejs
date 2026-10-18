@@ -3,7 +3,7 @@ import { ContactPage } from '@/features/public/components/contact-page';
 
 export const metadata = buildPageMetadata({
   title: 'Kontakt',
-  description: 'Kontaktní údaje, praktické informace a jasná cesta k rezervaci termínu.',
+  description: 'Kontaktujte PP Studio ve Zlíně. Najdete zde telefon, e-mail, praktické informace i možnost rezervace kosmetického ošetření.',
   path: '/kontakt',
 });
 
