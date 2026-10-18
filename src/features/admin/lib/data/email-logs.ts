@@ -582,7 +582,7 @@ export function getBookingSubmissionPresentation(entry: {
       ? "success"
       : "info";
   const title = outcome === BookingSubmissionOutcome.SUCCESS
-    ? "Rezervace úspěšně odeslána"
+    ? "Rezervační formulář úspěšně zpracován"
     : outcome === BookingSubmissionOutcome.BLOCKED
       ? "Odeslání rezervace zablokováno"
       : "Odeslání rezervace selhalo";
@@ -731,7 +731,7 @@ function categoryAuditValueLabel(value: Prisma.JsonValue | undefined, categoryNa
   return auditValueLabel(value);
 }
 
-function auditChangeDescription(
+export function auditChangeDescription(
   beforeValue: Prisma.JsonValue,
   afterValue: Prisma.JsonValue,
   categoryNames = new Map<string, string>(),
@@ -754,7 +754,16 @@ function auditChangeDescription(
     notificationAdminEmail: "Notifikační e-mail", emailSenderName: "Jméno odesílatele",
     emailSenderEmail: "E-mail odesílatele", hasEmailFooter: "Patička e-mailu",
   };
+  const publicContentLabels: Record<string, string> = {
+    description: "popis služby", publicIntro: "úvodní text", seoDescription: "SEO popis",
+    idealFor: "pro koho je služba vhodná", includes: "co služba obsahuje", benefits: "výhody",
+    goodToKnow: "dobré vědět", pricingShortDescription: "popis v ceníku", pricingBadge: "štítek v ceníku",
+  };
   return Object.keys(after).map((key) => {
+    if (key === "publicContentFields" && Array.isArray(after[key])) {
+      const fields = after[key].map((field) => typeof field === "string" ? publicContentLabels[field] ?? "další veřejný obsah" : "další veřejný obsah");
+      return `Veřejný obsah upraven: ${[...new Set(fields)].join(", ") || "žádné položky"}`;
+    }
     const label = labels[key] ?? key.replace(/Changed$/, "");
     if (key.endsWith("Changed") && after[key] === true) return `${label}: upraveno`;
     const suffix = key.endsWith("Minutes") ? " min" : key.endsWith("Hours") ? " h" : key.endsWith("Days") ? " dní" : "";
@@ -950,11 +959,18 @@ export async function getAdminLogsData(input: {
   const siteSettingsChangeWhere = severity === "all" || severity === "info" ? buildSiteSettingsChangeWhere(query, dateWhere) : { id: "__no_match__" };
   const adminUserAuditWhere = severity === "all" || severity === "info" ? buildAdminUserAuditWhere(query, dateWhere) : { id: "__no_match__" };
   const submissionBaseWhere = buildBookingSubmissionWhere(query, dateWhere);
+  const systemSubmissionWhere: Prisma.BookingSubmissionLogWhereInput = safeView === "system" && severity === "all"
+    ? { AND: [submissionBaseWhere, { OR: [
+      { outcome: { not: BookingSubmissionOutcome.SUCCESS } },
+      ...adminSubmissionPrefixes.map((prefix) => ({ failureCode: { startsWith: prefix } })),
+      { failureCode: { startsWith: publicVoucherSubmissionPrefix } },
+    ] }] }
+    : submissionBaseWhere;
   const submissionWhere = safeView === "attention"
     ? severity === "all" || severity === "error"
       ? { AND: [submissionBaseWhere, criticalBookingSubmissionWhere({ gte: attentionSince })] }
       : { id: "__no_match__" }
-    : withBookingSubmissionSeverity(submissionBaseWhere, severity);
+    : withBookingSubmissionSeverity(systemSubmissionWhere, severity);
   const availabilityWhere = severity === "all" || severity === "info" ? buildAvailabilityAuditWhere(query, dateWhere) : { id: "__no_match__" };
 
   // Stránka společného feedu je globální, proto nestačí vzít jednu stránku z
@@ -1132,7 +1148,13 @@ export async function getAdminLogsData(input: {
           ? " • Ručně uzavřeno"
           : " • Vyřešeno následným odesláním"
         : "";
-      return { id: `email:${log.id}`, occurredAt: log.createdAt.toISOString(), category: "email" as const, severity: logSeverity, title: log.subject, description: `${log.recipientEmail}${incidentResolutionLabel}${log.errorMessage ? ` • ${getErrorSummary(log.errorMessage)}` : ""}`, actorLabel: null, entityLabel: log.booking ? `${log.booking.clientNameSnapshot} • ${log.booking.serviceNameSnapshot}` : log.client?.fullName ?? null, entityHref: log.booking ? bookingHref(log.booking.id) : null, sourceType: "email" as const, sourceId: log.id, primaryAction, emailLogId: log.id, queueState: getEmailRecentStatusLabel(log.status, log.processingStartedAt, log.attemptCount), trackingState: tracking.label, emailBadge };
+      const serviceName = log.booking?.serviceNameSnapshot.trim();
+      const subjectContainsService = safeView === "emails" && serviceName
+        && log.subject.toLocaleLowerCase("cs-CZ").includes(serviceName.toLocaleLowerCase("cs-CZ"));
+      const entityLabel = log.booking
+        ? subjectContainsService ? log.booking.clientNameSnapshot : `${log.booking.clientNameSnapshot} • ${log.booking.serviceNameSnapshot}`
+        : log.client?.fullName ?? null;
+      return { id: `email:${log.id}`, occurredAt: log.createdAt.toISOString(), category: "email" as const, severity: logSeverity, title: log.subject, description: `${log.recipientEmail}${incidentResolutionLabel}${log.errorMessage ? ` • ${getErrorSummary(log.errorMessage)}` : ""}`, actorLabel: null, entityLabel, entityHref: log.booking ? bookingHref(log.booking.id) : null, sourceType: "email" as const, sourceId: log.id, primaryAction, emailLogId: log.id, queueState: getEmailRecentStatusLabel(log.status, log.processingStartedAt, log.attemptCount), trackingState: tracking.label, emailBadge };
     }),
     ...visibleBookingHistory.map((entry) => {
       const presentation = getBookingHistoryPresentation(entry);

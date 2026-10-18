@@ -87,7 +87,7 @@ function Action({ item }: { item: AdminLogItem }) {
 function FilterFields({ data, dates = true }: { data: AdminLogsData; dates?: boolean }) {
   const controlClass = "min-h-11 rounded-xl border border-white/10 bg-black/25 px-3 text-sm text-white";
   return <>
-    <select name="severity" aria-label="Závažnost" defaultValue={data.filters.severity} className={controlClass}><option value="all">Všechny stavy</option><option value="info">Informace</option><option value="success">V pořádku</option><option value="warning">Varování</option><option value="error">Chyba</option></select>
+    <select name="severity" aria-label="Závažnost" defaultValue={data.filters.severity} className={controlClass}><option value="all">{data.view === "system" ? "Běžný přehled" : "Všechny stavy"}</option><option value="info">Informace</option><option value="success">{data.view === "system" ? "Úspěšné rezervace" : "V pořádku"}</option><option value="warning">Varování</option><option value="error">Chyba</option></select>
     {data.view === "attention" ? <input type="hidden" name="source" value={data.filters.source} /> : null}
     {data.view === "events" ? <select name="source" aria-label="Zdroj" defaultValue={data.filters.source} className={controlClass}><option value="all">Všechny zdroje</option><option value="booking">Rezervace</option><option value="voucher">Voucher</option><option value="service">Služby</option>{data.area === "owner" ? <option value="settings">Nastavení</option> : null}<option value="availability">Dostupnost</option></select> : null}
     {data.view === "system" ? <select name="source" aria-label="Zdroj" defaultValue={data.filters.source} className={controlClass}><option value="all">Všechny zdroje</option><option value="admin">Admin účty</option><option value="submission">Systémové zápisy</option></select> : null}
@@ -135,7 +135,7 @@ function LogsToolbar({ data }: { data: AdminLogsData }) {
     <Sheet.Root open={open} onOpenChange={setOpen}>
       <form method="get" className="hidden md:block">
         <input type="hidden" name="view" value={data.view} />
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-white/[.025] p-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           <input name="query" defaultValue={data.filters.query} placeholder={searchPlaceholder}
             className="min-h-11 min-w-[12rem] flex-[2_1_14rem] rounded-xl border border-white/10 bg-black/25 px-3 text-sm text-white placeholder:text-white/35" />
           <div className="flex min-w-0 flex-[2_1_20rem] flex-wrap items-center gap-2">
@@ -261,20 +261,32 @@ function HistoryList({ items }: { items: AdminLogItem[] }) {
     groups.set(day, [...(groups.get(day) ?? []), item]);
   }
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {[...groups].map(([day, entries]) => (
         <section key={day} aria-label={day}>
-          <div className="mb-2 flex flex-wrap items-center gap-3">
+          <div className="mb-1 flex flex-wrap items-baseline gap-2">
             <h2 className="text-sm font-semibold text-white/85">{day}</h2>
-            <span className="rounded-full border border-white/10 bg-white/[.035] px-2.5 py-1 text-xs tabular-nums text-white/55">
-              {entries.length} {entries.length === 1 ? "změna" : entries.length < 5 ? "změny" : "změn"}
+            <span className="text-xs tabular-nums text-white/50">
+              {entries.length} {entries.length === 1 ? "změna" : entries.length < 5 ? "změny" : "změn"} na této stránce
             </span>
           </div>
-          <ol aria-label={`Události dne ${day}`} className="ml-2 space-y-2 border-l border-white/15 pl-5">
+          <ol aria-label={`Události dne ${day}`} className="divide-y divide-white/10 border-y border-white/10">
             {entries.map((item) => (
-              <li key={item.id} className="relative min-w-0">
-                <span aria-hidden="true" className={`absolute -left-[1.58rem] top-5 h-2.5 w-2.5 rounded-full ring-4 ring-[#111015] ${severityDotClasses[item.severity]}`} />
-                <LogCard item={item} view="events" />
+              <li key={item.id} className="min-w-0 py-3">
+                <article className="flex min-w-0 gap-3 sm:gap-4">
+                  <time dateTime={item.occurredAt} className="w-11 shrink-0 pt-0.5 text-xs tabular-nums text-white/55">{formatLogTime(item.occurredAt, true)}</time>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                      <h3 className="break-words text-sm font-semibold text-white">{item.title}</h3>
+                      <span className="text-xs text-white/50">{sourceLabels[item.sourceType]}</span>
+                      {(item.severity === "error" || item.severity === "warning") ? <SeverityPill severity={item.severity} /> : null}
+                    </div>
+                    <EntityLink item={item} />
+                    <LogDescription item={item} view="events" />
+                    {item.actorLabel ? <p className="mt-1 text-xs text-white/50">Autor: {item.actorLabel}</p> : null}
+                    {!(item.entityHref && item.entityLabel) ? <Action item={item} /> : null}
+                  </div>
+                </article>
               </li>
             ))}
           </ol>
@@ -286,13 +298,13 @@ function HistoryList({ items }: { items: AdminLogItem[] }) {
 
 function LogTable({ data }: { data: AdminLogsData }) {
   const emails = data.view === "emails";
-  return <><div className="hidden overflow-x-auto rounded-xl border border-white/8 md:block"><table className="w-full min-w-[680px] text-left text-sm">
-    <thead className="border-b border-white/10 text-xs text-white/60"><tr><th scope="col" className="p-3 font-medium">{emails ? "Zpráva a příjemce" : "Událost"}</th><th scope="col" className="p-3 font-medium">{emails ? "Doručování" : "Stav"}</th><th scope="col" className="p-3 font-medium">Čas</th><th scope="col" className="p-3"><span className="sr-only">Akce</span></th></tr></thead>
+  return <><div className="hidden overflow-x-auto rounded-xl border border-white/8 md:block"><table className="w-full min-w-[680px] table-fixed text-left text-sm"><colgroup><col /><col className="w-[12rem]" /><col className="w-[10rem]" /><col className="w-[9rem]" /></colgroup>
+    <thead className="border-b border-white/10 text-xs text-white/60"><tr><th scope="col" className="px-3 py-2 font-medium">{emails ? "Zpráva a příjemce" : "Událost"}</th><th scope="col" className="px-3 py-2 font-medium">{emails ? "Doručování" : "Stav"}</th><th scope="col" className="px-3 py-2 font-medium">Čas</th><th scope="col" className="px-3 py-2"><span className="sr-only">Akce</span></th></tr></thead>
     <tbody>{data.items.map((item) => <tr key={item.id} className="border-b border-white/8 last:border-0 hover:bg-white/[.025]">
-      <td className="max-w-xl p-3 align-top">{data.view === "system" ? <SourceLabel source={item.sourceType} /> : null}<p className="break-words font-medium text-white">{item.title}</p><EntityLink item={item} /><LogDescription item={item} view={data.view} />{item.actorLabel ? <p className="mt-1 text-xs text-white/55">{item.actorLabel}</p> : null}</td>
-      <td className="p-3 align-top"><LogStatus item={item} view={data.view} /></td>
-      <td className="whitespace-nowrap p-3 align-top text-xs text-white/55"><time dateTime={item.occurredAt}>{formatLogTime(item.occurredAt)}</time></td>
-      <td className="p-3 align-top"><Action item={item} /></td>
+      <td className="px-3 py-2 align-top">{data.view === "system" ? <SourceLabel source={item.sourceType} /> : null}<p className="break-words font-medium text-white">{item.title}</p><EntityLink item={item} /><LogDescription item={item} view={data.view} />{item.actorLabel ? <p className="mt-1 text-xs text-white/55">{item.actorLabel}</p> : null}</td>
+      <td className="px-3 py-2 align-top"><LogStatus item={item} view={data.view} /></td>
+      <td className="whitespace-nowrap px-3 py-2 align-top text-xs text-white/55"><time dateTime={item.occurredAt}>{formatLogTime(item.occurredAt)}</time></td>
+      <td className="px-3 py-2 align-top"><Action item={item} /></td>
     </tr>)}</tbody>
   </table></div><div className="rounded-xl border border-white/8 md:hidden">{data.items.map((item) => <LogCard key={item.id} item={item} view={data.view} />)}</div></>;
 }
@@ -303,11 +315,11 @@ export function AdminLogsPage({ data }: { data: AdminLogsData }) {
   const isOwner = data.area === "owner";
   const currentView = views.find((view) => view.value === data.view) ?? views[1];
   const filtered = hasActiveFilters(data);
-  const empty = filtered ? "Zadaným filtrům neodpovídají žádné záznamy." : data.view === "attention" ? "Vše je v pořádku. Nic nyní nevyžaduje pozornost." : data.view === "emails" ? "Zatím nejsou evidované žádné e-maily." : "Zatím nejsou evidované žádné události.";
+  const empty = filtered ? "Zadaným filtrům neodpovídají žádné záznamy." : data.view === "attention" ? "Vše je v pořádku. Nic nyní nevyžaduje pozornost." : data.view === "emails" ? "Zatím nejsou evidované žádné e-maily." : data.view === "system" ? "Žádné technické události k zobrazení." : "Zatím nejsou evidované žádné události.";
   const rangeStart = data.total === 0 ? 0 : (data.page - 1) * data.pageSize + 1;
   const rangeEnd = Math.min(data.page * data.pageSize, data.total);
   return <AdminPageShell eyebrow={isOwner ? "Administrace" : "Provoz salonu"} title="Události" description={currentView.hint} mobileCompactIntro denseIntro>
-    <div className="min-w-0 space-y-4">
+    <div className="min-w-0 max-w-6xl space-y-4">
       <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <nav className="grid w-full grid-cols-2 gap-1 rounded-xl border border-white/10 bg-white/[.025] p-1 md:flex md:min-w-0 md:flex-1 md:gap-1 md:overflow-x-auto md:rounded-none md:border-0 md:border-b md:bg-transparent md:p-0" aria-label="Pohledy událostí">
           {views.filter((item) => !item.ownerOnly || isOwner).map((item) => (
@@ -340,10 +352,8 @@ export function AdminLogsPage({ data }: { data: AdminLogsData }) {
       {data.view === "attention" ? <AttentionSummary data={data} /> : null}
       <LogsToolbar key={`${data.view}:${buildAdminLogsSearchParams(data.view, data.filters)}`} data={data} />
       <section aria-label={currentView.label} className="min-w-0 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/8 bg-white/[.025] px-3.5 py-2.5">
-          <p className="text-sm font-medium text-white/80">{currentView.label}</p>
-          <p className="text-xs tabular-nums text-white/60">{formatLogRecordCount(data.total)} · od nejnovějších{filtered ? " · filtrováno" : ""}</p>
-        </div>
+        <p className="text-xs tabular-nums text-white/60">{formatLogRecordCount(data.total)} · od nejnovějších{filtered ? " · filtrováno" : ""}</p>
+        {data.view === "system" && data.filters.severity === "all" ? <p className="text-xs leading-5 text-white/60">Úspěšná zpracování rezervačního formuláře jsou skrytá. <Link href={hrefWith(data, { severity: "success", source: data.filters.source === "admin" ? undefined : data.filters.source, page: undefined })} className="text-[var(--color-accent-soft)] underline underline-offset-4">Zobrazit úspěšné rezervace</Link></p> : null}
         {data.items.length ? data.view === "attention" ? <div className="overflow-hidden rounded-xl border border-white/8">{data.items.map((item) => <LogCard key={item.id} item={item} view={data.view} />)}</div> : data.view === "events" ? <HistoryList items={data.items} /> : <LogTable data={data} /> : <div className={`rounded-xl px-4 py-7 text-sm ${data.view === "attention" && !filtered ? "bg-emerald-400/[.04] text-emerald-100" : "bg-white/[.025] text-white/75"}`}><p>{empty}</p>{filtered ? <Link href={`?view=${data.view}`} className="mt-2 inline-flex min-h-11 items-center underline underline-offset-4">Vymazat filtry</Link> : null}</div>}
       </section>
       {data.pageCount > 1 ? (

@@ -73,6 +73,47 @@ dbTest("admin datumové filtry používají pražský den pro Události, E-maily
   }
 });
 
+dbTest("technický přehled skrývá úspěšné rezervace a filtr je vrací před stránkováním", async () => {
+  const [{ prisma }, { getAdminLogsData }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-data"),
+  ]);
+  const suffix = `admin-system-success-${randomUUID()}`;
+  const start = new Date("2030-01-01T12:00:00.000Z").getTime();
+
+  try {
+    await prisma.bookingSubmissionLog.createMany({ data: [
+      ...Array.from({ length: 55 }, (_, index) => ({
+        outcome: BookingSubmissionOutcome.SUCCESS,
+        failureCode: index % 2 === 0 ? null : "BOOKING_SUCCESS",
+        failureReason: `${suffix} rezervace ${index}`,
+        createdAt: new Date(start + index * 1_000),
+      })),
+      { outcome: BookingSubmissionOutcome.FAILED, failureCode: "UNEXPECTED_ERROR", failureReason: `${suffix} chyba` },
+      { outcome: BookingSubmissionOutcome.SUCCESS, failureCode: "ADMIN_LOGIN_SUCCESS", failureReason: `${suffix} přihlášení` },
+      { outcome: BookingSubmissionOutcome.SUCCESS, failureCode: "PUBLIC_VOUCHER_VERIFY_SUCCESS", failureReason: `${suffix} voucher` },
+    ] });
+
+    const common = { area: "owner" as const, view: "system", query: suffix };
+    const normal = await getAdminLogsData(common);
+    assert.equal(normal.total, 3);
+    assert.deepEqual(new Set(normal.items.map((item) => item.title)), new Set([
+      "Odeslání rezervace selhalo", "Přihlášení administrátora", "Veřejné ověření voucheru",
+    ]));
+
+    const first = await getAdminLogsData({ ...common, severity: "success" });
+    const second = await getAdminLogsData({ ...common, severity: "success", page: "2" });
+    assert.equal(first.total, 55);
+    assert.equal(first.pageCount, 2);
+    assert.equal(first.items.length, 50);
+    assert.equal(second.items.length, 5);
+    assert.equal(new Set([...first.items, ...second.items].map((item) => item.id)).size, 55);
+    assert.equal(first.items.every((item) => item.title === "Rezervační formulář úspěšně zpracován"), true);
+  } finally {
+    await prisma.bookingSubmissionLog.deleteMany({ where: { failureReason: { contains: suffix } } });
+  }
+});
+
 dbTest("admin logy rozliší submission typy, Pozornost a SALON scope", async () => {
   const [{ prisma }, { getAdminLogsData }] = await Promise.all([
     import("@/lib/prisma"),

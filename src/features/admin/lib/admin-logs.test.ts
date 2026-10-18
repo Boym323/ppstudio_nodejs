@@ -30,6 +30,18 @@ import {
   type AdminLogItem,
 } from "./admin-data";
 import { buildAdminLogsSearchParams } from "./admin-logs-url";
+import { auditChangeDescription } from "./data/email-logs";
+
+test("změny veřejného obsahu služby popisují názvy srozumitelně i pro starší záznamy", () => {
+  assert.equal(
+    auditChangeDescription({ publicContentFields: [] }, { publicContentFields: ["seoDescription", "description"] }),
+    "Veřejný obsah upraven: SEO popis, popis služby",
+  );
+  assert.equal(
+    auditChangeDescription({ publicContentFields: [] }, { publicContentFields: ["unknownField"] }),
+    "Veřejný obsah upraven: další veřejný obsah",
+  );
+});
 
 function item(id: string, occurredAt: string): AdminLogItem {
   return { id, occurredAt, category: "event", severity: "info", title: id, description: null, actorLabel: null, entityLabel: null, entityHref: null, sourceType: "booking", sourceId: id, primaryAction: null };
@@ -78,6 +90,7 @@ test("BookingSubmissionLog rozlišuje booking, login, aktivaci, voucher a recove
   assert.equal(getBookingSubmissionPresentation({ outcome: BookingSubmissionOutcome.FAILED, failureCode: "PUBLIC_VOUCHER_VERIFY_PUBLIC_PAGE_NOT_FOUND_OR_INVALID" }).title, "Veřejné ověření voucheru");
   assert.equal(getBookingSubmissionPresentation({ outcome: BookingSubmissionOutcome.SUCCESS, failureCode: "ADMIN_RECOVERY_OWNER_RESTORED" }).title, "Obnova administrátora");
   assert.equal(getBookingSubmissionPresentation({ outcome: BookingSubmissionOutcome.FAILED, failureCode: "VALIDATION_ERROR" }).title, "Odeslání rezervace selhalo");
+  assert.equal(getBookingSubmissionPresentation({ outcome: BookingSubmissionOutcome.SUCCESS, failureCode: null }).title, "Rezervační formulář úspěšně zpracován");
 });
 
 test("historie rezervace rozlišuje změny stavu od provozního auditu", () => {

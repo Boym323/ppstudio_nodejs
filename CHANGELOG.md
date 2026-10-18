@@ -8,6 +8,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Události v administraci mají úspornější historii změn a přehlednější tabulky; technický přehled standardně skrývá úspěšná zpracování rezervačního formuláře, která lze zobrazit filtrem. Změny veřejného obsahu služeb používají srozumitelné názvy a seznam e-mailů neopakuje název služby uvedený v předmětu.
+
 - Veřejná rezervace zrychluje výpočet doporučených termínů a automatického oběda opakovaným využitím již vypočtených kontextů a hodnocení bez změny dostupnosti, pořadí ani pravidel rezervace.
 
 ### Opraveno
