@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { createResendEmailLog } from "@/features/admin/actions/email-log-resend";
+import { updateClientContactAction } from "@/features/admin/actions/client-actions";
+import { type UpdateClientContactActionState } from "@/features/admin/actions/update-client-contact-action-state";
 import { requireAdminArea } from "@/lib/auth/session";
 import { isEmailWorkerClaimStale } from "@/lib/email/booking-delivery-fence";
 import { manuallyResolveEmailIncident } from "@/lib/email/incident-resolution";
@@ -146,6 +148,21 @@ export async function resendEmailLogAction(formData: FormData) {
 
   revalidateResendPaths(emailLog.id, createdEmailLog.id);
   redirect(`/admin/email-logy/${createdEmailLog.id}?flash=resend-success`);
+}
+
+export async function correctEmailRecipientAction(previousState: UpdateClientContactActionState, formData: FormData) {
+  await requireAdminArea("owner");
+  const parsed = emailLogActionSchema.safeParse({ emailLogId: readFormString(formData, "incidentEmailLogId") });
+  if (!parsed.success) return { status: "error" as const, formError: "E-mail se nepodařilo najít." };
+  formData.set("area", "owner");
+  formData.set("incidentEmailLogId", parsed.data.emailLogId);
+  const result = await updateClientContactAction(previousState, formData);
+  if (result.status === "success") {
+    const emailLogId = parsed.data.emailLogId;
+    revalidatePath(`/admin/email-logy/${emailLogId}`);
+    redirect(`/admin/email-logy/${encodeURIComponent(emailLogId)}?flash=recipient-corrected`);
+  }
+  return result;
 }
 
 export async function closeEmailIncidentAction(formData: FormData) {

@@ -309,6 +309,8 @@ export async function createResendEmailLog(input: {
   emailLog: ResendSourceEmailLog;
   adminNotificationEmail?: string | null;
   hooks?: ResendTestHooks;
+  transaction?: Prisma.TransactionClient;
+  expectedBookingGeneration?: number;
 }) {
   const { emailLog } = input;
   const tokenPayloadKind = getResendTokenPayloadKind(emailLog);
@@ -326,7 +328,7 @@ export async function createResendEmailLog(input: {
 
   if (!isClientAudience && !recipientEmailForNonClient) return null;
 
-  return runSerializableTransaction(async (tx) => {
+  const createInTransaction = async (tx: Prisma.TransactionClient) => {
     let recipientEmail = recipientEmailForNonClient;
     let currentClient: { id: string; email: string | null } | null = null;
     let currentBooking: CurrentResendBooking | null = null;
@@ -370,7 +372,7 @@ export async function createResendEmailLog(input: {
           return null;
         }
 
-        if (emailLog.communicationGeneration !== currentBooking.communicationGeneration) {
+        if ((input.expectedBookingGeneration ?? emailLog.communicationGeneration) !== currentBooking.communicationGeneration) {
           return null;
         }
       }
@@ -530,5 +532,7 @@ export async function createResendEmailLog(input: {
           : emailLog.payload,
       }),
     });
-  });
+  };
+
+  return input.transaction ? createInTransaction(input.transaction) : runSerializableTransaction(createInTransaction);
 }

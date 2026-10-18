@@ -10,6 +10,7 @@ import { revalidatePath } from "next/cache";
 import { type AdminArea } from "@/config/navigation";
 import { type UpdateClientContactActionState } from "@/features/admin/actions/update-client-contact-action-state";
 import { type UpdateClientNoteActionState } from "@/features/admin/actions/update-client-note-action-state";
+import { createResendEmailLog } from "@/features/admin/actions/email-log-resend";
 import {
   updateClientContactSchema,
   updateClientNoteSchema,
@@ -26,6 +27,8 @@ import {
 } from "@/features/admin/lib/client-contact-token-rotation";
 import { requireAdminArea } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
+import { isEmailDeliveryFailure } from "@/lib/email/incidents";
+import { scrubSensitiveEmailPayload } from "@/lib/email/payload-security";
 import { runSerializableTransaction } from "@/lib/serializable-transaction";
 
 function readFormString(formData: FormData, key: string) {
@@ -116,6 +119,7 @@ export async function updateClientContactAction(
   _previousState: UpdateClientContactActionState,
   formData: FormData,
 ): Promise<UpdateClientContactActionState> {
+  const incidentEmailLogId = readFormString(formData, "incidentEmailLogId");
   const parsed = updateClientContactSchema.safeParse({
     area: readFormString(formData, "area"),
     clientId: readFormString(formData, "clientId"),
@@ -138,6 +142,9 @@ export async function updateClientContactAction(
 
   const area = parsed.data.area as AdminArea;
   const session = await requireAdminArea(area);
+  if (incidentEmailLogId && area !== "owner") {
+    return { status: "error", formError: "Opravu e-mailového incidentu může provést pouze vlastník." };
+  }
 
   if (parsed.data.phone && !isValidClientPhoneInput(parsed.data.phone)) {
     return {
@@ -150,7 +157,7 @@ export async function updateClientContactAction(
   }
 
   const normalizedEmail = parsed.data.email ? normalizeClientEmail(parsed.data.email) : null;
-  const normalizedPhone = parsed.data.phone ? normalizeClientPhone(parsed.data.phone) : null;
+  let normalizedPhone = parsed.data.phone ? normalizeClientPhone(parsed.data.phone) : null;
 
   const client = await prisma.client.findUnique({
     where: { id: parsed.data.clientId },
@@ -206,12 +213,14 @@ export async function updateClientContactAction(
       `);
       const currentClient = await tx.client.findUnique({
         where: { id: client.id },
-        select: { id: true },
+        select: { id: true, email: true, phone: true },
       });
 
       if (!currentClient) {
         throw new Error("Client disappeared during contact update.");
       }
+
+      if (incidentEmailLogId) normalizedPhone = currentClient.phone;
 
       const now = new Date();
       const activeBookings = await tx.booking.findMany({
@@ -229,8 +238,30 @@ export async function updateClientContactAction(
           status: true,
           clientEmailSnapshot: true,
           clientPhoneSnapshot: true,
+          communicationGeneration: true,
         },
       });
+      const source = incidentEmailLogId ? await tx.emailLog.findUnique({
+        where: { id: incidentEmailLogId },
+        include: {
+          client: { select: { id: true, email: true } },
+          booking: { select: { id: true, clientEmailSnapshot: true } },
+          resendRoot: { select: { incidentResolvedAt: true } },
+        },
+      }) : null;
+      const sourceBooking = source?.bookingId ? activeBookings.find((booking) => booking.id === source.bookingId) : null;
+      if (incidentEmailLogId && normalizedEmail && normalizedEmail === currentClient.email) {
+        throw new Error("EMAIL_RECIPIENT_UNCHANGED");
+      }
+      if (incidentEmailLogId && (
+        !source || source.clientId !== client.id || source.audience !== "CLIENT"
+        || source.processingStartedAt !== null || !isEmailDeliveryFailure(source)
+        || (source.resendRoot?.incidentResolvedAt ?? source.incidentResolvedAt) !== null
+        || !normalizedEmail
+        || (source.bookingId !== null && (!sourceBooking || source.communicationGeneration !== sourceBooking.communicationGeneration))
+      )) {
+        throw new Error("EMAIL_INCIDENT_CHANGED");
+      }
       const bookingIdsWithChangedEmailSnapshot = getBookingIdsWithChangedEmailSnapshot(
         activeBookings,
         normalizedEmail,
@@ -298,6 +329,31 @@ export async function updateClientContactAction(
         });
       }
 
+      if (source && normalizedEmail) {
+        if (sourceBooking && bookingIdsWithChangedEmailSnapshot.includes(sourceBooking.id)) {
+          const pendingCopies = await tx.emailLog.findMany({
+            where: { bookingId: sourceBooking.id, audience: "CLIENT", status: "PENDING", type: source.type, templateKey: source.templateKey },
+            select: { id: true, payload: true, resendRootId: true, processingStartedAt: true },
+          });
+          if (pendingCopies.some((log) => log.resendRootId || log.processingStartedAt)) throw new Error("EMAIL_INCIDENT_CHANGED");
+          for (const log of pendingCopies) {
+            await tx.emailLog.update({ where: { id: log.id }, data: {
+              status: "SENT", provider: "system-skip", sentAt: now,
+              errorMessage: "E-mail byl nahrazen opakovaným odesláním po opravě adresy.",
+              payload: scrubSensitiveEmailPayload(log.payload),
+            } });
+          }
+        }
+        const resend = await createResendEmailLog({
+          emailLog: source,
+          transaction: tx,
+          expectedBookingGeneration: sourceBooking
+            ? sourceBooking.communicationGeneration + (bookingIdsWithChangedEmailSnapshot.includes(sourceBooking.id) ? 1 : 0)
+            : undefined,
+        });
+        if (!resend) throw new Error("EMAIL_INCIDENT_CHANGED");
+      }
+
       return touchedBookings.map((booking) => booking.id);
     });
 
@@ -307,12 +363,20 @@ export async function updateClientContactAction(
 
     return {
       status: "success",
-      successMessage:
+      successMessage: incidentEmailLogId
+        ? "Adresa je opravená a nový pokus je ve frontě. Problém se uzavře po potvrzení doručení."
+        :
         touchedBookingIds.length > 0
           ? `Kontakt je uložený a propsal se do ${touchedBookingIds.length} aktivních rezervací. Proběhlé rezervace zůstaly beze změny.`
           : "Kontakt je uložený.",
     };
   } catch (error) {
+    if (error instanceof Error && error.message === "EMAIL_RECIPIENT_UNCHANGED") {
+      return { status: "error", formError: "Zadejte opravenou e-mailovou adresu.", fieldErrors: { email: "Adresa se neliší od aktuálního kontaktu klientky." } };
+    }
+    if (error instanceof Error && error.message === "EMAIL_INCIDENT_CHANGED") {
+      return { status: "error", formError: "E-mail nebo rezervace se mezitím změnily, případně zprávu už nelze bezpečně opakovat. Obnovte detail a zkontrolujte aktuální stav." };
+    }
     if (isUniqueConstraintError(error)) {
       return {
         status: "error",

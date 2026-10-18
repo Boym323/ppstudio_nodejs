@@ -42,6 +42,8 @@ function getFlashMessage(flash?: string) {
       return "Zaseknutý job byl uvolněný a vrácený zpět do fronty.";
     case "resend-success":
       return "Do fronty byl založený nový pokus o odeslání tohoto e-mailu.";
+    case "recipient-corrected":
+      return "Adresa je opravená a nový pokus je ve frontě. Problém se uzavře po potvrzení doručení.";
     case "resend-missing-recipient":
       return "U aktuálního kontaktu není vyplněný e-mail, takže resend nelze založit.";
     case "resend-client-missing-recipient":

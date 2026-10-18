@@ -894,6 +894,7 @@ npm run db:clear-booking-data -- --confirm
   - používá stejný jediný levý navigační sloupec jako přehled `Email logy`; navigace se v detailu nesmí duplikovat
   - nahoře ukazuje kompaktnější header s názvem emailu, jedním finálním stavem `Odesláno / Čeká / Retry / Selhalo / Nedoručeno`, příjemcem, klientkou, rezervací a klíčovým časem `Odesláno / Poslední pokus`
   - hned pod headerem drží zhuštěné rychlé akce `Zpět na přehled`, `Otevřít rezervaci`, případně `Zkusit znovu` nebo `Uvolnit zaseknutý job` v nízké operativní liště
+  - u aktivního nedoručeného e-mailu klientce lze zadat správnou adresu a zvolit `Uložit a odeslat znovu`; adresa se změní i u aktivních rezervací a k nim mohou odejít aktuální informace. Původní adresa a chyba zůstanou v historii. Incident se uzavře až po webhookovém potvrzení doručení opakovaného e-mailu; u již neaktuální rezervace se oprava v tomto detailu nenabízí
   - pravý sloupec tvoří hustší souhrn `Typ emailu / Šablona / Příjemce / Provider / Poslední pokus / Odesláno / Počet pokusů`
   - levý sloupec drží navázané entity `Rezervace / Klientka / Token akce` jako kompaktní řádky; token je defaultně maskovaný a plně se ukáže až po kliknutí na `Zobrazit`
   - payload, provider metadata a raw debug data jsou až dole v nižším rozbalovacím bloku `Technické detaily`, defaultně zavřeném, s dalším rozbalením `Zobrazit citlivá data`

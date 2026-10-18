@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Přidáno
+
+- U nedoručených klientských e-mailů lze v detailu opravit adresu a zprávu znovu odeslat; po potvrzení doručení se související incident automaticky uzavře.
+
 ### Změněno
 
 - Události v administraci mají úspornější historii změn a přehlednější tabulky; technický přehled standardně skrývá úspěšná zpracování rezervačního formuláře, která lze zobrazit filtrem. Změny veřejného obsahu služeb používají srozumitelné názvy a seznam e-mailů neopakuje název služby uvedený v předmětu.

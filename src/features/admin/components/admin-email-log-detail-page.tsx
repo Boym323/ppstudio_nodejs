@@ -6,6 +6,7 @@ import {
   retryEmailLogAction,
 } from "../actions/email-log-actions";
 import { EmailIncidentResolutionForm } from "./email-incident-resolution-form";
+import { EmailRecipientCorrectionForm } from "./email-recipient-correction-form";
 import { type EmailLogDetailData } from "../lib/data/email-logs";
 import { AdminPageShell, AdminPanel } from "./admin-page-shell";
 
@@ -59,6 +60,7 @@ export function AdminEmailLogDetailPage({ data, flashMessage }: AdminEmailLogDet
       <EmailDetailHeader data={data} />
       {data.errorSummary ? <EmailErrorPanel data={data} /> : null}
       <EmailQuickActions data={data} />
+      {data.correctRecipientClientId ? <EmailRecipientCorrectionForm emailLogId={data.id} clientId={data.correctRecipientClientId} email={data.clientContactEmail ?? data.recipientEmail} /> : null}
 
       <div className="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
         <div className="space-y-4">

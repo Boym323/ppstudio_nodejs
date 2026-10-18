@@ -1,4 +1,4 @@
-import { BookingActionTokenType, AvailabilitySlotStatus, BookingStatus, BookingSubmissionOutcome, EmailIncidentManualResolutionReason, EmailIncidentResolutionKind, EmailLogStatus, EmailLogType, Prisma } from "@/generated/prisma/client";
+import { BookingActionTokenType, AvailabilitySlotStatus, BookingStatus, BookingSubmissionOutcome, EmailAudience, EmailIncidentManualResolutionReason, EmailIncidentResolutionKind, EmailLogStatus, EmailLogType, Prisma } from "@/generated/prisma/client";
 
 import type { AdminArea } from "@/config/navigation";
 import { getDayBounds, isValidDateKey } from "@/features/admin/lib/admin-slots/time";
@@ -294,6 +294,7 @@ export type EmailLogDetailData = {
   clientName: string;
   clientSummary: string;
   clientContactEmail: string | null;
+  correctRecipientClientId: string | null;
   canResend: boolean;
   canCloseIncident: boolean;
   incidentResolution: {
@@ -1121,7 +1122,7 @@ export async function getAdminLogsData(input: {
       const isStuck = log.processingToken !== null
         && isEmailWorkerClaimStale(log.processingStartedAt, now);
       const primaryAction: AdminLogItem["primaryAction"] = isOwner
-        ? (isStuck ? "release" : status === "failed" || status === "retry" ? "retry" : "detail")
+        ? (safeView === "emails" && isEmailDeliveryFailure(log) ? "detail" : isStuck ? "release" : status === "failed" || status === "retry" ? "retry" : "detail")
         : null;
       const incidentResolutionKind = incidentRoot.incidentResolutionKind
         ?? (incidentRoot.incidentResolvedByEmailLogId ? EmailIncidentResolutionKind.DELIVERED_RESEND : null);
@@ -1201,6 +1202,7 @@ export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLo
           scheduledStartsAt: true,
           scheduledEndsAt: true,
           status: true,
+          communicationGeneration: true,
         },
       },
       client: {
@@ -1328,6 +1330,13 @@ export async function getEmailLogDetailData(emailLogId: string): Promise<EmailLo
       ? `${emailLog.client.fullName} • ${emailLog.client.email ?? "Bez e-mailu"}${emailLog.client.phone ? ` • ${formatClientPhoneForDisplay(emailLog.client.phone)}` : ""}`
       : "Bez navázaného klienta",
     clientContactEmail: emailLog.client?.email ?? null,
+    correctRecipientClientId: incidentIsActive && isEmailDeliveryFailure(emailLog)
+      && emailLog.audience === EmailAudience.CLIENT && !isProcessing && emailLog.client
+      && (!emailLog.bookingId || (emailLog.booking
+        && (emailLog.booking.status === BookingStatus.PENDING || emailLog.booking.status === BookingStatus.CONFIRMED)
+        && emailLog.booking.scheduledStartsAt >= now
+        && emailLog.booking.communicationGeneration === emailLog.communicationGeneration))
+      ? emailLog.client.id : null,
     canResend: !isProcessing,
     canCloseIncident: incidentIsActive,
     incidentResolution,
