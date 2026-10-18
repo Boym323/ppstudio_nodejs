@@ -16,6 +16,7 @@ type AdminBookingsQuickActionsProps = {
   href: string;
   status: BookingStatus;
   onSuccess?: (message: string) => void;
+  compact?: boolean;
   availableActions: Array<{
     value: string;
     label: string;
@@ -28,6 +29,7 @@ export function AdminBookingsQuickActions({
   href,
   status,
   onSuccess,
+  compact = false,
   availableActions,
 }: AdminBookingsQuickActionsProps) {
   const [serverState, formAction] = useActionState(
@@ -50,7 +52,9 @@ export function AdminBookingsQuickActions({
     <div className="space-y-1">
       <form
         action={formAction}
-        className="grid w-full grid-cols-2 items-stretch gap-2 sm:flex sm:flex-wrap sm:gap-1 md:flex-nowrap md:justify-end"
+        className={compact
+          ? "flex flex-wrap justify-end gap-1.5"
+          : "grid w-full grid-cols-2 items-stretch gap-2 sm:flex sm:flex-wrap sm:gap-1 md:flex-nowrap md:justify-end"}
         onClick={(event) => event.stopPropagation()}
       >
         <input type="hidden" name="area" value={area} />
@@ -61,6 +65,7 @@ export function AdminBookingsQuickActions({
             key={action.value}
             value={action.value}
             kind={action.value}
+            compact={compact}
             onBeforeSubmit={() => {
               lastSubmittedAction.current = action.value;
             }}
@@ -72,7 +77,10 @@ export function AdminBookingsQuickActions({
         <Link
           href={href}
           onClick={(event) => event.stopPropagation()}
-          className="inline-flex min-h-11 min-w-0 items-center justify-center rounded-full border border-white/12 px-3 py-2 text-sm font-medium text-white/72 transition hover:border-white/24 hover:bg-white/7 hover:text-white sm:min-h-8 sm:min-w-[6rem] sm:py-1 sm:text-[11px]"
+          className={cn(
+            "inline-flex min-h-11 min-w-0 items-center justify-center rounded-full border border-white/12 font-medium text-white/72 transition hover:border-white/24 hover:bg-white/7 hover:text-white",
+            compact ? "w-24 px-2 py-2 text-xs" : "px-3 py-2 text-sm sm:min-h-8 sm:min-w-[6rem] sm:py-1 sm:text-[11px]",
+          )}
         >
           Otevřít
         </Link>
@@ -88,11 +96,13 @@ export function AdminBookingsQuickActions({
 function QuickSubmitButton({
   value,
   kind,
+  compact,
   onBeforeSubmit,
   children,
 }: {
   value: string;
   kind: string;
+  compact: boolean;
   onBeforeSubmit: () => void;
   children: React.ReactNode;
 }) {
@@ -109,7 +119,8 @@ function QuickSubmitButton({
         onBeforeSubmit();
       }}
       className={cn(
-        "inline-flex min-h-11 min-w-0 items-center justify-center rounded-full border px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-8 sm:min-w-[6rem] sm:py-1 sm:text-[11px]",
+        "inline-flex min-h-11 min-w-0 items-center justify-center rounded-full border px-3 py-2 font-medium transition disabled:cursor-not-allowed disabled:opacity-60",
+        compact ? "w-24 text-xs" : "text-sm sm:min-h-8 sm:min-w-[6rem] sm:py-1 sm:text-[11px]",
         kind === "CONFIRMED"
           ? "border-amber-300/55 bg-amber-400/18 text-amber-50 hover:bg-amber-400/26"
           : "border-white/12 bg-white/5 text-white/74 hover:border-red-300/35 hover:bg-red-400/12 hover:text-red-50",

@@ -54,6 +54,7 @@ export function AdminSidebarNav({
             <Link
               key={item.href}
               href={item.href}
+              aria-current={isActive ? "page" : undefined}
               onClick={onNavigate}
               className={cn(
                 "rounded-xl border px-3 py-3 transition",

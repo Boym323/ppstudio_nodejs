@@ -188,7 +188,7 @@ export function AdminPanel({
     <section
       className={cn(
         "rounded-[var(--radius-panel)] border border-white/10 bg-black/10",
-        tighter ? "p-4 sm:p-4.5" : compact ? "p-3.5 sm:p-5" : "p-4 sm:p-6",
+        tighter ? "p-4 sm:p-4.5" : compact ? "p-3 sm:p-4 xl:p-5" : "p-4 sm:p-6",
         className,
       )}
     >
@@ -196,7 +196,13 @@ export function AdminPanel({
         <h3
           className={cn(
             "font-display text-white",
-            tighter ? "text-[1.2rem] sm:text-[1.3rem]" : denseHeader ? "text-[1.4rem] sm:text-[1.55rem]" : "text-2xl sm:text-3xl",
+            tighter
+              ? "text-[1.2rem] sm:text-[1.3rem]"
+              : denseHeader
+                ? compact
+                  ? "text-[1.2rem] sm:text-[1.35rem] xl:text-[1.55rem]"
+                  : "text-[1.4rem] sm:text-[1.55rem]"
+                : "text-2xl sm:text-3xl",
           )}
         >
           {title}

@@ -14,6 +14,8 @@ Formát je inspirovaný Keep a Changelog.
 
 - V užším zobrazení otevře kliknutí na název služby i akce v nabídce přímo její editační formulář.
 
+- Přehled rezervací na menších obrazovkách používá kompaktní karty s akcemi vedle údajů, sjednoceným vzhledem stavu a tlačítek a úspornější filtry místo široké tabulky; aktivní sekci administrace oznamuje také čtečkám obrazovky.
+
 - Sitemap už nepřisuzuje statickým stránkám zastaralé pevné datum poslední změny; hlavní stránka a přehledy služeb uvádějí datum pouze podle skutečné aktualizace služeb.
 
 - Nasazení mění systemd unity a runtime oprávnění až po úspěšném buildu a zastavení služeb; při selhání aktivace obnoví původní unity. Neověřitelný stav služeb blokuje migraci, retence zachovává skutečně nejnovější záložní verze a chyba úklidu už neoznačí úspěšné nasazení za neúspěšné.
