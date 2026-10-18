@@ -68,9 +68,9 @@ Produkční HTML templates jsou v `src/lib/email/react-email/` a sdílené kompo
   - `src/features/vouchers/lib/**/*.ts`
   - `src/lib/email/**/*.ts`
 - Report generuje formáty `text-summary`, `html`, `lcov` a `json-summary`, takže se hodí jak pro lokální čtení, tak pro CI artefakty.
-- Coverage běh nezapíná `RUN_DB_INTEGRATION_TESTS=1`; díky tomu měří hlavně unit/business logiku a nespadne na prostředí bez lokální databáze. `npm run test:db:integration` spouští aktuálně 27 DB integračních souborů samostatně proti připravenému PostgreSQL a vždy sériově přes `--test-concurrency=1`; glob automaticky zahrne i další budoucí soubory. `npm run test:ci` tuto vrstvu povinně navazuje za coverage, takže ji CI nemůže omylem přeskočit.
+- Coverage běh nezapíná `RUN_DB_INTEGRATION_TESTS=1`; díky tomu měří hlavně unit/business logiku a nespadne na prostředí bez lokální databáze. `npm run test:db:integration` spouští aktuálně 47 DB integračních souborů samostatně proti připravenému PostgreSQL a vždy sériově přes `--test-concurrency=1`; glob automaticky zahrne i další budoucí soubory. `npm run test:ci` tuto vrstvu povinně navazuje za coverage, takže ji CI nemůže omylem přeskočit.
 - GitHub Actions baseline je teď rozdělená do čtyř vrstev:
-  - hlavní `CI` jako osm samostatných jobů: `lint`, `typecheck`, `test`, `build`, `e2e`, `e2e chromium shard 2`, `e2e mobile` a `e2e mobile shard 2`; coverage je krok a artefakt jobu `test`, nikoli samostatný check
+  - hlavní `CI` má samostatné joby `lint`, `typecheck`, `test`, `build`, pomocný `e2e build`, `e2e`, `e2e chromium shard 2`, `e2e mobile` a `e2e mobile shard 2`; mobilní matrix vytváří checky `e2e mobile (mobile-chrome)`, `e2e mobile (mobile-safari)`, `e2e mobile shard 2 (mobile-chrome)` a `e2e mobile shard 2 (mobile-safari)`. Coverage je krok a artefakt jobu `test`, nikoli samostatný check.
   - `Dependency Review` pro PR dependency diff
   - `CodeQL` pro statickou security analýzu `javascript-typescript`
   - `Security Audit` pro scheduled/push `npm audit --audit-level=high`

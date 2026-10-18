@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.35.0] - 2026-10-18
+
 ### Přidáno
 
 - U nedoručených klientských e-mailů lze v detailu opravit adresu a zprávu znovu odeslat; po potvrzení doručení se související incident automaticky uzavře.
