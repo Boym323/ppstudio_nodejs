@@ -39,8 +39,12 @@ test.describe("mobilní Události a logy", () => {
     await page.keyboard.press("Escape");
     await expect(dialog).toHaveCount(0);
     await expect(filters).toBeFocused();
-    await expect(page.getByRole("button", { name: "Zopakovat odeslání" })).toBeVisible();
-    await expect(page.getByRole("article").getByText(`${runId}@example.test`)).toBeVisible();
+    const failedEmail = page.getByRole("article").filter({ hasText: `${runId}@example.test` });
+    await expect(failedEmail.getByRole("link", { name: "Detail e-mailu" })).toBeVisible();
+    await expect(failedEmail.getByText(`${runId}@example.test`)).toBeVisible();
+    await failedEmail.getByRole("link", { name: "Detail e-mailu" }).click();
+    await expect(page.getByRole("heading", { name: "Detail e-mailu" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Znovu odeslat e-mail" })).toBeVisible();
   });
   test("badge e-mailů rozlišují webhookové doručení, odeslání a bounce", async ({ page }) => {
     const now = new Date();
