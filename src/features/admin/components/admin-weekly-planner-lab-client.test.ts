@@ -23,7 +23,10 @@ test("planner ukládá undo přes opačnou serverovou operaci a hlásí autosave
   const source = await clientSource();
   assert.match(source, /function undoLastChange/);
   assert.match(source, /const reverseMode = undoChange\.mode === "add" \? "remove" : "add"/);
-  assert.match(source, /recentCellMutationRef\.current = null; updateAvailabilityRange\(undoChange\.dateKey/);
+  assert.match(source, /if \(!undoChange\?\.revertedOperationId \|\| !canNavigate \|\| isUndoPending\) return/);
+  assert.match(source, /setIsUndoPending\(true\)/);
+  assert.match(source, /saveAvailabilityChange\(days, undoChange\.dateKey, undoChange\.startCell, undoChange\.endCell, reverseMode, undoChange\.revertedOperationId\)/);
+  assert.match(source, /const canEdit = !isWeekLoading && !saveError && !isUndoPending/);
   assert.match(source, /applyPlannerSelectionAction/);
   assert.match(source, />Vrátit změnu</);
   assert.match(source, /aria-live="polite"/);
