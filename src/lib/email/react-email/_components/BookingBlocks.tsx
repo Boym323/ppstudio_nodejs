@@ -16,10 +16,7 @@ export function VoucherBlock({ code }: { code: string }) {
 
 export function CalendarNotice() {
   return (
-    <Section style={noticeStyle}>
-      <Text style={labelStyle}>Kalendář</Text>
-      <Text style={bodyStyle}>Termín najdete také v přiložené kalendářové události.</Text>
-    </Section>
+    <Text style={noticeStyle}>Termín najdete také v přiložené kalendářové události.</Text>
   );
 }
 
@@ -32,8 +29,17 @@ export function BookingActionLinks({ manageReservationUrl, cancellationUrl }: {
   return (
     <Section style={actionsStyle}>
       <Text style={labelStyle}>Správa rezervace</Text>
-      {manageReservationUrl ? <Link href={manageReservationUrl} style={manageLinkStyle}>Změnit termín</Link> : null}
-      {cancellationUrl ? <Link href={cancellationUrl} style={cancelLinkStyle}>Zrušit rezervaci</Link> : null}
+      {manageReservationUrl ? <Text style={bodyStyle}>Potřebujete jiný čas? Rezervaci můžete jednoduše přesunout.</Text> : null}
+      {manageReservationUrl ? (
+        <Section style={{ paddingTop: "14px" }}>
+          <EmailButton href={manageReservationUrl} label="Změnit termín" />
+        </Section>
+      ) : null}
+      {cancellationUrl ? (
+        <Text style={{ margin: manageReservationUrl ? "20px 0 0" : "0" }}>
+          <Link href={cancellationUrl} style={cancelLinkStyle}>Zrušit rezervaci</Link>
+        </Text>
+      ) : null}
     </Section>
   );
 }
@@ -62,8 +68,7 @@ const bodyStyle = {
 };
 
 const voucherStyle = { marginTop: "14px", padding: "18px", border: "1px solid #eaded4", borderRadius: "14px", backgroundColor: "#ffffff" };
-const noticeStyle = { padding: "18px", border: "1px solid #eaded4", borderRadius: "14px", backgroundColor: "#ffffff" };
+const noticeStyle = { ...bodyStyle, color: "#74645a", fontSize: "13px", lineHeight: "20px" };
 const codeStyle = { margin: "0 0 7px", color: "#1f1714", fontFamily: "Arial, Helvetica, sans-serif", fontSize: "16px", lineHeight: "22px", fontWeight: "700" };
 const actionsStyle = { marginTop: "16px", paddingTop: "14px", borderTop: "1px solid #eaded4" };
-const manageLinkStyle = { display: "inline-block", margin: "0 14px 8px 0", color: "#1f1714", fontFamily: "Arial, Helvetica, sans-serif", fontSize: "14px", lineHeight: "20px", fontWeight: "700", textDecoration: "underline" };
-const cancelLinkStyle = { display: "inline-block", margin: "0 0 8px", color: "#7f322a", fontFamily: "Arial, Helvetica, sans-serif", fontSize: "14px", lineHeight: "20px", fontWeight: "700", textDecoration: "underline" };
+const cancelLinkStyle = { color: "#74645a", fontFamily: "Arial, Helvetica, sans-serif", fontSize: "13px", lineHeight: "20px", textDecoration: "underline" };

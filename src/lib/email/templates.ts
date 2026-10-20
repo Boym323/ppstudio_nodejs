@@ -405,6 +405,7 @@ export async function renderEmailTemplate(
         ...(includeCalendarAttachment ? ["Termín najdete také v přiložené kalendářové události.", ""] : []),
         ...(data.manageReservationUrl || data.cancellationUrl
           ? [
+              ...(data.manageReservationUrl ? ["Potřebujete jiný čas? Rezervaci můžete jednoduše přesunout."] : []),
               ...(data.manageReservationUrl ? [`Změnit termín: ${data.manageReservationUrl}`] : []),
               ...(data.cancellationUrl ? [`Zrušit rezervaci: ${data.cancellationUrl}`] : []),
               "",
@@ -453,7 +454,10 @@ export async function renderEmailTemplate(
         "",
         "Potřebujete změnu?",
         ...(data.manageReservationUrl
-          ? [`Změnit termín: ${data.manageReservationUrl}`]
+          ? [
+              "Pokud potřebujete jiný čas, rezervaci můžete jednoduše přesunout:",
+              `Změnit termín: ${data.manageReservationUrl}`,
+            ]
           : []),
         `Zrušit rezervaci: ${data.cancellationUrl}`,
         "",
@@ -520,7 +524,10 @@ export async function renderEmailTemplate(
             ]
           : []),
         ...(data.manageReservationUrl
-          ? [`Další změna termínu: ${data.manageReservationUrl}`]
+          ? [
+              "Potřebujete jiný čas? Rezervaci můžete jednoduše přesunout:",
+              `Další změna termínu: ${data.manageReservationUrl}`,
+            ]
           : []),
         `Zrušit rezervaci: ${data.cancellationUrl}`,
         "",
