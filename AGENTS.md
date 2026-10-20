@@ -30,6 +30,8 @@ Relevantní dokumentaci aktualizuj pouze tehdy, když ji změna přímo ovlivňu
 Dokumentace projektu:
 - `ARCHITECTURE.md`
 - `BOOKING_FLOW.md`
+- `docs/BOOKING_FORM.md` (veřejný formulář, validace, refresh katalogu)
+- `docs/AVAILABILITY_PLANNER.md` (admin dostupnost, autosave, propojení s rezervací)
 - `DEPLOYMENT.md`
 - `ENVIRONMENT.md`
 - `MANUAL.md`

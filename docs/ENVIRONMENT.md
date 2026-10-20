@@ -15,7 +15,7 @@ Stručný runtime přehled prostředí a vazeb na infrastrukturu je v kořenové
 - Invariant `AvailabilitySlot.capacity = 1` nepřidává žádnou env proměnnou; vyžaduje pouze běžné `DATABASE_URL` pro Prisma migraci a předem čistá data.
 
 ## Přehled
-- `NODE_ENV`: režim běhu (`development`, `production`).
+- `NODE_ENV`: režim běhu (`development`, `test`, `production`).
 - `NEXT_PUBLIC_APP_NAME`: veřejný název značky.
 - `NEXT_PUBLIC_APP_URL`: runtime URL aplikace (redirecty, e-mailové odkazy, interní origin kontroly, CI/Playwright base URL).
 - `NEXT_PUBLIC_SITE_URL`: volitelná kanonická veřejná URL webu pro SEO metadata/JSON-LD; pokud chybí, fallback je `NEXT_PUBLIC_APP_URL`.
