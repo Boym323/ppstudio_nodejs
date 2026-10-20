@@ -89,7 +89,7 @@ export function AdminSettingsPage({
         </article>
         <article className="rounded-[1.2rem] border border-white/8 bg-black/10 p-4">
           <p className="text-xs uppercase tracking-[0.24em] text-white/45">Rezervace</p>
-          <p className="mt-2 text-sm leading-6 text-white/72">Předstih, horizont dopředu a storno limit.</p>
+          <p className="mt-2 text-sm leading-6 text-white/72">Předstih, horizont dopředu a limit pro storno či změnu termínu.</p>
         </article>
         <article className="rounded-[1.2rem] border border-white/8 bg-black/10 p-4">
           <p className="text-xs uppercase tracking-[0.24em] text-white/45">E-maily</p>

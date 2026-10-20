@@ -74,8 +74,8 @@ export function AdminBookingSettingsForm({
           </SettingsField>
 
           <SettingsField
-            label="Storno do"
-            hint="Kolik hodin před termínem ještě jde rezervaci zrušit přes e-mail."
+            label="Storno / změna termínu do"
+            hint="Kolik hodin před termínem ještě může klientka rezervaci online zrušit nebo změnit."
             error={serverState.fieldErrors?.bookingCancellationHours}
           >
             <input
