@@ -15,6 +15,8 @@ UI průchod:
 3. výběr termínu
 4. kontakt a odeslání
 
+Detail současné implementace formuláře (kroky, komponenty, pole, validace a chyby): [docs/BOOKING_FORM.md](docs/BOOKING_FORM.md). Pro správu dostupnosti v adminu a její vazbu na veřejnou nabídku viz [docs/AVAILABILITY_PLANNER.md](docs/AVAILABILITY_PLANNER.md).
+
 Implementace UI:
 
 - [src/features/booking/components/booking-flow.tsx](src/features/booking/components/booking-flow.tsx#L1)
@@ -212,6 +214,8 @@ Do analytics se neposílá:
 ## Související dokumenty
 
 - [ARCHITECTURE.md](ARCHITECTURE.md)
+- [docs/BOOKING_FORM.md](docs/BOOKING_FORM.md)
+- [docs/AVAILABILITY_PLANNER.md](docs/AVAILABILITY_PLANNER.md)
 - [ENVIRONMENT.md](ENVIRONMENT.md)
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 - [docs/ADR/0025-public-booking-flow-v2.md](docs/ADR/0025-public-booking-flow-v2.md)

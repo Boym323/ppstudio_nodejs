@@ -145,6 +145,8 @@ Schéma je v [prisma/schema.prisma](prisma/schema.prisma#L1).
 
 - lokální media knihovna s originálem, optimized a thumbnail variantou
 
+Veřejný formulář, jeho stav a validační kontrakt: [docs/BOOKING_FORM.md](docs/BOOKING_FORM.md). FullCalendar „Volné termíny“, ochrana dostupnosti a vazba na rezervační formulář: [docs/AVAILABILITY_PLANNER.md](docs/AVAILABILITY_PLANNER.md).
+
 ## Booking a provozní dataflow
 
 1. Veřejný web načte katalog přes `src/features/booking/lib/booking-public/catalog.ts`.

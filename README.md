@@ -8,6 +8,8 @@ Nejdůležitější dokumenty:
 - [MANUAL.md](MANUAL.md) pro provozní souvislosti
 - [ARCHITECTURE.md](ARCHITECTURE.md) pro architekturu systému
 - [BOOKING_FLOW.md](BOOKING_FLOW.md) pro rezervační doménu
+- [docs/BOOKING_FORM.md](docs/BOOKING_FORM.md) pro aktuální veřejný rezervační formulář
+- [docs/AVAILABILITY_PLANNER.md](docs/AVAILABILITY_PLANNER.md) pro admin „Volné termíny“ a jejich vazbu na booking
 - [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) pro technická pravidla vývoje
 - [docs/API.md](docs/API.md) pro hlavní HTTP endpointy a jejich kontrakty
 
@@ -243,6 +245,8 @@ Plný seznam proměnných a detailní vysvětlení je v `docs/ENVIRONMENT.md`.
 - [MANUAL.md](MANUAL.md): provozní a uživatelský přehled projektu
 - [ARCHITECTURE.md](ARCHITECTURE.md): architektura, datový model a integrační hranice
 - [BOOKING_FLOW.md](BOOKING_FLOW.md): rezervační tok a jeho pravidla
+- [docs/BOOKING_FORM.md](docs/BOOKING_FORM.md): veřejný rezervační formulář, jeho validace a chybové stavy
+- [docs/AVAILABILITY_PLANNER.md](docs/AVAILABILITY_PLANNER.md): FullCalendar, autosave a vazba „Volné termíny“ → rezervace
 - [ENVIRONMENT.md](ENVIRONMENT.md): rychlý přehled produkčního prostředí
 - [DEPLOYMENT.md](DEPLOYMENT.md): praktický postup nasazení
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md): rychlá diagnostika problémů

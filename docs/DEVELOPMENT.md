@@ -6,6 +6,8 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 ## Kořenová technická dokumentace
 - Architektonický přehled repa je v [`ARCHITECTURE.md`](../ARCHITECTURE.md).
 - End-to-end veřejný booking a self-service tok je v [`BOOKING_FLOW.md`](../BOOKING_FLOW.md).
+- Aktuální rezervační formulář, komponenty, validaci a obnovení katalogu popisuje [`BOOKING_FORM.md`](BOOKING_FORM.md).
+- FullCalendar „Volné termíny“, autosave, DB invarianty a vazbu na klientskou rezervaci popisuje [`AVAILABILITY_PLANNER.md`](AVAILABILITY_PLANNER.md).
 - Stručný provozní deployment přehled pro Proxmox/LXC je v [`DEPLOYMENT.md`](../DEPLOYMENT.md).
 - Stručný runtime přehled proměnných a prostředí je v [`ENVIRONMENT.md`](../ENVIRONMENT.md).
 - Pro opakující se incidenty použij i [`TROUBLESHOOTING.md`](../TROUBLESHOOTING.md).
