@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.35.1] - 2026-10-20
+
 ### Změněno
 
 - Klientské rezervační e-maily doporučují přesun rezervace výrazným tlačítkem „Změnit termín“, storno zobrazují jako vedlejší odkaz a informaci o kalendáři jako stručnou poznámku.
