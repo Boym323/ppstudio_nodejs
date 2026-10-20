@@ -36,7 +36,7 @@ Konkrétní resolved verze níže byly porovnány s `package-lock.json` k 20. 10
 - `react`: `19.2.8`
 - `react-dom`: `19.2.8`
 - `tailwindcss`: `^4.3.2` (lockfile: `4.3.3`)
-- `@tailwindcss/postcss`: `^4.3.3` (lockfile: `4.3.3`)
+- `@tailwindcss/postcss`: `^4.3.2` (lockfile: `4.3.3`)
 - `postcss`: není přímou závislostí; `package.json.overrides` vynucuje `8.5.23`, což potvrzuje lockfile.
 - `prisma`: `7.10.0`
 - `@prisma/client`: `7.10.0`

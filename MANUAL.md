@@ -172,7 +172,7 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](docs/API.md).
 - `PATCH` (`0.1.0 -> 0.1.1`) zvyšuj při opravách chyb, interním refaktoru bez změny chování a technických úpravách bez dopadu na veřejné rozhraní.
 - `MINOR` (`0.1.0 -> 0.2.0`) zvyšuj při přidání nové funkce nebo rozšíření existující funkcionality zpětně kompatibilním způsobem.
 - `MAJOR` (`0.1.0 -> 1.0.0` nebo `1.x.y -> 2.0.0`) zvyšuj při nekompatibilní změně API, datového kontraktu, routingu nebo provozního chování, které vyžaduje zásah uživatele/operátora.
-- Každé zvýšení verze musí mít odpovídající záznam v `CHANGELOG.md` pod sekcí `Unreleased`.
+- Významné produkční změny se nejprve zapisují do sekce `Unreleased` v `CHANGELOG.md`; při přípravě nové verze se přesunou pod vydanou verzovanou sekci s datem podle `AGENTS.md`.
 - Před release se verze v `package.json` a `package-lock.json` mění atomicky jedním commitem společně s finální podobou release poznámek.
 
 ## Aktuální Stav Projektu
