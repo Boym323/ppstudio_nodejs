@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.36.0] - 2026-10-20
+
 ### Opraveno
 
 - Storno zákazníkem, administrátorem i zamítnutí z e-mailu po úpravě plánovače obnovuje také původně vypsanou část úklidu. Nezveřejňuje úklid mimo původní dostupnost ani později odebrané volné úseky.
