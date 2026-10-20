@@ -54,7 +54,7 @@ FullCalendar: klik nebo výběr rozsahu
 - [`slot-planner-actions.ts`](../src/features/admin/actions/slot-planner-actions.ts) přijímá `area`, `weekKey`, `dateKey`, `startCell`, `endCell`, `mode=add|remove`, UUID `operationId` a případně `revertedOperationId`. Kontroluje oprávnění, validaci a identitu administrátora.
 - [`admin-slots/mutations.ts`](../src/features/admin/lib/admin-slots/mutations.ts) připraví intervaly a **transakčně** provede merge/subtract; chráněné úseky se nesmějí přepsat. Standardní nové sloty jsou `capacity=1`, `status=PUBLISHED`, `serviceRestrictionMode=ANY`.
 - [`PlannerLabSaveQueue`](../src/features/admin/components/planner-lab-save-queue.ts) ukládá jednotlivé operace **postupně (FIFO)**. Chyba ponechá neodeslané změny pro retry nebo **Obnovit uložený stav**. Optimisticky vykreslený úsek není jistotou, že už byl uložen.
-- `operationId` + fingerprint zajišťuje idempotenci; jiný obsah se stejným klíčem je odmítnut. Krátce dostupné **Zpět** zapisuje novou opačnou akci s `revertedOperationId`, nikoliv smazání auditu.
+- `operationId` + fingerprint zajišťuje idempotenci; jiný obsah se stejným klíčem je odmítnut. Krátce dostupné **Zpět** zapisuje novou akci s `revertedOperationId`, nikoliv smazání auditu. Server vrací pouze skutečný rozdíl mezi původním stavem před a po změně, ne celý označený rozsah. Pokud dotčené úseky mezitím změnily dostupnost nebo je chrání rezervace či omezení, vrácení odmítne; stejnou operaci nelze vrátit podruhé. UI během vracení čeká na serverový stav.
 - Nově seskládané sloty mohou mít **jiná ID**. Formulář klientky posílá `slotId` i `startsAt`, ale zapisovací engine musí zkontrolovat **čerstvé publikované souvislé pokrytí** a případně odmítnout zastaralý výběr.
 
 ## Chráněné bloky a archivace

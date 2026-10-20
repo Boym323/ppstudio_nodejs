@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Plánovač dostupnosti při vrácení změny obnovuje pouze skutečně upravené úseky a chrání mezitím změněnou dostupnost; správně zobrazuje omezené publikované termíny a při obnově dat zachovává zvolený pohled kalendáře.
+
 ## [3.35.1] - 2026-10-20
 
 ### Změněno

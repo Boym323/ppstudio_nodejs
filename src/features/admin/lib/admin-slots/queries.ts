@@ -329,7 +329,10 @@ export async function getAdminPlannerWeek(area: AdminArea, week?: string | null)
           )
           .filter((range): range is TimeRange => range !== null);
         const hasOwnBookings = activeBookingCount > 0;
-        const protectedRanges = mergeIntervals([...slotBookingRanges, ...structuralLockedRanges]);
+        const protectedRanges = mergeIntervals([
+          ...slotBookingRanges,
+          ...(plainEditable ? structuralLockedRanges : []),
+        ]);
 
         if (protectedRanges.length > 0) {
           const mergedBookings = mergeIntervals(slotBookingRanges);

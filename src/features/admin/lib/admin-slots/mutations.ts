@@ -6,6 +6,7 @@ import {
 } from "@/generated/prisma/client";
 import { type AdminArea } from "@/config/navigation";
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
 
 import {
   EDITABLE_SLOT_CAPACITY,
@@ -43,6 +44,24 @@ function slotSnapshot(slot: Awaited<ReturnType<typeof getEditableDayState>>["edi
 
 function intervalSnapshot(intervals: TimeRange[]) {
   return intervals.map((interval) => ({ startsAt: interval.startsAt.toISOString(), endsAt: interval.endsAt.toISOString() }));
+}
+
+const auditIntervalsSchema = z.object({
+  intervals: z.array(z.object({
+    startsAt: z.iso.datetime(),
+    endsAt: z.iso.datetime(),
+  })),
+});
+
+function readAuditIntervals(snapshot: Prisma.JsonValue): TimeRange[] {
+  const parsed = auditIntervalsSchema.safeParse(snapshot);
+  if (!parsed.success) {
+    throw new PlannerMutationError("Původní změnu nelze bezpečně obnovit.");
+  }
+  return parsed.data.intervals.map((interval) => ({
+    startsAt: new Date(interval.startsAt),
+    endsAt: new Date(interval.endsAt),
+  }));
 }
 
 type EditableSlot = Awaited<ReturnType<typeof getEditableDayState>>["editableSlots"][number];
@@ -382,7 +401,7 @@ export async function applyAvailabilitySelection(
 
     const state = await getEditableDayState(tx, input.dateKey);
 
-    if (intersectsAny(selection, state.lockedIntervals)) {
+    if (!input.revertedOperationId && intersectsAny(selection, state.lockedIntervals)) {
       throw new PlannerMutationError(
         "Vybraný úsek zasahuje do rezervace nebo omezeného intervalu. Tenhle čas je potřeba nechat beze změny.",
       );
@@ -393,23 +412,59 @@ export async function applyAvailabilitySelection(
       (bookingBlockEnd) => bookingBlockEnd.getTime() === selection.startsAt.getTime(),
     );
 
-    if (usesQuarterHourStart && !startsImmediatelyAfterBookingBlock) {
+    if (!input.revertedOperationId && usesQuarterHourStart && !startsImmediatelyAfterBookingBlock) {
       throw new PlannerMutationError(
         "Čtvrthodinový začátek lze použít jen bezprostředně po skončení rezervace nebo úklidu.",
       );
     }
 
-    if (!usesQuarterHourStart && !Number.isInteger(input.endCell)) {
+    if (!input.revertedOperationId && !usesQuarterHourStart && !Number.isInteger(input.endCell)) {
       throw new PlannerMutationError(
         "Čtvrthodinový konec je možné použít jen u termínu, který začíná po úklidu.",
       );
     }
 
     const baseIntervals = state.editableIntervals;
-    const nextIntervals =
+    let nextIntervals =
       input.mode === "add"
         ? mergeIntervals([...baseIntervals, selection])
         : mergeIntervals(subtractIntervals(baseIntervals, selection));
+
+    if (input.revertedOperationId) {
+      const original = await tx.availabilityAuditEvent.findFirst({
+        where: {
+          operationId: input.revertedOperationId,
+          dateKey: input.dateKey,
+          adminArea: area,
+          actorUserId: input.actorUserId,
+        },
+      });
+      const alreadyReverted = await tx.availabilityAuditEvent.findFirst({
+        where: { revertedOperationId: input.revertedOperationId },
+      });
+      if (!original || alreadyReverted) {
+        throw new PlannerMutationError("Původní změnu už nelze vrátit. Obnovte uložený stav.");
+      }
+
+      const before = readAuditIntervals(original.before);
+      const after = readAuditIntervals(original.after);
+      const added = getEditablePlannerIntervals(after, before);
+      const removed = getEditablePlannerIntervals(before, after);
+      const affected = [...added, ...removed];
+      if (
+        affected.some((interval) => intersectsAny(interval, state.lockedIntervals)) ||
+        getEditablePlannerIntervals(added, baseIntervals).length > 0 ||
+        removed.some((interval) => intersectsAny(interval, baseIntervals))
+      ) {
+        throw new PlannerMutationError("Dotčená dostupnost se mezitím změnila. Obnovte planner a zkontrolujte ji.");
+      }
+
+      // Vracíme pouze skutečný rozdíl původního zápisu, nikoli celý výběr.
+      nextIntervals = mergeIntervals([
+        ...getEditablePlannerIntervals(baseIntervals, added),
+        ...removed,
+      ]);
+    }
 
     if (nextIntervals.some((interval) => intersectsAny(interval, state.lockedIntervals))) {
       throw new PlannerMutationError("Změna by vytvořila kolizi s uzamčeným intervalem.");
