@@ -4,7 +4,7 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 
 ## Pravidla
 - Jeden soubor = jedno rozhodnutí.
-- Název: `NNNN-kratky-nazev.md` (např. `0001-volba-auth-provideru.md`).
+- Název: `NNNN-kratky-nazev.md` (např. existující `0002-project-foundation.md`).
 - Každé ADR má stav: `navrženo`, `schváleno`, `nahrazeno`.
 
 ## Struktura ADR
@@ -14,7 +14,9 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 4. Důsledky
 5. Stav
 
-## Aktuální záznamy
+## Rejstřík rozhodnutí (včetně historických)
+
+Tento seznam zahrnuje i dříve schválená a později nahrazená rozhodnutí. Autoritativní je vždy stav uvedený v samotném ADR; například návrh planneru ADR 0023 byl nahrazen ADR 0118. Soubor `0001-template.md` slouží pouze jako šablona, nikoli jako přijaté rozhodnutí.
 - `0002-project-foundation.md`
 - `0003-booking-schema-v1.md`
 - `0004-public-web-information-architecture.md`
@@ -114,7 +116,15 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 - `0096-admin-client-contact-correction-v1.md`
 - `0097-admin-booking-detail-cockpit-hierarchy-v1.md`
 - `0099-service-cleanup-minutes-v1.md`
+- `0100-admin-booking-service-change-v1.md`
+- `0101-public-meta-pixel-conversion-events-v1.md`
+- `0102-admin-booking-list-progressive-disclosure-v1.md`
+- `0103-public-google-ads-tag-v1.md`
+- `0104-admin-helper-extraction-and-typed-paths-v1.md`
 - `0105-github-quality-and-security-automation-v1.md`
+- `0106-admin-invite-deactivation-security-v1.md`
+- `0107-email-outbox-delivery-idempotency.md`
+- `0108-atomic-versioned-release-and-compatible-migrations.md`
 - `0109-offline-owner-recovery-and-owner-invariant.md`
 - `0110-availability-slot-single-capacity-invariant.md`
 - `0111-health-db-failure-sanitization-and-alert-cooldown.md` — bezpečný 503 kontrakt pro základní DB ping a degradovaný 200/warning stav pro nedostupné e-mailové metriky.

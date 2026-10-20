@@ -4,11 +4,13 @@ Tento dokument shrnuje runtime prostředí projektu a nejdůležitější promě
 
 ## Runtime profil
 
+Přesné verze ověř vždy proti `package.json` a `package-lock.json`; níže uvedený stav odpovídá kontrole z 20. 10. 2026.
+
 - Node.js `24 LTS`
 - npm `>=10`
-- Next.js `16.3.1`
+- Next.js `16.3.8`
 - React a React DOM `19.2.8`
-- Prisma `7.9.1`
+- Prisma `7.10.0`
 - PostgreSQL
 - Debian LXC na Proxmoxu
 

@@ -6,7 +6,7 @@ PP Studio používá Server Actions, React 19 `useActionState`, Zod 4 a nativní
 
 ## Current form architecture
 
-Technologický kontrakt: Next.js `16.3.1`, React `19.2.8`, Zod `4.4.3`, TypeScript 5. Formuláře používají nativní `<form action={formAction}>`, `useActionState` a `useFormStatus`. Server Action přijímá `(previousState, formData)`, ručně čte hodnoty, volá Zod `safeParse`, vrací typovaný action-state a potom provádí guardy, Prisma operace, audit, side effects, `revalidatePath` nebo redirect.
+Technologický kontrakt ověřený podle `package-lock.json` k 20. 10. 2026: Next.js `16.3.8`, React `19.2.8`, Zod `4.5.4`, TypeScript 5. Formuláře používají nativní `<form action={formAction}>`, `useActionState` a `useFormStatus`. Server Action přijímá `(previousState, formData)`, ručně čte hodnoty, volá Zod `safeParse`, vrací typovaný action-state a potom provádí guardy, Prisma operace, audit, side effects, `revalidatePath` nebo redirect.
 
 Typický tok:
 
@@ -20,6 +20,8 @@ uncontrolled HTML / lokální controlled UI
 ```
 
 ## Inventory
+
+Níže uvedené počty a charakteristiky formulářů jsou auditním snímkem, nikoliv automaticky aktualizovanou inventurou aplikace.
 
 Repozitář obsahuje přibližně 36 souborů s admin form markup/state a nejméně 11 action modulů s `FormData`. Níže je reprezentativní inventář.
 
