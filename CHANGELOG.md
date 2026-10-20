@@ -8,6 +8,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Storno zákazníkem, administrátorem i zamítnutí z e-mailu po úpravě plánovače obnovuje také původně vypsanou část úklidu. Nezveřejňuje úklid mimo původní dostupnost ani později odebrané volné úseky.
+
 - Plánovač dostupnosti při vrácení změny obnovuje pouze skutečně upravené úseky a chrání mezitím změněnou dostupnost; správně zobrazuje omezené publikované termíny a při obnově dat zachovává zvolený pohled kalendáře.
 
 ## [3.35.1] - 2026-10-20

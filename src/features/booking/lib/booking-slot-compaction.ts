@@ -761,7 +761,7 @@ export async function archiveDraftBookingSlotAfterCancellation(
   return archived;
 }
 
-/** Obnoví pouze čas zrušené služby, nikdy původní delší okno dostupnosti. */
+/** Obnoví službu a jen původně publikovanou část úklidu, nikdy celé historické okno. */
 export async function restoreArchivedBookingServiceSlotAfterCancellation(
   tx: Prisma.TransactionClient,
   slotId: string,
@@ -769,6 +769,7 @@ export async function restoreArchivedBookingServiceSlotAfterCancellation(
   scheduledEndsAt: Date,
   originalAvailabilityEndsAt: Date | null,
   serviceId: string,
+  blockedUntil?: Date | null,
 ) {
   const slot = await tx.availabilitySlot.findFirst({
     where: {
@@ -796,12 +797,16 @@ export async function restoreArchivedBookingServiceSlotAfterCancellation(
     return;
   }
 
+  const restoredEndsAt = blockedUntil && originalAvailabilityEndsAt
+    ? new Date(Math.max(scheduledEndsAt.getTime(), Math.min(blockedUntil.getTime(), originalAvailabilityEndsAt.getTime())))
+    : scheduledEndsAt;
+
   const [overlappingSlots, overlappingBookings] = await Promise.all([
     tx.availabilitySlot.findMany({
       where: {
         id: { not: slot.id },
         status: { in: [AvailabilitySlotStatus.DRAFT, AvailabilitySlotStatus.PUBLISHED] },
-        startsAt: { lt: scheduledEndsAt },
+        startsAt: { lt: restoredEndsAt },
         endsAt: { gt: scheduledStartsAt },
       },
       select: { startsAt: true, endsAt: true, status: true },
@@ -810,7 +815,7 @@ export async function restoreArchivedBookingServiceSlotAfterCancellation(
     tx.booking.count({
       where: {
         status: { in: [...activeBookingStatuses] },
-        scheduledStartsAt: { lt: scheduledEndsAt },
+        scheduledStartsAt: { lt: restoredEndsAt },
         OR: [
           { blockedUntil: { gt: scheduledStartsAt } },
           { blockedUntil: null, scheduledEndsAt: { gt: scheduledStartsAt } },
@@ -824,7 +829,7 @@ export async function restoreArchivedBookingServiceSlotAfterCancellation(
     return;
   }
 
-  // Již publikované části zachováme; doplníme jen chybějící části služby.
+  // Již publikované části zachováme; doplníme jen chybějící části služby a doloženého úklidu.
   const intervals: Array<{ startsAt: Date; endsAt: Date }> = [];
   let cursor = scheduledStartsAt;
   for (const existing of overlappingSlots) {
@@ -835,11 +840,17 @@ export async function restoreArchivedBookingServiceSlotAfterCancellation(
       cursor = existing.endsAt;
     }
   }
-  if (cursor < scheduledEndsAt) {
-    intervals.push({ startsAt: cursor, endsAt: scheduledEndsAt });
+  if (cursor < restoredEndsAt) {
+    intervals.push({ startsAt: cursor, endsAt: restoredEndsAt });
   }
 
-  for (const interval of intervals) {
+  const serviceAndCleanupIntervals = intervals.flatMap((interval) => (
+    interval.startsAt < scheduledEndsAt && interval.endsAt > scheduledEndsAt
+      ? [{ startsAt: interval.startsAt, endsAt: scheduledEndsAt }, { startsAt: scheduledEndsAt, endsAt: interval.endsAt }]
+      : [interval]
+  ));
+
+  for (const interval of serviceAndCleanupIntervals) {
     if (slot.startsAt.getTime() === interval.startsAt.getTime()
       && slot.endsAt.getTime() === interval.endsAt.getTime()) {
       await tx.availabilitySlot.update({

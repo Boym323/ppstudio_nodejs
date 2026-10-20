@@ -142,6 +142,7 @@ export async function applyAdminBookingStatusChangeInTransaction(
         serviceNameSnapshot: true,
         scheduledStartsAt: true,
         scheduledEndsAt: true,
+        blockedUntil: true,
         originalAvailabilityEndsAt: true,
         reminder24hSentAt: true,
         voucherRedemptions: {
@@ -222,6 +223,7 @@ export async function applyAdminBookingStatusChangeInTransaction(
         booking.scheduledEndsAt,
         booking.originalAvailabilityEndsAt,
         booking.serviceId,
+        booking.blockedUntil,
       );
       await archiveDraftBookingSlotAfterCancellation(tx, booking.slotId);
 

@@ -977,3 +977,85 @@ dbTest("getAdminPlannerWeek merges adjacent editable slots into one free window"
     await cleanupSeed(seed);
   }
 });
+
+for (const cancellation of ["admin", "client", "email"] as const) {
+  for (const originalCleanupMinutes of [15, 0, 10] as const) {
+    dbTest(`storno ${cancellation} po změně planneru obnoví jen původních ${originalCleanupMinutes} minut úklidu`, async () => {
+      const seed = await createSeed();
+      const { prisma, applyAvailabilitySelection, getCellRangeBounds } = await loadModules();
+      const serviceRange = getCellRangeBounds(seed.dateKey, 6, 8);
+      const cleanupEnd = getCellRangeBounds(seed.dateKey, 8, 8.5).endsAt;
+      const originalEnd = new Date(serviceRange.endsAt.getTime() + originalCleanupMinutes * 60_000);
+      try {
+        // Původní nabídka končí uvnitř úklidu, nebo pokrývá celý úklid.
+        if (originalCleanupMinutes < 15) {
+          await prisma.availabilitySlot.updateMany({
+            where: { createdByUserId: seed.actorUserId, startsAt: serviceRange.endsAt },
+            data: { startsAt: cleanupEnd },
+          });
+          if (originalCleanupMinutes > 0) {
+            await prisma.availabilitySlot.create({ data: {
+              startsAt: serviceRange.endsAt, endsAt: originalEnd,
+              status: AvailabilitySlotStatus.PUBLISHED, publishedAt: new Date(),
+              capacity: 1, serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+              createdByUserId: seed.actorUserId,
+            } });
+          }
+        }
+        await prisma.booking.update({ where: { id: seed.bookingId }, data: {
+          blockedUntil: cleanupEnd, cleanupMinutes: 15, cleanupBlockMinutes: 15,
+          status: cancellation === "email" ? BookingStatus.PENDING : BookingStatus.CONFIRMED,
+          confirmedAt: cancellation === "email" ? null : new Date(),
+          originalAvailabilityEndsAt: originalCleanupMinutes === 15
+            ? getCellRangeBounds(seed.dateKey, 8, 16).endsAt : originalEnd,
+        } });
+        await applyAvailabilitySelection("owner", {
+          weekKey: seed.weekKey, dateKey: seed.dateKey, startCell: 14, endCell: 16,
+          mode: "remove", operationId: randomUUID(), actorUserId: seed.actorUserId,
+        });
+        assert.equal((await prisma.availabilitySlot.findUniqueOrThrow({
+          where: { id: seed.bookedSlotId }, select: { status: true },
+        })).status, AvailabilitySlotStatus.ARCHIVED);
+
+        if (cancellation === "admin") {
+          const { applyAdminBookingStatusChange } = await import("../admin-booking");
+          const result = await applyAdminBookingStatusChange({
+            bookingId: seed.bookingId, targetStatus: BookingStatus.CANCELLED,
+            actorUserId: seed.actorUserId, notifyClient: false,
+          });
+          assert.equal(result.status, "success");
+        } else {
+          const { buildBookingActionToken } = await import("@/features/booking/lib/booking-action-tokens");
+          const { cancelPublicBookingByToken } = await import("@/features/booking/lib/booking-cancellation");
+          const token = buildBookingActionToken();
+          await prisma.bookingActionToken.create({ data: {
+            bookingId: seed.bookingId, type: cancellation === "email" ? "REJECT" : "CANCEL", tokenHash: token.tokenHash,
+            expiresAt: serviceRange.startsAt,
+          } });
+          if (cancellation === "email") {
+            const { performBookingEmailAction } = await import("@/features/booking/lib/booking-email-actions");
+            assert.equal((await performBookingEmailAction("reject", token.rawToken, undefined, {
+              userId: seed.actorUserId,
+            })).status, "completed");
+          } else {
+            assert.equal((await cancelPublicBookingByToken(token.rawToken)).status, "cancelled");
+          }
+        }
+        const { mergeIntervals } = await import("./helpers");
+        const published = await prisma.availabilitySlot.findMany({
+          where: { createdByUserId: seed.actorUserId, status: AvailabilitySlotStatus.PUBLISHED },
+          select: { startsAt: true, endsAt: true },
+        });
+        assert.deepEqual(mergeIntervals(published), mergeIntervals([
+          { startsAt: getCellRangeBounds(seed.dateKey, 4, 6).startsAt, endsAt: originalEnd },
+          getCellRangeBounds(seed.dateKey, 8.5, 14),
+        ]));
+      } finally {
+        await prisma.emailLog.deleteMany({ where: { bookingId: seed.bookingId } });
+        await prisma.bookingStatusHistory.deleteMany({ where: { bookingId: seed.bookingId } });
+        await prisma.bookingActionToken.deleteMany({ where: { bookingId: seed.bookingId } });
+        await cleanupSeed(seed);
+      }
+    });
+  }
+}

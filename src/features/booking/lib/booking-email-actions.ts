@@ -61,6 +61,7 @@ type LoadedBookingActionToken = {
     serviceNameSnapshot: string;
     scheduledStartsAt: Date;
     scheduledEndsAt: Date;
+    blockedUntil: Date | null;
     originalAvailabilityEndsAt: Date | null;
     clientDeliveryLeaseToken?: string | null;
     clientDeliveryLeaseExpiresAt?: Date | null;
@@ -215,6 +216,7 @@ async function findActionToken(tokenHash: string) {
           serviceNameSnapshot: true,
           scheduledStartsAt: true,
           scheduledEndsAt: true,
+          blockedUntil: true,
           originalAvailabilityEndsAt: true,
           clientDeliveryLeaseToken: true,
           clientDeliveryLeaseExpiresAt: true,
@@ -441,6 +443,7 @@ export async function performBookingEmailAction(
               serviceNameSnapshot: true,
               scheduledStartsAt: true,
               scheduledEndsAt: true,
+              blockedUntil: true,
               originalAvailabilityEndsAt: true,
               clientDeliveryLeaseToken: true,
               clientDeliveryLeaseExpiresAt: true,
@@ -504,6 +507,7 @@ export async function performBookingEmailAction(
           lockedToken.booking!.scheduledEndsAt,
           lockedToken.booking!.originalAvailabilityEndsAt,
           lockedToken.booking!.serviceId,
+          lockedToken.booking!.blockedUntil,
         );
         await archiveDraftBookingSlotAfterCancellation(tx, lockedToken.booking!.slotId);
       }

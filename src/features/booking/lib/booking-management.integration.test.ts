@@ -1483,7 +1483,7 @@ describe("cancel booking flow", () => {
     }
   });
 
-  dbTest("cancellation restores only the service interval from an archived slot", async () => {
+  dbTest("cancellation restores service and originally published cleanup from an archived slot", async () => {
     const {
       prisma,
       cancelPublicBookingByToken,
@@ -1666,6 +1666,11 @@ describe("cancel booking flow", () => {
           {
             startsAt: beforeEndsAt.toISOString(),
             endsAt: bookingEndsAt.toISOString(),
+            status: AvailabilitySlotStatus.PUBLISHED,
+          },
+          {
+            startsAt: bookingEndsAt.toISOString(),
+            endsAt: cleanupEndsAt.toISOString(),
             status: AvailabilitySlotStatus.PUBLISHED,
           },
           {
