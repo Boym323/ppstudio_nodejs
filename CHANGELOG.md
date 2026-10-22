@@ -6,9 +6,13 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.36.1] - 2026-10-22
+
 ### Opraveno
 
 - Storno rezervace obnovuje původně dostupný čas úklidu bez umělého omezení na zrušenou službu; přesah samotné služby nad známý zdrojový slot zůstává omezený.
+
+- Next.js je aktualizovaný na 16.4.2 kvůli opravě kritických zranitelností Image Optimization API a Server Actions.
 
 ## [3.36.0] - 2026-10-20
 
