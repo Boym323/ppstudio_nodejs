@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Storno rezervace obnovuje původně dostupný čas úklidu bez umělého omezení na zrušenou službu; přesah samotné služby nad známý zdrojový slot zůstává omezený.
+
 ## [3.36.0] - 2026-10-20
 
 ### Opraveno

@@ -1648,6 +1648,7 @@ describe("cancel booking flow", () => {
           startsAt: true,
           endsAt: true,
           status: true,
+          serviceRestrictionMode: true,
         },
       });
 
@@ -1656,27 +1657,32 @@ describe("cancel booking flow", () => {
           startsAt: slot.startsAt.toISOString(),
           endsAt: slot.endsAt.toISOString(),
           status: slot.status,
+          serviceRestrictionMode: slot.serviceRestrictionMode,
         })),
         [
           {
             startsAt: baseStartAt.toISOString(),
             endsAt: beforeEndsAt.toISOString(),
             status: AvailabilitySlotStatus.PUBLISHED,
+            serviceRestrictionMode: "ANY",
           },
           {
             startsAt: beforeEndsAt.toISOString(),
             endsAt: bookingEndsAt.toISOString(),
             status: AvailabilitySlotStatus.PUBLISHED,
+            serviceRestrictionMode: "ANY",
           },
           {
             startsAt: bookingEndsAt.toISOString(),
             endsAt: cleanupEndsAt.toISOString(),
             status: AvailabilitySlotStatus.PUBLISHED,
+            serviceRestrictionMode: "ANY",
           },
           {
             startsAt: cleanupEndsAt.toISOString(),
             endsAt: fullEndsAt.toISOString(),
             status: AvailabilitySlotStatus.PUBLISHED,
+            serviceRestrictionMode: "ANY",
           },
         ],
       );
@@ -1687,6 +1693,7 @@ describe("cancel booking flow", () => {
           startsAt: baseStartAt,
           endsAt: fullEndsAt,
           status: AvailabilitySlotStatus.ARCHIVED,
+          serviceRestrictionMode: "ANY",
         },
       );
     } finally {

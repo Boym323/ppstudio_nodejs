@@ -63,7 +63,7 @@ FullCalendar: klik nebo výběr rozsahu
 - Planner chrání intervaly rezervací a úklid až do `blockedUntil ?? scheduledEndsAt`; do své provozní projekce zahrnuje také `COMPLETED`. Sousední chráněný úsek se nesmí smazat ani přepsat. Existence rezervace může blokovat čas i při archivaci jejího původního slotu.
 - Při přestavbě lze slot **bez navázané rezervace smazat**. Slot s rezervací se **archivuje**, takže `Booking.slotId` a audit zůstávají konzistentní. Archivovaný historický slot nesmí „znovu“ nabízet čas ani vytvářet falešnou blokaci volné dostupnosti.
 - Změna dostupnosti **není** vytvoření ani storno `Booking`. Sama neposílá potvrzovací e-maily, nemanipuluje platbami a nemění stav návštěvy.
-- Storno po archivaci zdrojového slotu obnoví čas služby a část navazujícího úklidu nejvýše do `min(blockedUntil, originalAvailabilityEndsAt)`. Bez snapshotu původního konce dostupnosti úklid navíc nepublikuje. Neobnovuje celé historické okno ani odebrané úseky za úklidem. U obnovené části mimo zdrojový slot zachovává konzervativní omezení na službu zrušené rezervace; službu a úklid obnovuje odděleně, aby toto omezení nepřepsalo pravidla původního slotu.
+- Storno po archivaci zdrojového slotu obnoví čas služby a část navazujícího úklidu nejvýše do `min(blockedUntil, originalAvailabilityEndsAt)`. Bez snapshotu původního konce dostupnosti úklid navíc nepublikuje. Neobnovuje celé historické okno ani odebrané úseky za úklidem. Přesah služby mimo zdrojový slot omezuje na zrušenou službu; navazující obnovený úklid přebírá pravidla zdrojového slotu, aby z něj nevznikl nevyužitelný termín vyhrazený zrušené službě.
 
 ## Vazba na veřejné /rezervace
 

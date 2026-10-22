@@ -860,16 +860,16 @@ export async function restoreArchivedBookingServiceSlotAfterCancellation(
       continue;
     }
 
-    // U zaniklých navazujících slotů známe jen službu rezervace, nikoli jejich
-    // úplný seznam povolených služeb. Jejich oprávnění proto nerozšiřujeme.
-    const extendsBeyondSource = interval.endsAt > slot.endsAt;
-    const allowedServices = extendsBeyondSource ? [{ serviceId }] : slot.allowedServices;
+    // Přesah samotné služby smí povolit jen rezervovanou službu. Obnovený
+    // úklid už není rezervací této služby; převezme pravidla zdrojového slotu.
+    const unknownServiceCoverage = interval.startsAt < scheduledEndsAt && interval.endsAt > slot.endsAt;
+    const allowedServices = unknownServiceCoverage ? [{ serviceId }] : slot.allowedServices;
     await tx.availabilitySlot.create({
       data: {
         ...interval,
         capacity: slot.capacity,
         status: AvailabilitySlotStatus.PUBLISHED,
-        serviceRestrictionMode: extendsBeyondSource
+        serviceRestrictionMode: unknownServiceCoverage
           ? AvailabilitySlotServiceRestrictionMode.SELECTED
           : slot.serviceRestrictionMode,
         publicNote: slot.publicNote,
