@@ -33,6 +33,9 @@ Přímé verze níže byly porovnány s `package.json` k 24. 10. 2026 (PP Studio
 - Zdroj pravdy je `package.json` v kořeni projektu.
 - Projektový runtime cíl je `Node 24 LTS`; repozitář to explicitně deklaruje přes [`.nvmrc`](../.nvmrc#L1) a `package.json.engines`.
 - `next`: `16.4.2`
+- `zod`: `^4.6.6` (lockfile: `4.6.6`, bezpečnostní oprava validace kolekcí).
+- `nodemailer`: `^10.1.6` (lockfile: `10.1.6`, opravy parsování adres).
+- Tranzitivní `fast-uri`: `3.1.9` (bezpečnostní opravy parsování URI; není přímá závislost v manifestu).
 - `react`: `19.2.8`
 - `react-dom`: `19.2.8`
 - `tailwindcss`: `^4.3.2` (lockfile: `4.3.3`)
@@ -47,7 +50,7 @@ Přímé verze níže byly porovnány s `package.json` k 24. 10. 2026 (PP Studio
 - `@tanstack/react-table`: `^8.21.3` – administrační tabulky.
 - `recharts`: `^3.10.1` – grafy.
 - `package.json.allowScripts` na npm 11 vědomě whitelisuje install hooky pro `prisma`, `@prisma/engines`, `sharp`, `esbuild` a `unrs-resolver`. Záznamy jsou připnuté na konkrétní verze, aby se při upgradu znovu explicitně zrevidovalo, které postinstall/preinstall skripty repo pouští.
-- Historický lokální `npm audit` z 2. 7. 2026 hlásil `1 low` a `6 moderate` nálezů bez `high` / `critical`. **Jde o archivní výsledek**, nikoliv o aktuální bezpečnostní stav závislostí; pro současný lockfile je nutné spustit nový audit.
+- Historický lokální `npm audit` z 2. 7. 2026 hlásil `1 low` a `6 moderate` nálezů bez `high` / `critical`. **Jde o archivní výsledek**, nikoliv o aktuální bezpečnostní stav závislostí. Audit CI z 24. 10. 2026 na předchozím lockfilu odhalil `zod` (high), `nodemailer` (moderate) a `fast-uri` (moderate); opravy jsou zaznamenány výše. Aktuální nálezy ověř pomocí `npm audit --omit=dev --audit-level=high` v CI.
 - `npm audit fix` nespouštěj bez kontroly navržených změn manifestu a lockfilu; starší audit vracel i nekompatibilní návrhy zásahu do `next` a `prisma`. Případné upgrady ověř samostatným dependency passem.
 - `@playwright/test`: browser E2E test runner pro hlavní rezervační a admin flow; v projektu držíme `^1.63.0` (lockfile: `1.63.0`), protože starší `1.59.1` se v CI na Node 24 zasekávala při instalaci browseru.
 - `@axe-core/playwright`: automatizovaná axe kontrola přístupnosti v reprezentativních Playwright scénářích veřejného webu, rezervace a administrace.

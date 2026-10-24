@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Zabezpečení
+
+- Aktualizovány zranitelné npm balíčky `zod` na 4.6.6, `nodemailer` na 10.1.6 a tranzitivní `fast-uri` na 3.1.9; opravují riziko nadměrné spotřeby paměti při validaci, parsing e-mailových adres a URI. Aktualizován reprodukovatelný lockfile bez změny veřejného API.
+
 ## [3.36.1] - 2026-10-22
 
 ### Opraveno
