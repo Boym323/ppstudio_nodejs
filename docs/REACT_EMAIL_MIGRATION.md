@@ -1,5 +1,7 @@
 # Migrace HTML e-mailů na React Email
 
+> **Aktuální stav (24. 10. 2026): dokončeno.** Všech 10 evidovaných HTML template keys je převedeno na React Email; původní ruční HTML helpery byly odstraněny. `src/lib/email/templates.ts` obstarává validaci a orchestraci, plain text a přílohy. Oddíly 2–8 zachovávají původní migrační plán; výsledek obsahují oddíly 9 a závěrečný audit. Historické selhání dvou DB fixture testů při auditu není tvrzením o aktuálním stavu CI.
+
 ## 1. Současná architektura
 
 Tok je:
@@ -8,9 +10,9 @@ Tok je:
 
 Booking akce, reminder scheduler a voucher akce vytvářejí `EmailLog` s template key a JSON payloadem. `src/lib/email/worker.ts` záznam zamyká a předává jej `src/lib/email/delivery.ts`; stejná delivery funkce se používá i pro okamžité odeslání. `src/lib/email/provider.ts` následně předává HTML, plain text a přílohy Nodemaileru nebo Resendu. Retry, locking a stav EmailLogu jsou mimo renderer.
 
-`renderEmailTemplate` v `src/lib/email/templates.ts` současně zajišťuje validaci payloadu, načtení brandingu, formátování dat, ruční HTML i plain text a u některých šablon tvorbu příloh. Voucherová orchestrace v témže souboru načítá voucher a PDF a volá `buildVoucherEmailTemplate`.
+`renderEmailTemplate` v `src/lib/email/templates.ts` zajišťuje validaci payloadu, načtení brandingu, formátování dat, explicitní plain text, orchestraci PDF/ICS příloh a volání React Email rendererů z `src/lib/email/react-email/`. Voucherová orchestrace používá `buildVoucherEmailTemplate`; ruční HTML buildery už nejsou produkčním rendererem.
 
-## 2. Template inventory
+## 2. Template inventory (původní migrační plán)
 
 | Template key | Soubor | Příjemce | Akční URL | Attachment | Doporučená fáze |
 |---|---|---|---|---|---|
@@ -27,7 +29,7 @@ Booking akce, reminder scheduler a voucher akce vytvářejí `EmailLog` s templa
 
 Přímý call site voucherového HTML builderu je orchestrace `voucher-sent-v1` v `src/lib/email/templates.ts`; ostatní použití je v jeho unit testu. Preview script volá pouze veřejný `renderEmailTemplate`. Batch script jej volá a předává přílohy do odeslání.
 
-## 3. Co bude migrováno
+## 3. Co se migrovalo (původní rozsah)
 
 Pouze tvorba HTML těla e-mailu: layout, tabulková e-mailová struktura, inline styly, textové bloky, odkazy, tlačítka, karty a escaping řešený JSX/React Email komponentami. Zachová se stejný vstupní payload, subject, výstupní HTML kontrakt a template key. Plain text zůstane explicitní variantou mimo React Email, dokud nebude prokazatelně nahrazena samostatným textovým rendererem.
 
@@ -35,7 +37,7 @@ Pouze tvorba HTML těla e-mailu: layout, tabulková e-mailová struktura, inline
 
 Beze změny zůstávají Nodemailer, SMTP/provider (včetně Resendu), `EmailLog`, worker, retry/locking mechanismus, booking/reminder scheduler, ICS generátor, PDF generátor, databáze, template keys a payload contracts. Nemění se ani booking a voucher business logika. Jediná změna na integrační hranici má být dosazení výsledného HTML do stávajícího `RenderedEmailTemplate`.
 
-## 5. Navržená cílová struktura
+## 5. Navržená cílová struktura (historický návrh)
 
 Minimální struktura:
 
@@ -60,7 +62,7 @@ src/lib/email/react-email/
 
 Komponenty mají být pouze sdílené vizuální stavební bloky. Orchestrace, payload schema, subject, plain text a přílohy zůstanou v existující e-mailové vrstvě; nevytvářet obecný registry/framework nad rámec potřebných template keys.
 
-## 6. Pořadí migrace
+## 6. Pořadí migrace (historický plán)
 
 1. `booking-confirmation-v1` jako pilot.
 2. Klientské booking e-maily: approved, reminder, rescheduled, cancelled, rejected.
@@ -69,7 +71,7 @@ Komponenty mají být pouze sdílené vizuální stavební bloky. Orchestrace, p
 5. Cleanup starých ručních HTML helperů až po přepnutí všech keys.
 6. Finální audit kontraktů, preview a příloh.
 
-## 7. Rizika
+## 7. Rizika (původní checklist)
 
 - Escaping: JSX zabrání části ručního HTML escapingu, ale URL atributy, textové hodnoty a případné raw HTML musí mít explicitní pravidla.
 - Akční/tokenové URL: nesmí se změnit hodnota, encoding, volitelnost ani cílová route.
@@ -79,7 +81,7 @@ Komponenty mají být pouze sdílené vizuální stavební bloky. Orchestrace, p
 - Plain text se z React komponenty automaticky neodvozuje bez změny strategie; zachovat současné textové výstupy a jejich testy.
 - E-mailový klient může měnit podporu CSS; porovnat výsledné HTML v preview, zejména tlačítka a tabulkový layout.
 
-## 8. Testovací strategie
+## 8. Testovací strategie (původní plán)
 
 Existující základ:
 
@@ -116,9 +118,9 @@ Před dokončením migrace doplnit snapshot/strukturální kontroly výsledného
 - `npm run email:dev` zůstává interaktivním preview nad `src/lib/email/react-email/`; `npm run email:previews` zůstává regresním preview přes `renderEmailTemplate(...)`.
 - Stav buildu a případné položky pro finální audit jsou uvedeny v předávacím výsledku Fáze 5.
 
-Tento checklist je výchozí stav; každá další implementační fáze jej musí aktualizovat.
+Checklist výše zachycuje uzavřenou migraci; nová regresní zjištění patří do aktuálních testů a provozní dokumentace.
 
-# Final audit
+## Závěrečný audit migrační fáze (historický výsledek)
 
 | Oblast | Výsledek |
 |---|---|

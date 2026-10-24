@@ -1,6 +1,6 @@
 # Architektura PP Studio
 
-Tento dokument shrnuje architekturu aplikace a její hlavní provozní hranice. Při rozporu má přednost aktuální implementace; přesné verze závislostí určují `package.json` a `package-lock.json`. Přehled verzí níže byl synchronizován 20. 10. 2026.
+Tento dokument shrnuje architekturu aplikace a její hlavní provozní hranice. Při rozporu má přednost aktuální implementace; přesné verze závislostí určují `package.json` a `package-lock.json`. Přehled verzí níže byl ověřen vůči `package.json` dne 24. 10. 2026 (PP Studio `3.36.1`).
 
 ## Přehled systému
 
@@ -15,7 +15,7 @@ PP Studio je monolitická Next.js 16 aplikace nad App Routerem s PostgreSQL data
 
 Hlavní stack:
 
-- `next` `16.3.8`
+- `next` `16.4.2`
 - `react` `19.2.8`
 - `react-dom` `19.2.8`
 - `prisma` `7.10.0`

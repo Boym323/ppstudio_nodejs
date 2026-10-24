@@ -211,7 +211,7 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](docs/API.md).
 - Blok `Vyžaduje pozornost` se vykreslí jen když existuje alespoň jeden actionable alert (`emphasis !== ok`); pokud nic nehoří, blok se úplně skryje. Pokud alerty existují, UI zvýrazní jeden primární alert (`emphasis=primary`, případně první dostupný) a ostatní drží jako kompaktní sekundární položky.
 - Pokud je blok `Vyžaduje pozornost` zobrazený, alert text na mobilu se musí lámat do více řádků (bez `truncate`) a CTA může padat pod text; karta nesmí horizontálně přetékat mimo viewport.
 - Actionable alerty v `Vyžaduje pozornost` aktuálně pokrývají jen skutečně akční provozní problémy: čekající rezervace na potvrzení, selhané e-maily a rezervace po konci termínu čekající na uzavření.
-- Absence slotů dnes/zítra není sama o sobě problém: sekce `Nejbližší volné termíny` používá neutrální text (`Momentálně nejsou publikované žádné nadcházející volné termíny.`) a pokud existují draft sloty, zobrazí stav s počtem návrhů čekajících na publikování a odkazem do dostupnosti.
+- Absence slotů dnes/zítra není sama o sobě problém: sekce `Nejbližší volné termíny` používá neutrální text (`Momentálně nejsou publikované žádné nadcházející volné termíny.`). `DRAFT` může existovat u interních výjimek, ale běžný FullCalendar nemá rozpracovaný týden čekající na hromadné publikování; dostupnost se ukládá průběžně.
 - Rychlé akce v pravém sloupci nejsou primární místo pro vytvoření rezervace; hlavní CTA zůstává nahoře v `Provozní přehled`. Pravý blok drží podpůrné vstupy `Rezervace`, `Dostupnost`, `Klienti` a `Vouchery`.
 - Detailní zdroje návštěv a funnel jsou v dashboardu až v rozbalení `Zobrazit analytiku`, aby hlavní obrazovka nezobrazovala matoucí analytické hodnoty před provozními úkoly.
 - Sekce `Zdroje návštěv` v tomto widgetu kombinuje Matomo kampaně a referrer typy do business názvů `Instagram`, `Firmy`, `Google`, `Přímý vstup` nebo `Ostatní`; rezervace u zdrojů jsou výslovně jen orientační odhad podle podílu návštěv na dokončených `Rezervace / Vytvořena`, ne přesná atribuce.
@@ -219,7 +219,7 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](docs/API.md).
 - V detailu owner `Email logu` akce `Znovu odeslat e-mail` založí nový `PENDING` log s aktuálním e-mailem kontaktu jako nový pokus; historický `recipientEmail` původního záznamu se kvůli auditu nikdy nepřepisuje.
 - Admin detail rezervace musí i při dlouhém jménu, e-mailu nebo hlášce po přesunu termínu zalamovat text uvnitř karet; success bannery, historie i key/value souhrny nesmí horizontálně přetékat mimo panel.
 - Aktuální runtime stack podle `package.json`:
-  - `next` `16.3.8`
+  - `next` `16.4.2`
   - `react` `19.2.8`
   - `react-dom` `19.2.8`
   - `prisma` + `@prisma/client` `7.10.0`

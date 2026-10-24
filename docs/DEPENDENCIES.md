@@ -11,7 +11,7 @@
 
 - Offline recovery OWNERa používá stávající runtime `tsx`, Prisma a Node `crypto`; nepřibyla žádná externí závislost. Neodstraňuj `tsx`, dokud zůstává script `admin:recover-owner` součástí provozního postupu.
 
-Seznam důležitých knihoven a důvod jejich použití.
+Seznam důležitých knihoven a důvod jejich použití. Historické poznámky k jednotlivým etapám nejsou inventářem současného UI; autoritativní závislosti jsou v `package.json` a `package-lock.json`.
 
 Atomický release mechanismus nepřidává žádnou npm závislost; používá existující Bash, systemd, `curl`, Node.js a Prisma CLI.
 
@@ -29,10 +29,10 @@ Tichý startup readiness probe nepřidává závislost; používá stejný `curl
 
 ## Aktuální verze stacku
 
-Konkrétní resolved verze níže byly porovnány s `package-lock.json` k 20. 10. 2026. Po dalších aktualizacích balíčků je nutné kontrolovat manifest i lockfile, nikoliv tento seznam považovat za automaticky aktuální.
+Přímé verze níže byly porovnány s `package.json` k 24. 10. 2026 (PP Studio `3.36.1`); pro přesné resolved verze platí `package-lock.json`. Po dalších aktualizacích ověř oba soubory.
 - Zdroj pravdy je `package.json` v kořeni projektu.
 - Projektový runtime cíl je `Node 24 LTS`; repozitář to explicitně deklaruje přes [`.nvmrc`](../.nvmrc#L1) a `package.json.engines`.
-- `next`: `16.3.8`
+- `next`: `16.4.2`
 - `react`: `19.2.8`
 - `react-dom`: `19.2.8`
 - `tailwindcss`: `^4.3.2` (lockfile: `4.3.3`)
@@ -41,6 +41,11 @@ Konkrétní resolved verze níže byly porovnány s `package-lock.json` k 20. 10
 - `prisma`: `7.10.0`
 - `@prisma/client`: `7.10.0`
 - `@prisma/adapter-pg`: `7.10.0`
+- `@fullcalendar/react`: `^7.0.2` – jediný produkční planner dostupnosti s autosave.
+- `react-email`: `6.9.3` a `@react-email/ui`: `6.9.5` – HTML e-maily a vývojové preview.
+- `@radix-ui/react-dialog`, `@radix-ui/react-alert-dialog`, `@radix-ui/react-dropdown-menu`, `@radix-ui/react-toast` – dialogy, drawery, menu a toast notifikace.
+- `@tanstack/react-table`: `^8.21.3` – administrační tabulky.
+- `recharts`: `^3.10.1` – grafy.
 - `package.json.allowScripts` na npm 11 vědomě whitelisuje install hooky pro `prisma`, `@prisma/engines`, `sharp`, `esbuild` a `unrs-resolver`. Záznamy jsou připnuté na konkrétní verze, aby se při upgradu znovu explicitně zrevidovalo, které postinstall/preinstall skripty repo pouští.
 - Historický lokální `npm audit` z 2. 7. 2026 hlásil `1 low` a `6 moderate` nálezů bez `high` / `critical`. **Jde o archivní výsledek**, nikoliv o aktuální bezpečnostní stav závislostí; pro současný lockfile je nutné spustit nový audit.
 - `npm audit fix` nespouštěj bez kontroly navržených změn manifestu a lockfilu; starší audit vracel i nekompatibilní návrhy zásahu do `next` a `prisma`. Případné upgrady ověř samostatným dependency passem.
@@ -108,10 +113,10 @@ Konkrétní resolved verze níže byly porovnány s `package-lock.json` k 20. 10
 - Owner Pushover integrace byla pridana bez SDK baliku; POST na `https://api.pushover.net/1/messages.json` se sklada primo ve sdilene serverove implementaci `pushover-core` a Next.js `server-only` wrapper zustava oddeleny od standalone worker importu.
 - Pro nové provozní approve/reject odkazy jsme nepřidávali žádnou další knihovnu; bezpečnost flow dál stojí na existujícím Node.js `crypto`, Prisma transakcích a Next.js App Router server actions.
 - Ochrana proti `Failed to find Server Action` nepřidává novou knihovnu; používá vestavěné Next.js `deploymentId`, provozní env konfiguraci `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` a lokální observability helper v `instrumentation.ts` pro sanitizované shrnutí `next-action` headeru.
-- Refaktor HTML šablony admin notifikace také nepřidává žádnou knihovnu; email-safe layout je ručně skládaný přes inline styly a prezentační tabulky.
+- Historický refaktor admin notifikací nepřidal knihovnu; aktuální HTML šablony však renderuje React Email v `src/lib/email/react-email/`.
 - Ani zákaznická `.ics` příloha po potvrzení rezervace nepřidává novou knihovnu; používá lokální iCalendar utility a stávající SMTP vrstvu přes `nodemailer`.
-- UX/copy refaktor potvrzovacího klientského e-mailu `booking-approved-v1` také nepřidává novou knihovnu; layout dál používá ručně skládané email-safe HTML s inline styly a stávající `.ics` attachment pipeline.
-- Sjednocení booking e-mailů do jednoho design systému nepřidává žádnou knihovnu; HTML shell, karty, CTA i text/plain fallbacky zůstávají ručně skládané v `src/lib/email/templates.ts` nad existujícím Node/Prisma/Nodemailer stackem.
+- `booking-approved-v1` nyní používá React Email pro HTML, zatímco tvorba `.ics` přílohy zůstává v existující e-mailové orchestraci.
+- Sdílené HTML bloky booking e-mailů jsou v `src/lib/email/react-email/_components/`; `src/lib/email/templates.ts` připravuje payloady, subject, plain text a přílohy. Viz `docs/REACT_EMAIL_MIGRATION.md`.
 - Přepojení booking e-mailových kontaktů na `SiteSettings` nepřidává žádnou knihovnu; používá existující `getPublicSalonProfile()` / `getEmailBrandingSettings()` helpery a lokální HTML escapování.
 - Nová owner notifikace `admin-booking-rescheduled-v1` při self-service přesunu rezervace nepřidává žádnou knihovnu; používá existující outbox `EmailLog`, renderer šablon a `SiteSettings.notificationAdminEmail`.
 - Jediný 24h reminder rezervací také nepřidává novou knihovnu; scheduler, token workflow i outbox zápis používají stávající Next.js/Prisma/Node stack a existující `email:worker`.
@@ -130,7 +135,7 @@ Konkrétní resolved verze níže byly porovnány s `package-lock.json` k 20. 10
 - UX refaktor pracovního přehledu `Rezervace` také nepřidává novou závislost; klikací statistiky, URL-driven filtr toolbar i seskupení seznamu používají jen stávající Next.js App Router, `next/form`, React a Prisma vrstvu.
 - Admin login rate limit také nepřidává novou závislost; používá stávající Prisma model `BookingSubmissionLog` a vestavěný Node.js `crypto` pro hash fingerprintů.
 - Stabilizační refaktor `booking-public`, `booking-flow` a `admin-slots` také nepřidává žádnou novou runtime ani dev dependency; jde čistě o přesun stávající logiky do menších interních modulů.
-- Modul `Média` také nepřidává žádnou novou závislost; upload, metadata, filtr typů i publish stav běží na stávajícím stacku Next.js, React, Prisma, Zod, Node filesystem a `image-size`.
+- Modul `Média` používá Next.js, React, Prisma, Zod, Node filesystem a `sharp` pro zpracování obrázků; `image-size` není deklarovanou přímou závislostí.
 - UX refaktor `Média` také nepřidává žádnou novou závislost; dropzóna, tabs s počty, quick publish/unpublish i kompaktní edit dialog běží na stávajících React/Next primitives.
 - Rozdělení portrétů na `PORTRAIT_HOME` a `PORTRAIT_ABOUT` také nepřidává žádnou novou závislost; používá stávající `MediaAsset` model, Prisma enum a public media helpery.
 - Veřejná stránka `/studio` nepřidává žádnou novou závislost; galerii skládá z existující media vrstvy a `next/image`.
@@ -164,9 +169,9 @@ Konkrétní resolved verze níže byly porovnány s `package-lock.json` k 20. 10
 
 ## Poznámky k datové vrstvě
 - Prisma schema v1 používá enumy pro role, stavy slotů, stavy rezervací a e-mailové workflow.
-- Slot admin CRUD stojí jen na stávajícím stacku Next.js + Prisma + Zod; záměrně jsme nepřidávali žádnou kalendářovou, form builder ani admin CMS knihovnu.
-- UX vylepšení slot formuláře, týdenního planneru, inline day workspace a mobilních sticky akcí běží čistě na React/Next primitives; nevznikla nová externí závislost.
-- Draft-first redesign planneru (mobilní drawer sidebar, inspektor dne, sticky publish bar, lokální koncept týdne) dál běží bez nové state-management, drawer nebo calendar knihovny; zůstáváme na React 19 + Next.js 16 primitives.
+- Zápis dostupnosti zůstává na Next.js + Prisma + Zod bez externího CMS nebo form builderu. Aktuální admin kalendář používá `@fullcalendar/react`.
+- Historické UI slot formulářů a týdenního workspace bylo nahrazeno jediným FullCalendar plannerem; autosave a ochrana intervalů využívají vlastní React/Next/Prisma logiku.
+- Produkční planner pro `OWNER` i `SALON` je FullCalendar s režimy prohlížení/přidání/odebrání a průběžným FIFO autosave. Draft-first koncept a hromadné publikování týdne byly odstraněny; viz `docs/ADR/0118-fullcalendar-planner-autosave-v1.md`.
 - Kompaktní veřejný picker časů v `/rezervace` byl také upravený bez nové závislosti; grouping a disabled stavy běží čistě na stávajícím stacku React + TypeScript + Tailwind utilities.
 - Pro bezpečné storno a přesun termínu není potřeba další knihovna; token workflow je navržený na úrovni DB přes hash + expiraci.
 - E-mailové šablony i delivery vrstva zůstávají jednoduché a nepřidávají queue službu mimo PostgreSQL outbox.
@@ -186,7 +191,7 @@ Konkrétní resolved verze níže byly porovnány s `package-lock.json` k 20. 10
 - Ruční výběr doporučených služeb pro homepage zůstává v modelu `Service` a admin server actions; nepřidává CMS ani externí personalizační nebo analytickou službu.
 - Přepracované workflow `Služby` a `Kategorie služeb` (create CTA, quick actions, reorder, warningy, mobilní list/detail flow) zůstává bez nové UI nebo drag-and-drop závislosti; běží čistě na stávajícím stacku Next.js, React, Prisma a Zod.
 - Nový dark workspace `Kategorie služeb` používá jen React 19 primitives (`useActionState`, `useOptimistic`, `startTransition`) a nepřidává žádný drawer, icon ani form helper balík.
-- Přepnutí desktop detailů `Služby` a `Kategorie služeb` na pravý overlay drawer také nepřidává žádnou UI knihovnu; zůstáváme na lokálních React komponentech a Tailwind utilitách.
+- Desktopové detaily `Služby` a `Kategorie služeb` nyní používají Radix Dialog/drawer primitives vedle lokálních React komponent a Tailwind stylů; viz `docs/RADIX_UI_MIGRATION.md`.
 - Lokální media storage vrstva zůstává na stávajícím stacku Next.js, Prisma a Node filesystemu; `sharp` přidává jen lehkou upload-time normalizaci a varianty bez CDN a bez komplexního responsive image systému.
 
 ## Pravidla aktualizací
@@ -197,8 +202,8 @@ Konkrétní resolved verze níže byly porovnány s `package-lock.json` k 20. 10
 - `node_modules` neni distributovany artefakt. Do repozitare ani prenosovych ZIP/TAR balicku nepatri.
 - Reprodukovatelna instalace zavislosti na serveru je pouze `npm ci` z aktualniho `package-lock.json`.
 - `npm run dev` a `npm run build` nyní automaticky spouštějí `prisma generate`, aby admin sekce nepoužívaly zastaralý Prisma klient po změnách schématu `EmailLog` a dalších modelů.
-- Týdenní planner dostupností, batch create, inline quick edit slotu i sekundární day workspace byly implementované bez nové závislosti; zůstáváme na stávajícím stacku Next.js, React, Prisma a Zod.
-- Synchronizace publikovaného konceptu týdne používá novou server action nad existující Prisma vrstvou; nepřibyla žádná fronta, websocket vrstva ani další persistence systém.
+- Historické workflow týdenního planneru bylo nahrazeno FullCalendar; aktuální uložení změny jde přes `applyPlannerSelectionAction` a auditované Prisma transakce.
+- Změny dostupnosti se ukládají jednotlivě přes klientskou FIFO frontu `PlannerLabSaveQueue` do PostgreSQL. Neexistuje serverový koncept týdne k hromadnému publikování ani samostatný websocket či externí queue systém.
 - `dotenv` a `prisma/config` jsou potřeba i proto, že Prisma 7 CLI čte `DATABASE_URL` a `SHADOW_DATABASE_URL` mimo runtime validaci Next.js aplikace.
-- Týdenní planner dostupností byl postavený bez nové závislosti; zůstáváme na stávajícím stacku Next.js, React, Prisma a Zod.
+- Současný FullCalendar planner používá `@fullcalendar/react`, zatímco pravidla dostupnosti, booking ochrana a idempotence jsou v interní Next.js/Prisma vrstvě.
 - DST hardening pro `Europe/Prague` nepřidává žádnou novou knihovnu; používá stávající `Intl.DateTimeFormat`, Prisma `DateTime` instants a lokální TypeScript helpery.

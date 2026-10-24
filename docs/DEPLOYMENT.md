@@ -545,11 +545,11 @@ sudo /var/www/ppstudio/deploy/deploy.sh
   - `/admin/volne-terminy/[slotId]/upravit`
   - a stejné cesty pod `/admin/provoz/volne-terminy/*`
 - Ověř, že planner renderuje týdenní kalendář a že guardy rolí fungují stejně jako dřív.
-- Ověř, že kliknutí do gridu vybírá blok pro pravý inspektor a že teprve tažení nebo akce z inspektoru mění koncept.
-- Ověř přidání dostupnosti tažením, odebrání zeleného intervalu a copy week.
+- Ověř, že režim **Prohlížení** do dostupnosti nezapisuje. V režimu **Přidat termín** nebo **Odebrat termín** kliknutí do mřížky i výběr tažením odešle příslušnou změnu do autosave; není zde pravý inspektor ani koncept týdne.
+- Ověř přidání dostupnosti tažením, odebrání publikovaného zeleného intervalu, zpětné vrácení změny (**Vrátit změnu**) a idempotentní retry. Historické **copy week** ani hromadné publikování draftu nejsou součástí produkčního UI.
 - Ověř průběžné uložení změny a možnost obnovit poslední uložený stav po chybě.
 - Ověř, že pokus o zásah do rezervace skončí čitelnou chybou bez změny dat.
 
 ## QA Pro Letní/Zimní Čas
-- Tento release nepřidává DB migraci ani novou knihovnu.
-- Po deployi ověř v admin planneru slot 09:00-10:00 pro zimní i letní datum, copy week přes poslední březnovou a říjnovou neděli, veřejné zobrazení termínu, potvrzovací e-mail a `.ics` přílohu.
+- Samotné ověření chování při změně času nevyžaduje novou DB migraci ani knihovnu.
+- Po deployi ověř v admin planneru uložení a zobrazení 09:00–10:00 pro zimní i letní datum, navigaci přes poslední březnovou a říjnovou neděli, veřejné zobrazení termínu, potvrzovací e-mail a `.ics` přílohu. Neověřuj odstraněnou akci copy week.

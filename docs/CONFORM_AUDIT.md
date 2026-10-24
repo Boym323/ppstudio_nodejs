@@ -1,10 +1,12 @@
 # Conform Audit — PP Studio
 
+> **Historický audit z 20. 10. 2026.** Inventář formulářů a hodnoty verzí jsou snímkem původního posouzení, nikoli živou technickou specifikací. Od auditu byl Next.js aktualizován z `16.3.8` na `16.4.2` (PP Studio `3.36.1` k 24. 10. 2026). O případném nasazení Conform rozhodni až po opětovném ověření aktuálních formulářů.
+
 ## Executive summary
 
 PP Studio používá Server Actions, React 19 `useActionState`, Zod 4 a nativní uncontrolled HTML formuláře. Opakovaný plumbing je reálný hlavně v převodu `FormData` a ručním převodu Zod chyb do `fieldErrors`. Zároveň je mnoho formulářů provozně jednoduchých a největší booking formuláře mají řízený lookup, více intentů, idempotency a business pravidla. Conform by mohl zachovat Server Actions, ale nepřevezme Prisma, autorizaci ani business orchestration. Přínos je jasný u standardních settings/catalog formulářů, ne u celého adminu. Verdikt: **PILOT ONLY**.
 
-## Current form architecture
+## Architektura formulářů v době auditu
 
 Technologický kontrakt ověřený podle `package-lock.json` k 20. 10. 2026: Next.js `16.3.8`, React `19.2.8`, Zod `4.5.4`, TypeScript 5. Formuláře používají nativní `<form action={formAction}>`, `useActionState` a `useFormStatus`. Server Action přijímá `(previousState, formData)`, ručně čte hodnoty, volá Zod `safeParse`, vrací typovaný action-state a potom provádí guardy, Prisma operace, audit, side effects, `revalidatePath` nebo redirect.
 

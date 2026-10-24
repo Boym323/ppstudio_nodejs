@@ -1,6 +1,6 @@
 # Volné termíny – admin planner a propojení s rezervacemi
 
-> Technický popis stavu PP Studio **3.35.1 k 20. 10. 2026**. Při rozporu platí kód a [Prisma schéma](../prisma/schema.prisma). Výběr a odeslání termínu klientkou popisuje [BOOKING_FORM.md](BOOKING_FORM.md); stavové přechody a e-maily [BOOKING_FLOW.md](../BOOKING_FLOW.md).
+> Technický popis aktualizovaný k PP Studio **3.36.1 dne 24. 10. 2026**. Při rozporu platí kód a [Prisma schéma](../prisma/schema.prisma). Výběr a odeslání termínu klientkou popisuje [BOOKING_FORM.md](BOOKING_FORM.md); stavové přechody a e-maily [BOOKING_FLOW.md](../BOOKING_FLOW.md).
 
 ## Co tato sekce dělá
 
