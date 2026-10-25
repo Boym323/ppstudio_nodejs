@@ -152,6 +152,10 @@ function buildRunId() {
   return `e2e-${Date.now()}-${randomBytes(4).toString("hex")}`;
 }
 
+function buildFixtureSlug(runId: string) {
+  return slugify(runId).replace(/(\d)(?=\d)/g, "$1x");
+}
+
 function hashRunId(runId: string) {
   let hash = 0;
 
@@ -206,7 +210,7 @@ async function createCatalogFixture(runId: string) {
   const fixtureLabel = hashRunId(runId).toString(16);
   const categoryName = `E2E kategorie ${fixtureLabel}`;
   const serviceName = `E2E služba ${fixtureLabel}`;
-  const fixtureSlug = slugify(runId);
+  const fixtureSlug = buildFixtureSlug(runId);
   const categorySlug = `${slugify(categoryName)}-${fixtureSlug}`;
   const serviceSlug = `${slugify(serviceName)}-${fixtureSlug}`;
 
@@ -826,9 +830,10 @@ export async function cleanupE2eData(runId: string) {
 
   const services = await prisma.service.findMany({
     where: {
-      slug: {
-        endsWith: runId,
-      },
+      OR: [
+        { slug: { endsWith: runId } },
+        { slug: { endsWith: buildFixtureSlug(runId) } },
+      ],
     },
     select: {
       id: true,
@@ -837,7 +842,12 @@ export async function cleanupE2eData(runId: string) {
   });
   const serviceIds = services.map((service) => service.id);
   const categories = await prisma.serviceCategory.findMany({
-    where: { slug: { endsWith: runId } },
+    where: {
+      OR: [
+        { slug: { endsWith: runId } },
+        { slug: { endsWith: buildFixtureSlug(runId) } },
+      ],
+    },
     select: { id: true },
   });
   const categoryIds = [...new Set([
