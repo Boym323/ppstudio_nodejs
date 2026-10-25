@@ -9,7 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Opraveno
 
 - Planner zpracuje kliknutí či tažení právě jednou bez časového potlačování dalších gest; no-op dostupnosti nevytváří audit ani nenabízí undo a retry zachovává serverovou idempotenci.
-- Databázová spojení vynucují UTC také pro raw SQL a výchozí timestampy bez přepisu historických dat; doplněny regrese pro změny letního a zimního času.
+- Databázová spojení a Prisma CLI migrace vynucují UTC také pro raw SQL, shadow databázi a výchozí timestampy bez přepisu historických dat; doplněny regrese pro změny letního a zimního času.
 
 ### Zabezpečení
 
