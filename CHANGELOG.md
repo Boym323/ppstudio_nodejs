@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Lockfile aktualizuje kompatibilní npm balíčky v rámci existujících verzí bez přechodu na nové major verze.
 - Náhledy voucherů používají `pdfjs-dist` 6.4.299; lockfile současně sjednocuje kompatibilní nativní `@napi-rs/canvas` na 1.0.13.
 
 ### Opraveno
