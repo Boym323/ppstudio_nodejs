@@ -214,8 +214,9 @@ async function createCatalogFixture(runId: string) {
   const fixtureLabel = hashRunId(runId).toString(16);
   const categoryName = `E2E kategorie ${fixtureLabel}`;
   const serviceName = `E2E služba ${fixtureLabel}`;
-  const categorySlug = slugify(categoryName);
-  const serviceSlug = slugify(serviceName);
+  const fixtureSlug = slugify(runId);
+  const categorySlug = `${slugify(categoryName)}-${fixtureSlug}`;
+  const serviceSlug = `${slugify(serviceName)}-${fixtureSlug}`;
 
   const category = await prisma.serviceCategory.create({
     data: {
