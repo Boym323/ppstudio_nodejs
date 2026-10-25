@@ -50,34 +50,6 @@ Dlouhodobě doporučujeme samostatně plánovanou migraci absolutních okamžik�
    exporty i DST scénáře v UTC a Europe/Prague. Přepnout až po shodě a připravit
    rollback s uchováním původních hodnot i mapy případných korekcí.
 
-## DEV přihlášení
-
-Offline příkaz:
-
-```sh
-NODE_ENV=development PPSTUDIO_DEV_BOOTSTRAP=1 npm run admin:bootstrap-dev < /bezpecna/cesta/dev-heslo.txt
-```
-
-Heslo musí mít nejméně 12 znaků. CLI připraví pouze vyhrazený účet
-`dev-planner@example.test`, ID `dev-bootstrap-planner-owner`; opakované spuštění
-obnoví jeho DEV heslo. Nevyužívá produkční účty ani hesla. Před importem Prisma
-ověřuje DEV runtime, explicitní opt-in, privátní DB host a název databáze
-`ppstudio…_dev` nebo `ppstudio…_test`. Produkční runtime či běžný produkční DB
-název odmítne. Webový auth bypass neexistuje; přihlášení používá běžné heslo,
-session, rate limit a oprávnění. Stejně jako ostatní provozní CLI předpokládá
-správně označené prostředí a důvěryhodný přístup k jeho konfiguraci.
-
-## Hydratace a caret-color
-
-Ve zdrojích aplikace ani browser testech před auditem není writer `caret-color`.
-Playwright screenshotter (`playwright-core/lib/coreBundle.js`, větev `hideCaret`)
-naopak nastavuje na `input,textarea,[contenteditable]` inline
-`caret-color: transparent !important` a po screenshotu jej obnovuje. Takový
-zásah před dokončením hydratace může vytvořit atributový mismatch. Je to doložený
-externí writer; bez původní auditní trace nelze tvrdit, že způsobil právě původní
-hlášení. Nepřidáváme `suppressHydrationWarning` ani plošné mazání stylů.
-Regrese v čistém Chromium bez rozšíření kontroluje serverové HTML, hydratovaný
-DOM a konzolové chyby loginu a veřejné rezervace před screenshoty.
 
 ## Reminder
 
@@ -92,8 +64,7 @@ Výchozí `main` byl po `git fetch origin main` shodný s `origin/main`:
 `feb85f65412e6086f8f2cc7f12fcb47ff75993f5`. Opravy jsou na samostatné větvi
 `fix/dev-dst-audit`. Testovací fixture a úklid běžely v lokální
 `ppstudio_dst_test`; skutečný DEV `ppstudio_dev` byl použit pro read-only kontrolu
-konfigurace, dočasný UTC read/write probe (odstraněn), vyhrazený testovací účet
-(ponechán) a čistý hydratační browser test s vlastní službou (odstraněna).
+konfigurace a dočasný UTC read/write probe (odstraněn).
 
 | Scénář | Před: operace / audity | Po: operace / audity |
 | --- | --- | --- |
@@ -112,10 +83,7 @@ existující timestampy ani databázové schéma.
 
 Prošlé kontroly:
 
-- `npm test`: 945 úspěšných unit testů a 342 DB integrací, bez chyb.
-  Jeho 3 původně přeskočené auth testy a 1 integrace vyžadující module mocks
-  byly následně spuštěny s `RUN_DB_INTEGRATION_TESTS=1` a
-  `--experimental-test-module-mocks`: všechny 4 prošly bez skipu.
+- Původní společný DEV audit: `npm test` dokončil 945 unit a 342 DB integračních testů; část DEV-only testů byla následně oddělena do samostatného PR. Výsledky finální větve potvrzuje GitHub CI.
 - `npm run typecheck`, `npm run lint` a cílený lint později upravených testů.
 - `npm run pretest:e2e` → `npm run build`, se samostatným `.next-e2e`,
   produkčním režimem bundlu a izolovaným DEV/test prostředím. Žádný deployment.
@@ -123,41 +91,26 @@ Prošlé kontroly:
   `TZ=Europe/Prague`. Reminder zůstal beze změny.
 - Prisma/raw SQL/default timestamp integrace: 2/2, tři různá spojení poolu
   v každém scénáři. Samostatně ověřeny 3 kombinace timezone role/databáze.
-- Skutečný DEV: Prisma read/write a DB default s UTC session, nové testovací
-  přihlášení a čistá hydratace v Chromium na skutečném `next dev`.
-- Relevantní Playwright specs `planner-lab`, `hydration` a `dev-login` na
-  Chromium + Mobile Chrome: 11 úspěšných běhů, 9 vynechaných kombinací podle
-  cílového zařízení; každý scénář proběhl na určeném projektu. Desktopové i
-  dotykové gesto pro 26. 10. 2026 vytvořilo 1 operaci / 1 audit.
-  Browser regrese ověřily kliknutí, FIFO při zadržené síti, drag, undo a
-  ztracenou odpověď po commitu. Screenshotový writer `caret-color` byl
-  zachycen pomocí MutationObserver; čistá hydratace nehlásila mismatch.
+- Skutečný DEV: Prisma read/write a DB default s UTC session.
+- Planner Playwright regresní scénáře na Chromium a Mobile Chrome prošly: desktopové i dotykové gesto pro 26. 10. 2026 vytvořilo 1 operaci / 1 audit. Ověřeno také FIFO při zadržené síti, drag, undo a ztracená odpověď po commitu.
 - `npm run db:check-migrations`, `npm run changelog:check -- --base feb85f65412e6086f8f2cc7f12fcb47ff75993f5`
   a `git diff --check`.
 
 Úplné výstupy jednotlivých běhů jsou v `/tmp/ppstudio-dst-results/`.
 Finální souhrn je v `npm-test-verified.log`, `additional-db-tests.log`,
-`build-verified.log`, `typecheck-final.log`, `browser-verified.log` a
-`hydration-actual-dev.log`; původní počty jsou v `baseline-counts.json` a
+`build-verified.log`, `typecheck-final.log` a `browser-verified.log`; původní počty jsou v `baseline-counts.json` a
 `before-noop.log`. Starší neúspěšné pracovní běhy zůstávají odděleně.
 
 Zbývající omezení: timestampy bez zóny nadále vyžadují konvenci UTC; původ
-historických skupin musí objasnit až budoucí migrace. Bez původní auditní trace
-nelze přiřadit původní hydratační hlášení konkrétnímu externímu zásahu, i když
-Playwright writer je prokázán. DEV bootstrap spoléhá také na správně označené
-prostředí a názvy databází. Ostatní E2E oblasti ani WebKit nebyly součástí
-tohoto cíleného browser běhu.
+historických skupin musí objasnit až budoucí migrace. Ostatní E2E oblasti nebyly
+součástí cílených DEV browser testů; úplné pokrytí ověřuje GitHub CI.
 
 ## Změněné soubory
 
-- `AGENTS.md`
 - `CHANGELOG.md`
 - `docs/AVAILABILITY_PLANNER.md`
-- `docs/DEVELOPMENT.md`
 - `docs/DST_AUDIT.md`
-- `package.json`
 - `scripts/backfill-service-copy.ts`
-- `scripts/bootstrap-dev-admin.ts`
 - `scripts/check-migration-history.mjs`
 - `scripts/clear-booking-data.mjs`
 - `scripts/import-services.mjs`
@@ -172,12 +125,8 @@ tohoto cíleného browser běhu.
 - `src/features/admin/lib/admin-slots/mutations.ts`
 - `src/features/admin/lib/admin-slots/types.ts`
 - `src/features/booking/lib/booking-reminders.test.ts`
-- `src/lib/auth/dev-bootstrap.test.ts`
-- `src/lib/auth/dev-bootstrap.ts`
 - `src/lib/postgres-utc.integration.test.ts`
 - `src/lib/postgres-utc.test.ts`
 - `src/lib/postgres-utc.ts`
 - `src/lib/prisma.ts`
-- `tests/e2e/dev-login.spec.ts`
-- `tests/e2e/hydration.spec.ts`
 - `tests/e2e/planner-lab.spec.ts`
