@@ -11,6 +11,7 @@ Formát je inspirovaný Keep a Changelog.
 - Audit přechodu na ESLint 10.13.0 odhalil, že používané pluginy React, import a jsx-a11y zatím nedeklarují kompatibilitu s ESLint 10; projekt proto bezpečně zůstává na ESLint 9.39.5 do vydání kompatibilních verzí.
 - Administrativní tabulky používají novou generaci TanStack Table se zachováním zobrazení dat a řazení KPI.
 - Nástroje a integrační testy načítají proměnné prostředí přes `dotenv` 18.0.9 při zachování stávajícího `dotenv/config` rozhraní.
+- Statická typová kontrola přechází na TypeScript 6.0.3 při zachování přísných kontrol a dostupnosti Node.js typů v produkčním i E2E buildu.
 - React 19.3.1 a React Email 6.11.3 aktualizují e-mailové komponenty a jejich renderovací runtime.
 - Next.js 16.4.3 a Prisma 7.10.1 opravují kompatibilní patch úrovně v aplikaci i lockfile.
 - Lockfile aktualizuje kompatibilní npm balíčky v rámci existujících verzí bez přechodu na nové major verze.

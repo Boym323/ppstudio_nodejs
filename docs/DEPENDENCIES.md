@@ -152,11 +152,13 @@ Přímé verze níže byly porovnány s `package.json` k 24. 10. 2026 (PP Studio
 - Provozní editace a ruční zrušení voucheru nepřidává žádnou novou knihovnu; server actions a formuláře používají stávající Next.js App Router, React `useActionState`, Prisma a Zod.
 
 ## Kvalita kódu
-- `typescript`: statická typová kontrola.
+- `typescript` `6.0.3`: statická typová kontrola; TypeScript 6 má výchozí `types: []`, proto konfigurace explicitně načítá Node.js globální typy používané aplikací i nástroji.
 - `eslint`: linting.
 - `eslint-config-next`: pravidla lintu pro Next.js.
 - `tsx`: lehký TypeScript runtime pro Node test runner a background worker skript.
 - `@playwright/test`: end-to-end ověření v reálném browseru nad lokálním Next.js serverem; testy používají izolované Prisma fixture data a nejsou součástí běžného `npm test`.
+
+TypeScript 6.0.3 je kompatibilní s Prisma 7.10.1 (peer dependency `typescript >=5.4.0`) a `typescript-eslint` 8.72.0 (rozsah `>=4.8.4 <6.1.0`). Next.js 16.4.3 používá pro kontrolu typů při buildu lokální `tsc` CLI; `tsx` spouští TypeScript přes transpiler a projekt přímo nepoužívá Compiler API.
 
 ### Kompatibilita ESLint 10
 
