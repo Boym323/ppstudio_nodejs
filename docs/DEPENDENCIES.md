@@ -47,7 +47,7 @@ Přímé verze níže byly porovnány s `package.json` k 24. 10. 2026 (PP Studio
 - `@fullcalendar/react`: `^7.0.2` – jediný produkční planner dostupnosti s autosave.
 - `react-email`: `6.9.3` a `@react-email/ui`: `6.9.5` – HTML e-maily a vývojové preview.
 - `@radix-ui/react-dialog`, `@radix-ui/react-alert-dialog`, `@radix-ui/react-dropdown-menu`, `@radix-ui/react-toast` – dialogy, drawery, menu a toast notifikace.
-- `@tanstack/react-table`: `^8.21.3` – administrační tabulky.
+- `@tanstack/react-table`: `^9.3.1` – administrační tabulky.
 - `recharts`: `^3.10.1` – grafy.
 - `package.json.allowScripts` na npm 11 vědomě whitelisuje install hooky pro `prisma`, `@prisma/engines`, `sharp`, `esbuild` a `unrs-resolver`. Záznamy jsou připnuté na konkrétní verze, aby se při upgradu znovu explicitně zrevidovalo, které postinstall/preinstall skripty repo pouští.
 - Historický lokální `npm audit` z 2. 7. 2026 hlásil `1 low` a `6 moderate` nálezů bez `high` / `critical`. **Jde o archivní výsledek**, nikoliv o aktuální bezpečnostní stav závislostí. Audit CI z 24. 10. 2026 na předchozím lockfilu odhalil `zod` (high), `nodemailer` (moderate) a `fast-uri` (moderate); opravy jsou zaznamenány výše. Aktuální nálezy ověř pomocí `npm audit --omit=dev --audit-level=high` v CI.

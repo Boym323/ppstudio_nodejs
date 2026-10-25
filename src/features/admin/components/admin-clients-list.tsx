@@ -4,8 +4,8 @@ import Link from "next/link";
 import {
   type ColumnDef,
   flexRender,
-  getCoreRowModel,
-  useReactTable,
+  tableFeatures,
+  useTable,
 } from "@tanstack/react-table";
 
 import { cn } from "@/lib/utils";
@@ -34,7 +34,9 @@ type AdminClientsListProps = {
   emptyState?: { title: string; description: string };
 };
 
-const columns: ColumnDef<AdminClientListItem>[] = [
+const tableFeaturesForClients = tableFeatures({});
+
+const columns: ColumnDef<typeof tableFeaturesForClients, AdminClientListItem>[] = [
   {
     id: "client",
     header: "Klientka",
@@ -68,12 +70,10 @@ const columns: ColumnDef<AdminClientListItem>[] = [
 ];
 
 export function AdminClientsList({ clients, resetHref, emptyState }: AdminClientsListProps) {
-  // TanStack Table vrací nestabilní API; React Compiler tuto komponentu správně přeskočí.
-  // eslint-disable-next-line react-hooks/incompatible-library
-  const table = useReactTable({
+  const table = useTable({
+    features: tableFeaturesForClients,
     data: clients,
     columns,
-    getCoreRowModel: getCoreRowModel(),
     getRowId: (client) => client.id,
   });
 
@@ -99,7 +99,7 @@ export function AdminClientsList({ clients, resetHref, emptyState }: AdminClient
           <tbody className="divide-y divide-white/7">
             {table.getRowModel().rows.map((row) => (
               <tr key={row.id} className={cn("transition hover:bg-white/5", !row.original.isActive && "text-white/52") }>
-                {row.getVisibleCells().map((cell) => (
+                {row.getAllCells().map((cell) => (
                   <td key={cell.id} className="px-3 py-3 align-middle">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
