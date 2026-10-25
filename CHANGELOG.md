@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Nástroje a integrační testy načítají proměnné prostředí přes `dotenv` 18.0.9 při zachování stávajícího `dotenv/config` rozhraní.
 - React 19.3.1 a React Email 6.11.3 aktualizují e-mailové komponenty a jejich renderovací runtime.
 - Next.js 16.4.3 a Prisma 7.10.1 opravují kompatibilní patch úrovně v aplikaci i lockfile.
 - Lockfile aktualizuje kompatibilní npm balíčky v rámci existujících verzí bez přechodu na nové major verze.
