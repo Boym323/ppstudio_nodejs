@@ -134,8 +134,8 @@ test.describe("mobilní Události a logy", () => {
         });
       }
     } finally {
-      await prisma.voucherChangeLog.delete({ where: { id: audit.id } });
-      await prisma.voucher.delete({ where: { id: voucher.id } });
+      await prisma.voucherChangeLog.deleteMany({ where: { id: audit.id } });
+      await prisma.voucher.deleteMany({ where: { id: voucher.id } });
     }
   });
 

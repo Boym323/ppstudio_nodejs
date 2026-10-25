@@ -22,8 +22,10 @@ import {
   formatDateKey,
   resolveWeekStart,
 } from "../../../src/features/admin/lib/admin-slots/time";
+import { getAdminLoginAttemptMetadata } from "../../../src/lib/auth/admin-login-rate-limit";
 import { hashPassword } from "../../../src/lib/auth/password";
 import { prisma } from "../../../src/lib/prisma";
+import { assertE2eDatabaseIdentity } from "./database-safety";
 
 export type E2eFixture = {
   runId: string;
@@ -160,17 +162,6 @@ function hashRunId(runId: string) {
   return hash;
 }
 
-async function resetE2eRecentAuditRateLimitState() {
-  await prisma.bookingSubmissionLog.deleteMany({
-    where: {
-      createdAt: {
-        gte: new Date(Date.now() - 10 * 60 * 1000),
-      },
-    },
-  });
-  await prisma.rateLimitReservation.deleteMany({});
-}
-
 function roundUpToHalfHour(value: Date) {
   const copy = new Date(value);
   copy.setUTCSeconds(0, 0);
@@ -209,6 +200,7 @@ function isAvailabilitySlotWindowConflict(error: unknown) {
 }
 
 async function createCatalogFixture(runId: string) {
+  await assertE2eDatabaseIdentity();
   await ensureE2eSiteSettings();
 
   const fixtureLabel = hashRunId(runId).toString(16);
@@ -405,8 +397,6 @@ async function createCatalogFixture(runId: string) {
 }
 
 export async function createPublicBookingFixture(): Promise<E2eFixture> {
-  await resetE2eRecentAuditRateLimitState();
-
   const runId = buildRunId();
   const catalog = await createCatalogFixture(runId);
   const rescheduleSuccessStart = addMinutes(catalog.rescheduleStart, 60);
@@ -443,8 +433,6 @@ export async function createManagedBookingFixture(
     createRescheduleConflict?: boolean;
   },
 ): Promise<E2eFixture> {
-  await resetE2eRecentAuditRateLimitState();
-
   const runId = buildRunId();
   const catalog = await createCatalogFixture(runId);
   const clientName = `E2E Klientka ${runId}`;
@@ -576,7 +564,7 @@ export async function createManagedBookingFixture(
 }
 
 export async function createAdminFixture(runId: string, role: AdminRole = AdminRole.OWNER) {
-  await resetE2eRecentAuditRateLimitState();
+  await assertE2eDatabaseIdentity();
 
   const password = `E2E-password-${runId}`;
   const email = `${runId}-${role.toLowerCase()}@example.test`;
@@ -595,8 +583,6 @@ export async function createAdminFixture(runId: string, role: AdminRole = AdminR
 }
 
 export async function createFragmentedCancellationFixture(): Promise<FragmentedCancellationFixture> {
-  await resetE2eRecentAuditRateLimitState();
-
   const runId = buildRunId();
   const catalog = await createCatalogFixture(runId);
   const admin = await createAdminFixture(runId, AdminRole.OWNER);
@@ -788,7 +774,7 @@ export async function createFragmentedCancellationFixture(): Promise<FragmentedC
 }
 
 export async function createPublicVoucherFixture(): Promise<E2eFixture> {
-  await resetE2eRecentAuditRateLimitState();
+  await assertE2eDatabaseIdentity();
 
   const runId = buildRunId();
   const voucherCode = `PP-2026-${runId.replace(/[^a-z0-9]/gi, "").slice(-10).toUpperCase()}`;
@@ -833,10 +819,15 @@ export async function createPublicVoucherFixture(): Promise<E2eFixture> {
 }
 
 export async function cleanupE2eData(runId: string) {
+  if (!/^[a-z0-9][a-z0-9-]{11,}$/i.test(runId)) {
+    throw new Error("E2E cleanup vyžaduje neprázdný jednoznačný runId.");
+  }
+  await assertE2eDatabaseIdentity();
+
   const services = await prisma.service.findMany({
     where: {
       slug: {
-        contains: runId,
+        endsWith: runId,
       },
     },
     select: {
@@ -845,7 +836,14 @@ export async function cleanupE2eData(runId: string) {
     },
   });
   const serviceIds = services.map((service) => service.id);
-  const categoryIds = [...new Set(services.map((service) => service.categoryId))];
+  const categories = await prisma.serviceCategory.findMany({
+    where: { slug: { endsWith: runId } },
+    select: { id: true },
+  });
+  const categoryIds = [...new Set([
+    ...services.map((service) => service.categoryId),
+    ...categories.map((category) => category.id),
+  ])];
   const clients = await prisma.client.findMany({
     where: {
       email: {
@@ -951,6 +949,25 @@ export async function cleanupE2eData(runId: string) {
       },
     });
   }
+
+  const adminEmailHashes = [AdminRole.OWNER, AdminRole.SALON]
+    .map((role) => getAdminLoginAttemptMetadata(
+      new Headers(),
+      `${runId}-${role.toLowerCase()}@example.test`,
+    ).emailHash)
+    .filter((hash): hash is string => Boolean(hash));
+  if (adminEmailHashes.length > 0) {
+    await prisma.bookingSubmissionLog.deleteMany({
+      where: { emailHash: { in: adminEmailHashes } },
+    });
+    await prisma.rateLimitReservation.deleteMany({
+      where: {
+        scope: "admin-login-email-failure",
+        fingerprint: { in: adminEmailHashes },
+      },
+    });
+  }
+
   await prisma.booking.deleteMany({ where: { id: { in: bookingIds } } });
   const slotServiceCleanupFilters = [
     ...(slotIds.length > 0 ? [{ slotId: { in: slotIds } }] : []),
