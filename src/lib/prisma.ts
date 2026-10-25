@@ -2,6 +2,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, type Prisma } from "@/generated/prisma/client";
 
 import { env } from "@/config/env";
+import { withUtcPostgresTimezone } from "./postgres-utc";
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
@@ -42,7 +43,7 @@ function hasRequiredDelegates(client: PrismaClient) {
 
 function createPrismaClient() {
   const adapter = new PrismaPg({
-    connectionString: env.DATABASE_URL,
+    connectionString: withUtcPostgresTimezone(env.DATABASE_URL),
     // Každý integrační testovací soubor běží v samostatném procesu. Bez této
     // volby drží idle klienti event loop aktivní až do vypršení timeoutu poolu.
     allowExitOnIdle: process.env.RUN_DB_INTEGRATION_TESTS === "1",

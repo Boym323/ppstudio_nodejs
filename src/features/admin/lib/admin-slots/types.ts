@@ -93,6 +93,7 @@ export type PlannerWeekData = {
 
 export type PlannerMutationResult = {
   ok: boolean;
+  changed?: boolean;
   message: string;
   weekKey: string;
   operationId?: string;

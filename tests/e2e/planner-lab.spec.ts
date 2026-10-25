@@ -9,6 +9,14 @@ import { prisma } from "../../src/lib/prisma";
 
 const plannerDate = "2027-03-22";
 
+function nextAutumnPlannerDate(now = new Date()) {
+  for (let year = now.getUTCFullYear(); ; year++) {
+    const monday = new Date(Date.UTC(year, 10, 1, 5));
+    while (monday.getUTCDay() !== 1) monday.setUTCDate(monday.getUTCDate() - 1);
+    if (monday > now) return monday.toISOString().slice(0, 10);
+  }
+}
+
 function buildRunId() {
   return `e2e-fullcalendar-planner-${Date.now()}-${randomBytes(4).toString("hex")}`;
 }
@@ -79,6 +87,120 @@ test.describe("produkční plánovač FullCalendaru", () => {
 
   test.afterEach(async () => {
     await Promise.all(runIds.splice(0).map(cleanupRun));
+  });
+
+  test("DST audit: jediné kliknutí po podzimním DST v 06:00 má jednu operaci a audit", async ({ page }) => {
+    test.setTimeout(120_000);
+    const runId = buildRunId();
+    runIds.push(runId);
+    const owner = await createOwner(runId);
+    const dateKey = nextAutumnPlannerDate();
+    let requests = 0;
+    page.on("request", (request) => {
+      if (request.method() === "POST" && request.headers()["next-action"]) requests++;
+    });
+    await loginAdmin(page, owner.email, owner.password);
+    await page.goto(`/admin/volne-terminy?week=${dateKey}`);
+    await expectStyledPlanner(page);
+    await page.getByRole("button", { name: "Přidat termín" }).click();
+    const day = await page.locator(`[role="gridcell"][data-date="${dateKey}"]`).boundingBox();
+    const slot = await page.locator('[data-time="06:00:00"]').last().boundingBox();
+    expect(day).not.toBeNull();
+    expect(slot).not.toBeNull();
+    if (test.info().project.use.hasTouch) await page.touchscreen.tap(day!.x + day!.width / 2, slot!.y + slot!.height / 4);
+    else await page.mouse.click(day!.x + day!.width / 2, slot!.y + slot!.height / 4);
+    await expect(page.getByRole("status")).toHaveText("Uloženo", { timeout: 60_000 });
+    // Po serverovém refreshi je dokončená také případná druhá položka fronty.
+    await expect(page.getByRole("button", { name: "Přidat termín" })).toBeEnabled();
+    const audits = await prisma.availabilityAuditEvent.findMany({ where: { actorUserId: owner.id } });
+    const operations = await prisma.availabilityOperation.count({ where: { operationId: { in: audits.map((audit) => audit.operationId) } } });
+    console.log(JSON.stringify({ scenario: "DST single click", dateKey, requests, operations, audits: audits.length }));
+    expect(requests).toBe(1);
+    expect(audits).toHaveLength(1);
+    expect(operations).toBe(1);
+    const range = getCellRangeBounds(dateKey, 0, 1);
+    expect(range.startsAt.toISOString()).toBe(`${dateKey}T05:00:00.000Z`);
+    expect(range.endsAt.toISOString()).toBe(`${dateKey}T05:30:00.000Z`);
+    await expect.poll(() => prisma.availabilitySlot.count({ where: { createdByUserId: owner.id, startsAt: range.startsAt, endsAt: range.endsAt } })).toBe(1);
+  });
+
+  test("pomalá síť zachová dvě gesta, drag i undo v pořadí", async ({ page }) => {
+    test.setTimeout(120_000);
+    test.skip(test.info().project.name !== "chromium", "Desktopový drag.");
+    const runId = buildRunId(); runIds.push(runId);
+    const owner = await createOwner(runId);
+    await loginAdmin(page, owner.email, owner.password);
+    await page.goto(`/admin/volne-terminy?week=${plannerDate}`);
+    await expectStyledPlanner(page);
+    await page.getByRole("button", { name: "Přidat termín" }).click();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    let requests = 0;
+    await page.route("**/admin/volne-terminy?*", async (route) => {
+      if (route.request().method() === "POST" && route.request().headers()["next-action"]) {
+        requests++;
+        if (requests === 1) await gate;
+      }
+      await route.continue();
+    });
+    const day = await page.locator(`[role="gridcell"][data-date="${plannerDate}"]`).boundingBox();
+    const first = await page.locator('[data-time="06:00:00"]').last().boundingBox();
+    const x = day!.x + day!.width / 2;
+    try {
+      await page.mouse.click(x, first!.y + first!.height / 4);
+      await expect.poll(() => requests).toBe(1);
+      const second = await page.locator('[data-time="07:00:00"]').last().boundingBox();
+      const end = await page.locator('[data-time="08:00:00"]').last().boundingBox();
+      await page.mouse.move(x, second!.y + second!.height / 4);
+      await page.mouse.down();
+      await page.mouse.move(x, end!.y - 2, { steps: 12 });
+      await page.mouse.up();
+      expect(requests).toBe(1); // druhé gesto čeká ve FIFO, není souběžný write
+    } finally { release(); }
+    await expect(page.getByRole("status")).toHaveText("Uloženo", { timeout: 60_000 });
+    await expect(page.getByRole("button", { name: "Následující týden" })).toBeEnabled();
+    expect(requests).toBe(2);
+    expect(await prisma.availabilityAuditEvent.count({ where: { actorUserId: owner.id } })).toBe(2);
+    const ranges = [[0, 1], [2, 4]].map(([start, end]) => getCellRangeBounds(plannerDate, start, end));
+    for (const range of ranges) expect(await prisma.availabilitySlot.count({ where: { createdByUserId: owner.id, startsAt: range.startsAt, endsAt: range.endsAt } })).toBe(1);
+    await page.getByRole("button", { name: "Vrátit změnu" }).click();
+    await expect(page.getByRole("status")).toHaveText("Uloženo", { timeout: 60_000 });
+    expect(await prisma.availabilityAuditEvent.count({ where: { actorUserId: owner.id, operation: "UNDO" } })).toBe(1);
+    expect(await prisma.availabilitySlot.count({ where: { createdByUserId: owner.id } })).toBe(1);
+    const audits = await prisma.availabilityAuditEvent.findMany({ where: { actorUserId: owner.id } });
+    const operations = await prisma.availabilityOperation.count({ where: { operationId: { in: audits.map((audit) => audit.operationId) } } });
+    expect(requests).toBe(3);
+    expect(audits).toHaveLength(3);
+    expect(operations).toBe(3);
+    console.log(JSON.stringify({ scenario: "queued click + drag + undo", requests, operations, audits: audits.length }));
+  });
+
+  test("retry po ztracené odpovědi nepřidá operaci ani audit", async ({ page }) => {
+    test.setTimeout(120_000);
+    test.skip(test.info().project.name !== "chromium", "Desktopové gesto.");
+    const runId = buildRunId(); runIds.push(runId);
+    const owner = await createOwner(runId);
+    await loginAdmin(page, owner.email, owner.password);
+    await page.goto(`/admin/volne-terminy?week=${plannerDate}`);
+    await expectStyledPlanner(page);
+    await page.getByRole("button", { name: "Přidat termín" }).click();
+    let requests = 0;
+    await page.route("**/admin/volne-terminy?*", async (route) => {
+      if (route.request().method() === "POST" && route.request().headers()["next-action"] && ++requests === 1) {
+        await route.fetch(); // server už commitnul, klient odpověď nedostane
+        await route.abort("failed");
+      } else await route.continue();
+    });
+    const day = await page.locator(`[role="gridcell"][data-date="${plannerDate}"]`).boundingBox();
+    const slot = await page.locator('[data-time="06:00:00"]').last().boundingBox();
+    await page.mouse.click(day!.x + day!.width / 2, slot!.y + slot!.height / 4);
+    await page.getByRole("button", { name: "Zkusit znovu" }).click();
+    await expect(page.getByRole("status")).toHaveText("Uloženo", { timeout: 60_000 });
+    const audits = await prisma.availabilityAuditEvent.findMany({ where: { actorUserId: owner.id } });
+    expect(requests).toBe(2);
+    expect(audits).toHaveLength(1);
+    expect(await prisma.availabilityOperation.count({ where: { operationId: audits[0].operationId } })).toBe(1);
+    console.log(JSON.stringify({ scenario: "lost response + retry", requests, operations: 1, audits: audits.length }));
   });
 
   test("vykreslí dostupnost a přejde na následující týden", async ({ page }) => {
@@ -187,7 +309,7 @@ test.describe("produkční plánovač FullCalendaru", () => {
 
     await page.getByRole("button", { name: "Přidat termín" }).click();
     await page.mouse.click(dayBox!.x + dayBox!.width / 2, slotBox!.y + slotBox!.height / 2);
-    await expect(page.getByRole("status")).toHaveText("Uloženo");
+    await expect(page.getByRole("status")).toHaveText("Uloženo", { timeout: 60_000 });
 
     await expect.poll(async () => prisma.availabilitySlot.count({
       where: {
@@ -220,7 +342,7 @@ test.describe("produkční plánovač FullCalendaru", () => {
 
     await page.getByRole("button", { name: "Přidat termín" }).click();
     await page.mouse.click(dayBox!.x + dayBox!.width / 2, slotBox!.y + slotBox!.height + 2);
-    await expect(page.getByRole("status")).toHaveText("Uloženo");
+    await expect(page.getByRole("status")).toHaveText("Uloženo", { timeout: 60_000 });
 
     const expectedRange = getCellRangeBounds(dstDate, 6, 9);
     await expect.poll(async () => prisma.availabilitySlot.count({

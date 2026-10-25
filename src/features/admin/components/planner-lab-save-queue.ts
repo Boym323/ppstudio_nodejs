@@ -1,5 +1,5 @@
 export type PlannerLabSaveResult =
-  | { ok: true; operationId?: string }
+  | { ok: true; operationId?: string; changed?: boolean }
   | { ok: false; message: string };
 
 /** Serializuje dílčí autosave změny v pořadí, v němž vznikly. */

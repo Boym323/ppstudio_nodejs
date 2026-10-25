@@ -6,6 +6,11 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Planner zpracuje kliknutí či tažení právě jednou bez časového potlačování dalších gest; no-op dostupnosti nevytváří audit ani nenabízí undo a retry zachovává serverovou idempotenci.
+- Databázová spojení a Prisma CLI migrace vynucují UTC také pro raw SQL, shadow databázi a výchozí timestampy bez přepisu historických dat; doplněny regrese pro změny letního a zimního času.
+
 ### Zabezpečení
 
 - Aktualizovány zranitelné npm balíčky `zod` na 4.6.6, `nodemailer` na 10.1.6 a tranzitivní `fast-uri` na 3.1.9; opravují riziko nadměrné spotřeby paměti při validaci, parsing e-mailových adres a URI. Aktualizován reprodukovatelný lockfile bez změny veřejného API.

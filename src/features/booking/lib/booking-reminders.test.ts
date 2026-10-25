@@ -129,3 +129,24 @@ test("evaluateBookingReminderDelivery blocks catch-up after booking start", asyn
   assert.equal(result.shouldSend, false);
   assert.match(result.reason ?? "", /already started/i);
 });
+
+for (const [label, nowIso, startIso, endIso] of [
+  ["běžný den", "2026-10-20T03:30:00Z", "2026-10-21T04:30:00.000Z", "2026-10-21T05:30:00.000Z"],
+  ["jarní DST", "2026-03-28T02:30:00Z", "2026-03-29T03:30:00.000Z", "2026-03-29T04:30:00.000Z"],
+  ["podzimní DST", "2026-10-24T03:30:00Z", "2026-10-25T04:30:00.000Z", "2026-10-25T05:30:00.000Z"],
+  ["26. října 06:00 Praha", "2026-10-25T03:30:00Z", "2026-10-26T04:30:00.000Z", "2026-10-26T05:30:00.000Z"],
+]) {
+  test(`reminder zachová absolutních 25–26 hodin: ${label}`, async () => {
+    const { getBookingReminder24hWindow, getBookingReminder24hEnqueueWindowPosition, evaluateBookingReminderDelivery } = await loadReminderModule();
+    const now = new Date(nowIso);
+    const { windowStart, windowEnd } = getBookingReminder24hWindow(now);
+    assert.equal(windowStart.toISOString(), startIso);
+    assert.equal(windowEnd.toISOString(), endIso);
+    assert.equal(windowStart.getTime() - now.getTime(), 25 * 3600_000);
+    assert.equal(windowEnd.getTime() - now.getTime(), 26 * 3600_000);
+    for (const [offset, position] of [[-1, "after"], [0, "in"], [3600_000, "in"], [3600_001, "before"]] as const) {
+      assert.equal(getBookingReminder24hEnqueueWindowPosition(new Date(windowStart.getTime() + offset), now), position);
+    }
+    assert.equal(evaluateBookingReminderDelivery({ bookingStatus: BookingStatus.CONFIRMED, reminder24hSentAt: null, scheduledStartsAt: windowStart, now }).shouldSend, true);
+  });
+}

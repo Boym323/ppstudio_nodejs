@@ -134,6 +134,30 @@ dbTest("applyAvailabilitySelection vrátí stejný výsledek při retry se stejn
   }
 });
 
+dbTest("no-op ADD a REMOVE zachovají idempotenci bez auditu, souběžné ADD audituje jen změnu", async () => {
+  const seed = await createSeed();
+  const { prisma, applyAvailabilitySelection } = await loadModules();
+  const operationIds = [randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+  try {
+    const original = await replaceWithPlainSlots(seed, [[4, 5], [5, 6]]);
+    const base = { weekKey: seed.weekKey, dateKey: seed.dateKey, actorUserId: seed.actorUserId };
+    const noOp = { ...base, startCell: 4, endCell: 6, mode: "add" as const, operationId: operationIds[0] };
+    await applyAvailabilitySelection("owner", noOp);
+    await applyAvailabilitySelection("owner", noOp);
+    await applyAvailabilitySelection("owner", { ...base, startCell: 16, endCell: 18, mode: "remove", operationId: operationIds[1] });
+    const noOpAudits = await prisma.availabilityAuditEvent.count({ where: { operationId: { in: operationIds.slice(0, 2) } } });
+    console.log(JSON.stringify({ scenario: "no-op ADD/REMOVE + retry", operations: await prisma.availabilityOperation.count({ where: { operationId: { in: operationIds.slice(0, 2) } } }), audits: noOpAudits }));
+    assert.equal(noOpAudits, 0);
+    assert.deepEqual((await prisma.availabilitySlot.findMany({ where: { createdByUserId: seed.actorUserId }, select: { id: true }, orderBy: { startsAt: "asc" } })).map((slot) => slot.id), original.map((slot) => slot.id));
+    await Promise.all(operationIds.slice(2).map((operationId) => applyAvailabilitySelection("owner", { ...base, startCell: 16, endCell: 18, mode: "add", operationId })));
+    assert.equal(await prisma.availabilityAuditEvent.count({ where: { operationId: { in: operationIds } } }), 1);
+    assert.equal(await prisma.availabilityOperation.count({ where: { operationId: { in: operationIds } } }), 4);
+  } finally {
+    await cleanupSeed(seed);
+    await prisma.availabilityOperation.deleteMany({ where: { operationId: { in: operationIds } } });
+  }
+});
+
 dbTest("ADD mimo běžné sloty zachová jejich ID", async () => {
   const seed = await createSeed();
   const { prisma, applyAvailabilitySelection } = await loadModules();
@@ -277,7 +301,9 @@ dbTest("operationId rozlišuje samostatné změny a odmítne jiný interval nebo
 
     assert.ok(second.operationId);
     assert.notEqual(second.operationId, firstOperationId);
-    assert.equal(await prisma.availabilityAuditEvent.count({ where: { operationId: { in: [firstOperationId, second.operationId] } } }), 2);
+    assert.equal(second.changed, false);
+    assert.equal(await prisma.availabilityOperation.count({ where: { operationId: { in: [firstOperationId, second.operationId] } } }), 2);
+    assert.equal(await prisma.availabilityAuditEvent.count({ where: { operationId: { in: [firstOperationId, second.operationId] } } }), 1);
     await assert.rejects(
       applyAvailabilitySelection("owner", {
         weekKey: seed.weekKey, dateKey: seed.dateKey, startCell: 17, endCell: 18,

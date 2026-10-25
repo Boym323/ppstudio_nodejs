@@ -1,3 +1,4 @@
+import { withUtcPostgresTimezone } from "../src/lib/postgres-utc";
 import "dotenv/config";
 
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -105,7 +106,7 @@ async function main() {
     return [slug, update] as const;
   }));
 
-  const prisma = new PrismaClient({ adapter: new PrismaPg(process.env.DATABASE_URL) });
+  const prisma = new PrismaClient({ adapter: new PrismaPg(withUtcPostgresTimezone(process.env.DATABASE_URL!)) });
 
   try {
     const services = await prisma.service.findMany({
