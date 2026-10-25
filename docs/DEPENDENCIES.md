@@ -158,6 +158,12 @@ Přímé verze níže byly porovnány s `package.json` k 24. 10. 2026 (PP Studio
 - `tsx`: lehký TypeScript runtime pro Node test runner a background worker skript.
 - `@playwright/test`: end-to-end ověření v reálném browseru nad lokálním Next.js serverem; testy používají izolované Prisma fixture data a nejsou součástí běžného `npm test`.
 
+### Kompatibilita ESLint 10
+
+Migrace na ESLint 10.13.0 je zatím blokovaná deklarovanou kompatibilitou pluginů používaných přes `eslint-config-next@16.4.3`. Jeho peer dependency `eslint >=9.0.0` ESLint 10 povoluje a `typescript-eslint@8.72.0` i `eslint-plugin-react-hooks@7.1.1` uvádějí ESLint 10 mezi podporovanými verzemi. Aktuální verze `eslint-plugin-react@7.37.5` ale deklaruje pouze ESLint do řady 9 (`^9.7`), zatímco `eslint-plugin-import@2.32.0` a `eslint-plugin-jsx-a11y@6.10.2` deklarují pouze řadu 9. Tyto pluginy jsou závislostmi Next konfigurace a jejich pravidla jsou součástí lintování.
+
+Do vydání pluginů s deklarovanou podporou ESLint 10, případně kompatibilní verze Next konfigurace, ponechte ESLint na `9.39.5`. Peer konflikt neobcházejte npm overrides, vynucenou instalací ani vypnutím pravidel. Po vydání kompatibilních verzí znovu ověřte peer dependencies, čistou instalaci, rozsah souborů, pravidla a celý CI lint.
+
 ## Stylování
 - `tailwindcss`: utility-first CSS framework.
 - `@tailwindcss/postcss`: integrace Tailwindu do PostCSS.

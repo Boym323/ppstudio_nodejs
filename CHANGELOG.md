@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Audit přechodu na ESLint 10.13.0 odhalil, že používané pluginy React, import a jsx-a11y zatím nedeklarují kompatibilitu s ESLint 10; projekt proto bezpečně zůstává na ESLint 9.39.5 do vydání kompatibilních verzí.
 - Administrativní tabulky používají novou generaci TanStack Table se zachováním zobrazení dat a řazení KPI.
 - Nástroje a integrační testy načítají proměnné prostředí přes `dotenv` 18.0.9 při zachování stávajícího `dotenv/config` rozhraní.
 - React 19.3.1 a React Email 6.11.3 aktualizují e-mailové komponenty a jejich renderovací runtime.
