@@ -1,6 +1,12 @@
-import { withUtcPostgresTimezone } from "../src/lib/postgres-utc.ts";
 import "dotenv/config";
 import { Client } from "pg";
+
+function withUtcPostgresTimezone(connectionString) {
+  const url = new URL(connectionString);
+  const options = url.searchParams.get("options")?.trim();
+  url.searchParams.set("options", `${options ? `${options} ` : ""}-c timezone=UTC`);
+  return url.toString();
+}
 
 function exitWithError(message, details) {
   console.error(message);
