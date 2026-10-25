@@ -101,6 +101,7 @@ Produkční HTML templates jsou v `src/lib/email/react-email/` a sdílené kompo
 - Clarity ve vývoji zapínej jen cíleně (`NEXT_PUBLIC_CLARITY_ENABLED=true` + `NEXT_PUBLIC_CLARITY_PROJECT_ID`), default má zůstat vypnutý.
 - Google Ads tag ve vývoji zapínej jen cíleně (`NEXT_PUBLIC_GOOGLE_ADS_ENABLED=true` + `NEXT_PUBLIC_GOOGLE_ADS_ID=AW-...`), default má zůstat vypnutý.
 - Meta Pixel ve vývoji zapínej jen cíleně (`NEXT_PUBLIC_META_PIXEL_ENABLED=true` + `NEXT_PUBLIC_META_PIXEL_ID`), default má zůstat vypnutý.
+- Reprodukovatelný DEV účet vytvoří offline `NODE_ENV=development PPSTUDIO_DEV_BOOTSTRAP=1 npm run admin:bootstrap-dev < dev-heslo.txt`; omezení a E2E pokrytí popisuje [DEV autentizace a hydratace](DEV_AUTH_HYDRATION_AUDIT.md).
 - Recovery admin přístupu prováděj pouze offline příkazem `npm run admin:recover-owner -- --email owner@example.com --name 'Jméno' --confirm < heslo.txt`; webový bootstrap login neexistuje.
 - README na GitHubu má fungovat jako rozcestník i rychlý onboarding. Když měníš setup, deploy nebo monitoring workflow, promítni změnu do `README.md` a udržuj v něm krokový postup, ne jen seznam odkazů.
 
