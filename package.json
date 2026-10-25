@@ -20,7 +20,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "npm run typecheck:ts7",
     "test": "npm run test:unit && npm run test:db:integration",
     "test:unit": "node scripts/run-unit-tests.mjs",
     "test:release": "node --experimental-test-module-mocks --import ./src/test/register-server-only.mjs --import tsx --test --test-isolation=process --test-concurrency=4 \"src/**/*.test.{ts,tsx}\"",
@@ -62,7 +62,9 @@
     "voucher:templates:bootstrap": "node --conditions=react-server --env-file=.env --import tsx scripts/bootstrap-voucher-templates.ts",
     "voucher:pdf:inspect": "node --conditions=react-server --import tsx scripts/inspect-voucher-pdf.mjs",
     "voucher:templates:prepare-classic-v2": "node --conditions=react-server --import tsx scripts/prepare-voucher-classic-v2.mjs",
-    "ci:verify-voucher-first-rollout": "node --conditions=react-server --import tsx scripts/verify-voucher-first-rollout.ts"
+    "ci:verify-voucher-first-rollout": "node --conditions=react-server --import tsx scripts/verify-voucher-first-rollout.ts",
+    "typecheck:ts6": "tsc6 --noEmit",
+    "typecheck:ts7": "tsc --noEmit"
   },
   "dependencies": {
     "@fontsource/noto-sans": "^5.3.0",
@@ -106,6 +108,7 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
+    "@typescript/native": "npm:typescript@7.0.2",
     "c8": "^12.0.0",
     "dotenv": "^18.0.9",
     "eslint": "^9",
@@ -113,7 +116,7 @@
     "prisma": "7.10.1",
     "tailwindcss": "^4.3.2",
     "tsx": "^4.23.13",
-    "typescript": "6.0.3"
+    "typescript": "npm:@typescript/typescript6@6.0.2"
   },
   "allowScripts": {
     "esbuild@0.28.2": true,

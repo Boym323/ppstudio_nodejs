@@ -86,11 +86,35 @@ jobs:
       - name: Generate Prisma client
         run: npm run db:generate
 
-      - name: Typecheck
+      - name: Typecheck (TypeScript 7)
         run: npm run typecheck
 
       - name: Email worker import smoke test
         run: npm run email:worker:check-imports
+
+  typecheck-ts6:
+    name: typecheck (TypeScript 6 compatibility)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: Typecheck (TypeScript 6)
+        run: npm run typecheck:ts6
 
   test:
     name: test
