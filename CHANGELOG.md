@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Next.js 16.4.3 a Prisma 7.10.1 opravují kompatibilní patch úrovně v aplikaci i lockfile.
 - Lockfile aktualizuje kompatibilní npm balíčky v rámci existujících verzí bez přechodu na nové major verze.
 - Náhledy voucherů používají `pdfjs-dist` 6.4.299; lockfile současně sjednocuje kompatibilní nativní `@napi-rs/canvas` na 1.0.13.
 
