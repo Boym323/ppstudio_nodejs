@@ -83,7 +83,6 @@ export async function SiteFooter({ compact = false }: SiteFooterProps) {
               </a>
               <ObfuscatedEmailLink
                 email={salonProfile.email}
-                ariaLabel="Napsat e-mail do studia"
                 className={compact ? "inline-flex min-h-10 min-w-0 items-center gap-3 rounded-2xl border border-black/[0.06] bg-white/55 px-3.5 py-2.5 text-[0.92rem] font-medium not-italic text-[var(--color-foreground)] shadow-[0_8px_24px_rgba(34,22,12,0.04)] hover:border-black/10 hover:bg-white/78" : "inline-flex min-h-11 min-w-0 items-center gap-3 rounded-2xl border border-black/[0.06] bg-white/55 px-4 py-3 text-[0.95rem] font-medium not-italic text-[var(--color-foreground)] shadow-[0_8px_24px_rgba(34,22,12,0.04)] hover:border-black/10 hover:bg-white/78"}
               >
                 <MailIcon />

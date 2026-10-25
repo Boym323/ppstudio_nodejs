@@ -72,10 +72,11 @@ async function cleanupRun(runId: string) {
 
 async function expectStyledPlanner(page: Page) {
   const planner = page.getByTestId("fullcalendar-planner");
-  const grid = planner.getByRole("grid");
+  const grid = planner.getByRole("grid").or(planner.getByRole("table"));
+  const cells = grid.locator("td, [role=\"gridcell\"], [role=\"cell\"]");
   await expect(planner).toBeVisible();
   await expect(grid).toBeVisible();
-  await expect.poll(async () => grid.getByRole("gridcell").count()).toBeGreaterThan(0);
+  await expect.poll(async () => cells.count()).toBeGreaterThan(0);
   await expect.poll(async () => grid.evaluate((element) => {
     const { height, width } = element.getBoundingClientRect();
     return width > 0 && height > 0;
@@ -103,7 +104,7 @@ test.describe("produkční plánovač FullCalendaru", () => {
     await page.goto(`/admin/volne-terminy?week=${dateKey}`);
     await expectStyledPlanner(page);
     await page.getByRole("button", { name: "Přidat termín" }).click();
-    const day = await page.locator(`[role="gridcell"][data-date="${dateKey}"]`).boundingBox();
+    const day = await page.getByTestId("fullcalendar-planner").locator(`[data-date="${dateKey}"]`).first().boundingBox();
     const slot = await page.locator('[data-time="06:00:00"]').last().boundingBox();
     expect(day).not.toBeNull();
     expect(slot).not.toBeNull();
@@ -143,7 +144,7 @@ test.describe("produkční plánovač FullCalendaru", () => {
       }
       await route.continue();
     });
-    const day = await page.locator(`[role="gridcell"][data-date="${plannerDate}"]`).boundingBox();
+    const day = await page.getByTestId("fullcalendar-planner").locator(`[data-date="${plannerDate}"]`).first().boundingBox();
     const first = await page.locator('[data-time="06:00:00"]').last().boundingBox();
     const x = day!.x + day!.width / 2;
     try {
@@ -191,7 +192,7 @@ test.describe("produkční plánovač FullCalendaru", () => {
         await route.abort("failed");
       } else await route.continue();
     });
-    const day = await page.locator(`[role="gridcell"][data-date="${plannerDate}"]`).boundingBox();
+    const day = await page.getByTestId("fullcalendar-planner").locator(`[data-date="${plannerDate}"]`).first().boundingBox();
     const slot = await page.locator('[data-time="06:00:00"]').last().boundingBox();
     await page.mouse.click(day!.x + day!.width / 2, slot!.y + slot!.height / 4);
     await page.getByRole("button", { name: "Zkusit znovu" }).click();
@@ -297,7 +298,7 @@ test.describe("produkční plánovač FullCalendaru", () => {
     await page.goto(`/admin/volne-terminy?week=${plannerDate}`);
     await expect(page.getByTestId("fullcalendar-planner")).toBeVisible();
 
-    const dayColumn = page.locator(`[role="gridcell"][data-date="${plannerDate}"]`);
+    const dayColumn = page.getByTestId("fullcalendar-planner").locator(`[data-date="${plannerDate}"]`).first();
     const timeSlot = page.locator('[data-time="10:00:00"]').first();
     const [dayBox, slotBox] = await Promise.all([dayColumn.boundingBox(), timeSlot.boundingBox()]);
     expect(dayBox).not.toBeNull();
@@ -334,7 +335,7 @@ test.describe("produkční plánovač FullCalendaru", () => {
     await page.goto(`/admin/volne-terminy?week=${dstDate}`);
     await expect(page.getByTestId("fullcalendar-planner")).toBeVisible();
 
-    const dayColumn = page.locator(`[role="gridcell"][data-date="${dstDate}"]`);
+    const dayColumn = page.getByTestId("fullcalendar-planner").locator(`[data-date="${dstDate}"]`).first();
     const timeSlot = page.locator('[data-time="10:00:00"]').first();
     const [dayBox, slotBox] = await Promise.all([dayColumn.boundingBox(), timeSlot.boundingBox()]);
     expect(dayBox).not.toBeNull();

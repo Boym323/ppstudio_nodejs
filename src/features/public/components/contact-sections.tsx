@@ -109,7 +109,6 @@ export function ContactHero({ title, description, phone, email, instagramUrl, ph
             </TrackedLink>
             <TrackedEmailLink
               email={email}
-              ariaLabel="Napsat e-mail do studia"
               tracking={{ kind: 'contact', type: 'email', location: 'kontakt' }}
               className="inline-flex min-h-13 items-center justify-center rounded-full border border-black/10 bg-white/75 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:border-black/20 hover:bg-white sm:text-sm"
             >
@@ -127,7 +126,6 @@ export function ContactHero({ title, description, phone, email, instagramUrl, ph
             </TrackedAnchor>
             <TrackedEmailLink
               email={email}
-              ariaLabel="Napsat e-mail do studia"
               tracking={{ kind: 'contact', type: 'email', location: 'kontakt' }}
               className="inline-flex min-h-11 items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-2 text-[13px] leading-6 text-[var(--color-foreground)] hover:border-black/20 hover:bg-white"
             >
@@ -461,7 +459,6 @@ export function QuickContactCard({
         <TrackedEmailLink
           email={email}
           className="flex items-center gap-3 rounded-2xl border border-[#eadfd2] bg-[#fcf7f1] px-4 py-3.5 transition hover:border-black/15 hover:bg-[#fbf4ec]"
-          ariaLabel="Napsat e-mail do studia"
           tracking={{ kind: 'contact', type: 'email', location: 'kontakt' }}
         >
           <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-black/10 bg-white text-[var(--color-foreground)]">

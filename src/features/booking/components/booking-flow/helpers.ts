@@ -134,7 +134,7 @@ export function getSlotDateKey(value: string) {
 }
 
 export function buildSlotAriaLabel(slot: TimeSlotOption) {
-  return `Vybrat termín ${getSlotDateKey(slot.startsAt)} ${formatSlotTime(slot.startsAt)}`;
+  return `Vybrat termín ${formatSlotDate(slot.startsAt)} ${formatSlotTime(slot.startsAt)} (${getSlotDateKey(slot.startsAt)})`;
 }
 
 export function getSlotDayNumber(dateKey: string) {

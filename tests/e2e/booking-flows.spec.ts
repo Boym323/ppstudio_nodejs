@@ -56,7 +56,7 @@ async function selectSlotById(
 }
 
 function getCalendarDateButtonLabel(slotButtonLabel: string) {
-  const dateKey = slotButtonLabel.match(/^Vybrat termín (\d{4}-\d{2}-\d{2}) \d{2}:\d{2}$/)?.[1];
+  const dateKey = slotButtonLabel.match(/(\d{4}-\d{2}-\d{2})/)?.[1];
 
   if (!dateKey) {
     throw new Error(`Termín nemá očekávaný přístupný popisek: ${slotButtonLabel}`);
@@ -81,7 +81,7 @@ function getCalendarMonthLabel(monthKey: string) {
 }
 
 async function navigateCalendarToDate(page: Page, slotButtonLabel: string) {
-  const dateKey = slotButtonLabel.match(/^Vybrat termín (\d{4}-\d{2}-\d{2}) \d{2}:\d{2}$/)?.[1];
+  const dateKey = slotButtonLabel.match(/(\d{4}-\d{2}-\d{2})/)?.[1];
 
   if (!dateKey) {
     throw new Error(`Termín nemá očekávaný přístupný popisek: ${slotButtonLabel}`);
@@ -429,7 +429,13 @@ function formatPragueDateKey(value: Date) {
 }
 
 function buildPublicSlotButtonLabel(startsAt: Date) {
-  return `Vybrat termín ${formatPragueDateKey(startsAt)} ${formatPragueTime(startsAt)}`;
+  const dateLabel = new Intl.DateTimeFormat("cs-CZ", {
+    weekday: "short",
+    day: "numeric",
+    month: "long",
+    timeZone: "Europe/Prague",
+  }).format(startsAt);
+  return `Vybrat termín ${dateLabel} ${formatPragueTime(startsAt)} (${formatPragueDateKey(startsAt)})`;
 }
 
 function slugify(value: string) {

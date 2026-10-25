@@ -8,7 +8,6 @@ type ObfuscatedEmailLinkProps = Omit<
   subject?: string;
   body?: string;
   children?: React.ReactNode;
-  ariaLabel?: string;
 };
 
 function buildMailtoHref(email: string, subject?: string, body?: string) {
@@ -32,7 +31,6 @@ export function ObfuscatedEmailLink({
   subject,
   body,
   onClick,
-  ariaLabel,
   children,
   ...props
 }: ObfuscatedEmailLinkProps) {
@@ -42,7 +40,6 @@ export function ObfuscatedEmailLink({
     <a
       {...props}
       href={mailtoHref}
-      aria-label={ariaLabel ?? 'Napsat e-mail'}
       onClick={(event) => {
         onClick?.(event);
       }}

@@ -59,13 +59,11 @@ export function SuggestedSlots({
                 <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)] sm:text-xs sm:tracking-[0.22em]">
                   {formatDate(slot.startsAt)}
                 </p>
+                {" "}
                 <p className="shrink-0 text-xl font-semibold text-[var(--color-foreground)] sm:mt-3 sm:text-2xl">
                   {formatTime(slot.startsAt)}
                 </p>
               </div>
-              <p className="mt-2 text-sm text-[var(--color-muted)] max-sm:hidden">
-                Jedním klikem vyberete termín a přejdete na kontakt.
-              </p>
             </button>
           );
         })}
