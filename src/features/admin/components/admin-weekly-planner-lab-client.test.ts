@@ -12,7 +12,7 @@ test("planner začíná v bezpečném režimu prohlížení a změny vyžadují 
   const source = await clientSource();
   assert.match(source, /useState<PlannerMode>\("view"\)/);
   assert.match(source, /selectable=\{canEdit && mode !== "view"\}/);
-  assert.match(source, /mode !== "view" && start && end/);
+  assert.match(source, /!canEdit \|\| mode === "view" \|\| !claimPlannerGesture/);
   assert.match(source, /aria-pressed=\{mode === item\}/);
   assert.match(source, /Přidat termín/);
   assert.match(source, /Odebrat termín/);
@@ -47,7 +47,7 @@ test("po vyprázdnění autosave fronty jednou obnoví tentýž týden ze server
   const source = await clientSource();
   assert.match(source, /\(\) => \{ setHasPendingChanges\(false\); setSaveError\(null\); setMessage\("Uloženo"\); setIsWeekLoading\(true\); restoreRequestedRef\.current = true; router\.refresh\(\); \}/);
   assert.match(source, /data\.weekKey === hydratedWeekRef\.current && !restoreRequestedRef\.current/);
-  assert.match(source, /const nextDays = cloneWeekDays\(data\.days\); confirmedDaysRef\.current = nextDays; setDays\(cloneWeekDays\(nextDays\)\)/);
+  assert.match(source, /const nextDays = cloneWeekDays\(data\.days\); daysRef\.current = nextDays; confirmedDaysRef\.current = nextDays; setDays\(cloneWeekDays\(nextDays\)\)/);
   assert.doesNotMatch(source, /findBestAutoLunch/);
 });
 

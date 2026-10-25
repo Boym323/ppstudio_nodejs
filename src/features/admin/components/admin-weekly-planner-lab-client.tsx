@@ -20,6 +20,7 @@ import { useToast } from "@/components/ui/toast";
 import { cloneWeekDays, hasBlockedCells, normalizePlannerSelectionToHalfHours, patchDayAvailableRange } from "./admin-weekly-planner-helpers";
 import { plannerWeekToFullCalendarEvents, type PlannerLabEventType } from "./planner-lab-adapter";
 import { getPlannerLabDefaultView, getPlannerLabWeekStart, isPlannerLabMobileViewport, movePlannerLabWeek, type PlannerLabView } from "./planner-lab-week";
+import { claimPlannerGesture } from "./planner-lab-gesture";
 import { PlannerLabSaveQueue } from "./planner-lab-save-queue";
 import styles from "./planner-lab.module.css";
 
@@ -78,7 +79,7 @@ export function AdminWeeklyPlannerClient({ data, weekStart, initialDate, hasInit
   const scrollPositionRef = useRef<{ pageX: number; pageY: number; calendarY: number } | null>(null);
   const effectiveInitialDate = initialDate ?? weekStart;
   const requestedWeekRef = useRef(weekStart); const requestedDateRef = useRef(effectiveInitialDate);
-  const recentCellMutationRef = useRef<{ dateKey: string; startCell: number; endCell: number; expiresAt: number } | null>(null);
+  const handledGesturesRef = useRef(new WeakSet<Event>());
   const datesSetFrameRef = useRef<number | null>(null); const hydratedWeekRef = useRef(weekStart); const restoreRequestedRef = useRef(false);
   const confirmedDaysRef = useRef(cloneWeekDays(data.days));
   const saveQueueRef = useRef<PlannerLabSaveQueue<PlannerChange> | null>(null);
@@ -86,6 +87,7 @@ export function AdminWeeklyPlannerClient({ data, weekStart, initialDate, hasInit
   const [isUndoPending, setIsUndoPending] = useState(false);
   const [mounted, setMounted] = useState(false); const [compact, setCompact] = useState(false);
   const [days, setDays] = useState<PlannerDay[]>(() => cloneWeekDays(data.days));
+  const daysRef = useRef<PlannerDay[]>(cloneWeekDays(data.days));
   const [message, setMessage] = useState<string | null>("Prohlížení – kalendář nic nemění."); const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false); const [isWeekLoading, setIsWeekLoading] = useState(false);
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
@@ -99,15 +101,15 @@ export function AdminWeeklyPlannerClient({ data, weekStart, initialDate, hasInit
   const offerUndo = useCallback((change: PlannerChange, operationId?: string) => { clearUndo(); setUndoChange({ dateKey: change.dateKey, startCell: change.startCell, endCell: change.endCell, mode: change.mode, revertedOperationId: operationId }); undoTimeoutRef.current = window.setTimeout(() => setUndoChange(null), 12_000); }, [clearUndo]);
   useEffect(() => () => { if (undoTimeoutRef.current !== null) window.clearTimeout(undoTimeoutRef.current); }, []);
   useEffect(() => { saveQueueRef.current = new PlannerLabSaveQueue(
-    async (change) => { const result = await applyPlannerSelectionAction(change.area, { weekKey: change.weekKey, dateKey: change.dateKey, startCell: change.startCell, endCell: change.endCell, mode: change.mode, operationId: change.operationId, revertedOperationId: change.revertedOperationId }); return result.ok ? { ok: true as const, operationId: result.operationId } : { ok: false as const, message: result.message }; },
+    async (change) => { const result = await applyPlannerSelectionAction(change.area, { weekKey: change.weekKey, dateKey: change.dateKey, startCell: change.startCell, endCell: change.endCell, mode: change.mode, operationId: change.operationId, revertedOperationId: change.revertedOperationId }); return result.ok ? { ok: true as const, operationId: result.operationId, changed: result.changed } : { ok: false as const, message: result.message }; },
     setIsSaving,
-    (savedChange) => { confirmedDaysRef.current = cloneWeekDays(savedChange.days); offerUndo(savedChange, savedChange.operationId); },
+    (savedChange, result) => { confirmedDaysRef.current = cloneWeekDays(savedChange.days); if (result.changed !== false) offerUndo(savedChange, savedChange.operationId); },
     () => { setHasPendingChanges(false); setSaveError(null); setMessage("Uloženo"); setIsWeekLoading(true); restoreRequestedRef.current = true; router.refresh(); },
     (error) => { setSaveError(error); setMessage(error); },
   ); return () => { saveQueueRef.current = null; }; }, [offerUndo, router]);
   useEffect(() => { const media = window.matchMedia("(max-width: 1023px)"); const update = () => setCompact(isPlannerLabMobileViewport(window.innerWidth)); const frame = window.requestAnimationFrame(() => { update(); setMounted(true); }); media.addEventListener("change", update); return () => { window.cancelAnimationFrame(frame); media.removeEventListener("change", update); }; }, []);
   useEffect(() => () => { if (datesSetFrameRef.current !== null) window.cancelAnimationFrame(datesSetFrameRef.current); }, []);
-  useEffect(() => { if (data.weekKey !== requestedWeekRef.current || (data.weekKey === hydratedWeekRef.current && !restoreRequestedRef.current)) return; restoreRequestedRef.current = false; hydratedWeekRef.current = data.weekKey; const nextDays = cloneWeekDays(data.days); confirmedDaysRef.current = nextDays; setDays(cloneWeekDays(nextDays)); setOpenWeekStart(data.weekKey); setSaveError(null); setIsUndoPending(false); setIsWeekLoading(false); calendarRef.current?.getApi().gotoDate(requestedDateRef.current); }, [data]);
+  useEffect(() => { if (data.weekKey !== requestedWeekRef.current || (data.weekKey === hydratedWeekRef.current && !restoreRequestedRef.current)) return; restoreRequestedRef.current = false; hydratedWeekRef.current = data.weekKey; const nextDays = cloneWeekDays(data.days); daysRef.current = nextDays; confirmedDaysRef.current = nextDays; setDays(cloneWeekDays(nextDays)); setOpenWeekStart(data.weekKey); setSaveError(null); setIsUndoPending(false); setIsWeekLoading(false); calendarRef.current?.getApi().gotoDate(requestedDateRef.current); }, [data]);
   useEffect(() => { if (!mounted || appliedCompactRef.current === compact) return; const nextView = getPlannerLabDefaultView(compact); const frame = window.requestAnimationFrame(() => { appliedCompactRef.current = compact; setActiveView(nextView); const calendar = calendarRef.current?.getApi(); const mobileToday = !hasInitialDay && data.days.some((day) => day.dateKey === data.todayKey) ? data.todayKey : requestedDateRef.current; const targetDate = compact ? mobileToday : requestedDateRef.current; if (compact && !hasInitialDay) requestedDateRef.current = mobileToday; if (!calendar) return; if (calendar.view.type === nextView) { calendar.gotoDate(targetDate); return; } calendar.changeView(nextView, targetDate); }); return () => window.cancelAnimationFrame(frame); }, [compact, data.days, data.todayKey, hasInitialDay, mounted]);
 
   const events = useMemo(() => plannerWeekToFullCalendarEvents(data, days), [data, days]);
@@ -139,30 +141,28 @@ export function AdminWeeklyPlannerClient({ data, weekStart, initialDate, hasInit
       : normalizePlannerSelectionToHalfHours(startCell, endCell);
   }
   function selectAllow(info: { startStr: string; endStr: string }) { if (!canEdit || mode === "view") return false; const start = getCalendarCellPosition(info.startStr); const end = getCalendarCellPosition(info.endStr); if (!start || !end || start.dateKey !== end.dateKey || !Number.isInteger(start.cell * 2) || !Number.isInteger(end.cell * 2) || end.cell <= start.cell) return false; if (mode === "add") return true; const day = days.find((item) => item.dateKey === start.dateKey); if (!day) return false; if (keepsQuarterHourStart(day, start.cell, end.cell)) return intersectsAvailableBlock(day, start.cell, end.cell); const selection = getSelectionRange(day, start.cell, end.cell); return !hasBlockedCells(day, selection.startCell, selection.endCell); }
-  function saveAvailabilityChange(nextDays: PlannerDay[], dateKey: string, startCell: number, endCell: number, nextMode: Exclude<PlannerMode, "view">, revertedOperationId?: string) { const change: PlannerChange = Object.freeze({ area: data.area, weekKey: data.weekKey, operationId: createIdempotencyKey(), days: cloneWeekDays(nextDays), dateKey, startCell, endCell, mode: nextMode, revertedOperationId }); setDays(nextDays); restoreScrollPosition(); setMessage("Ukládám…"); clearUndo(); setHasPendingChanges(true); saveQueueRef.current?.enqueue(change); }
+  function saveAvailabilityChange(nextDays: PlannerDay[], dateKey: string, startCell: number, endCell: number, nextMode: Exclude<PlannerMode, "view">, revertedOperationId?: string) { const change: PlannerChange = Object.freeze({ area: data.area, weekKey: data.weekKey, operationId: createIdempotencyKey(), days: cloneWeekDays(nextDays), dateKey, startCell, endCell, mode: nextMode, revertedOperationId }); daysRef.current = nextDays; setDays(nextDays); restoreScrollPosition(); setMessage("Ukládám…"); clearUndo(); setHasPendingChanges(true); saveQueueRef.current?.enqueue(change); }
   function retrySave() { setSaveError(null); setMessage("Ukládám…"); saveQueueRef.current?.retry(); }
-  function restoreSavedState() { saveQueueRef.current?.discardPending(); setHasPendingChanges(false); setDays(cloneWeekDays(confirmedDaysRef.current)); setSaveError(null); setMessage("Načítám uložený stav…"); setIsWeekLoading(true); restoreRequestedRef.current = true; router.refresh(); }
+  function restoreSavedState() { saveQueueRef.current?.discardPending(); setHasPendingChanges(false); daysRef.current = cloneWeekDays(confirmedDaysRef.current); setDays(cloneWeekDays(confirmedDaysRef.current)); setSaveError(null); setMessage("Načítám uložený stav…"); setIsWeekLoading(true); restoreRequestedRef.current = true; router.refresh(); }
   function requestRestoreSavedState() { if ((saveQueueRef.current?.pendingCount() ?? 0) > 1) { setRestoreConfirmationOpen(true); return; } restoreSavedState(); }
   function updateAvailabilityRange(dateKey: string, startCell: number, endCell: number, nextMode: Exclude<PlannerMode, "view">, shouldRememberScroll = true, revertedOperationId?: string) {
-    if (!canEdit) return; const recent = recentCellMutationRef.current;
-    if (recent && recent.dateKey === dateKey && recent.startCell === startCell && recent.endCell === endCell && recent.expiresAt > Date.now()) return;
-    const day = days.find((item) => item.dateKey === dateKey);
+    if (!canEdit) return;
+    const day = daysRef.current.find((item) => item.dateKey === dateKey);
     const startsAfterBookingBlock = day && !Number.isInteger(startCell) && canStartAfterBookingBlock(day, startCell, endCell) && (nextMode === "add" || intersectsAvailableBlock(day, startCell, endCell));
     const hasValidRange = day && endCell > startCell && startCell >= 0 && endCell <= PLANNER_CELL_COUNT && (startsAfterBookingBlock || (Number.isInteger(startCell) && Number.isInteger(endCell) && !hasBlockedCells(day, startCell, endCell)));
     if (!hasValidRange) { setMessage("Rezervace, úklid a chráněné intervaly nelze upravit."); return; }
     if (nextMode === "remove" && !intersectsAvailableBlock(day, startCell, endCell)) { setMessage("V označeném čase není dostupnost k odebrání."); return; }
-    recentCellMutationRef.current = { dateKey, startCell, endCell, expiresAt: Date.now() + 400 }; if (shouldRememberScroll) rememberScrollPosition();
-    const nextDays = days.map((item) => item.dateKey === dateKey ? patchDayAvailableRange(item, startCell, endCell, nextMode) : item); saveAvailabilityChange(nextDays, dateKey, startCell, endCell, nextMode, revertedOperationId);
+    if (shouldRememberScroll) rememberScrollPosition();
+    const nextDays = daysRef.current.map((item) => item.dateKey === dateKey ? patchDayAvailableRange(item, startCell, endCell, nextMode) : item); saveAvailabilityChange(nextDays, dateKey, startCell, endCell, nextMode, revertedOperationId);
   }
-  function handleSelect(info: DateSelectInfo) { const start = getCalendarCellPosition(info.startStr); const end = getCalendarCellPosition(info.endStr); rememberScrollPosition(); info.view.calendar.unselect(); if (mode !== "view" && start && end && start.dateKey === end.dateKey) { const day = days.find((item) => item.dateKey === start.dateKey); if (day) { const selection = getSelectionRange(day, start.cell, end.cell); updateAvailabilityRange(start.dateKey, selection.startCell, selection.endCell, mode, false); } } }
-  function handleDateClick(info: DateClickInfo) { if (mode === "view") return; const position = getCalendarClickPosition(info); const day = position ? days.find((item) => item.dateKey === position.dateKey) : null; if (position) { const startCell = day && !Number.isInteger(position.cell) && !canStartAfterBookingBlock(day, position.cell, position.cell + 1) ? Math.floor(position.cell) : position.cell; updateAvailabilityRange(position.dateKey, startCell, startCell + 1, mode); } }
+  function handleSelect(info: DateSelectInfo) { if (!canEdit || mode === "view" || !claimPlannerGesture(handledGesturesRef.current, info.jsEvent)) return; const start = getCalendarCellPosition(info.startStr); const end = getCalendarCellPosition(info.endStr); rememberScrollPosition(); info.view.calendar.unselect(); if (start && end && start.dateKey === end.dateKey) { const day = days.find((item) => item.dateKey === start.dateKey); if (day) { const selection = getSelectionRange(day, start.cell, end.cell); updateAvailabilityRange(start.dateKey, selection.startCell, selection.endCell, mode, false); } } }
+  function handleDateClick(info: DateClickInfo) { if (!canEdit || mode === "view" || !claimPlannerGesture(handledGesturesRef.current, info.jsEvent)) return; const position = getCalendarClickPosition(info); const day = position ? days.find((item) => item.dateKey === position.dateKey) : null; if (position) { const startCell = day && !Number.isInteger(position.cell) && !canStartAfterBookingBlock(day, position.cell, position.cell + 1) ? Math.floor(position.cell) : position.cell; updateAvailabilityRange(position.dateKey, startCell, startCell + 1, mode); } }
   function handleEventClick(info: EventClickInfo) { const details = info.event.extendedProps as { type: PlannerLabEventType; bookingId?: string }; if ((details.type === "booking" || details.type === "completed") && details.bookingId) router.push(getPlannerBookingHref(data.area, details.bookingId)); }
   function undoLastChange() {
     if (!undoChange?.revertedOperationId || !canNavigate || isUndoPending) return;
     if (!days.some((day) => day.dateKey === undoChange.dateKey)) { clearUndo(); return; }
     const reverseMode = undoChange.mode === "add" ? "remove" : "add";
     setIsUndoPending(true);
-    recentCellMutationRef.current = null;
     rememberScrollPosition();
     // Přesný rozdíl zná server z auditu; před jeho odpovědí neobracíme celý výběr.
     saveAvailabilityChange(days, undoChange.dateKey, undoChange.startCell, undoChange.endCell, reverseMode, undoChange.revertedOperationId);

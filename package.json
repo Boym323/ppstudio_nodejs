@@ -55,6 +55,7 @@
     "db:backfill-service-copy": "tsx scripts/backfill-service-copy.ts",
     "db:backfill-media-library-v2": "tsx scripts/media-library-v2-backfill.ts",
     "db:cleanup-rate-limits": "tsx scripts/cleanup-rate-limit-reservations.ts",
+    "admin:bootstrap-dev": "tsx scripts/bootstrap-dev-admin.ts",
     "admin:recover-owner": "tsx scripts/recover-admin-owner.ts",
     "db:clear-booking-data": "node scripts/clear-booking-data.mjs",
     "media:audit": "tsx scripts/media-audit.ts",

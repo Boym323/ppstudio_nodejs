@@ -1,3 +1,4 @@
+import { withUtcPostgresTimezone } from "../src/lib/postgres-utc.ts";
 import "dotenv/config";
 import { Client } from "pg";
 
@@ -17,7 +18,7 @@ async function main() {
   }
 
   const client = new Client({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: withUtcPostgresTimezone(process.env.DATABASE_URL),
   });
 
   await client.connect();

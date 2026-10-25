@@ -1,3 +1,4 @@
+import { withUtcPostgresTimezone } from "../src/lib/postgres-utc";
 import "dotenv/config";
 
 import { resolve } from "node:path";
@@ -334,7 +335,7 @@ async function main() {
   }
   assertAllowedBackfillDatabase(databaseUrl);
 
-  const prisma = new PrismaClient({ adapter: new PrismaPg(databaseUrl) });
+  const prisma = new PrismaClient({ adapter: new PrismaPg(withUtcPostgresTimezone(databaseUrl)) });
   try {
     const identity = await prisma.$queryRaw<Array<{ database: string }>>`SELECT current_database() AS database`;
     const actualDatabase = identity[0]?.database;

@@ -32,6 +32,8 @@ import {
   PlannerMutationError,
 } from "./types";
 
+const PLANNER_NO_OP_MESSAGE = "Dostupnost už odpovídá výběru.";
+
 const PLANNER_TRANSACTION_MAX_RETRIES = 4;
 const PLANNER_TRANSACTION_RETRY_DELAY_MS = 40;
 const PLANNER_BOOKING_STATUSES = ["PENDING", "CONFIRMED", "COMPLETED"] as const;
@@ -199,6 +201,7 @@ function selectionFingerprint(area: AdminArea, input: {
 function selectionResult(input: { weekKey: string; mode: "add" | "remove"; operationId: string }): PlannerMutationResult {
   return {
     ok: true,
+    changed: true,
     message:
       input.mode === "add"
         ? "Dostupnost byla upravená a sousední půlhodiny jsme spojili do souvislých oken."
@@ -385,6 +388,7 @@ export async function applyAvailabilitySelection(
         return {
           ok: true,
           message: existingOperation.resultMessage,
+          changed: Boolean(await tx.availabilityAuditEvent.findFirst({ where: { operationId }, select: { id: true } })),
           weekKey: existingOperation.weekKey,
           operationId,
         } satisfies PlannerMutationResult;
@@ -470,6 +474,14 @@ export async function applyAvailabilitySelection(
       throw new PlannerMutationError("Změna by vytvořila kolizi s uzamčeným intervalem.");
     }
 
+    const availabilityChanged = getEditablePlannerIntervals(nextIntervals, baseIntervals).length > 0
+      || getEditablePlannerIntervals(baseIntervals, nextIntervals).length > 0;
+    if (!availabilityChanged) {
+      // Uchováme idempotentní výsledek i bez změny slotů; audit patří změně.
+      await tx.availabilityOperation.update({ where: { operationId }, data: { resultMessage: PLANNER_NO_OP_MESSAGE } });
+      return { ...result, changed: false, message: PLANNER_NO_OP_MESSAGE };
+    }
+
     const diff = diffEditableSlots(state.editableSlots, nextIntervals);
 
     if (diff.removedSlots.length > 0) {
@@ -511,6 +523,6 @@ export async function applyAvailabilitySelection(
       throw new PlannerMutationError("Tento idempotentní klíč už patří k jiné změně dostupnosti.");
     }
 
-    return { ok: true, message: existingOperation.resultMessage, weekKey: existingOperation.weekKey, operationId };
+    return { ok: true, changed: Boolean(await prisma.availabilityAuditEvent.findFirst({ where: { operationId }, select: { id: true } })), message: existingOperation.resultMessage, weekKey: existingOperation.weekKey, operationId };
   }
 }

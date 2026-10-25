@@ -1,3 +1,4 @@
+import { withUtcPostgresTimezone } from "../src/lib/postgres-utc.ts";
 import 'dotenv/config';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -87,7 +88,7 @@ async function main() {
   }
 
   const input = await loadImportFile(file);
-  const prisma = new PrismaClient({ adapter: new PrismaPg(process.env.DATABASE_URL) });
+  const prisma = new PrismaClient({ adapter: new PrismaPg(withUtcPostgresTimezone(process.env.DATABASE_URL)) });
 
   try {
     const categoryRows = [];
