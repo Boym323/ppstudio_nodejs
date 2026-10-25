@@ -50,6 +50,36 @@ test("resend webhook route rejects an invalid Svix signature before processing",
   assert.equal(response.status, 400);
 });
 
+test("ověřený Resend webhook explicitně parsuje event z raw payloadu", async () => {
+  const { Webhook } = await import("svix");
+  const { verifyResendWebhookPayload } = await import("@/lib/email/resend-webhooks");
+  const webhookSecret = "whsec_test";
+  const payload = Buffer.from(JSON.stringify({
+    type: "email.delivered",
+    created_at: "2026-08-16T10:00:00.000Z",
+    data: { email_id: "provider-message-valid" },
+  }));
+  const id = "msg_valid_signature";
+  const timestamp = new Date();
+  const signature = new Webhook(webhookSecret).sign(id, timestamp, payload);
+
+  const event = await verifyResendWebhookPayload({
+    payload,
+    headers: {
+      id,
+      timestamp: String(Math.floor(timestamp.getTime() / 1000)),
+      signature,
+    },
+    webhookSecret,
+  });
+
+  assert.deepEqual(event, {
+    type: "email.delivered",
+    created_at: "2026-08-16T10:00:00.000Z",
+    data: { email_id: "provider-message-valid" },
+  });
+});
+
 test("resend webhook route odmítne deklarované nadlimitní body bez čtení streamu", async () => {
   process.env.RESEND_WEBHOOK_SECRET = "whsec_test";
   const { POST, RESEND_WEBHOOK_MAX_BODY_BYTES } = await import("./route");

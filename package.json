@@ -81,7 +81,7 @@
     "next": "16.4.2",
     "nodemailer": "^10.1.6",
     "pdf-lib": "^1.17.1",
-    "pdfjs-dist": "^6.3.289",
+    "pdfjs-dist": "^6.4.299",
     "pg": "^8.22.0",
     "qrcode": "^1.5.4",
     "react": "19.2.8",
@@ -91,7 +91,7 @@
     "recharts": "^3.10.1",
     "server-only": "^0.0.1",
     "sharp": "^0.35.3",
-    "svix": "^2.0.0",
+    "svix": "^2.9.0",
     "tailwind-merge": "^3.6.0",
     "temporal-polyfill": "^1.0.3",
     "zod": "^4.6.6"

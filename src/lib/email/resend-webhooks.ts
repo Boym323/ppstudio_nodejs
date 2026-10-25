@@ -53,11 +53,13 @@ export async function verifyResendWebhookPayload(input: {
   const { Webhook } = await import("svix");
   const webhook = new Webhook(input.webhookSecret);
 
-  return webhook.verify(input.payload, {
+  webhook.verify(input.payload, {
     "svix-id": input.headers.id,
     "svix-timestamp": input.headers.timestamp,
     "svix-signature": input.headers.signature,
-  }) as ResendWebhookEvent;
+  });
+
+  return JSON.parse(input.payload.toString("utf8")) as ResendWebhookEvent;
 }
 
 function parseEventDate(value: string | null | undefined) {

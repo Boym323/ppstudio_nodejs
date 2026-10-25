@@ -6,8 +6,13 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Změněno
+
+- Náhledy voucherů používají `pdfjs-dist` 6.4.299; lockfile současně sjednocuje kompatibilní nativní `@napi-rs/canvas` na 1.0.13.
+
 ### Opraveno
 
+- Zpracování Resend webhooků zůstává kompatibilní s novější řadou `svix`, která po ověření podpisu nevrací dekódovaný event; payload se nyní parsuje explicitně až po úspěšném ověření raw bajtů.
 - Planner zpracuje kliknutí či tažení právě jednou bez časového potlačování dalších gest; no-op dostupnosti nevytváří audit ani nenabízí undo a retry zachovává serverovou idempotenci.
 - Databázová spojení a Prisma CLI migrace vynucují UTC také pro raw SQL, shadow databázi a výchozí timestampy bez přepisu historických dat; doplněny regrese pro změny letního a zimního času.
 
