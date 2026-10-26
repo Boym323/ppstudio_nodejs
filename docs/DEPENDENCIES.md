@@ -29,23 +29,23 @@ Tichý startup readiness probe nepřidává závislost; používá stejný `curl
 
 ## Aktuální verze stacku
 
-Přímé verze níže byly porovnány s `package.json` k 24. 10. 2026 (PP Studio `3.36.1`); pro přesné resolved verze platí `package-lock.json`. Po dalších aktualizacích ověř oba soubory.
+Přímé verze níže byly porovnány s `package.json` k 26. 10. 2026 (PP Studio `3.36.2`); pro přesné resolved verze platí `package-lock.json`. Po dalších aktualizacích ověř oba soubory.
 - Zdroj pravdy je `package.json` v kořeni projektu.
 - Projektový runtime cíl je `Node 24 LTS`; repozitář to explicitně deklaruje přes [`.nvmrc`](../.nvmrc#L1) a `package.json.engines`.
-- `next`: `16.4.2`
-- `zod`: `^4.6.6` (lockfile: `4.6.6`, bezpečnostní oprava validace kolekcí).
-- `nodemailer`: `^10.1.6` (lockfile: `10.1.6`, opravy parsování adres).
+- `next`: `16.4.3`
+- `zod`: `^4.6.6` (lockfile: `4.6.7`, bezpečnostní oprava validace kolekcí).
+- `nodemailer`: `^10.1.6` (lockfile: `10.2.1`, opravy parsování adres).
 - Tranzitivní `fast-uri`: `3.1.9` (bezpečnostní opravy parsování URI; není přímá závislost v manifestu).
-- `react`: `19.2.8`
-- `react-dom`: `19.2.8`
+- `react`: `19.3.1`
+- `react-dom`: `19.3.1`
 - `tailwindcss`: `^4.3.2` (lockfile: `4.3.3`)
-- `@tailwindcss/postcss`: `^4.3.2` (lockfile: `4.3.3`)
+- `@tailwindcss/postcss`: `^4.3.3` (lockfile: `4.3.3`)
 - `postcss`: není přímou závislostí; `package.json.overrides` vynucuje `8.5.23`, což potvrzuje lockfile.
-- `prisma`: `7.10.0`
-- `@prisma/client`: `7.10.0`
-- `@prisma/adapter-pg`: `7.10.0`
+- `prisma`: `7.10.1`
+- `@prisma/client`: `7.10.1`
+- `@prisma/adapter-pg`: `7.10.1`
 - `@fullcalendar/react`: `^7.0.2` – jediný produkční planner dostupnosti s autosave.
-- `react-email`: `6.9.3` a `@react-email/ui`: `6.9.5` – HTML e-maily a vývojové preview.
+- `react-email`: `6.11.3` a `@react-email/ui`: `6.11.3` – HTML e-maily a vývojové preview.
 - `@radix-ui/react-dialog`, `@radix-ui/react-alert-dialog`, `@radix-ui/react-dropdown-menu`, `@radix-ui/react-toast` – dialogy, drawery, menu a toast notifikace.
 - `@tanstack/react-table`: `^9.3.1` – administrační tabulky.
 - `recharts`: `^3.10.1` – grafy.

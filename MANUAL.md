@@ -219,10 +219,10 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](docs/API.md).
 - V detailu owner `Email logu` akce `Znovu odeslat e-mail` založí nový `PENDING` log s aktuálním e-mailem kontaktu jako nový pokus; historický `recipientEmail` původního záznamu se kvůli auditu nikdy nepřepisuje.
 - Admin detail rezervace musí i při dlouhém jménu, e-mailu nebo hlášce po přesunu termínu zalamovat text uvnitř karet; success bannery, historie i key/value souhrny nesmí horizontálně přetékat mimo panel.
 - Aktuální runtime stack podle `package.json`:
-  - `next` `16.4.2`
-  - `react` `19.2.8`
-  - `react-dom` `19.2.8`
-  - `prisma` + `@prisma/client` `7.10.0`
+  - `next` `16.4.3`
+  - `react` `19.3.1`
+  - `react-dom` `19.3.1`
+  - `prisma` + `@prisma/client` `7.10.1`
 - Veřejná část aktuálně pokrývá:
   - homepage
   - landing page `Dárkové vouchery` na `/vouchery` s CTA na domluvu voucheru a veřejné ověření kódu

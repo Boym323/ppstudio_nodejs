@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.36.2] - 2026-10-26
+
 ### Změněno
 
 - Audit přechodu na ESLint 10.13.0 odhalil, že používané pluginy React, import a jsx-a11y zatím nedeklarují kompatibilitu s ESLint 10; projekt proto bezpečně zůstává na ESLint 9.39.5 do vydání kompatibilních verzí.
