@@ -63,10 +63,46 @@ async function loadCounts(client) {
   return counts.rows[0];
 }
 
-async function deleteBookingData(client) {
+function verifyExpectedCounts(actual, expectedCounts) {
+  if (
+    Object.keys(actual).length !== Object.keys(expectedCounts).length ||
+    Object.entries(actual).some(([key, value]) => expectedCounts[key] !== value)
+  ) {
+    throw new Error(`Odmítnuto: skutečné počty neodpovídají --expect-counts. Skutečnost: ${JSON.stringify(actual)}`);
+  }
+}
+
+async function deleteBookingData(client, expectedCounts) {
   await client.query("BEGIN");
 
   try {
+    await client.query(`
+      LOCK TABLE
+        "AvailabilitySlot",
+        "AvailabilitySlotService",
+        "Booking",
+        "BookingActionToken",
+        "BookingRescheduleLog",
+        "BookingStatusHistory",
+        "BookingSubmissionLog",
+        "Client",
+        "EmailLog"
+      IN SHARE ROW EXCLUSIVE MODE
+    `);
+
+    const counts = await loadCounts(client);
+    const actual = {
+      bookings: counts.bookings,
+      availability_slots: counts.availability_slots,
+      availability_slot_services: counts.availability_slot_services,
+      booking_action_tokens: counts.booking_action_tokens,
+      booking_status_history: counts.booking_status_history,
+      booking_reschedule_logs: counts.booking_reschedule_logs,
+      related_email_logs: counts.related_email_logs,
+      related_submission_logs: counts.related_submission_logs,
+    };
+    verifyExpectedCounts(actual, expectedCounts);
+
     const deleted = {};
 
     deleted.bookingRescheduleLogs = (
@@ -103,7 +139,7 @@ async function deleteBookingData(client) {
     ).rowCount;
     await client.query("COMMIT");
 
-    return deleted;
+    return { counts, deleted };
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
@@ -143,7 +179,17 @@ async function main() {
       exitWithError(`Odmítnuto: připojená databáze „${databaseName}“ neodpovídá bezpečně identifikované testovací databázi.`);
     }
 
-    const counts = await loadCounts(client);
+    const shouldDelete = !dryRun && confirm;
+    let counts;
+    let deleted;
+
+    if (shouldDelete) {
+      const result = await deleteBookingData(client, expectedCounts);
+      counts = result.counts;
+      deleted = result.deleted;
+    } else {
+      counts = await loadCounts(client);
+    }
 
     console.log("Booking cleanup summary:");
     console.log(formatCount("rezervace", counts.bookings));
@@ -156,33 +202,12 @@ async function main() {
     console.log(formatCount("navázané submission logy", counts.related_submission_logs));
     console.log(formatCount("osiřelé klientky", counts.orphan_clients));
 
-    if (confirm) {
-      const actual = {
-        bookings: counts.bookings,
-        availability_slots: counts.availability_slots,
-        availability_slot_services: counts.availability_slot_services,
-        booking_action_tokens: counts.booking_action_tokens,
-        booking_status_history: counts.booking_status_history,
-        booking_reschedule_logs: counts.booking_reschedule_logs,
-        related_email_logs: counts.related_email_logs,
-        related_submission_logs: counts.related_submission_logs,
-      };
-      if (
-        Object.keys(actual).length !== Object.keys(expectedCounts).length ||
-        Object.entries(actual).some(([key, value]) => expectedCounts[key] !== value)
-      ) {
-        exitWithError(`Odmítnuto: skutečné počty neodpovídají --expect-counts. Skutečnost: ${JSON.stringify(actual)}`);
-      }
-    }
-
     if (dryRun || !confirm) {
       console.log("");
       console.log("Dry run only, nic nebylo smazáno.");
       console.log("Ostrý běh vyžaduje --confirm, --test-database <název> a přesné --expect-counts z tohoto přehledu.");
       return;
     }
-
-    const deleted = await deleteBookingData(client);
 
     console.log("");
     console.log("Booking data cleanup hotový:");

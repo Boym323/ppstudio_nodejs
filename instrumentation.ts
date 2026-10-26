@@ -91,6 +91,10 @@ function sanitizeTokenPath(path: string) {
     return "/rezervace/storno/[redacted]";
   }
 
+  if (rawPathname.startsWith("/admin/pozvanka/")) {
+    return "/admin/pozvanka/[redacted]";
+  }
+
   if (rawPathname.startsWith("/rezervace/akce/")) {
     const parts = rawPathname.split("/").filter(Boolean);
     const intent = parts[2] ?? "[intent]";

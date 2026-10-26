@@ -8,8 +8,9 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Zabezpečení
 
+- Chybové logy aplikace maskují administrační pozvánkové tokeny v URL i hlavičce `referer`; deployment dokumentace upozorňuje, že Nginx `$uri` token v cestě neodstraní.
 - Pravidelný bezpečnostní audit vedle blokující kontroly produkčních balíčků reportuje zranitelnosti všech závislostí včetně vývojových a nízké závažnosti.
-- Destruktivní cleanup rezervací odmítá produkční režim, před smazáním ověřuje identitu testovací databáze a přesné očekávané počty; ručně založené klientky zachovává.
+- Destruktivní cleanup rezervací odmítá produkční režim, ověřuje identitu testovací databáze a kontroluje očekávané počty pod zámkem v mazací transakci; ručně založené klientky zachovává.
 
 ### Změněno
 

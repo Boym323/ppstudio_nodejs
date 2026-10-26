@@ -143,7 +143,9 @@ Důvod:
 - e-mailové a ICS odkazy se skládají z `NEXT_PUBLIC_APP_URL`
 - canonical/SEO metadata se opírají o veřejný origin
 
-Pro administrační API neloguj query string. V access logu proxy používej cestu bez parametrů (např. `$uri` místo `$request_uri` v Nginxu); chrání to před únikem citlivých hodnot i při chybném klientském requestu.
+Pro administrační API neloguj query string. Pozvánka na `/admin/pozvanka/<token>` ale nese tajemství přímo v cestě, takže ani `$uri` v Nginxu není bezpečné pro access log; `$request` a `$request_uri` mohou obsahovat tokeny také. V Nginx Proxy Manageru ověř aktivní access log format a vlastní location nastavení. Pro tuto route access log vypni, nebo použij formát, který cestu požadavku vůbec nezapisuje.
+
+Po změně konfigurace prověř dostupné historické NPM access logy na požadavky `/admin/pozvanka/` a zjisti jejich retenci a okruh přístupu. Repozitář konfiguraci NPM ani produkční logy neobsahuje, proto je nutné tuto kontrolu provést přímo na hostu proxy.
 
 ## Důvěryhodná klientská IP a port 3000
 
