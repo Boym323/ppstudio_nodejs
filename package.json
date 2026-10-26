@@ -111,7 +111,7 @@
     "@typescript/native": "npm:typescript@7.0.2",
     "c8": "^12.0.0",
     "dotenv": "^18.0.9",
-    "eslint": "^9",
+    "eslint": "^10",
     "eslint-config-next": "16.4.3",
     "prisma": "7.10.1",
     "tailwindcss": "^4.3.2",
