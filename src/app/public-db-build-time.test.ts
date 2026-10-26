@@ -6,7 +6,7 @@ import { test } from "node:test";
 const projectRoot = path.resolve(import.meta.dirname, "../..");
 
 const requestTimePublicReads = [
-  ["src/app/(public)/page.tsx", "await getHomepageFeaturedServices()"],
+  ["src/app/(public)/page.tsx", "getHomepageFeaturedServices()"],
   ["src/app/(public)/sluzby/page.tsx", "await getPublicServices()"],
   ["src/app/(public)/sluzby/[slug]/page.tsx", "await resolvePublicServiceSlug(slug)"],
   ["src/app/(public)/cenik/page.tsx", "await getPublicPricingCatalog()"],
@@ -19,7 +19,7 @@ const requestTimePublicReads = [
   ["src/features/public/components/public-home-page.tsx", "await Promise.all(["],
   ["src/features/public/components/voucher-landing-page.tsx", "await getPublicSalonProfile()"],
   ["src/features/public/components/contact-page.tsx", "await Promise.all(["],
-  ["src/features/public/components/faq-page.tsx", "await getBookingPolicySettings()"],
+  ["src/features/public/components/faq-page.tsx", "getBookingPolicySettings()"],
   ["src/components/layout/site-shell.tsx", "await getPublicSalonProfile()"],
   ["src/components/layout/site-footer.tsx", "await getPublicSalonProfile()"],
 ] as const;
