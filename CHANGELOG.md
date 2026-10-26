@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Zabezpečení
 
+- Pravidelný bezpečnostní audit vedle blokující kontroly produkčních balíčků reportuje zranitelnosti všech závislostí včetně vývojových a nízké závažnosti.
 - Destruktivní cleanup rezervací odmítá produkční režim, před smazáním ověřuje identitu testovací databáze a přesné očekávané počty; ručně založené klientky zachovává.
 
 ### Změněno

@@ -42,3 +42,26 @@ jobs:
 
       - name: Audit high and critical production vulnerabilities
         run: npm audit --omit=dev --audit-level=high
+
+  npm-audit-report:
+    name: Report all dependency vulnerabilities
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Report vulnerabilities in all dependencies
+        run: npm audit --audit-level=low
+        continue-on-error: true
