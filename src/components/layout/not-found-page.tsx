@@ -5,28 +5,28 @@ import { Container } from "@/components/ui/container";
 export function NotFoundPage() {
   return (
     <div className="ppstudio-404-page overflow-hidden">
-      <Container className="relative flex min-h-[min(44rem,calc(100svh-4rem))] items-center py-14 sm:py-20 lg:py-24">
-        <div className="grid w-full items-center gap-12 lg:grid-cols-[minmax(0,0.92fr)_minmax(25rem,1.08fr)] lg:gap-10 xl:gap-20">
-          <div className="relative z-10 max-w-2xl">
+      <Container className="relative flex min-h-[min(40rem,calc(100svh-7rem))] items-center py-12 sm:py-16 lg:py-20">
+        <div className="grid w-full items-center gap-7 sm:gap-10 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] lg:gap-12 xl:gap-16">
+          <div className="relative z-10 max-w-[40rem]">
             <p className="text-eyebrow text-[var(--color-accent)]">PP Studio · chyba v adrese</p>
             <h2 className="sr-only">404</h2>
-            <h1 className="mt-5 max-w-[18ch] font-display text-3xl leading-[1.1] tracking-tight text-[var(--color-foreground)] sm:text-4xl lg:text-[3.65rem]">
+            <h1 className="mt-5 max-w-[19ch] font-display text-[clamp(2.55rem,10vw,3.25rem)] leading-[1.09] tracking-[-0.035em] text-[var(--color-foreground)] sm:mt-7 sm:text-[3.5rem] lg:max-w-[19ch] lg:text-[clamp(3.25rem,4.25vw,4.25rem)]">
               Ups, tahle stránka si odskočila na kosmetiku.
             </h1>
-            <p className="mt-6 max-w-[39rem] text-base leading-7 text-[var(--color-muted)] sm:text-lg sm:leading-8">
+            <p className="mt-5 max-w-[34rem] text-base leading-7 text-[var(--color-muted)] sm:mt-7 sm:text-lg sm:leading-8">
               Možná jen změnila adresu. My vás ale rádi nasměrujeme zpátky.
             </p>
 
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <div className="mt-7 flex flex-col gap-3 sm:mt-9 sm:flex-row sm:flex-wrap">
               <Link
                 href="/"
-                className="button-text inline-flex min-h-13 items-center justify-center rounded-full bg-[var(--color-foreground)] px-7 py-4 text-white hover:bg-[#2c221d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-background)]"
+                className="button-text inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--color-foreground)] px-7 py-3.5 text-white hover:bg-[#2c221d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-background)]"
               >
                 Zpět na úvod
               </Link>
               <Link
                 href="/sluzby"
-                className="button-text inline-flex min-h-13 items-center justify-center rounded-full border border-black/10 bg-white/65 px-7 py-4 text-[var(--color-foreground)] hover:border-black/20 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-background)]"
+                className="button-text inline-flex min-h-12 items-center justify-center rounded-full border border-black/10 bg-white/65 px-7 py-3.5 text-[var(--color-foreground)] hover:border-black/20 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-background)]"
               >
                 Prohlédnout služby
               </Link>
@@ -36,13 +36,22 @@ export function NotFoundPage() {
           <div
             data-testid="not-found-404-art"
             aria-hidden="true"
-            className="ppstudio-404-art relative mx-auto flex min-h-[16.5rem] w-full max-w-[34rem] items-center justify-center overflow-hidden rounded-[2rem] border border-black/[0.07] bg-white/35 px-4 py-8 lg:min-h-[26rem] lg:justify-self-end lg:px-8"
+            className="ppstudio-404-art relative mx-auto flex h-[12rem] w-full max-w-[34rem] items-center justify-center sm:h-[17rem] lg:h-[25rem] xl:h-[27rem]"
           >
-            <span className="absolute inset-x-8 top-7 h-px bg-[var(--color-accent)]/20 lg:inset-x-12 lg:top-10" />
-            <span className="absolute bottom-7 left-8 h-px w-16 bg-[var(--color-accent)]/35 lg:bottom-10 lg:left-12" />
-            <span className="absolute bottom-7 right-8 h-px w-16 bg-[var(--color-accent)]/35 lg:bottom-10 lg:right-12" />
-            <span className="ppstudio-404-art-number relative z-10 -translate-x-1 font-display text-[clamp(9rem,22vw,16rem)] leading-none tracking-[-0.14em] text-[var(--color-accent)]/78 lg:-translate-x-3">404</span>
-            <span className="absolute bottom-7 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--color-muted)]/80 lg:bottom-10">PP Studio · 404</span>
+            <span className="pointer-events-none absolute inset-[5%] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(219,194,165,0.23)_0%,rgba(219,194,165,0.06)_54%,transparent_74%)]" />
+            <span className="absolute left-[8%] top-[5%] h-px w-[58%] bg-linear-to-r from-[var(--color-accent)]/35 to-transparent sm:top-[9%]" />
+            <span className="absolute left-[12%] top-[10%] whitespace-nowrap text-[9px] font-semibold uppercase tracking-[0.25em] text-[var(--color-accent)]/80 sm:top-[14%] sm:text-[10px]">
+              Ztracená adresa
+            </span>
+            <span className="relative z-10 block pr-[0.12em] font-display text-[clamp(8rem,32vw,10rem)] leading-none tracking-[-0.12em] text-[#a98a69] sm:text-[clamp(10rem,25vw,13rem)] lg:text-[clamp(10rem,17vw,13rem)]">
+              404
+            </span>
+            <div className="absolute bottom-[4%] left-[8%] right-[8%] flex items-center justify-center gap-3 sm:bottom-[12%] sm:gap-5">
+              <span className="h-px min-w-4 max-w-14 flex-1 bg-[var(--color-accent)]/35" />
+              <span className="whitespace-nowrap text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]/85 sm:text-[10px] sm:tracking-[0.23em]">Stránka nenalezena</span>
+              <span className="h-px min-w-4 max-w-14 flex-1 bg-[var(--color-accent)]/35" />
+            </div>
+            <span className="absolute bottom-0 right-[8%] h-px w-[58%] bg-linear-to-l from-[var(--color-accent)]/35 to-transparent sm:bottom-[7%]" />
           </div>
         </div>
       </Container>
