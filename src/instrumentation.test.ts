@@ -48,7 +48,8 @@ test("onRequestError redacts access tokens from request paths and referer header
 
       assert.equal(log.request.path, sanitizedPath);
       assert.equal(log.request.headers.referer, `https://example.com${sanitizedPath}`);
-      assert.ok(!JSON.stringify(log).includes(path.split("/").at(-1)));
+      const token = path.slice(path.lastIndexOf("/") + 1);
+      assert.ok(!JSON.stringify(log).includes(token));
     }
   } finally {
     console.error = originalConsoleError;
