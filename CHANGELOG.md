@@ -14,6 +14,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- E2E joby CI používají Ubuntu 24.04 kvůli nestabilním instalacím Playwright systémových závislostí na Ubuntu 26.04; instalace prohlížečů má samostatný sedmiminutový limit a při chybě vypíše diagnostiku prostředí.
 - Administrační Události deduplikují voucherové completion audity přímo v PostgreSQL pomocí `NOT EXISTS`; historie se načítá pouze v omezeném stránkovaném prefixu bez rozsáhlých podmínek `OR` a bez přenosu celé auditní historie do paměti.
 - Stránka GDPR uvádí právní identitu správce shodně s obchodními podmínkami.
 - CI kontroluje minimální pokrytí měřeného rozsahu: 50 % statements a lines, 75 % branches a 74 % functions.
