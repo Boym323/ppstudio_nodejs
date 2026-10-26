@@ -1,543 +1,73 @@
-import { BookingStatus, BookingSubmissionOutcome, EmailIncidentResolutionKind, EmailLogStatus, EmailLogType, Prisma } from "@/generated/prisma/client";
+import { BookingSubmissionOutcome, EmailIncidentResolutionKind, EmailLogStatus, EmailLogType, Prisma } from "@/generated/prisma/client";
 
 import type { AdminArea } from "@/config/navigation";
-import { getDayBounds, isValidDateKey } from "@/features/admin/lib/admin-slots/time";
 import { getAdminBookingHref } from "@/features/admin/lib/booking/booking-display";
 import { formatServicePrice } from "@/features/admin/lib/admin-service-format";
 import { getEmailWorkerStaleBefore, isEmailWorkerClaimStale } from "@/lib/email/booking-delivery-fence";
 import { deriveTrackingState } from "@/lib/email/resend-webhooks";
-import { getEmailDeliveryFailureWhere, getUnresolvedEmailDeliveryFailureWhere, getUnresolvedEmailDeliveryIncidentRootWhere, isEmailDeliveryFailure } from "@/lib/email/incidents";
+import { getEmailDeliveryFailureWhere, getUnresolvedEmailDeliveryIncidentRootWhere, isEmailDeliveryFailure } from "@/lib/email/incidents";
 import { prisma } from "@/lib/prisma";
 
 import {
-  formatTime,
-  getErrorSummary,
   getEmailLogSeverity,
   getEmailRecentStatus,
   getEmailRecentStatusLabel,
+  getErrorSummary,
   getWorkerSummary,
 } from "./email-log-presentations";
+import * as filters from "./email-log-filters";
+import {
+  filterDuplicateVoucherCompletionAudits,
+  getBookingHistorySource,
+  getBookingHistoryVoucherCode,
+  voucherCompletionAuditReason,
+  voucherCompletionAuditSource,
+} from "./email-log-vouchers";
+import {
+  getAdminLogCandidatePlan,
+  getAdminLogPageMeta,
+  sortAndPageAdminLogItems,
+} from "./email-log-pagination";
+import { adminLogPageSize } from "./email-log-types";
+import type { AdminLogItem, AdminLogSeverity, AdminLogSource, AdminLogsData } from "./email-log-types";
 
+export * from "./email-log-filters";
+export * from "./email-log-pagination";
+export * from "./email-log-types";
+export * from "./email-log-vouchers";
 export { getEmailDetailFinalStatus, getEmailLogSeverity } from "./email-log-presentations";
 export type { EmailLogDetailData } from "./email-log-presentations";
 export { getEmailLogDetailData } from "./email-log-detail";
-
 export { getEmailDeliveryFailureWhere, getEmailDeliveryIncidentRootWhere, getUnresolvedEmailDeliveryFailureWhere, getUnresolvedEmailDeliveryIncidentRootWhere } from "@/lib/email/incidents";
 
-export type AdminLogView = "attention" | "events" | "emails" | "system";
-export type AdminLogSeverity = "info" | "success" | "warning" | "error";
-export type AdminLogSource = "all" | "email" | "booking" | "voucher" | "service" | "settings" | "availability" | "admin" | "submission";
-
-export type AdminLogItem = {
-  id: string;
-  occurredAt: string;
-  category: "event" | "email" | "automation" | "system";
-  severity: AdminLogSeverity;
-  title: string;
-  description: string | null;
-  actorLabel: string | null;
-  entityLabel: string | null;
-  entityHref: string | null;
-  sourceType: "email" | "booking" | "voucher" | "service" | "settings" | "availability" | "admin" | "submission";
-  sourceId: string;
-  primaryAction: "retry" | "release" | "detail" | "open" | null;
-  emailLogId?: string;
-  queueState?: string;
-  trackingState?: string;
-  emailBadge?: { label: string; severity: AdminLogSeverity; detail: string | null };
-};
-
-export type AdminLogsData = {
-  area: AdminArea;
-  view: AdminLogView;
-  items: AdminLogItem[];
-  total: number;
-  page: number;
-  pageCount: number;
-  pageSize: number;
-  filters: { query: string; severity: "all" | AdminLogSeverity; source: AdminLogSource; emailType: "all" | EmailLogType; dateFrom: string; dateTo: string };
-  attention: { failed: number; retry: number; stuck: number; critical: number };
-  queueStats: Array<{
-    label: string;
-    value: string;
-    tone?: "default" | "accent" | "muted";
-    detail?: string;
-  }>;
-  workerSummary: string;
-};
-
-const adminLogPageSize = 50;
-
-function bookingHistoryLabel(status: BookingStatus) {
-  switch (status) {
-    case BookingStatus.PENDING: return "Rezervace vytvořena";
-    case BookingStatus.CONFIRMED: return "Rezervace potvrzena";
-    case BookingStatus.CANCELLED: return "Rezervace zrušena";
-    case BookingStatus.COMPLETED: return "Rezervace dokončena";
-    case BookingStatus.NO_SHOW: return "Klientka nedorazila";
-  }
-}
-function bookingHistorySeverity(status: BookingStatus): AdminLogSeverity {
-  if (status === BookingStatus.NO_SHOW) return "warning";
-  if (status === BookingStatus.COMPLETED || status === BookingStatus.CONFIRMED) return "success";
-  return "info";
-}
-
-const bookingHistoryAuditSourcePresentation = {
-  "admin-booking-price-update-v1": { title: "Cena rezervace upravena", severity: "info" },
-  "admin-booking-note-v1": { title: "Interní poznámka upravena", severity: "info" },
-  "admin-client-contact-update-v1": { title: "Kontakt klientky upraven", severity: "info" },
-  "admin-booking-service-change-v1": { title: "Služba rezervace změněna", severity: "info" },
-  "admin-booking-payment-create-v1": { title: "Platba zaznamenána", severity: "info" },
-  "admin-booking-payment-update-v1": { title: "Platba upravena", severity: "info" },
-  "admin-booking-payment-void-v1": { title: "Platba stornována", severity: "info" },
-  "admin-booking-complete-flow-v1": { title: "Platba zaznamenána", severity: "info" },
-} as const satisfies Record<string, { title: string; severity: AdminLogSeverity }>;
-
-const bookingHistoryReasonPresentation = {
-  "public-booking-request-v1": { title: "Rezervace vytvořena", severity: "info" },
-  "admin-manual-booking-v1": { title: "Rezervace vytvořena", severity: "info" },
-  "owner-email-approve-v1": { title: "Rezervace potvrzena", severity: "success" },
-  "owner-email-reject-v1": { title: "Rezervace zrušena", severity: "info" },
-  "public-cancellation-flow-v1": { title: "Rezervace zrušena", severity: "info" },
-  "Voucher uplatněn při dokončení návštěvy": { title: "Voucher uplatněn při dokončení návštěvy", severity: "info" },
-} as const satisfies Record<string, { title: string; severity: AdminLogSeverity }>;
-
-const bookingHistoryOperationalSources = Object.keys(bookingHistoryAuditSourcePresentation);
-
-function getBookingHistorySource(metadata: Prisma.JsonValue | null): string | null {
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
-  return typeof metadata.source === "string" ? metadata.source : null;
-}
-
-const voucherCompletionAuditReason = "Voucher uplatněn při dokončení návštěvy";
-const voucherCompletionAuditSource = "admin-booking-complete-flow-v1";
-
-function getBookingHistoryVoucherCode(metadata: Prisma.JsonValue | null): string | null {
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
-  return typeof metadata.voucherCode === "string" ? metadata.voucherCode : null;
-}
-
-type VoucherCompletionBookingAudit = {
-  bookingId: string;
-  reason: string | null;
-  metadata: Prisma.JsonValue | null;
-};
-
-type CanonicalVoucherRedemption = {
-  bookingId: string | null;
-  voucher: { code: string } | null;
-};
-
-/** Potlačí jen booking audit, pro který existuje stejná kanonická voucher redemption operace. */
-export function filterDuplicateVoucherCompletionAudits<T extends VoucherCompletionBookingAudit>(
-  history: T[],
-  redemptions: CanonicalVoucherRedemption[],
-) {
-  const canonicalOperations = new Set(redemptions.flatMap((redemption) => (
-    redemption.bookingId && redemption.voucher
-      ? [`${redemption.bookingId}\u0000${redemption.voucher.code}`]
-      : []
-  )));
-
-  return history.filter((entry) => {
-    if (entry.reason !== voucherCompletionAuditReason || getBookingHistorySource(entry.metadata) !== voucherCompletionAuditSource) return true;
-    const voucherCode = getBookingHistoryVoucherCode(entry.metadata);
-    return !voucherCode || !canonicalOperations.has(`${entry.bookingId}\u0000${voucherCode}`);
-  });
-}
-
-function bookingHistoryReasonLabel(reason: string | null) {
-  const labels: Record<string, string> = {
-    "public-booking-request-v1": "Rezervace odeslána z online formuláře",
-    "owner-email-approve-v1": "Rezervace potvrzena z e-mailu",
-    "owner-email-reject-v1": "Rezervace zamítnuta z e-mailu",
-    "public-cancellation-flow-v1": "Rezervace zrušena klientkou online",
-    "admin-manual-booking-v1": "Rezervace vytvořena ručně v administraci",
-  };
-  return reason ? labels[reason] ?? reason : null;
-}
-
-export function getBookingHistoryPresentation(entry: {
-  status: BookingStatus;
-  reason: string | null;
-  metadata: Prisma.JsonValue | null;
-}) {
-  const reasonPresentation = entry.reason ? bookingHistoryReasonPresentation[entry.reason as keyof typeof bookingHistoryReasonPresentation] : null;
-  if (reasonPresentation) {
-    return { ...reasonPresentation, description: bookingHistoryReasonLabel(entry.reason) };
-  }
-
-  const source = getBookingHistorySource(entry.metadata);
-  const sourcePresentation = source ? bookingHistoryAuditSourcePresentation[source as keyof typeof bookingHistoryAuditSourcePresentation] : null;
-  if (sourcePresentation) {
-    return { ...sourcePresentation, description: bookingHistoryReasonLabel(entry.reason) };
-  }
-
-  return {
-    title: bookingHistoryLabel(entry.status),
-    severity: bookingHistorySeverity(entry.status),
-    description: bookingHistoryReasonLabel(entry.reason),
-  };
-}
-
-const adminSubmissionPrefixes = ["ADMIN_LOGIN_", "ADMIN_INVITE_ACTIVATION_", "ADMIN_RECOVERY_"] as const;
-const publicVoucherSubmissionPrefix = "PUBLIC_VOUCHER_VERIFY_";
-const expectedBookingFailureCodes = [
-  "RATE_LIMITED",
-  "VALIDATION_ERROR",
-  "SERVICE_UNAVAILABLE",
-  "SLOT_UNAVAILABLE",
-  "SLOT_NOT_ALLOWED",
-  "SLOT_TOO_SHORT",
-  "SLOT_ALREADY_BOOKED_BY_CLIENT",
-  "VOUCHER_INVALID",
-  "BOOKING_CONFLICT",
-] as const;
-const criticalBookingFailureCodes = ["TEMPORARY_FAILURE", "SCHEMA_MISMATCH", "UNEXPECTED_ERROR"] as const;
-
-export function isCriticalBookingSubmission(failureCode: string | null) {
-  return criticalBookingFailureCodes.some((code) => code === failureCode)
-    || (failureCode?.startsWith(publicVoucherSubmissionPrefix) === true && failureCode.endsWith("_UNKNOWN_ERROR"));
-}
-
-export function getBookingSubmissionPresentation(entry: {
-  outcome: BookingSubmissionOutcome;
-  failureCode: string | null;
-}) {
-  const { failureCode, outcome } = entry;
-  if (failureCode?.startsWith("ADMIN_LOGIN_")) {
-    return { title: "Přihlášení administrátora", severity: "info" as const, entityFallback: "Administrace", needsAttention: false };
-  }
-  if (failureCode?.startsWith("ADMIN_INVITE_ACTIVATION_")) {
-    return { title: "Aktivace přístupu", severity: "info" as const, entityFallback: "Administrátorský přístup", needsAttention: false };
-  }
-  if (failureCode?.startsWith("ADMIN_RECOVERY_")) {
-    return { title: "Obnova administrátora", severity: "info" as const, entityFallback: "Administrace", needsAttention: false };
-  }
-  if (failureCode?.startsWith(publicVoucherSubmissionPrefix)) {
-    const needsAttention = isCriticalBookingSubmission(failureCode);
-    return { title: "Veřejné ověření voucheru", severity: needsAttention ? "error" as const : "info" as const, entityFallback: "Voucher", needsAttention };
-  }
-
-  const expectedFailure = expectedBookingFailureCodes.some((code) => code === failureCode);
-  const needsAttention = isCriticalBookingSubmission(failureCode);
-  const severity: AdminLogSeverity = needsAttention || (outcome === BookingSubmissionOutcome.FAILED && !expectedFailure)
-    ? "error"
-    : outcome === BookingSubmissionOutcome.SUCCESS
-      ? "success"
-      : "info";
-  const title = outcome === BookingSubmissionOutcome.SUCCESS
-    ? "Rezervační formulář úspěšně zpracován"
-    : outcome === BookingSubmissionOutcome.BLOCKED
-      ? "Odeslání rezervace zablokováno"
-      : "Odeslání rezervace selhalo";
-  return { title, severity, entityFallback: "Veřejný booking", needsAttention };
-}
-
-function criticalBookingSubmissionWhere(createdAt?: Prisma.DateTimeFilter): Prisma.BookingSubmissionLogWhereInput {
-  return {
-    outcome: BookingSubmissionOutcome.FAILED,
-    ...(createdAt ? { createdAt } : {}),
-    OR: [
-      { failureCode: { in: [...criticalBookingFailureCodes] } },
-      { failureCode: { startsWith: publicVoucherSubmissionPrefix, endsWith: "_UNKNOWN_ERROR" } },
-    ],
-  };
-}
-
-function parseLogDate(value: string | undefined, end = false) {
-  if (!value || !isValidDateKey(value)) return null;
-  const { startsAt, endsAt } = getDayBounds(value);
-  return end ? endsAt : startsAt;
-}
-
-function containsQuery(value: string): Prisma.StringFilter {
-  return { contains: value, mode: "insensitive" };
-}
-
-export function buildEmailLogWhere(query: string, dateWhere?: Prisma.DateTimeFilter, emailType: "all" | EmailLogType = "all"): Prisma.EmailLogWhereInput {
-  return {
-    ...(dateWhere ? { createdAt: dateWhere } : {}),
-    ...(emailType !== "all" ? { type: emailType } : {}),
-    ...(query ? { OR: [
-      { recipientEmail: containsQuery(query) }, { subject: containsQuery(query) },
-      { templateKey: containsQuery(query) },
-      { booking: { is: { OR: [{ clientNameSnapshot: containsQuery(query) }, { serviceNameSnapshot: containsQuery(query) }, { id: containsQuery(query) }] } } },
-      { client: { is: { fullName: containsQuery(query) } } },
-    ] } : {}),
-  };
-}
-
-function getEmailDeliveryWarningWhere(): Prisma.EmailLogWhereInput {
-  return {
-    OR: [
-      { trackingComplainedAt: { not: null } },
-      {
-        trackingLastEvent: "email.delivery_delayed",
-        trackingDeliveredAt: null,
-        trackingOpenedAt: null,
-        trackingClickedAt: null,
-      },
-    ],
-  };
-}
-
-export function buildBookingHistoryWhere(query: string, dateWhere?: Prisma.DateTimeFilter): Prisma.BookingStatusHistoryWhereInput {
-  return { ...(dateWhere ? { createdAt: dateWhere } : {}), ...(query ? { OR: [
-    { reason: containsQuery(query) }, { note: containsQuery(query) },
-    { booking: { is: { OR: [{ id: containsQuery(query) }, { clientNameSnapshot: containsQuery(query) }, { serviceNameSnapshot: containsQuery(query) }] } } },
-  ] } : {}) };
-}
-
-export function buildAvailabilityAuditWhere(query: string, dateWhere?: Prisma.DateTimeFilter): Prisma.AvailabilityAuditEventWhereInput {
-  return { ...(dateWhere ? { createdAt: dateWhere } : {}), ...(query ? { OR: [
-    { dateKey: containsQuery(query) }, { source: containsQuery(query) }, { operationId: containsQuery(query) },
-    { actorUser: { is: { name: containsQuery(query) } } },
-  ] } : {}) };
-}
-
-function availabilityAuditLabel(operation: string) {
-  return ({ ADD: "Dostupnost přidána", REMOVE: "Dostupnost odebrána", CLEAR: "Dostupnost dne vyčištěna", COPY_WEEK: "Týden dostupnosti zkopírován", APPLY_TEMPLATE: "Použita šablona týdne", SYNC_DRAFT: "Publikován koncept týdne", UNDO: "Změna dostupnosti vrácena" } as Record<string, string>)[operation] ?? "Dostupnost upravena";
-}
-
-function availabilityAuditDescription(entry: { dateKey: string; before: Prisma.JsonValue; after: Prisma.JsonValue; revertedOperationId: string | null }) {
-  const before = (entry.before as { intervals?: Array<{ startsAt: string; endsAt: string }> }).intervals ?? [];
-  const after = (entry.after as { intervals?: Array<{ startsAt: string; endsAt: string }> }).intervals ?? [];
-  const label = (intervals: Array<{ startsAt: string; endsAt: string }>) => intervals.map((item) => `${formatTime.format(new Date(item.startsAt))}–${formatTime.format(new Date(item.endsAt))}`).join(", ") || "bez dostupnosti";
-  return `${entry.dateKey}: ${label(before)} → ${label(after)}${entry.revertedOperationId ? " • vrácení předchozí operace" : ""}`;
-}
-
-function buildRescheduleWhere(query: string, dateWhere?: Prisma.DateTimeFilter): Prisma.BookingRescheduleLogWhereInput {
-  return { ...(dateWhere ? { createdAt: dateWhere } : {}), ...(query ? { OR: [
-    { reason: containsQuery(query) }, { booking: { is: { OR: [{ id: containsQuery(query) }, { clientNameSnapshot: containsQuery(query) }, { serviceNameSnapshot: containsQuery(query) }] } } },
-  ] } : {}) };
-}
-
-export function buildVoucherWhere(query: string, dateWhere?: Prisma.DateTimeFilter): Prisma.VoucherWhereInput {
-  return { ...(dateWhere ? { createdAt: dateWhere } : {}), ...(query ? { OR: [
-    { code: containsQuery(query) }, { purchaserName: containsQuery(query) }, { purchaserEmail: containsQuery(query) }, { recipientName: containsQuery(query) },
-  ] } : {}) };
-}
-
-function buildVoucherRedemptionWhere(query: string, dateWhere?: Prisma.DateTimeFilter): Prisma.VoucherRedemptionWhereInput {
-  return { ...(dateWhere ? { redeemedAt: dateWhere } : {}), ...(query ? { OR: [
-    { voucher: { is: { code: containsQuery(query) } } },
-    { booking: { is: { OR: [{ id: containsQuery(query) }, { clientNameSnapshot: containsQuery(query) }] } } },
-  ] } : {}) };
-}
-
-function buildVoucherChangeWhere(query: string, dateWhere?: Prisma.DateTimeFilter): Prisma.VoucherChangeLogWhereInput {
-  return { ...(dateWhere ? { createdAt: dateWhere } : {}), ...(query ? { OR: [
-    { voucher: { is: { code: containsQuery(query) } } },
-    { actorUser: { is: { name: containsQuery(query) } } },
-  ] } : {}) };
-}
-
-function buildServiceChangeWhere(query: string, dateWhere?: Prisma.DateTimeFilter): Prisma.ServiceChangeLogWhereInput {
-  return { ...(dateWhere ? { createdAt: dateWhere } : {}), ...(query ? { OR: [
-    { service: { is: { OR: [{ name: containsQuery(query) }, { publicName: containsQuery(query) }] } } },
-    { actorUser: { is: { name: containsQuery(query) } } },
-  ] } : {}) };
-}
-
-function buildServicePriceChangeWhere(query: string, dateWhere?: Prisma.DateTimeFilter): Prisma.ServicePriceChangeLogWhereInput {
-  return { ...(dateWhere ? { createdAt: dateWhere } : {}), ...(query ? { OR: [
-    { service: { is: { OR: [{ name: containsQuery(query) }, { publicName: containsQuery(query) }] } } },
-    { changedByUser: { is: { name: containsQuery(query) } } },
-  ] } : {}) };
-}
-
-function buildSiteSettingsChangeWhere(query: string, dateWhere?: Prisma.DateTimeFilter): Prisma.SiteSettingsChangeLogWhereInput {
-  return { ...(dateWhere ? { createdAt: dateWhere } : {}), ...(query ? {
-    actorUser: { is: { name: containsQuery(query) } },
-  } : {}) };
-}
-
-function buildAdminUserAuditWhere(query: string, dateWhere?: Prisma.DateTimeFilter): Prisma.AdminUserAuditEventWhereInput {
-  return { ...(dateWhere ? { createdAt: dateWhere } : {}), ...(query ? { OR: [
-    { targetUser: { is: { OR: [{ name: containsQuery(query) }, { email: containsQuery(query) }] } } },
-    { actorUser: { is: { name: containsQuery(query) } } },
-  ] } : {}) };
-}
-
-function auditValueLabel(value: Prisma.JsonValue | undefined) {
-  if (value === null || value === undefined) return "neuvedeno";
-  if (typeof value === "boolean") return value ? "Ano" : "Ne";
-  if (Array.isArray(value)) return value.join(", ") || "žádné";
-  return String(value);
-}
-
-function categoryAuditValueLabel(value: Prisma.JsonValue | undefined, categoryNames: Map<string, string>) {
-  if (typeof value === "string") return categoryNames.get(value) ?? value;
-  if (!value || typeof value !== "object" || Array.isArray(value)) return auditValueLabel(value);
-  const snapshot = value as Record<string, Prisma.JsonValue>;
-  if (typeof snapshot.categoryName === "string" && snapshot.categoryName) return snapshot.categoryName;
-  if (typeof snapshot.categoryId === "string") return categoryNames.get(snapshot.categoryId) ?? snapshot.categoryId;
-  return auditValueLabel(value);
-}
-
-export function auditChangeDescription(
-  beforeValue: Prisma.JsonValue,
-  afterValue: Prisma.JsonValue,
-  categoryNames = new Map<string, string>(),
-) {
-  const before = beforeValue && typeof beforeValue === "object" && !Array.isArray(beforeValue) ? beforeValue : {};
-  const after = afterValue && typeof afterValue === "object" && !Array.isArray(afterValue) ? afterValue : {};
-  const labels: Record<string, string> = {
-    role: "Role", isActive: "Aktivní", validUntil: "Platnost do", status: "Stav",
-    cancelledAt: "Zrušeno", hasInternalNote: "Interní poznámka", categoryId: "Kategorie",
-    purchaserNameChanged: "Jméno kupujícího", purchaserEmailChanged: "E-mail kupujícího",
-    internalNoteChanged: "Interní poznámka",
-    name: "Název", publicName: "Veřejný název", seoTitle: "SEO titulek",
-    durationMinutes: "Délka", cleanupMinutes: "Úklid", sortOrder: "Pořadí",
-    isFeaturedOnHomepage: "Na homepage", homepageSortOrder: "Pořadí na homepage",
-    isPubliclyBookable: "Rezervovatelná", publicContentFields: "Veřejný obsah",
-    bookingMinAdvanceHours: "Minimální předstih", bookingMaxAdvanceDays: "Maximální předstih",
-    bookingCancellationHours: "Storno lhůta", salonName: "Název salonu", addressLine: "Adresa",
-    city: "Město", postalCode: "PSČ", phone: "Telefon", contactEmail: "Kontaktní e-mail",
-    instagramUrl: "Instagram", voucherPdfLogoMediaId: "Logo voucheru",
-    notificationAdminEmail: "Notifikační e-mail", emailSenderName: "Jméno odesílatele",
-    emailSenderEmail: "E-mail odesílatele", hasEmailFooter: "Patička e-mailu",
-  };
-  const publicContentLabels: Record<string, string> = {
-    description: "popis služby", publicIntro: "úvodní text", seoDescription: "SEO popis",
-    idealFor: "pro koho je služba vhodná", includes: "co služba obsahuje", benefits: "výhody",
-    goodToKnow: "dobré vědět", pricingShortDescription: "popis v ceníku", pricingBadge: "štítek v ceníku",
-  };
-  return Object.keys(after).map((key) => {
-    if (key === "publicContentFields" && Array.isArray(after[key])) {
-      const fields = after[key].map((field) => typeof field === "string" ? publicContentLabels[field] ?? "další veřejný obsah" : "další veřejný obsah");
-      return `Veřejný obsah upraven: ${[...new Set(fields)].join(", ") || "žádné položky"}`;
-    }
-    const label = labels[key] ?? key.replace(/Changed$/, "");
-    if (key.endsWith("Changed") && after[key] === true) return `${label}: upraveno`;
-    const suffix = key.endsWith("Minutes") ? " min" : key.endsWith("Hours") ? " h" : key.endsWith("Days") ? " dní" : "";
-    const beforeLabel = key === "categoryId"
-      ? categoryAuditValueLabel(before[key], categoryNames)
-      : auditValueLabel(before[key]);
-    const afterLabel = key === "categoryId"
-      ? categoryAuditValueLabel(after[key], categoryNames)
-      : auditValueLabel(after[key]);
-    return `${label}: ${beforeLabel}${suffix} → ${afterLabel}${suffix}`;
-  }).join(" • ");
-}
-
-export function buildBookingSubmissionWhere(query: string, dateWhere?: Prisma.DateTimeFilter): Prisma.BookingSubmissionLogWhereInput {
-  const outcome = ["SUCCESS", "FAILED", "BLOCKED"].includes(query.toUpperCase())
-    ? query.toUpperCase() as BookingSubmissionOutcome
-    : undefined;
-  return { ...(dateWhere ? { createdAt: dateWhere } : {}), ...(query ? { OR: [
-    ...(outcome ? [{ outcome: { equals: outcome } }] : []),
-    { failureCode: containsQuery(query) }, { failureReason: containsQuery(query) },
-    { booking: { is: { OR: [{ id: containsQuery(query) }, { clientNameSnapshot: containsQuery(query) }, { serviceNameSnapshot: containsQuery(query) }] } } },
-    { client: { is: { fullName: containsQuery(query) } } },
-  ] } : {}) };
-}
-
-export function withBookingSubmissionSeverity(base: Prisma.BookingSubmissionLogWhereInput, severity: "all" | AdminLogSeverity) {
-  if (severity === "all") return base;
-  const adminScope: Prisma.BookingSubmissionLogWhereInput = {
-    OR: adminSubmissionPrefixes.map((prefix) => ({ failureCode: { startsWith: prefix } })),
-  };
-  const voucherErrorScope: Prisma.BookingSubmissionLogWhereInput = {
-    failureCode: { startsWith: publicVoucherSubmissionPrefix, endsWith: "_UNKNOWN_ERROR" },
-  };
-  const scopes: Record<AdminLogSeverity, Prisma.BookingSubmissionLogWhereInput> = {
-    info: { OR: [
-      adminScope,
-      { failureCode: { startsWith: publicVoucherSubmissionPrefix, not: { endsWith: "_UNKNOWN_ERROR" } } },
-      { outcome: BookingSubmissionOutcome.BLOCKED },
-      { outcome: BookingSubmissionOutcome.FAILED, failureCode: { in: [...expectedBookingFailureCodes] } },
-    ] },
-    success: {
-      outcome: BookingSubmissionOutcome.SUCCESS,
-      OR: [
-        { failureCode: null },
-        { NOT: { OR: [...adminSubmissionPrefixes.map((prefix) => ({ failureCode: { startsWith: prefix } })), { failureCode: { startsWith: publicVoucherSubmissionPrefix } }] } },
-      ],
-    },
-    warning: { id: "__no_match__" },
-    error: { OR: [
-      voucherErrorScope,
-      {
-        outcome: BookingSubmissionOutcome.FAILED,
-        NOT: { OR: [adminScope, { failureCode: { startsWith: publicVoucherSubmissionPrefix } }, { failureCode: { in: [...expectedBookingFailureCodes] } }] },
-      },
-    ] },
-  };
-  return { AND: [base, scopes[severity]] } satisfies Prisma.BookingSubmissionLogWhereInput;
-}
-
-export function withEmailLogScope(
-  base: Prisma.EmailLogWhereInput,
-  view: AdminLogView,
-  severity: "all" | AdminLogSeverity,
-  staleBefore: Date,
-): Prisma.EmailLogWhereInput {
-  const deliveryFailure = getEmailDeliveryFailureWhere();
-  const unresolvedDeliveryFailure = getUnresolvedEmailDeliveryFailureWhere();
-  const deliveryWarning = getEmailDeliveryWarningWhere();
-  const attention: Prisma.EmailLogWhereInput = { OR: [
-    unresolvedDeliveryFailure,
-    deliveryWarning,
-    { status: EmailLogStatus.PENDING, attemptCount: { gt: 0 }, processingStartedAt: null },
-    { status: EmailLogStatus.PENDING, processingStartedAt: { lt: staleBefore } },
-  ] };
-  const bySeverity: Record<AdminLogSeverity, Prisma.EmailLogWhereInput> = {
-    error: view === "attention" ? unresolvedDeliveryFailure : deliveryFailure,
-    success: { AND: [{ status: EmailLogStatus.SENT }, { NOT: [deliveryFailure, deliveryWarning] }] },
-    warning: { AND: [{ NOT: [deliveryFailure] }, { OR: [
-      deliveryWarning,
-      { status: EmailLogStatus.PENDING, OR: [{ attemptCount: { gt: 0 } }, { processingStartedAt: { lt: staleBefore } }] },
-    ] }] },
-    info: { status: EmailLogStatus.PENDING, attemptCount: 0, OR: [{ processingStartedAt: null }, { processingStartedAt: { gte: staleBefore } }] },
-  };
-  const scopes = [base];
-  if (view === "attention") scopes.push(attention);
-  if (severity !== "all") scopes.push(bySeverity[severity]);
-  return scopes.length === 1 ? base : { AND: scopes };
-}
-
-function withBookingHistorySeverity(base: Prisma.BookingStatusHistoryWhereInput, severity: "all" | AdminLogSeverity) {
-  if (severity === "all") return base;
-  const operationalSource: Prisma.BookingStatusHistoryWhereInput = {
-    OR: bookingHistoryOperationalSources.map((source) => ({ metadata: { path: ["source"], equals: source } })),
-  };
-  const creationReason = { reason: { in: ["public-booking-request-v1", "admin-manual-booking-v1"] } } satisfies Prisma.BookingStatusHistoryWhereInput;
-  const scopes: Record<AdminLogSeverity, Prisma.BookingStatusHistoryWhereInput> = {
-    info: { OR: [{ status: { in: [BookingStatus.PENDING, BookingStatus.CANCELLED] } }, operationalSource, creationReason] },
-    success: { AND: [{ status: { in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED] } }, { NOT: [operationalSource, creationReason] }] },
-    warning: { AND: [{ status: BookingStatus.NO_SHOW }, { NOT: [operationalSource] }] },
-    error: { id: "__no_match__" },
-  };
-  return { AND: [base, scopes[severity]] } satisfies Prisma.BookingStatusHistoryWhereInput;
-}
-
-export function normalizeAdminLogView(view: string | undefined, area: AdminArea): AdminLogView {
-  const parsed: AdminLogView = ["attention", "events", "emails", "system"].includes(view ?? "")
-    ? view as AdminLogView
-    : "events";
-  return area === "salon" && parsed === "system" ? "events" : parsed;
-}
-
-export function sortAndPageAdminLogItems(items: AdminLogItem[], page: number, pageSize = adminLogPageSize) {
-  const sorted = [...items].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt) || b.id.localeCompare(a.id));
-  const offset = (page - 1) * pageSize;
-  return sorted.slice(offset, offset + pageSize);
-}
-
-export function getAdminLogPageMeta(total: number, requestedPage: number, pageSize = adminLogPageSize) {
-  const pageCount = Math.max(1, Math.ceil(total / pageSize));
-  const page = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.min(requestedPage, pageCount) : 1;
-  return { page, pageCount, rangeStart: total === 0 ? 0 : (page - 1) * pageSize + 1, rangeEnd: Math.min(page * pageSize, total) };
-}
-
-export function getAdminLogCandidatePlan(total: number, requestedPage: number, pageSize = adminLogPageSize) {
-  const meta = getAdminLogPageMeta(total, requestedPage, pageSize);
-  const offset = (meta.page - 1) * pageSize;
-  return { ...meta, offset, take: offset + pageSize + 1 };
-}
+const {
+  adminSubmissionPrefixes,
+  availabilityAuditDescription,
+  availabilityAuditLabel,
+  auditChangeDescription,
+  buildAdminUserAuditWhere,
+  buildAvailabilityAuditWhere,
+  buildBookingHistoryWhere,
+  buildBookingSubmissionWhere,
+  buildEmailLogWhere,
+  buildRescheduleWhere,
+  buildServiceChangeWhere,
+  buildServicePriceChangeWhere,
+  buildSiteSettingsChangeWhere,
+  buildVoucherChangeWhere,
+  buildVoucherRedemptionWhere,
+  buildVoucherWhere,
+  criticalBookingSubmissionWhere,
+  getBookingHistoryPresentation,
+  getBookingSubmissionPresentation,
+  getEmailDeliveryWarningWhere,
+  normalizeAdminLogView,
+  parseLogDate,
+  publicVoucherSubmissionPrefix,
+  withBookingHistorySeverity,
+  withBookingSubmissionSeverity,
+  withEmailLogScope,
+} = filters;
 
 /** Sjednocuje celý read-model na serveru; historické tabulky se do klienta neposílají. */
 export async function getAdminLogsData(input: {
@@ -655,8 +185,9 @@ export async function getAdminLogsData(input: {
   const simpleCandidateTake = safeView === "emails" ? adminLogPageSize : simpleMeta?.take;
   const emailPageSkip = safeView === "emails" ? (simpleMeta?.offset ?? 0) : 0;
 
-  // Přesný total potřebuje zjistit jen identity potenciálně duplicitních auditů,
-  // nikoliv načíst celou tabulku VoucherRedemption.
+  // Přesný total potřebuje všechny identity potenciálně duplicitních auditů;
+  // `take` by total podhodnotil. Dotaz je proto záměrně bez limitu, ale čte
+  // jen bookingId a metadata a je omezený na jeden auditní důvod a source.
   const voucherCompletionAudits = bookingActive && safeView === "events"
     ? await prisma.bookingStatusHistory.findMany({ where: voucherCompletionAuditWhere, select: { bookingId: true, metadata: true } })
     : [];

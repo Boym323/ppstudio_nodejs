@@ -476,3 +476,59 @@ dbTest("E-maily a Technické stránkují více než 50 záznamů bez ztráty po�
     ]);
   }
 });
+
+dbTest("refaktor logů zachová deduplikaci incidentu a OWNER/SALON scope", async () => {
+  const [{ prisma }, { getAdminLogsData }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-data"),
+  ]);
+  const suffix = `admin-log-refactor-${randomUUID()}`;
+
+  const root = await prisma.emailLog.create({
+    data: {
+      type: EmailLogType.GENERIC,
+      status: EmailLogStatus.FAILED,
+      recipientEmail: `root-${suffix}@example.test`,
+      subject: `Incident root ${suffix}`,
+      templateKey: "admin-log-refactor-incident",
+      errorMessage: "root failure",
+    },
+  });
+  const child = await prisma.emailLog.create({
+    data: {
+      type: EmailLogType.GENERIC,
+      status: EmailLogStatus.FAILED,
+      recipientEmail: `child-${suffix}@example.test`,
+      subject: `Incident child ${suffix}`,
+      templateKey: "admin-log-refactor-incident",
+      errorMessage: "child failure",
+      resendOfId: root.id,
+      resendRootId: root.id,
+    },
+  });
+  const submission = await prisma.bookingSubmissionLog.create({
+    data: {
+      outcome: BookingSubmissionOutcome.FAILED,
+      failureCode: "UNEXPECTED_ERROR",
+      failureReason: `Kritická chyba ${suffix}`,
+    },
+  });
+
+  try {
+    const incident = await getAdminLogsData({ area: "owner", view: "attention", source: "email", query: suffix });
+    assert.equal(incident.total, 1);
+    assert.deepEqual(incident.items.map((item) => item.emailLogId), [child.id]);
+    assert.ok(incident.attention.failed >= 1);
+
+    const ownerSystem = await getAdminLogsData({ area: "owner", view: "system", source: "submission", query: suffix });
+    const salonSystem = await getAdminLogsData({ area: "salon", view: "system", source: "submission", query: suffix });
+    assert.equal(ownerSystem.total, 1);
+    assert.equal(ownerSystem.items[0]?.severity, "error");
+    assert.equal(salonSystem.total, 0);
+    assert.equal(salonSystem.view, "events");
+  } finally {
+    await prisma.bookingSubmissionLog.delete({ where: { id: submission.id } });
+    await prisma.emailLog.delete({ where: { id: child.id } });
+    await prisma.emailLog.delete({ where: { id: root.id } });
+  }
+});

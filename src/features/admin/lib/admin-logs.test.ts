@@ -28,7 +28,7 @@ import {
   withBookingSubmissionSeverity,
   withEmailLogScope,
   type AdminLogItem,
-} from "./admin-data";
+} from "./data/email-logs";
 import { buildAdminLogsSearchParams } from "./admin-logs-url";
 import { auditChangeDescription } from "./data/email-logs";
 
