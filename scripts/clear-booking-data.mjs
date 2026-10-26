@@ -3,9 +3,21 @@ import "dotenv/config";
 import { Client } from "pg";
 
 function parseArgs(argv) {
+  const valueAfter = (name) => {
+    const index = argv.indexOf(name);
+    return index === -1 ? undefined : argv[index + 1];
+  };
+  let expectedCounts;
+  try {
+    expectedCounts = JSON.parse(valueAfter("--expect-counts") ?? "null");
+  } catch {
+    expectedCounts = undefined;
+  }
   return {
     dryRun: argv.includes("--dry-run"),
     confirm: argv.includes("--confirm"),
+    testDatabase: valueAfter("--test-database"),
+    expectedCounts,
   };
 }
 
@@ -89,17 +101,6 @@ async function deleteBookingData(client) {
     deleted.availabilitySlots = (
       await client.query('DELETE FROM "AvailabilitySlot"')
     ).rowCount;
-    deleted.orphanClients = (
-      await client.query(`
-        DELETE FROM "Client"
-        WHERE NOT EXISTS (
-          SELECT 1
-          FROM "Booking" b
-          WHERE b."clientId" = "Client"."id"
-        )
-      `)
-    ).rowCount;
-
     await client.query("COMMIT");
 
     return deleted;
@@ -114,7 +115,15 @@ async function main() {
     exitWithError("DATABASE_URL není nastavené. Nelze vyčistit booking data.");
   }
 
-  const { dryRun, confirm } = parseArgs(process.argv.slice(2));
+  const { dryRun, confirm, testDatabase, expectedCounts } = parseArgs(process.argv.slice(2));
+
+  if (process.env.NODE_ENV === "production") {
+    exitWithError("Booking cleanup je v NODE_ENV=production zakázaný.");
+  }
+
+  if (confirm && (!testDatabase || !expectedCounts || typeof expectedCounts !== "object")) {
+    exitWithError('Ostrý běh vyžaduje --test-database <název> a --expect-counts \'{"bookings":0,"availability_slots":0}\'.');
+  }
 
   const client = new Client({
     connectionString: withUtcPostgresTimezone(process.env.DATABASE_URL),
@@ -123,6 +132,17 @@ async function main() {
   await client.connect();
 
   try {
+    const identity = await client.query("SELECT current_database() AS database_name");
+    const databaseName = identity.rows[0].database_name;
+    if (
+      confirm &&
+      (databaseName !== testDatabase ||
+        !/(^|[_-])(test|testing|dev|development|local|sandbox)([_-]|$)/i.test(databaseName) ||
+        /(^|[_-])(prod|production)([_-]|$)/i.test(databaseName))
+    ) {
+      exitWithError(`Odmítnuto: připojená databáze „${databaseName}“ neodpovídá bezpečně identifikované testovací databázi.`);
+    }
+
     const counts = await loadCounts(client);
 
     console.log("Booking cleanup summary:");
@@ -136,10 +156,29 @@ async function main() {
     console.log(formatCount("navázané submission logy", counts.related_submission_logs));
     console.log(formatCount("osiřelé klientky", counts.orphan_clients));
 
+    if (confirm) {
+      const actual = {
+        bookings: counts.bookings,
+        availability_slots: counts.availability_slots,
+        availability_slot_services: counts.availability_slot_services,
+        booking_action_tokens: counts.booking_action_tokens,
+        booking_status_history: counts.booking_status_history,
+        booking_reschedule_logs: counts.booking_reschedule_logs,
+        related_email_logs: counts.related_email_logs,
+        related_submission_logs: counts.related_submission_logs,
+      };
+      if (
+        Object.keys(actual).length !== Object.keys(expectedCounts).length ||
+        Object.entries(actual).some(([key, value]) => expectedCounts[key] !== value)
+      ) {
+        exitWithError(`Odmítnuto: skutečné počty neodpovídají --expect-counts. Skutečnost: ${JSON.stringify(actual)}`);
+      }
+    }
+
     if (dryRun || !confirm) {
       console.log("");
       console.log("Dry run only, nic nebylo smazáno.");
-      console.log("Pro skutečné smazání spusť: node scripts/clear-booking-data.mjs --confirm");
+      console.log("Ostrý běh vyžaduje --confirm, --test-database <název> a přesné --expect-counts z tohoto přehledu.");
       return;
     }
 
