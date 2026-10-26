@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Přidáno
+
+- Veřejné neexistující URL zobrazují vlastní elegantní 404 stránku PP Studia s přesměrováním na úvod a služby; administrační a rezervační layouty si zachovávají vlastní vizuální obálku.
+
 ## [3.36.3] - 2026-10-26
 
 ### Zabezpečení
