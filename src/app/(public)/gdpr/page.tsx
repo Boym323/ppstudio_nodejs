@@ -26,6 +26,8 @@ export default async function Page() {
         title: 'Správce osobních údajů',
         description: 'Pokud máte dotaz ke zpracování osobních údajů, můžete mě kontaktovat.',
         items: [
+          { label: 'Provozovatelka', value: salonProfile.operatorName },
+          { label: 'IČO', value: salonProfile.businessId },
           { label: 'Studio', value: salonProfile.name },
           { label: 'Adresa', value: salonProfile.addressLine },
           { label: 'E-mail', value: salonProfile.email, href: emailHref },

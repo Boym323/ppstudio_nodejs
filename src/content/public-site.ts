@@ -885,8 +885,8 @@ export function buildLegalContent(cancellationHours: number) {
         id: 'spravce',
         title: 'Správce osobních údajů',
         paragraphs: [
-          'Správcem osobních údajů je PP Studio. To znamená, že určuji, za jakým účelem a jakým způsobem jsou osobní údaje při provozu studia používány.',
-          'Pokud budete potřebovat cokoliv vysvětlit nebo si uplatnit některé ze svých práv, můžete mě kontaktovat prostřednictvím uvedených kontaktních údajů.',
+          'Správcem osobních údajů je provozovatelka PP Studia. Za účelem a způsobem používání osobních údajů při provozu studia odpovídám já jako provozovatelka.',
+          'Konkrétní identifikační a kontaktní údaje správce najdete v kontaktním bloku této stránky. Pokud budete potřebovat cokoliv vysvětlit nebo si uplatnit některé ze svých práv, můžete mě kontaktovat uvedenými údaji.',
         ],
       },
       {
