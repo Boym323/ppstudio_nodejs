@@ -9,6 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Přidáno
 
 - Veřejné neexistující URL zobrazují vlastní elegantní 404 stránku PP Studia s přesměrováním na úvod a služby; administrační a rezervační layouty si zachovávají vlastní vizuální obálku.
+- Administrace Statistiky umí automaticky načíst útratu reklamního účtu z Meta Marketing API (server-only `ads_read`, hodinová cache) a vypočítat cenu za webovou rezervaci z placených Meta reklam i cenu za dokončenou návštěvu. Bez nastavení tokenu zůstane funkce vypnutá.
 
 ## [3.36.3] - 2026-10-26
 
