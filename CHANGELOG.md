@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.36.3] - 2026-10-26
+
 ### Zabezpečení
 
 - Chybové logy aplikace maskují administrační pozvánkové tokeny v URL i hlavičce `referer`; deployment dokumentace upozorňuje, že Nginx `$uri` token v cestě neodstraní.
