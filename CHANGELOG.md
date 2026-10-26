@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Změněno
+
+- CI a bezpečnostní workflow používají runner Ubuntu 26.04 připnutý na konkrétní verzi, aby změny aliasu `ubuntu-latest` nekontrolovaně neměnily prostředí kontrol.
+
 ## [3.36.2] - 2026-10-26
 
 ### Změněno

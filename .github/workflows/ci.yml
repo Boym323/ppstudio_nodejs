@@ -40,7 +40,7 @@ env:
 jobs:
   lint:
     name: lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
 
     steps:
@@ -67,7 +67,7 @@ jobs:
 
   typecheck:
     name: typecheck
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
 
     steps:
@@ -94,7 +94,7 @@ jobs:
 
   typecheck-ts6:
     name: typecheck (TypeScript 6 compatibility)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
 
     steps:
@@ -118,7 +118,7 @@ jobs:
 
   test:
     name: test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
 
     services:
@@ -174,7 +174,7 @@ jobs:
 
   build:
     name: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
 
     services:
@@ -214,7 +214,7 @@ jobs:
 
   e2e-build:
     name: e2e build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
 
     services:
@@ -266,7 +266,7 @@ jobs:
   e2e:
     name: e2e
     needs: e2e-build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
 
     services:
@@ -326,7 +326,7 @@ jobs:
   e2e-chromium-shard-2:
     name: e2e chromium shard 2
     needs: e2e-build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
 
     services:
@@ -386,7 +386,7 @@ jobs:
   e2e-mobile:
     name: e2e mobile (${{ matrix.browser.project }})
     needs: e2e-build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -454,7 +454,7 @@ jobs:
   e2e-mobile-shard-2:
     name: e2e mobile shard 2 (${{ matrix.browser.project }})
     needs: e2e-build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
