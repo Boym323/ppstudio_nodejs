@@ -136,6 +136,10 @@ Serverové:
 - `MATOMO_URL`
 - `MATOMO_SITE_ID`
 - `MATOMO_AUTH_TOKEN`
+- `META_ADS_ACCOUNT_ID`
+- `META_ADS_ACCESS_TOKEN`
+
+Meta Ads Insights načítá automaticky agregovanou útratu do sekce Statistiky (cache 1 h). Přihlašovací token je pouze serverový, nepatří do `NEXT_PUBLIC_*`. Detaily propojení jsou v [docs/META_ADS_COST_PER_BOOKING.md](docs/META_ADS_COST_PER_BOOKING.md).
 
 ### Notifikace
 
