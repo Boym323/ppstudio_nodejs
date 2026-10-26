@@ -17,6 +17,10 @@ Formát je inspirovaný Keep a Changelog.
 - CI kontroluje minimální pokrytí měřeného rozsahu: 50 % statements a lines, 75 % branches a 74 % functions.
 - CI a bezpečnostní workflow používají runner Ubuntu 26.04 připnutý na konkrétní verzi, aby změny aliasu `ubuntu-latest` nekontrolovaně neměnily prostředí kontrol.
 
+### Opraveno
+
+- Homepage a FAQ nyní odvozují rozsah délek přímo z aktivních veřejných služeb v ceníku.
+
 ## [3.36.2] - 2026-10-26
 
 ### Změněno

@@ -6,6 +6,7 @@ import {
   homepageContent,
   services,
   type Service,
+  type ServiceDurationRange,
   type TrustMetric,
 } from "@/content/public-site";
 import { Container } from "@/components/ui/container";
@@ -60,10 +61,16 @@ function ServiceCard({ service }: { service: Service }) {
   );
 }
 
-export async function PublicHomePage({ featuredServices = services.slice(0, 3) }: { featuredServices?: Service[] } = {}) {
+export async function PublicHomePage({
+  featuredServices = services.slice(0, 3),
+  serviceDurationRange,
+}: {
+  featuredServices?: Service[];
+  serviceDurationRange: ServiceDurationRange | null;
+}) {
   await connection();
   const [bookingPolicy, portrait] = await Promise.all([getBookingPolicySettings(), getPrimaryPublicHomePortrait()]);
-  const trustMetrics = buildTrustMetrics(bookingPolicy.cancellationHours);
+  const trustMetrics = buildTrustMetrics(bookingPolicy.cancellationHours, serviceDurationRange);
   const homepageServices = featuredServices.length > 0 ? featuredServices : services.slice(0, 3);
   const heroContent = {
     ...homepageContent,

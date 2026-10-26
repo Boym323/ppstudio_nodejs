@@ -1,6 +1,6 @@
 import { Prisma } from "@/generated/prisma/client";
 
-import { type Service } from "@/content/public-site";
+import { type Service, type ServiceDurationRange } from "@/content/public-site";
 import { prisma } from "@/lib/prisma";
 
 const priceFormatter = new Intl.NumberFormat("cs-CZ", {
@@ -66,6 +66,8 @@ export type PublicServiceSitemapEntry = {
   slug: string;
   updatedAt: Date;
 };
+
+export type PublicServiceDurationRange = ServiceDurationRange;
 
 export type PublicServiceSlugResolution = {
   service: Service;
@@ -446,6 +448,34 @@ export async function getHomepageFeaturedServices(limit = 3): Promise<Service[]>
   });
 
   return fallbackServices.map(mapService);
+}
+
+export async function getPublicServiceDurationRange(): Promise<PublicServiceDurationRange | null> {
+  const durationRange = await prisma.service.aggregate({
+    where: {
+      ...publicServiceVisibilityWhere,
+      category: {
+        is: {
+          isActive: true,
+        },
+      },
+    },
+    _min: {
+      durationMinutes: true,
+    },
+    _max: {
+      durationMinutes: true,
+    },
+  });
+
+  if (durationRange._min.durationMinutes === null || durationRange._max.durationMinutes === null) {
+    return null;
+  }
+
+  return {
+    minMinutes: durationRange._min.durationMinutes,
+    maxMinutes: durationRange._max.durationMinutes,
+  };
 }
 
 export async function getPublicPricingCatalog(): Promise<PublicPricingCategory[]> {

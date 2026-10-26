@@ -8,6 +8,7 @@ import {
 } from "@/features/public/components/public-page-primitives";
 import { SeoJsonLd, buildFaqPageJsonLd } from "@/features/public/components/seo-json-ld";
 import { getBookingPolicySettings } from "@/lib/site-settings";
+import { getPublicServiceDurationRange } from "@/features/public/lib/public-services";
 
 function FaqHeroAside() {
   return (
@@ -108,8 +109,11 @@ function FaqSectionBlock({ section }: { section: FaqSection }) {
 
 export async function FaqPage() {
   await connection();
-  const bookingPolicy = await getBookingPolicySettings();
-  const faqSections = buildFaqSections(bookingPolicy.cancellationHours);
+  const [bookingPolicy, serviceDurationRange] = await Promise.all([
+    getBookingPolicySettings(),
+    getPublicServiceDurationRange(),
+  ]);
+  const faqSections = buildFaqSections(bookingPolicy.cancellationHours, serviceDurationRange);
 
   return (
     <div className="pb-8 sm:pb-12">

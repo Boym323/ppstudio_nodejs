@@ -9,6 +9,11 @@ export type TrustMetric = {
   description: string;
 };
 
+export type ServiceDurationRange = {
+  minMinutes: number;
+  maxMinutes: number;
+};
+
 export type Service = {
   slug: string;
   name: string;
@@ -160,7 +165,11 @@ export const salonHighlights: HighlightItem[] = [
   { label: 'Online rezervace 24/7', value: 'Termín vyberete v několika krocích' },
 ];
 
-export function buildTrustMetrics(cancellationHours: number): TrustMetric[] {
+function formatServiceDurationRange(range: ServiceDurationRange | null) {
+  return range ? `${range.minMinutes}–${range.maxMinutes} min` : 'Dle aktuální nabídky';
+}
+
+export function buildTrustMetrics(cancellationHours: number, serviceDurationRange: ServiceDurationRange | null): TrustMetric[] {
   return [
     {
       value: '1:1',
@@ -168,7 +177,7 @@ export function buildTrustMetrics(cancellationHours: number): TrustMetric[] {
       description: 'Termíny jsou vedené tak, aby měla klientka klid, soukromí a dostatek času bez spěchu.',
     },
     {
-      value: '45-120 min',
+      value: formatServiceDurationRange(serviceDurationRange),
       label: 'Délka procedur',
       description: 'Délky služeb jsou navržené realisticky, včetně času na konzultaci, ošetření i doporučení domácí péče.',
     },
@@ -179,8 +188,6 @@ export function buildTrustMetrics(cancellationHours: number): TrustMetric[] {
     },
   ];
 }
-
-export const trustMetrics = buildTrustMetrics(48);
 
 export const services: Service[] = [
   {
@@ -401,7 +408,7 @@ export const contactItems = buildContactItems({
   instagramUrl: null,
 });
 
-export function buildFaqSections(cancellationHours: number): FaqSection[] {
+export function buildFaqSections(cancellationHours: number, serviceDurationRange: ServiceDurationRange | null): FaqSection[] {
   return [
     {
       id: 'rezervace',
@@ -490,7 +497,9 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
         {
           question: 'Jak dlouho ošetření trvá?',
           answer:
-            'Podle zvolené služby obvykle počítejte přibližně s 45 až 120 minutami. Orientační délku vždy uvidíte už při výběru termínu.',
+            serviceDurationRange
+              ? `Podle zvolené služby obvykle počítejte přibližně s ${serviceDurationRange.minMinutes} až ${serviceDurationRange.maxMinutes} minutami. Orientační délku vždy uvidíte už při výběru termínu.`
+              : 'Délka závisí na zvolené službě. Orientační délku vždy uvidíte už při výběru termínu.',
         },
         {
           question: 'Můžu přijít nalíčená?',
@@ -621,8 +630,6 @@ export function buildFaqSections(cancellationHours: number): FaqSection[] {
     },
   ];
 }
-
-export const faqSections = buildFaqSections(48);
 
 export function buildCancellationPageContent(input: {
   cancellationHours: number;

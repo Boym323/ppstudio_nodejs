@@ -1,6 +1,6 @@
 import { SeoJsonLd, buildHomePageJsonLd } from "@/features/public/components/seo-json-ld";
 import { PublicHomePage, buildPageMetadata } from '@/features/public/components/public-site';
-import { getHomepageFeaturedServices } from '@/features/public/lib/public-services';
+import { getHomepageFeaturedServices, getPublicServiceDurationRange } from '@/features/public/lib/public-services';
 
 export const metadata = buildPageMetadata({
   title: 'PP Studio | Kosmetika Zlín',
@@ -12,12 +12,15 @@ export const metadata = buildPageMetadata({
 
 export default async function Page() {
   await connection();
-  const featuredServices = await getHomepageFeaturedServices();
+  const [featuredServices, serviceDurationRange] = await Promise.all([
+    getHomepageFeaturedServices(),
+    getPublicServiceDurationRange(),
+  ]);
 
   return (
     <>
       <SeoJsonLd data={buildHomePageJsonLd()} />
-      <PublicHomePage featuredServices={featuredServices} />
+      <PublicHomePage featuredServices={featuredServices} serviceDurationRange={serviceDurationRange} />
     </>
   );
 }
