@@ -203,6 +203,69 @@ dbTest("ADD navazující přepíše pouze dotčený slot do kanonického interva
   }
 });
 
+dbTest("po stornu manual override planner zveřejní archivovaný čas jen po výslovném ADD", async () => {
+  const seed = await createSeed();
+  const { prisma, applyAvailabilitySelection, getAdminPlannerWeek } = await loadModules();
+
+  try {
+    await prisma.booking.update({
+      where: { id: seed.bookingId },
+      data: { manualOverride: true },
+    });
+    await prisma.availabilitySlot.update({
+      where: { id: seed.bookedSlotId },
+      data: { status: AvailabilitySlotStatus.DRAFT },
+    });
+
+    const { applyAdminBookingStatusChange } = await import("../admin-booking");
+    const cancellation = await applyAdminBookingStatusChange({
+      bookingId: seed.bookingId,
+      targetStatus: BookingStatus.CANCELLED,
+      actorUserId: seed.actorUserId,
+      notifyClient: false,
+    });
+    assert.equal(cancellation.status, "success");
+
+    const archivedSource = await prisma.availabilitySlot.findUniqueOrThrow({
+      where: { id: seed.bookedSlotId },
+      select: { status: true },
+    });
+    assert.equal(archivedSource.status, AvailabilitySlotStatus.ARCHIVED);
+    const afterCancellation = await getAdminPlannerWeek("owner", seed.weekKey);
+    const dayAfterCancellation = afterCancellation.days.find((day) => day.dateKey === seed.dateKey);
+    assert.deepEqual(
+      dayAfterCancellation?.availableIntervals.map(({ startCell, endCell }) => [startCell, endCell]),
+      [[4, 6], [8, 16]],
+    );
+
+    await applyAvailabilitySelection("owner", {
+      weekKey: seed.weekKey,
+      dateKey: seed.dateKey,
+      startCell: 6,
+      endCell: 8,
+      mode: "add",
+      operationId: randomUUID(),
+      actorUserId: seed.actorUserId,
+    });
+
+    const afterExplicitAdd = await getAdminPlannerWeek("owner", seed.weekKey);
+    const dayAfterAdd = afterExplicitAdd.days.find((day) => day.dateKey === seed.dateKey);
+    assert.deepEqual(
+      dayAfterAdd?.availableIntervals.map(({ startCell, endCell }) => [startCell, endCell]),
+      [[4, 16]],
+    );
+    assert.equal(
+      (await prisma.availabilitySlot.findUniqueOrThrow({
+        where: { id: seed.bookedSlotId },
+        select: { status: true },
+      })).status,
+      AvailabilitySlotStatus.ARCHIVED,
+    );
+  } finally {
+    await cleanupSeed(seed);
+  }
+});
+
 dbTest("REMOVE uvnitř a na kraji vytvoří správně zkrácené intervaly", async () => {
   const seed = await createSeed();
   const { prisma, applyAvailabilitySelection } = await loadModules();

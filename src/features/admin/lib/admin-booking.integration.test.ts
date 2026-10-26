@@ -2489,6 +2489,23 @@ dbTest("změna služby zkrátí manual DRAFT a obnoví původní PUBLISHED dostu
     assert.deepEqual(restoredSlots.map((slot) => [slot.startsAt, slot.endsAt, slot.status]), [
       [fixture.originalAvailabilityStartsAt, fixture.originalAvailabilityEndsAt, AvailabilitySlotStatus.PUBLISHED],
     ]);
+    const allAvailableSlotsInRestorationWindow = await prisma.availabilitySlot.findMany({
+      where: {
+        startsAt: {
+          gte: fixture.manualStartsAt,
+          lt: new Date(fixture.originalAvailabilityEndsAt.getTime() + 60 * 60 * 1000),
+        },
+        endsAt: { gt: fixture.manualStartsAt },
+        status: { in: [AvailabilitySlotStatus.DRAFT, AvailabilitySlotStatus.PUBLISHED] },
+      },
+      orderBy: { startsAt: "asc" },
+      select: { startsAt: true, endsAt: true, status: true },
+    });
+    assert.deepEqual(allAvailableSlotsInRestorationWindow, [{
+      startsAt: fixture.originalAvailabilityStartsAt,
+      endsAt: fixture.originalAvailabilityEndsAt,
+      status: AvailabilitySlotStatus.PUBLISHED,
+    }]);
   } finally {
     await fixture.cleanup();
   }

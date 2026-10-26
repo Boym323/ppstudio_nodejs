@@ -1257,6 +1257,14 @@ describe("cancel booking flow", () => {
       assert.equal(archivedOriginalSlotAfterCancellation.startsAt.toISOString(), originalStartsAt.toISOString());
       assert.equal(archivedOriginalSlotAfterCancellation.endsAt.toISOString(), originalEndsAt.toISOString());
       assert.equal(adminDraftSlotAfterCancellation.status, AvailabilitySlotStatus.DRAFT);
+      const slotsCreatedByCancellation = await prisma.availabilitySlot.findMany({
+        where: {
+          createdByUserId: seed.actorUserId,
+          id: { notIn: [...seed.createdSlotIds, archivedOriginalSlot.id, adminDraftSlot.id] },
+        },
+        select: { id: true, startsAt: true, endsAt: true, status: true },
+      });
+      assert.deepEqual(slotsCreatedByCancellation, []);
     } finally {
       if (adminDraftSlotId) {
         await prisma.availabilitySlot.deleteMany({ where: { id: adminDraftSlotId } });

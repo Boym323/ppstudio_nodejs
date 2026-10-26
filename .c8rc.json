@@ -1,5 +1,10 @@
 {
   "all": true,
+  "check-coverage": true,
+  "statements": 50,
+  "lines": 50,
+  "branches": 75,
+  "functions": 74,
   "reporter": [
     "text-summary",
     "html",
