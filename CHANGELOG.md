@@ -21,6 +21,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Opraveno
 
 - Homepage a FAQ nyní odvozují rozsah délek přímo z aktivních veřejných služeb v ceníku.
+- Homepage a FAQ nyní jasně rozlišují e-mailové potvrzení přijetí rezervačního požadavku od finálního potvrzení termínu po kontrole ve studiu.
 
 ## [3.36.2] - 2026-10-26
 

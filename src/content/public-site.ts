@@ -246,7 +246,7 @@ export const homepageContent = {
   description:
     'Lash lifting, laminace obočí a ošetření pleti v příjemném prostředí s individuálním přístupem.',
   benefits: ['Příjemné prostředí', 'Individuální přístup', 'Online rezervace 24/7'],
-  ctaNote: 'Rychlé online objednání, potvrzení termínu e-mailem.',
+  ctaNote: 'Rychlé online objednání, nejdřív potvrzení přijetí požadavku e-mailem.',
   logoImage: {
     src: '/brand/ppstudio-logo.png',
     alt: 'PP Studio logo',
@@ -418,7 +418,7 @@ export function buildFaqSections(cancellationHours: number, serviceDurationRange
         {
           question: 'Jak funguje rezervace termínu?',
           answer:
-            'Volné termíny vypisuji průběžně a v rezervačním přehledu uvidíte jen časy, které jsou opravdu k dispozici. Po odeslání rezervace vám studio termín ještě potvrdí, aby bylo vše jasné a bez nejistoty.',
+            'Volné termíny vypisuji průběžně a v rezervačním přehledu uvidíte jen časy, které jsou opravdu k dispozici. Po odeslání rezervace dostanete e-mailem potvrzení, že studio váš požadavek přijalo. Finální potvrzení termínu následuje až po kontrole ve studiu.',
         },
         {
           question: 'Mohu se objednat i bez přesného výběru služby?',

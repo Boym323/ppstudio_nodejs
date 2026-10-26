@@ -119,7 +119,7 @@ export async function PublicHomePage({
               </div>
               <div className="rounded-[calc(var(--radius-panel)-0.5rem)] bg-[var(--color-surface)] p-5">
                 <p className="font-display text-xl text-[var(--color-foreground)] sm:text-2xl">Rychlé objednání</p>
-                <p className="mt-3 text-[13px] leading-6 text-[var(--color-muted)] sm:text-sm">Rezervaci dokončíte online během pár kroků, potvrzení termínu přijde e-mailem.</p>
+                <p className="mt-3 text-[13px] leading-6 text-[var(--color-muted)] sm:text-sm">Rezervaci dokončíte online během pár kroků. E-mailem nejdřív dostanete potvrzení přijetí požadavku, finální potvrzení termínu přijde po kontrole ve studiu.</p>
               </div>
             </div>
             <div className="mt-6 rounded-[calc(var(--radius-panel)-0.45rem)] border border-[#d8c9b8] bg-[#f7efe5] p-5 sm:p-6">
@@ -152,7 +152,7 @@ export async function PublicHomePage({
             items={[
               "pokud váháte, zvolte orientační službu a vše doladíme na místě",
               "volné termíny vypisuji průběžně podle reálné kapacity",
-              "potvrzení rezervace dostanete e-mailem po dokončení objednání",
+              "e-mailem nejdřív dostanete potvrzení přijetí požadavku, finální potvrzení termínu přijde po kontrole ve studiu",
               "ceník i podmínky najdete přehledně bez složitých formulací",
             ]}
           />
