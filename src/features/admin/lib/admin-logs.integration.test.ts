@@ -332,6 +332,7 @@ dbTest("admin event feed potlačí jen booking audit kanonického voucherového 
       { bookingId: bookings[0].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Dokončeno" },
       { bookingId: bookings[1].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Dokončeno" },
       { bookingId: bookings[1].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Voucher uplatněn při dokončení návštěvy", metadata: { source: "admin-booking-complete-flow-v1", voucherCode: `LEGACY-${suffix}` } },
+      { bookingId: bookings[0].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Voucher uplatněn při dokončení návštěvy", metadata: { source: "legacy-completion-audit", voucherCode: voucher.code }, createdAt: duplicateAuditAt },
       { bookingId: bookings[2].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Voucher uplatněn při dokončení návštěvy", metadata: { source: "admin-booking-complete-flow-v1", voucherCode: secondVoucher.code } },
       { bookingId: bookings[2].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Voucher uplatněn při dokončení návštěvy", metadata: { source: "admin-booking-complete-flow-v1", voucherCode: thirdVoucher.code } },
       { bookingId: bookings[2].id, status: BookingStatus.COMPLETED, actorType: BookingActorType.USER, reason: "Dokončeno" },
@@ -352,13 +353,13 @@ dbTest("admin event feed potlačí jen booking audit kanonického voucherového 
       getAdminLogsData({ area: "salon", view: "events", query: suffix, dateFrom: "2027-02-01", dateTo: "2027-02-01" }),
     ]);
     const allItems = [...firstPage.items, ...secondPage.items];
-    assert.equal(feed.total, 62);
+    assert.equal(feed.total, 63);
     assert.equal(allItems.length, feed.total);
     assert.equal(new Set(allItems.map((item) => item.id)).size, feed.total);
     assert.equal(secondPage.items.filter((item) => item.title === "Voucher uplatněn").length, 3);
-    assert.equal(allItems.filter((item) => item.title === "Voucher uplatněn při dokončení návštěvy").length, 1);
+    assert.equal(allItems.filter((item) => item.title === "Voucher uplatněn při dokončení návštěvy").length, 2);
     assert.equal(redemptionDay.items.filter((item) => item.title === "Voucher uplatněn").length, 1);
-    assert.equal(auditDay.items.filter((item) => item.title === "Voucher uplatněn při dokončení návštěvy").length, 0);
+    assert.equal(auditDay.items.filter((item) => item.title === "Voucher uplatněn při dokončení návštěvy").length, 1);
     assert.equal(allItems.filter((item) => item.title === "Platba zaznamenána").length, 1);
     assert.equal(allItems.filter((item) => item.title === "Rezervace dokončena").length, 54);
     assert.equal(allItems.filter((item) => item.title === "Voucher uplatněn").every((item) => item.severity === "success"), true);
@@ -374,6 +375,26 @@ dbTest("admin event feed potlačí jen booking audit kanonického voucherového 
     await prisma.client.delete({ where: { id: client.id } });
     await prisma.service.delete({ where: { id: service.id } });
     await prisma.serviceCategory.delete({ where: { id: category.id } });
+  }
+});
+
+dbTest("admin event feed zachová prázdný výsledek po SQL deduplikaci a filtrech", async () => {
+  const [{ getAdminLogsData }] = await Promise.all([
+    import("./admin-data"),
+  ]);
+  const query = `admin-log-empty-${randomUUID()}`;
+
+  const [empty, error, lastPage] = await Promise.all([
+    getAdminLogsData({ area: "salon", view: "events", source: "booking", query }),
+    getAdminLogsData({ area: "salon", view: "events", source: "booking", query, severity: "error" }),
+    getAdminLogsData({ area: "salon", view: "events", source: "booking", query, dateFrom: "2035-01-01", dateTo: "2035-01-01", page: "999" }),
+  ]);
+
+  for (const data of [empty, error, lastPage]) {
+    assert.equal(data.total, 0);
+    assert.deepEqual(data.items, []);
+    assert.equal(data.page, 1);
+    assert.equal(data.pageCount, 1);
   }
 });
 

@@ -916,6 +916,7 @@ model BookingStatusHistory {
 
   @@index([bookingId, createdAt])
   @@index([actorUserId, createdAt])
+  @@index([createdAt, id])
 }
 
 model BookingActionToken {

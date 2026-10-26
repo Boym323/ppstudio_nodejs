@@ -17,11 +17,8 @@ import {
 } from "./email-log-presentations";
 import * as filters from "./email-log-filters";
 import {
-  filterDuplicateVoucherCompletionAudits,
-  getBookingHistorySource,
-  getBookingHistoryVoucherCode,
-  voucherCompletionAuditReason,
-  voucherCompletionAuditSource,
+  countDeduplicatedBookingHistory,
+  findDeduplicatedBookingHistoryIds,
 } from "./email-log-vouchers";
 import {
   getAdminLogCandidatePlan,
@@ -47,7 +44,6 @@ const {
   auditChangeDescription,
   buildAdminUserAuditWhere,
   buildAvailabilityAuditWhere,
-  buildBookingHistoryWhere,
   buildBookingSubmissionWhere,
   buildEmailLogWhere,
   buildRescheduleWhere,
@@ -64,7 +60,6 @@ const {
   normalizeAdminLogView,
   parseLogDate,
   publicVoucherSubmissionPrefix,
-  withBookingHistorySeverity,
   withBookingSubmissionSeverity,
   withEmailLogScope,
 } = filters;
@@ -125,7 +120,6 @@ export async function getAdminLogsData(input: {
       { status: EmailLogStatus.PENDING, processingStartedAt: { lt: staleBefore } },
     ] }] }
     : withEmailLogScope(emailBaseWhere, "attention", severity, staleBefore);
-  const bookingHistoryWhere = withBookingHistorySeverity(buildBookingHistoryWhere(query, dateWhere), severity);
   const rescheduleWhere = severity === "all" || severity === "info" ? buildRescheduleWhere(query, dateWhere) : { id: "__no_match__" };
   const voucherWhere = severity === "all" || severity === "info" ? buildVoucherWhere(query, dateWhere) : { id: "__no_match__" };
   const redemptionWhere = severity === "all" || severity === "success" ? buildVoucherRedemptionWhere(query, dateWhere) : { id: "__no_match__" };
@@ -150,18 +144,12 @@ export async function getAdminLogsData(input: {
   const availabilityWhere = severity === "all" || severity === "info" ? buildAvailabilityAuditWhere(query, dateWhere) : { id: "__no_match__" };
 
   // Stránka společného feedu je globální, proto nestačí vzít jednu stránku z
-  // každého zdroje. Nejdřív si spočítáme přesnou množinu (včetně potlačených
-  // voucher auditů) a teprve potom načítáme omezený prefix každého zdroje.
+  // každého zdroje. Nejdřív si spočítáme přesnou množinu a teprve potom
+  // načítáme omezený prefix každého zdroje.
   // Při řazení podle (čas, id) nemůže položka za tímto prefixem předběhnout
   // požadovanou globální stránku.
-  const voucherCompletionAuditWhere: Prisma.BookingStatusHistoryWhereInput = {
-    AND: [bookingHistoryWhere, {
-      reason: voucherCompletionAuditReason,
-      metadata: { path: ["source"], equals: voucherCompletionAuditSource },
-    }],
-  };
   const eventCounts = safeView === "events" ? await Promise.all([
-    bookingActive ? prisma.bookingStatusHistory.count({ where: bookingHistoryWhere }) : Promise.resolve(0),
+    bookingActive ? countDeduplicatedBookingHistory({ query, dateFrom, dateTo, severity }) : Promise.resolve(0),
     bookingActive ? prisma.bookingRescheduleLog.count({ where: rescheduleWhere }) : Promise.resolve(0),
     voucherActive ? prisma.voucher.count({ where: voucherWhere }) : Promise.resolve(0),
     voucherActive ? prisma.voucherRedemption.count({ where: redemptionWhere }) : Promise.resolve(0),
@@ -185,31 +173,12 @@ export async function getAdminLogsData(input: {
   const simpleCandidateTake = safeView === "emails" ? adminLogPageSize : simpleMeta?.take;
   const emailPageSkip = safeView === "emails" ? (simpleMeta?.offset ?? 0) : 0;
 
-  // Přesný total potřebuje všechny identity potenciálně duplicitních auditů;
-  // `take` by total podhodnotil. Dotaz je proto záměrně bez limitu, ale čte
-  // jen bookingId a metadata a je omezený na jeden auditní důvod a source.
-  const voucherCompletionAudits = bookingActive && safeView === "events"
-    ? await prisma.bookingStatusHistory.findMany({ where: voucherCompletionAuditWhere, select: { bookingId: true, metadata: true } })
-    : [];
-  const voucherCompletionIdentities = voucherCompletionAudits.flatMap((audit) => {
-    const voucherCode = getBookingHistoryVoucherCode(audit.metadata);
-    return voucherCode ? [{ bookingId: audit.bookingId, voucher: { is: { code: voucherCode } } }] : [];
-  });
-  const canonicalVoucherCompletions = voucherCompletionIdentities.length > 0
-    ? await prisma.voucherRedemption.findMany({ where: { OR: voucherCompletionIdentities }, select: { bookingId: true, voucher: { select: { code: true } } } })
-    : [];
-  const canonicalVoucherCompletionKeys = new Set(canonicalVoucherCompletions.flatMap((redemption) => (
-    redemption.bookingId && redemption.voucher ? [`${redemption.bookingId}\u0000${redemption.voucher.code}`] : []
-  )));
-  const exactSuppressedVoucherAuditCount = voucherCompletionAudits.filter((audit) => {
-    const voucherCode = getBookingHistoryVoucherCode(audit.metadata);
-    return voucherCode !== null && canonicalVoucherCompletionKeys.has(`${audit.bookingId}\u0000${voucherCode}`);
-  }).length;
-  const exactEventTotal = eventCounts ? eventCounts.reduce((total, count) => total + count, 0) - exactSuppressedVoucherAuditCount : null;
+  const exactEventTotal = eventCounts ? eventCounts.reduce((total, count) => total + count, 0) : null;
   const eventMeta = exactEventTotal === null ? null : getAdminLogCandidatePlan(exactEventTotal, requestedPage);
-  // Potlačené audity mohou ležet na hraně stránky; jejich přesný počet je
-  // bezpečný overfetch, který zachová uzavření stránky i přes více batchů.
-  const candidateTake = eventMeta ? eventMeta.take + exactSuppressedVoucherAuditCount : undefined;
+  const candidateTake = eventMeta?.take;
+  const bookingHistoryCandidateIds = bookingActive && candidateTake
+    ? await findDeduplicatedBookingHistoryIds({ query, dateFrom, dateTo, severity, take: candidateTake })
+    : [];
 
   const attentionHealthActive = safeView === "attention";
   const ownerQueueHealthActive = isOwner && safeView === "system";
@@ -222,7 +191,7 @@ export async function getAdminLogsData(input: {
     ownerQueueHealthActive ? prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, processingStartedAt: { not: null } } }) : Promise.resolve(0),
     isOwner && safeView === "attention" ? prisma.bookingSubmissionLog.count({ where: criticalBookingSubmissionWhere({ gte: attentionSince }) }) : Promise.resolve(0),
   ]);
-  const [emails, bookingHistory, reschedules, vouchers, redemptions, canonicalRedemptions, voucherChanges, serviceChanges, servicePriceChanges, siteSettingsChanges, availabilityAudits, adminUserAudits, submissions] = await Promise.all([
+  const [emails, bookingHistory, reschedules, vouchers, redemptions, voucherChanges, serviceChanges, servicePriceChanges, siteSettingsChanges, availabilityAudits, adminUserAudits, submissions] = await Promise.all([
     emailActive
       ? attentionIncidentActive
         ? Promise.all([
@@ -251,11 +220,10 @@ export async function getAdminLogsData(input: {
         ])
         : prisma.emailLog.findMany({ where: emailWhere, ...(emailPageSkip ? { skip: emailPageSkip } : {}), ...(simpleCandidateTake ? { take: simpleCandidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, client: { select: { fullName: true } }, resendRoot: { select: { incidentResolvedAt: true, incidentResolvedByEmailLogId: true, incidentResolutionKind: true } } } }).then((logs) => logs.map((log) => ({ representativeEmailLog: log, incidentRoot: log.resendRoot ?? log })))
       : Promise.resolve([]),
-    bookingActive ? prisma.bookingStatusHistory.findMany({ where: bookingHistoryWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
+    bookingHistoryCandidateIds.length > 0 ? prisma.bookingStatusHistory.findMany({ where: { id: { in: bookingHistoryCandidateIds } }, include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
     bookingActive ? prisma.bookingRescheduleLog.findMany({ where: rescheduleWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, changedByUser: { select: { name: true } } } }) : Promise.resolve([]),
     voucherActive ? prisma.voucher.findMany({ where: voucherWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { id: true, code: true, createdAt: true, createdByUser: { select: { name: true } } } }) : Promise.resolve([]),
     voucherActive ? prisma.voucherRedemption.findMany({ where: redemptionWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ redeemedAt: "desc" }, { id: "desc" }], include: { voucher: { select: { id: true, code: true } }, redeemedByUser: { select: { name: true } } } }) : Promise.resolve([]),
-    Promise.resolve([]),
     voucherActive ? prisma.voucherChangeLog.findMany({ where: voucherChangeWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { voucher: { select: { id: true, code: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
     serviceActive ? prisma.serviceChangeLog.findMany({ where: serviceChangeWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { service: { select: { id: true, name: true, publicName: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
     serviceActive ? prisma.servicePriceChangeLog.findMany({ where: servicePriceChangeWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { service: { select: { id: true, name: true, publicName: true } }, changedByUser: { select: { name: true } } } }) : Promise.resolve([]),
@@ -264,15 +232,6 @@ export async function getAdminLogsData(input: {
     adminAuditActive ? prisma.adminUserAuditEvent.findMany({ where: adminUserAuditWhere, ...(simpleCandidateTake ? { take: simpleCandidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { targetUser: { select: { name: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
     submissionActive ? prisma.bookingSubmissionLog.findMany({ where: submissionWhere, ...(simpleCandidateTake ? { take: simpleCandidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, client: { select: { fullName: true } } } }) : Promise.resolve([]),
   ]);
-  const candidateVoucherIdentities = bookingHistory.flatMap((audit) => {
-    const voucherCode = getBookingHistoryVoucherCode(audit.metadata);
-    return audit.reason === voucherCompletionAuditReason && getBookingHistorySource(audit.metadata) === voucherCompletionAuditSource && voucherCode
-      ? [{ bookingId: audit.bookingId, voucher: { is: { code: voucherCode } } }]
-      : [];
-  });
-  const candidateCanonicalRedemptions = candidateVoucherIdentities.length > 0
-    ? await prisma.voucherRedemption.findMany({ where: { OR: candidateVoucherIdentities }, select: { bookingId: true, voucher: { select: { code: true } } } })
-    : canonicalRedemptions;
   const categoryIds = serviceChanges.flatMap((entry) => [entry.before, entry.after]
     .map((value) => {
       if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -289,7 +248,6 @@ export async function getAdminLogsData(input: {
 
   const bookingHref = (id: string) => getAdminBookingHref(input.area, id);
   const voucherHref = (id: string) => `${input.area === "owner" ? "/admin" : "/admin/provoz"}/vouchery/${id}`;
-  const visibleBookingHistory = filterDuplicateVoucherCompletionAudits(bookingHistory, candidateCanonicalRedemptions);
   const items: AdminLogItem[] = [
     ...emails.map(({ representativeEmailLog: log, incidentRoot }) => {
       const tracking = deriveTrackingState(log);
@@ -333,7 +291,7 @@ export async function getAdminLogsData(input: {
         : log.client?.fullName ?? null;
       return { id: `email:${log.id}`, occurredAt: log.createdAt.toISOString(), category: "email" as const, severity: logSeverity, title: log.subject, description: `${log.recipientEmail}${incidentResolutionLabel}${log.errorMessage ? ` • ${getErrorSummary(log.errorMessage)}` : ""}`, actorLabel: null, entityLabel, entityHref: log.booking ? bookingHref(log.booking.id) : null, sourceType: "email" as const, sourceId: log.id, primaryAction, emailLogId: log.id, queueState: getEmailRecentStatusLabel(log.status, log.processingStartedAt, log.attemptCount), trackingState: tracking.label, emailBadge };
     }),
-    ...visibleBookingHistory.map((entry) => {
+    ...bookingHistory.map((entry) => {
       const presentation = getBookingHistoryPresentation(entry);
       return { id: `booking-history:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "event" as const, severity: presentation.severity, title: presentation.title, description: presentation.description ?? entry.note, actorLabel: entry.actorUser?.name ?? (entry.actorType === "CLIENT" ? "Klientka" : entry.actorType === "SYSTEM" ? "Systém" : null), entityLabel: entry.booking ? `${entry.booking.clientNameSnapshot} • ${entry.booking.serviceNameSnapshot}` : "Odstraněná rezervace", entityHref: entry.booking ? bookingHref(entry.booking.id) : null, sourceType: "booking" as const, sourceId: entry.id, primaryAction: entry.booking ? "open" as const : null };
     }),

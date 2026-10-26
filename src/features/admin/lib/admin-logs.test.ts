@@ -288,22 +288,25 @@ test("extrémní stránka se clampne před výpočtem kandidátního take", () =
   });
 });
 
-test("read-model používá bounded kandidáty, přesný total a cílenou voucher deduplikaci", async () => {
+test("read-model používá bounded kandidáty a databázovou voucher deduplikaci", async () => {
   const source = await readFile(new URL("./data/email-logs.ts", import.meta.url), "utf8");
   for (const whereName of ["emailWhere", "bookingHistoryWhere", "rescheduleWhere", "voucherWhere", "voucherChangeWhere", "serviceChangeWhere", "servicePriceChangeWhere", "siteSettingsChangeWhere", "availabilityWhere", "adminUserAuditWhere", "submissionWhere"]) {
+    if (whereName === "bookingHistoryWhere") continue;
     assert.ok(source.includes(`findMany({ where: ${whereName}`));
   }
   assert.ok(source.includes("findMany({ where: redemptionWhere"));
+  assert.ok(source.includes("countDeduplicatedBookingHistory({ query, dateFrom, dateTo, severity })"));
+  assert.ok(source.includes("findDeduplicatedBookingHistoryIds({ query, dateFrom, dateTo, severity, take: candidateTake })"));
   assert.ok(source.includes("const eventMeta = exactEventTotal === null ? null : getAdminLogCandidatePlan(exactEventTotal, requestedPage)"));
-  assert.ok(source.includes("...(candidateTake ? { take: candidateTake } : {})"));
-  assert.ok(source.includes("where: { OR: candidateVoucherIdentities }"));
+  assert.ok(source.includes("where: { id: { in: bookingHistoryCandidateIds } }"));
   assert.ok(source.includes('const exactSimpleTotal = safeView === "emails" || safeView === "system"'));
   assert.ok(source.includes("const deduplicatedTotal = exactEventTotal ?? exactSimpleTotal ?? visible.length"));
   assert.ok(source.includes("...(simpleCandidateTake ? { take: simpleCandidateTake } : {})"));
   assert.ok(source.includes('safeView === "emails" && emailActive ? prisma.emailLog.count'));
   assert.ok(source.includes('safeView === "system" && adminAuditActive ? prisma.adminUserAuditEvent.count'));
   assert.ok(source.includes('safeView === "system" && submissionActive ? prisma.bookingSubmissionLog.count'));
-  assert.equal(source.includes("findMany({ where: canonicalRedemptionWhere"), false);
+  assert.equal(source.includes("where: { OR: candidateVoucherIdentities }"), false);
+  assert.equal(source.includes("voucherCompletionAudits.flatMap"), false);
   assert.equal(source.includes("requestedOffset + adminLogPageSize"), false);
   assert.ok(source.includes('const attentionHealthActive = safeView === "attention"'));
   assert.ok(source.includes("attentionHealthActive || ownerQueueHealthActive ? prisma.emailLog.count"));

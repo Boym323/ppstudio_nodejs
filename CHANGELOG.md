@@ -14,6 +14,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Administrační Události deduplikují voucherové completion audity přímo v PostgreSQL pomocí `NOT EXISTS`; historie se načítá pouze v omezeném stránkovaném prefixu bez rozsáhlých podmínek `OR` a bez přenosu celé auditní historie do paměti.
 - Stránka GDPR uvádí právní identitu správce shodně s obchodními podmínkami.
 - CI kontroluje minimální pokrytí měřeného rozsahu: 50 % statements a lines, 75 % branches a 74 % functions.
 - CI a bezpečnostní workflow používají runner Ubuntu 26.04 připnutý na konkrétní verzi, aby změny aliasu `ubuntu-latest` nekontrolovaně neměnily prostředí kontrol.
