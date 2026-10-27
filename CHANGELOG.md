@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Veřejné obchodní podmínky kosmetického studia přesněji upravují reklamace služeb včetně zákonných lhůt a potvrzení, odpovědnost, spotřebitelské ADR u ČOI, storno bez automatického poplatku a dárkové poukazy.
 - Statistiky voucherů se načítají jedním agregovaným dotazem, platnost používá indexovatelná UTC časová rozmezí s korektními pražskými DST hranicemi a stránkování podporuje odpovídající složený index.
 - Vyhledávání klientek a voucherů používá PostgreSQL trigramové GIN indexy pro časté podřetězcové dotazy přes jména, kontaktní údaje, kódy a názvy služeb.
 - Seznam klientek agreguje rezervace podle klientky jednou v dotazu pro počty i v dotazu pro stránkování; odstraňuje opakované poddotazy a tři `LATERAL` spojení při výpočtu poslední návštěvy, počtu rezervací a příštího termínu.
