@@ -25,7 +25,11 @@ function assertIntegrationFixtureEnvironment() {
 
   const target = new URL(databaseUrl);
   const localDatabase = ["localhost", "127.0.0.1", "::1"].includes(target.hostname);
-  if (!localDatabase && !isGitHubActionsPostgresServiceDatabase(target, process.env)) {
+  if (!localDatabase && !isGitHubActionsPostgresServiceDatabase(target, {
+      CI: process.env.CI,
+      GITHUB_ACTIONS: process.env.GITHUB_ACTIONS,
+      GITHUB_REPOSITORY: process.env.GITHUB_REPOSITORY,
+    })) {
     throw new Error(`CI voucher fixtures jsou povolené pouze proti lokální DB nebo izolované GitHub Actions DB, ne proti hostu ${target.hostname}.`);
   }
 }
