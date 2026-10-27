@@ -18,7 +18,11 @@ function isApprovedDatabase(database: string, schema: string, target: URL) {
   if (schema !== "public" || process.env.NODE_ENV === "production") return false;
   if (database === "ppstudio_dev") return true;
   if (database === "ppstudio" && process.env.CI === "true") {
-    return isLoopback(target.hostname) || isGitHubActionsPostgresServiceDatabase(target, process.env);
+    return isLoopback(target.hostname) || isGitHubActionsPostgresServiceDatabase(target, {
+      CI: process.env.CI,
+      GITHUB_ACTIONS: process.env.GITHUB_ACTIONS,
+      GITHUB_REPOSITORY: process.env.GITHUB_REPOSITORY,
+    });
   }
   return database.endsWith("_test") && isLoopback(target.hostname);
 }
