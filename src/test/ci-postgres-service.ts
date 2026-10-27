@@ -4,7 +4,7 @@
  */
 export function isGitHubActionsPostgresServiceDatabase(
   target: URL,
-  env: Pick<NodeJS.ProcessEnv, "CI" | "GITHUB_ACTIONS" | "GITHUB_REPOSITORY">,
+  env: { CI?: string; GITHUB_ACTIONS?: string; GITHUB_REPOSITORY?: string },
 ) {
   return env.CI === "true"
     && env.GITHUB_ACTIONS === "true"
