@@ -1,6 +1,7 @@
 import "dotenv/config";
 
 import { prisma } from "@/lib/prisma";
+import { isGitHubActionsPostgresServiceDatabase } from "@/test/ci-postgres-service";
 
 type DatabaseIdentity = {
   database: string;
@@ -13,11 +14,13 @@ function isLoopback(hostname: string) {
   return ["localhost", "127.0.0.1", "::1"].includes(hostname.toLowerCase());
 }
 
-function isApprovedDatabase(database: string, schema: string, hostname: string) {
+function isApprovedDatabase(database: string, schema: string, target: URL) {
   if (schema !== "public" || process.env.NODE_ENV === "production") return false;
   if (database === "ppstudio_dev") return true;
-  if (database === "ppstudio" && process.env.CI === "true" && isLoopback(hostname)) return true;
-  return database.endsWith("_test") && isLoopback(hostname);
+  if (database === "ppstudio" && process.env.CI === "true") {
+    return isLoopback(target.hostname) || isGitHubActionsPostgresServiceDatabase(target, process.env);
+  }
+  return database.endsWith("_test") && isLoopback(target.hostname);
 }
 
 export async function assertE2eDatabaseIdentity() {
@@ -33,7 +36,7 @@ export async function assertE2eDatabaseIdentity() {
 
   const expectedDatabase = decodeURIComponent(target.pathname.slice(1));
   const expectedSchema = target.searchParams.get("schema") ?? "public";
-  if (!isApprovedDatabase(expectedDatabase, expectedSchema, target.hostname)) {
+  if (!isApprovedDatabase(expectedDatabase, expectedSchema, target)) {
     throw new Error(
       `E2E odmítlo DB operaci pro host=${target.hostname}, database=${expectedDatabase}, schema=${expectedSchema}, NODE_ENV=${process.env.NODE_ENV ?? "(unset)"}.`,
     );
