@@ -703,7 +703,6 @@ model Voucher {
   stockItem               VoucherStockItem?     @relation("VoucherStockItemVoucher")
   template                VoucherTemplate?      @relation("VoucherTemplateVouchers", fields: [templateId], references: [id], onDelete: Restrict)
 
-  @@index([code])
   @@index([status, validUntil])
   @@index([type, status])
   @@index([serviceId])
@@ -819,8 +818,6 @@ model VoucherStockItem {
   @@unique([batchId, sequenceNumber])
   @@index([batchId])
   @@index([status])
-  @@index([code])
-  @@index([voucherId])
   @@index([activatedByUserId])
   @@index([voidedByUserId])
 }
