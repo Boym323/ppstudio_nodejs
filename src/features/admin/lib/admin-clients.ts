@@ -255,25 +255,24 @@ function buildClientSqlPredicate(
   }
 
   if (filters.view === "upcoming") {
-    clauses.push(Prisma.sql`EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id AND b.status IN (${BookingStatus.PENDING}, ${BookingStatus.CONFIRMED}) AND b."scheduledStartsAt" >= ${retentionReference})`);
+    clauses.push(Prisma.sql`COALESCE(booking_stats."hasUpcoming", false)`);
   }
   if (filters.view === "new") clauses.push(Prisma.sql`c."createdAt" >= ${recentThreshold}`);
   if (filters.view === "no_contact") clauses.push(Prisma.sql`(c.email IS NULL OR c.email = '') AND (c.phone IS NULL OR c.phone = '')`);
   if (filters.view === "outreach" && !filters.retention) {
     const { end: eightWeeksBoundary } = getRetentionBandDateBounds("8_11", retentionReference);
     clauses.push(
-      Prisma.sql`EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id AND b.status = ${BookingStatus.COMPLETED} AND b."scheduledStartsAt" < ${eightWeeksBoundary})`,
-      Prisma.sql`NOT EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id AND b.status = ${BookingStatus.COMPLETED} AND b."scheduledStartsAt" >= ${eightWeeksBoundary} AND b."scheduledStartsAt" < ${retentionReference})`,
-      Prisma.sql`NOT EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id AND b.status IN (${BookingStatus.PENDING}, ${BookingStatus.CONFIRMED}) AND b."scheduledStartsAt" >= ${retentionReference})`,
+      Prisma.sql`booking_stats."lastVisitAt" < ${eightWeeksBoundary}`,
+      Prisma.sql`NOT COALESCE(booking_stats."hasUpcoming", false)`,
     );
   }
 
   switch (filters.quick) {
     case "with_booking":
-      clauses.push(Prisma.sql`EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id)`);
+      clauses.push(Prisma.sql`booking_stats."clientId" IS NOT NULL`);
       break;
     case "without_booking":
-      clauses.push(Prisma.sql`NOT EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id)`);
+      clauses.push(Prisma.sql`booking_stats."clientId" IS NULL`);
       break;
     case "noted":
       clauses.push(Prisma.sql`c."internalNote" IS NOT NULL AND c."internalNote" <> ''`);
@@ -284,8 +283,9 @@ function buildClientSqlPredicate(
     const bounds = getRetentionBandDateBounds(filters.retention, retentionReference);
     clauses.push(
       Prisma.sql`c."isActive" = true`,
-      Prisma.sql`EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id AND b.status = ${BookingStatus.COMPLETED} AND b."scheduledStartsAt" < ${bounds.end}${bounds.start ? Prisma.sql` AND b."scheduledStartsAt" >= ${bounds.start}` : Prisma.empty})`,
-      Prisma.sql`NOT EXISTS (SELECT 1 FROM "Booking" b WHERE b."clientId" = c.id AND b.status = ${BookingStatus.COMPLETED} AND b."scheduledStartsAt" >= ${bounds.end} AND b."scheduledStartsAt" < ${retentionReference})`,
+      bounds.start
+        ? Prisma.sql`booking_stats."lastVisitAt" >= ${bounds.start} AND booking_stats."lastVisitAt" < ${bounds.end}`
+        : Prisma.sql`booking_stats."lastVisitAt" < ${bounds.end}`,
     );
   }
 
@@ -298,6 +298,50 @@ function buildClientSqlWhere(
   retentionReference: Date,
 ) {
   return Prisma.sql`WHERE ${buildClientSqlPredicate(filters, recentThreshold, retentionReference)}`;
+}
+
+function buildBookingStatsCte(
+  retentionReference: Date,
+  needs: {
+    lastVisit: boolean;
+    total: boolean;
+    nextBooking: boolean;
+    upcoming: boolean;
+  },
+) {
+  const columns: Prisma.Sql[] = [Prisma.sql`b."clientId"`];
+
+  if (needs.lastVisit) {
+    columns.push(Prisma.sql`
+      MAX(b."scheduledStartsAt") FILTER (
+        WHERE b.status = ${BookingStatus.COMPLETED}
+          AND b."scheduledStartsAt" < ${retentionReference}
+      ) AS "lastVisitAt"`);
+  }
+  if (needs.total) {
+    columns.push(Prisma.sql`COUNT(*)::int AS total`);
+  }
+  if (needs.nextBooking) {
+    columns.push(Prisma.sql`
+      MIN(b."scheduledStartsAt") FILTER (
+        WHERE b.status IN (${BookingStatus.PENDING}, ${BookingStatus.CONFIRMED})
+          AND b."scheduledStartsAt" >= ${retentionReference}
+      ) AS "nextBookingAt"`);
+  }
+  if (needs.upcoming) {
+    columns.push(Prisma.sql`
+      BOOL_OR(
+        b.status IN (${BookingStatus.PENDING}, ${BookingStatus.CONFIRMED})
+        AND b."scheduledStartsAt" >= ${retentionReference}
+      ) AS "hasUpcoming"`);
+  }
+
+  return Prisma.sql`
+    WITH booking_stats AS (
+      SELECT ${Prisma.join(columns, ",")}
+      FROM "Booking" b
+      GROUP BY b."clientId"
+    )`;
 }
 
 async function getOrderedClientPageIds(
@@ -320,42 +364,37 @@ async function getOrderedClientPageIds(
     return clients.map((client) => client.id);
   }
 
+  const usesAggregateOrder = filters.view !== "upcoming" && filters.view !== "new";
+  const needsLastVisit = filters.view === "outreach" || (usesAggregateOrder && (filters.sort === "recent" || filters.sort === "bookings"));
+  const needsTotal = usesAggregateOrder && filters.sort === "bookings";
+  const needsNextBooking = filters.view === "upcoming";
+  const needsUpcoming = filters.view === "upcoming" || (filters.view === "outreach" && !filters.retention);
+  const bookingStatsCte = buildBookingStatsCte(retentionReference, {
+    lastVisit: needsLastVisit,
+    total: needsTotal,
+    nextBooking: needsNextBooking,
+    upcoming: needsUpcoming,
+  });
   const sqlWhere = buildClientSqlWhere(filters, recentThreshold, retentionReference);
   const orderBy = filters.view === "upcoming"
-    ? Prisma.sql`next_booking."nextBookingAt" ASC, c."fullName" ASC, c.id ASC`
+    ? Prisma.sql`booking_stats."nextBookingAt" ASC, c."fullName" ASC, c.id ASC`
     : filters.view === "outreach"
-      ? Prisma.sql`last_visit."lastVisitAt" DESC, c.id ASC`
+      ? Prisma.sql`booking_stats."lastVisitAt" DESC, c.id ASC`
       : filters.view === "new"
         ? Prisma.sql`c."createdAt" DESC, c.id DESC`
         : filters.sort === "recent"
-          ? Prisma.sql`last_visit."lastVisitAt" DESC NULLS LAST, c."createdAt" DESC, c.id DESC`
-          : Prisma.sql`booking_count.total DESC, last_visit."lastVisitAt" DESC NULLS LAST, c."fullName" ASC, c.id ASC`;
-  const rows = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+          ? Prisma.sql`booking_stats."lastVisitAt" DESC NULLS LAST, c."createdAt" DESC, c.id DESC`
+          : Prisma.sql`COALESCE(booking_stats.total, 0) DESC, booking_stats."lastVisitAt" DESC NULLS LAST, c."fullName" ASC, c.id ASC`;
+  const pageQuery = Prisma.sql`
+    ${bookingStatsCte}
     SELECT c.id
     FROM "Client" c
-    LEFT JOIN LATERAL (
-      SELECT MAX(b."scheduledStartsAt") AS "lastVisitAt"
-      FROM "Booking" b
-      WHERE b."clientId" = c.id
-        AND b.status = ${BookingStatus.COMPLETED}
-        AND b."scheduledStartsAt" < ${retentionReference}
-    ) last_visit ON true
-    LEFT JOIN LATERAL (
-      SELECT COUNT(*)::int AS total
-      FROM "Booking" b
-      WHERE b."clientId" = c.id
-    ) booking_count ON true
-    LEFT JOIN LATERAL (
-      SELECT MIN(b."scheduledStartsAt") AS "nextBookingAt"
-      FROM "Booking" b
-      WHERE b."clientId" = c.id
-        AND b.status IN (${BookingStatus.PENDING}, ${BookingStatus.CONFIRMED})
-        AND b."scheduledStartsAt" >= ${retentionReference}
-    ) next_booking ON true
+    LEFT JOIN booking_stats ON booking_stats."clientId" = c.id
     ${sqlWhere}
     ORDER BY ${orderBy}
     LIMIT ${clientPageSize} OFFSET ${skip}
-  `);
+  `;
+  const rows = await prisma.$queryRaw<Array<{ id: string }>>(pageQuery);
 
   return rows.map((row) => row.id);
 }
@@ -452,7 +491,14 @@ async function getAdminClientCounts(
     { ...filters, view: "outreach" as const, quick: "all" as const, retention: "12_15" as const },
     { ...filters, view: "outreach" as const, quick: "all" as const, retention: "16_plus" as const },
   ];
+  const bookingStatsCte = buildBookingStatsCte(retentionReference, {
+    lastVisit: true,
+    total: false,
+    nextBooking: false,
+    upcoming: true,
+  });
   const [row] = await prisma.$queryRaw<AdminClientCountRow[]>(Prisma.sql`
+    ${bookingStatsCte}
     SELECT
       COUNT(*) FILTER (WHERE ${buildClientSqlPredicate(countFilters[0], recentThreshold, retentionReference)})::int AS "filteredCount",
       COUNT(*) FILTER (WHERE ${buildClientSqlPredicate(countFilters[1], recentThreshold, retentionReference)})::int AS "allCount",
@@ -465,6 +511,7 @@ async function getAdminClientCounts(
       COUNT(*) FILTER (WHERE ${buildClientSqlPredicate(countFilters[8], recentThreshold, retentionReference)})::int AS "band12",
       COUNT(*) FILTER (WHERE ${buildClientSqlPredicate(countFilters[9], recentThreshold, retentionReference)})::int AS "band16"
     FROM "Client" c
+    LEFT JOIN booking_stats ON booking_stats."clientId" = c.id
   `);
 
   return {
