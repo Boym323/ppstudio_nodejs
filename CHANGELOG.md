@@ -18,6 +18,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Vyhledávání incidentů v pohledu Pozornost sjednocuje zpracování znaků `%` a `_` při počítání i načítání výsledků, aby stránkování nehlásilo chybějící záznamy.
 - Odstraněny redundantní neunikátní voucherové indexy, které duplikovaly unikátní indexy nad stejnými sloupci a zbytečně zvyšovaly nároky databáze při zápisech.
 - Pohled Pozornost řadí a stránkuje incidenty podle času reprezentujícího e-mailu, takže později selhaný resend nezůstane mimo správnou stránku.
 - KPI finanční metriky sjednocují historické cenové pravidlo: při chybějících snapshotových cenách nepoužijí aktuální katalogovou cenu služby a zachovají nulovou hodnotu i v agregovaných tržbách, grafech a rozkladech.

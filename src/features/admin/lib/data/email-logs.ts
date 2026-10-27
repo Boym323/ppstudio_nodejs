@@ -84,26 +84,26 @@ function buildEmailLogBaseSql(input: {
   if (input.dateTo) conditions.push(Prisma.sql`${alias}."createdAt" < ${input.dateTo}`);
   if (input.emailType !== "all") conditions.push(Prisma.sql`${alias}."type" = ${input.emailType}::"EmailLogType"`);
   if (input.query) {
-    const query = input.query;
+    const query = `%${input.query}%`;
     conditions.push(Prisma.sql`(
-      strpos(lower(${alias}."recipientEmail"), lower(${query})) > 0
-      OR strpos(lower(${alias}."subject"), lower(${query})) > 0
-      OR strpos(lower(${alias}."templateKey"), lower(${query})) > 0
+      ${alias}."recipientEmail" ILIKE ${query}
+      OR ${alias}."subject" ILIKE ${query}
+      OR ${alias}."templateKey" ILIKE ${query}
       OR EXISTS (
         SELECT 1
         FROM "Booking" AS booking
         WHERE booking."id" = ${alias}."bookingId"
           AND (
-            strpos(lower(booking."clientNameSnapshot"), lower(${query})) > 0
-            OR strpos(lower(booking."serviceNameSnapshot"), lower(${query})) > 0
-            OR strpos(lower(booking."id"), lower(${query})) > 0
+            booking."clientNameSnapshot" ILIKE ${query}
+            OR booking."serviceNameSnapshot" ILIKE ${query}
+            OR booking."id" ILIKE ${query}
           )
       )
       OR EXISTS (
         SELECT 1
         FROM "Client" AS client
         WHERE client."id" = ${alias}."clientId"
-          AND strpos(lower(client."fullName"), lower(${query})) > 0
+          AND client."fullName" ILIKE ${query}
       )
     )`);
   }
