@@ -300,7 +300,7 @@ test("read-model používá bounded kandidáty a databázovou voucher deduplikac
   assert.ok(source.includes("const eventMeta = exactEventTotal === null ? null : getAdminLogCandidatePlan(exactEventTotal, requestedPage)"));
   assert.ok(source.includes("where: { id: { in: bookingHistoryCandidateIds } }"));
   assert.ok(source.includes('const exactSimpleTotal = safeView === "emails" || safeView === "system"'));
-  assert.ok(source.includes("const deduplicatedTotal = exactEventTotal ?? exactSimpleTotal ?? visible.length"));
+  assert.ok(source.includes("const deduplicatedTotal = exactAttentionTotal ?? exactEventTotal ?? exactSimpleTotal ?? visible.length"));
   assert.ok(source.includes("...(simpleCandidateTake ? { take: simpleCandidateTake } : {})"));
   assert.ok(source.includes('safeView === "emails" && emailActive ? prisma.emailLog.count'));
   assert.ok(source.includes('safeView === "system" && adminAuditActive ? prisma.adminUserAuditEvent.count'));
