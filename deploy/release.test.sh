@@ -115,9 +115,9 @@ set -euo pipefail
 source "$1/release.sh"
 run_release_preflight_command sh -c 'printf "%s\n%s\n%s\n%s\n" "$RUN_DB_INTEGRATION_TESTS" "$NEXT_DEPLOYMENT_ID" "$DEPLOYMENT_VERSION" "$NEXT_PUBLIC_APP_URL" > "$RELEASE_TEST_OUTPUT"'
 NON_ROOT_RELEASE_TEST
-grep -Fq -- 'RUN_DB_INTEGRATION_TESTS' "${NON_ROOT_TEMP_DIR}/sudo.args"
-grep -Fq -- 'NEXT_DEPLOYMENT_ID' "${NON_ROOT_TEMP_DIR}/sudo.args"
-grep -Fq -- 'NEXT_PUBLIC_APP_URL' "${NON_ROOT_TEMP_DIR}/sudo.args"
+grep -Fxq -- '/bin/bash' "${NON_ROOT_TEMP_DIR}/sudo.args"
+grep -Fxq -- '-c' "${NON_ROOT_TEMP_DIR}/sudo.args"
+! grep -Fq -- '--preserve-env' "${NON_ROOT_TEMP_DIR}/sudo.args"
 ! grep -Fq -- 'secret-value-must-stay-in-environment' "${NON_ROOT_TEMP_DIR}/sudo.args"
 ! grep -Fq -- 'secret-value-must-stay-in-environment' "${NON_ROOT_TEMP_DIR}/systemd-run.args"
 [[ "$(sed -n '1p' "${NON_ROOT_TEMP_DIR}/preflight.output")" == 0 ]]

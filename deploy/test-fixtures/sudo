@@ -3,14 +3,9 @@ set -euo pipefail
 
 printf '%s\n' "$@" > "${RELEASE_TEST_SUDO_ARGS_FILE:?}"
 
-if [[ "${1:-}" != --preserve-env=* ]]; then
-  echo "Mock sudo nedostal explicitní --preserve-env." >&2
+if [[ "${1:-}" != /bin/bash || "${2:-}" != -c ]]; then
+  echo "Mock sudo nespustil bezpečný environment wrapper." >&2
   exit 75
 fi
-shift
-if [[ "${1:-}" != systemd-run ]]; then
-  echo "Mock sudo nespustil systemd-run." >&2
-  exit 76
-fi
-shift
-exec systemd-run "$@"
+wrapper_script="${3//\/usr\/bin\/systemd-run/systemd-run}"
+exec /bin/bash -c "${wrapper_script}" "${4}" "${@:5}"

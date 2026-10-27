@@ -149,7 +149,8 @@ run_release_preflight_command() {
   fi
 
   local unit_name
-  local preserve_env
+  local exit_status=0
+  local sudo_loader='while IFS= read -r -d "" entry; do export "$entry"; done; exec /usr/bin/systemd-run "$@"'
   local -a runner=(systemd-run)
   RELEASE_CGROUP_SEQUENCE=$((RELEASE_CGROUP_SEQUENCE + 1))
   unit_name="ppstudio-release-preflight-${BASHPID}-${RELEASE_CGROUP_SEQUENCE}"
@@ -157,12 +158,12 @@ run_release_preflight_command() {
   require_cmd systemd-run
   if [[ "${EUID}" -ne 0 ]]; then
     require_cmd sudo
-    preserve_env="$(release_preflight_environment_names)" || return 1
-    runner=(sudo "--preserve-env=${preserve_env}" systemd-run)
+    runner=(sudo /bin/bash -c "${sudo_loader}" --)
   fi
 
   log "cgroup ${unit_name}: CPUQuota=${RELEASE_CPU_QUOTA}, CPUWeight=${RELEASE_CPU_WEIGHT}, IOWeight=${RELEASE_IO_WEIGHT}, MemoryHigh=${RELEASE_MEMORY_HIGH}, MemoryMax=${RELEASE_MEMORY_MAX}"
-  "${runner[@]}" \
+  local -a scope_command=(
+    "${runner[@]}"
     --scope \
     --collect \
     --quiet \
@@ -179,28 +180,39 @@ run_release_preflight_command() {
     -p "MemoryMax=${RELEASE_MEMORY_MAX}" \
     -p "TasksMax=${RELEASE_TASKS_MAX}" \
     -- "$@"
+  )
+  if [[ "${EUID}" -ne 0 ]]; then
+    if release_preflight_print_environment | "${scope_command[@]}"; then
+      exit_status=0
+    else
+      exit_status=$?
+    fi
+  elif "${scope_command[@]}"; then
+    exit_status=0
+  else
+    exit_status=$?
+  fi
+  return "${exit_status}"
 }
 
-release_preflight_environment_names() {
+release_preflight_print_environment() {
   local entry
   local name
-  local -a names=()
 
   require_cmd env
-  while IFS= read -r -d '' entry; do
+  if ! env -0 | while IFS= read -r -d '' entry; do
     name="${entry%%=*}"
-    if [[ "${name}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] && [[ "${name}" != SUDO_* ]] && [[ "${name}" != BASH_FUNC_* ]]; then
-      names+=("${name}")
-    fi
-  done < <(env -0)
-
-  if [[ "${#names[@]}" -eq 0 ]]; then
-    echo "Nelze sestavit seznam prostředí pro sudo; release preflight se zastavuje." >&2
+    [[ "${name}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
+    case "${name}" in
+      BASH_FUNC_*|BASH_ENV|CDPATH|DYLD_*|ENV|GCONV_PATH|LD_*|SUDO_*)
+        continue
+        ;;
+    esac
+    printf '%s\0' "${entry}"
+  done; then
+    echo "Nelze bezpečně předat prostředí release preflightu; release se zastavuje." >&2
     return 1
   fi
-
-  local IFS=,
-  printf '%s' "${names[*]}"
 }
 
 unit_file_name() {
