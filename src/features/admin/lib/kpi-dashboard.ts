@@ -46,7 +46,7 @@ type KpiPeriodAggregates = {
 
 const emptyKpiPeriodAggregate = (): KpiPeriodAggregate => ({ completedCount: 0, revenue: 0, outstanding: 0 });
 
-async function getKpiPeriodAggregates(previous: KpiDateRange, current: KpiDateRange, end: Date): Promise<KpiPeriodAggregates> {
+export async function getKpiPeriodAggregates(previous: KpiDateRange, current: KpiDateRange, end: Date): Promise<KpiPeriodAggregates> {
   const rows = await prisma.$queryRaw<Array<{
     currentCompletedCount: number;
     currentRevenue: number;

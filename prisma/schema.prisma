@@ -555,6 +555,9 @@ model Client {
 
   @@index([phone])
   @@index([isActive, fullName])
+  @@index([fullName(ops: raw("gin_trgm_ops"))], type: Gin, map: "Client_fullName_trgm_idx")
+  @@index([email(ops: raw("gin_trgm_ops"))], type: Gin, map: "Client_email_trgm_idx")
+  @@index([phone(ops: raw("gin_trgm_ops"))], type: Gin, map: "Client_phone_trgm_idx")
 }
 
 model Booking {
@@ -711,6 +714,11 @@ model Voucher {
   @@index([cancelledByUserId])
   @@index([updatedByUserId])
   @@index([templateId])
+  @@index([code(ops: raw("gin_trgm_ops"))], type: Gin, map: "Voucher_code_trgm_idx")
+  @@index([purchaserName(ops: raw("gin_trgm_ops"))], type: Gin, map: "Voucher_purchaserName_trgm_idx")
+  @@index([purchaserEmail(ops: raw("gin_trgm_ops"))], type: Gin, map: "Voucher_purchaserEmail_trgm_idx")
+  @@index([recipientName(ops: raw("gin_trgm_ops"))], type: Gin, map: "Voucher_recipientName_trgm_idx")
+  @@index([serviceNameSnapshot(ops: raw("gin_trgm_ops"))], type: Gin, map: "Voucher_serviceNameSnapshot_trgm_idx")
 }
 
 model VoucherPrintBatch {
