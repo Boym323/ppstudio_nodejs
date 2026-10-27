@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Změněno
+
+- KPI dashboard agreguje tržby, uhrazené návštěvy, zůstatky, očekávané tržby a retenční pásma v PostgreSQL; do aplikace už nepřenáší platby, uplatněné vouchery ani seznam aktivních klientů s poslední návštěvou.
+
 ## [3.37.0] - 2026-10-26
 
 ### Přidáno
