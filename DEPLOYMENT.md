@@ -58,7 +58,7 @@ Dělá:
 1. načte `.env`
 2. zvaliduje `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`
 3. odvodí `NEXT_DEPLOYMENT_ID`, `DEPLOYMENT_VERSION`, `GIT_HASH` z git commitu
-4. vytvoří staging workspace vedle repozitáře
+4. vytvoří staging workspace vedle repozitáře; preflight a `next build` běží ve výchozím transientním systemd/cgroup scope (`CPUQuota=100%`, `MemoryHigh=2800M`, `MemoryMax=3G`, nízká CPU/I/O priorita), aby release nemohl bez limitu vytlačit živý web
 5. ve stagingu provede:
    - `npm ci --include=dev`
    - `npm run db:generate`

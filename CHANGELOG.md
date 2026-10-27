@@ -6,6 +6,14 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Změněno
+
+- Release preflight a `next build` nyní běží v ověřeném systemd/cgroup scope s omezením CPU, paměti, I/O a počtu tasků, aby příprava releasu nemohla bez limitu vytlačit živý web v malém LXC; nepodporovaný cgroup hostitel release zastaví před dlouhým buildem.
+
+### Opraveno
+
+- Provozní release dokumentace odděluje prokázané údaje incidentu od hypotézy příčiny a přidává DEV měřicí protokol pro RSS, PSI, I/O, build time, HTTP a read-only DB latenci včetně omezení reprezentativnosti DEV.
+
 ## [3.38.0] - 2026-10-27
 
 ### Změněno

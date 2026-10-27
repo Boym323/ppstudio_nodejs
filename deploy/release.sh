@@ -22,6 +22,14 @@ HEALTH_RETRY_SECONDS="${PPSTUDIO_HEALTH_RETRY_SECONDS:-2}"
 WEB_READY_RETRIES="${PPSTUDIO_WEB_READY_RETRIES:-20}"
 WEB_READY_RETRY_SECONDS="${PPSTUDIO_WEB_READY_RETRY_SECONDS:-0.25}"
 RETAIN_RELEASES="${PPSTUDIO_RETAIN_RELEASES:-0}"
+RELEASE_CGROUP_MODE="${PPSTUDIO_RELEASE_CGROUP_MODE:-required}"
+RELEASE_CPU_QUOTA="${PPSTUDIO_RELEASE_CPU_QUOTA:-100%}"
+RELEASE_CPU_WEIGHT="${PPSTUDIO_RELEASE_CPU_WEIGHT:-20}"
+RELEASE_IO_WEIGHT="${PPSTUDIO_RELEASE_IO_WEIGHT:-20}"
+RELEASE_MEMORY_HIGH="${PPSTUDIO_RELEASE_MEMORY_HIGH:-2800M}"
+RELEASE_MEMORY_MAX="${PPSTUDIO_RELEASE_MEMORY_MAX:-3G}"
+RELEASE_TASKS_MAX="${PPSTUDIO_RELEASE_TASKS_MAX:-512}"
+RELEASE_NICE="${PPSTUDIO_RELEASE_NICE:-10}"
 
 SKIP_PULL=0
 SKIP_LINT=0
@@ -34,6 +42,7 @@ RELEASE_STARTED_AT=""
 SYSTEMD_BACKUP_DIR=""
 SYSTEMD_UNITS_CHANGED=0
 RELEASE_STEP_DURATIONS=()
+RELEASE_CGROUP_SEQUENCE=0
 
 usage() {
   cat <<'USAGE'
@@ -86,6 +95,78 @@ run_timed_step() {
   RELEASE_STEP_DURATIONS+=("${step_name}: ${hours} h ${minutes} min ${seconds} s.")
 }
 
+validate_release_resource_limits() {
+  case "${RELEASE_CGROUP_MODE}" in
+    required|off) ;;
+    *)
+      echo "PPSTUDIO_RELEASE_CGROUP_MODE musí být 'required' nebo 'off'." >&2
+      return 1
+      ;;
+  esac
+
+  if [[ "${RELEASE_CGROUP_MODE}" == "off" && "${PPSTUDIO_RELEASE_ALLOW_UNSCOPED:-0}" != "1" ]]; then
+    echo "Nechráněný release preflight je zakázaný. Pro diagnostiku nastav PPSTUDIO_RELEASE_CGROUP_MODE=off PPSTUDIO_RELEASE_ALLOW_UNSCOPED=1." >&2
+    return 1
+  fi
+
+  [[ "${RELEASE_CPU_QUOTA}" =~ ^([1-9][0-9]{0,3}|10000)%$ ]] || {
+    echo "PPSTUDIO_RELEASE_CPU_QUOTA musí být procento 1–10000 (např. 100%)." >&2
+    return 1
+  }
+  [[ "${RELEASE_CPU_WEIGHT}" =~ ^([1-9][0-9]{0,3}|10000)$ ]] || {
+    echo "PPSTUDIO_RELEASE_CPU_WEIGHT musí být celé číslo 1–10000." >&2
+    return 1
+  }
+  [[ "${RELEASE_IO_WEIGHT}" =~ ^([1-9][0-9]{0,3}|10000)$ ]] || {
+    echo "PPSTUDIO_RELEASE_IO_WEIGHT musí být celé číslo 1–10000." >&2
+    return 1
+  }
+  [[ "${RELEASE_TASKS_MAX}" =~ ^[1-9][0-9]*$ ]] || {
+    echo "PPSTUDIO_RELEASE_TASKS_MAX musí být kladné celé číslo." >&2
+    return 1
+  }
+  [[ "${RELEASE_NICE}" =~ ^-?[0-9]+$ ]] && (( RELEASE_NICE >= -20 && RELEASE_NICE <= 19 )) || {
+    echo "PPSTUDIO_RELEASE_NICE musí být celé číslo od -20 do 19." >&2
+    return 1
+  }
+}
+
+run_release_preflight_command() {
+  if [[ "${RELEASE_CGROUP_MODE}" == "off" ]]; then
+    "$@"
+    return
+  fi
+
+  local unit_name
+  local -a runner=(systemd-run)
+  RELEASE_CGROUP_SEQUENCE=$((RELEASE_CGROUP_SEQUENCE + 1))
+  unit_name="ppstudio-release-preflight-${BASHPID}-${RELEASE_CGROUP_SEQUENCE}"
+
+  require_cmd systemd-run
+  if [[ "${EUID}" -ne 0 ]]; then
+    runner=(sudo -E systemd-run)
+  fi
+
+  log "cgroup ${unit_name}: CPUQuota=${RELEASE_CPU_QUOTA}, CPUWeight=${RELEASE_CPU_WEIGHT}, IOWeight=${RELEASE_IO_WEIGHT}, MemoryHigh=${RELEASE_MEMORY_HIGH}, MemoryMax=${RELEASE_MEMORY_MAX}"
+  "${runner[@]}" \
+    --scope \
+    --collect \
+    --quiet \
+    --expand-environment=no \
+    --unit="${unit_name}" \
+    --uid="$(id -u)" \
+    --gid="$(id -g)" \
+    --working-directory="${PWD}" \
+    --nice="${RELEASE_NICE}" \
+    -p "CPUQuota=${RELEASE_CPU_QUOTA}" \
+    -p "CPUWeight=${RELEASE_CPU_WEIGHT}" \
+    -p "IOWeight=${RELEASE_IO_WEIGHT}" \
+    -p "MemoryHigh=${RELEASE_MEMORY_HIGH}" \
+    -p "MemoryMax=${RELEASE_MEMORY_MAX}" \
+    -p "TasksMax=${RELEASE_TASKS_MAX}" \
+    -- "$@"
+}
+
 unit_file_name() {
   printf '%s.service' "$1"
 }
@@ -116,7 +197,7 @@ acquire_release_lock() {
 
 run_release_tests() {
   # Dotenv nesmí ani při zděděném RUN_DB_INTEGRATION_TESTS=1 zapnout zápisy do DB.
-  RUN_DB_INTEGRATION_TESTS=0 npm run test:release
+  RUN_DB_INTEGRATION_TESTS=0 run_release_preflight_command npm run test:release
 }
 
 require_cmd() {
@@ -760,6 +841,7 @@ run_release() {
   fi
 
   load_runtime_env
+  validate_release_resource_limits
   prepare_runtime_storage --validate-only
   validate_server_actions_encryption_key
 
@@ -797,35 +879,35 @@ run_release() {
 
   cd "${RELEASE_BUILD_DIR}"
 
-  log "npm ci --include=dev"
-  run_timed_step "npm ci" npm ci --include=dev
+  log "npm ci --include=dev (izolovaný release cgroup)"
+  run_timed_step "npm ci" run_release_preflight_command npm ci --include=dev
 
   log "npm run db:generate"
-  run_timed_step "Prisma generate" npm run db:generate
+  run_timed_step "Prisma generate" run_release_preflight_command npm run db:generate
 
   log "npm run db:check-migrations"
-  run_timed_step "kontrola historie migrací" npm run db:check-migrations
+  run_timed_step "kontrola historie migrací" run_release_preflight_command npm run db:check-migrations
 
   log "npx prisma validate (bez zápisu do DB)"
-  run_timed_step "Prisma validate" npx prisma validate
+  run_timed_step "Prisma validate" run_release_preflight_command npx prisma validate
 
   if [[ "${SKIP_LINT}" -ne 1 ]]; then
     log "npm run lint"
-    run_timed_step "lint" npm run lint
+    run_timed_step "lint" run_release_preflight_command npm run lint
   else
     log "Přeskakuji lint (--skip-lint)."
   fi
 
   log "npm run typecheck"
-  run_timed_step "typecheck" npm run typecheck
+  run_timed_step "typecheck" run_release_preflight_command npm run typecheck
 
   # Produkční .env nesmí spouštět zapisující DB integrační testy. Tento běh
   # ověřuje unit/regresní testy; DB integrační a E2E zůstávají CI bránou.
   log "npm run test:release (bez produkční DB)"
   run_timed_step "test:release" run_release_tests
 
-  log "npm run build"
-  run_timed_step "build" npm run build
+  log "npm run build (izolovaný release cgroup)"
+  run_timed_step "build" run_release_preflight_command npm run build
 
   run_timed_step "zápis runtime release environmentu" write_runtime_release_env_file "${RELEASE_BUILD_DIR}/${RUNTIME_RELEASE_ENV_FILE}"
 
