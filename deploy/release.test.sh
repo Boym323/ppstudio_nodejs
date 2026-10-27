@@ -45,6 +45,7 @@ TEMP_DIR="$(mktemp -d)"
 trap 'rm -rf "${TEMP_DIR}"' EXIT
 (
   export PATH="${SCRIPT_DIR}/test-fixtures:${PATH}"
+  export RELEASE_TEST_SUDO_ARGS_FILE="${TEMP_DIR}/systemd-run-sudo.args"
   export MOCK_SYSTEMD_RUN_ARGS_FILE="${TEMP_DIR}/systemd-run.args"
   export RELEASE_TEST_ENV="mocked-release-environment"
   export RELEASE_TEST_OUTPUT="${TEMP_DIR}/preflight.output"
