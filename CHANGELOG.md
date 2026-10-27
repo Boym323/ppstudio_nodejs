@@ -13,6 +13,11 @@ Formát je inspirovaný Keep a Changelog.
 - Načítání administračních logů omezuje souběh počtů a dotazů feedu, aby pohled Události ani stav e-mailové fronty nevytvářely špičky zatížení databázového poolu.
 - Pohled Pozornost stránkuje incidenty, e-mailová upozornění i kritické záznamy rezervačního formuláře přímo v databázi a zachovává jejich deduplikované pořadí.
 
+### Opraveno
+
+- Pohled Pozornost řadí a stránkuje incidenty podle času reprezentujícího e-mailu, takže později selhaný resend nezůstane mimo správnou stránku.
+- KPI finanční metriky sjednocují historické cenové pravidlo: při chybějících snapshotových cenách nepoužijí aktuální katalogovou cenu služby a zachovají nulovou hodnotu i v agregovaných tržbách, grafech a rozkladech.
+
 ## [3.37.0] - 2026-10-26
 
 ### Přidáno

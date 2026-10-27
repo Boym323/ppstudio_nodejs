@@ -1,3 +1,5 @@
+import { getKpiHistoricalPrice } from "./kpi-pricing";
+
 export type CompletedServiceVisit = {
   serviceName: string;
   finalPriceCzk: number | null;
@@ -22,7 +24,7 @@ export function aggregateServiceMetrics(visits: CompletedServiceVisit[]) {
     const row = rows.get(visit.serviceName) ?? { completed: 0, revenue: 0, reservedMinutes: 0 };
     const reservedMinutes = Math.max(0, (visit.scheduledEndsAt.getTime() - visit.scheduledStartsAt.getTime()) / 60_000);
     row.completed += 1;
-    row.revenue += visit.finalPriceCzk ?? visit.servicePriceFromCzk ?? 0;
+    row.revenue += getKpiHistoricalPrice(visit) ?? 0;
     row.reservedMinutes += reservedMinutes;
     rows.set(visit.serviceName, row);
   }

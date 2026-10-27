@@ -1,3 +1,5 @@
+import { getKpiHistoricalPrice } from "./kpi-pricing";
+
 export type DisruptionBooking = {
   status: string;
   slotPublishedAt: Date | null;
@@ -8,7 +10,7 @@ export type DisruptionBooking = {
 const relevantStatuses = new Set(["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED", "NO_SHOW"]);
 
 function price(booking: DisruptionBooking) {
-  return booking.finalPriceCzk ?? booking.servicePriceFromCzk ?? 0;
+  return getKpiHistoricalPrice(booking) ?? 0;
 }
 
 /** Jmenovatel tvoří jen publikované, reálně plánované návštěvy. */

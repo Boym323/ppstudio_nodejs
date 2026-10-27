@@ -65,6 +65,105 @@ async function runAdminLogQueries<const T extends readonly AdminLogQuery[]>(
   return results as { [K in keyof T]: Awaited<ReturnType<T[K]>> };
 }
 
+type EmailLogSqlAlias = "root" | "representative" | "matching";
+
+function emailLogSqlAlias(alias: EmailLogSqlAlias) {
+  return Prisma.sql`${Prisma.raw(alias)}`;
+}
+
+function buildEmailLogBaseSql(input: {
+  alias: EmailLogSqlAlias;
+  query: string;
+  dateFrom: Date | null;
+  dateTo: Date | null;
+  emailType: EmailLogType | "all";
+}) {
+  const alias = emailLogSqlAlias(input.alias);
+  const conditions: Prisma.Sql[] = [];
+  if (input.dateFrom) conditions.push(Prisma.sql`${alias}."createdAt" >= ${input.dateFrom}`);
+  if (input.dateTo) conditions.push(Prisma.sql`${alias}."createdAt" < ${input.dateTo}`);
+  if (input.emailType !== "all") conditions.push(Prisma.sql`${alias}."type" = ${input.emailType}::"EmailLogType"`);
+  if (input.query) {
+    const query = input.query;
+    conditions.push(Prisma.sql`(
+      strpos(lower(${alias}."recipientEmail"), lower(${query})) > 0
+      OR strpos(lower(${alias}."subject"), lower(${query})) > 0
+      OR strpos(lower(${alias}."templateKey"), lower(${query})) > 0
+      OR EXISTS (
+        SELECT 1
+        FROM "Booking" AS booking
+        WHERE booking."id" = ${alias}."bookingId"
+          AND (
+            strpos(lower(booking."clientNameSnapshot"), lower(${query})) > 0
+            OR strpos(lower(booking."serviceNameSnapshot"), lower(${query})) > 0
+            OR strpos(lower(booking."id"), lower(${query})) > 0
+          )
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM "Client" AS client
+        WHERE client."id" = ${alias}."clientId"
+          AND strpos(lower(client."fullName"), lower(${query})) > 0
+      )
+    )`);
+  }
+  return conditions.length > 0 ? Prisma.sql`(${Prisma.join(conditions, " AND ")})` : Prisma.sql`TRUE`;
+}
+
+function buildEmailDeliveryFailureSql(alias: EmailLogSqlAlias) {
+  const emailLog = emailLogSqlAlias(alias);
+  return Prisma.sql`(
+    ${emailLog}."status" = ${EmailLogStatus.FAILED}::"EmailLogStatus"
+    OR ${emailLog}."trackingBouncedAt" IS NOT NULL
+    OR ${emailLog}."trackingFailedAt" IS NOT NULL
+    OR ${emailLog}."trackingSuppressedAt" IS NOT NULL
+  )`;
+}
+
+async function findAttentionIncidentCandidateIds(input: {
+  query: string;
+  dateFrom: Date | null;
+  dateTo: Date | null;
+  emailType: EmailLogType | "all";
+  take: number;
+}) {
+  const rootBase = buildEmailLogBaseSql({ ...input, alias: "root" });
+  const representativeBase = buildEmailLogBaseSql({ ...input, alias: "representative" });
+  const matchingBase = buildEmailLogBaseSql({ ...input, alias: "matching" });
+  const rootFailure = buildEmailDeliveryFailureSql("root");
+  const representativeFailure = buildEmailDeliveryFailureSql("representative");
+  const matchingFailure = buildEmailDeliveryFailureSql("matching");
+  const rows = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+    SELECT root."id"
+    FROM "EmailLog" AS root
+    LEFT JOIN LATERAL (
+      SELECT representative."id", representative."createdAt"
+      FROM "EmailLog" AS representative
+      WHERE representative."resendRootId" = root."id"
+        AND ${representativeFailure}
+        AND ${representativeBase}
+      ORDER BY representative."createdAt" DESC, representative."id" DESC
+      LIMIT 1
+    ) AS representative ON TRUE
+    WHERE root."resendRootId" IS NULL
+      AND root."incidentResolvedAt" IS NULL
+      AND (
+        (${rootFailure} AND ${rootBase})
+        OR EXISTS (
+          SELECT 1
+          FROM "EmailLog" AS matching
+          WHERE matching."resendRootId" = root."id"
+            AND ${matchingFailure}
+            AND ${matchingBase}
+        )
+      )
+    ORDER BY COALESCE(representative."createdAt", root."createdAt") DESC,
+      COALESCE(representative."id", root."id") DESC
+    LIMIT ${input.take}
+  `);
+  return rows.map((row) => row.id);
+}
+
 const {
   adminSubmissionPrefixes,
   availabilityAuditDescription,
@@ -232,23 +331,31 @@ export async function getAdminLogsData(input: {
   const loadEmails = async () => {
     if (!emailActive) return [];
     if (attentionIncidentActive) {
-      const incidents = await prisma.emailLog.findMany({
-        where: attentionIncidentWhere,
-        ...(attentionCandidateTake ? { take: attentionCandidateTake } : {}),
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-        include: {
-          booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } },
-          client: { select: { fullName: true } },
-          incidentResends: {
-            where: attentionRepresentativeFailureWhere,
-            orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-            take: 1,
-            include: {
-              booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } },
-              client: { select: { fullName: true } },
+      const incidentCandidateIds = attentionCandidateTake
+        ? await findAttentionIncidentCandidateIds({ query, dateFrom, dateTo, emailType, take: attentionCandidateTake })
+        : [];
+      const incidentRows = incidentCandidateIds.length > 0
+        ? await prisma.emailLog.findMany({
+          where: { id: { in: incidentCandidateIds } },
+          include: {
+            booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } },
+            client: { select: { fullName: true } },
+            incidentResends: {
+              where: attentionRepresentativeFailureWhere,
+              orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+              take: 1,
+              include: {
+                booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } },
+                client: { select: { fullName: true } },
+              },
             },
           },
-        },
+        })
+        : [];
+      const incidentsById = new Map(incidentRows.map((incident) => [incident.id, incident]));
+      const incidents = incidentCandidateIds.flatMap((id) => {
+        const incident = incidentsById.get(id);
+        return incident ? [incident] : [];
       });
       const supplementary = attentionSupplementActive
         ? await prisma.emailLog.findMany({ where: attentionSupplementWhere, ...(attentionCandidateTake ? { take: attentionCandidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, client: { select: { fullName: true } }, resendRoot: { select: { incidentResolvedAt: true, incidentResolvedByEmailLogId: true, incidentResolutionKind: true } } } })

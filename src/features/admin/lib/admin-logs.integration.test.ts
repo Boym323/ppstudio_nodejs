@@ -533,6 +533,67 @@ dbTest("Pozornost stránkuje incidenty bez načtení celé historie", async () =
   }
 });
 
+dbTest("Pozornost stránkuje incident podle času posledního selhaného resendu", async () => {
+  const [{ prisma }, { getAdminLogsData }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-data"),
+  ]);
+  const suffix = `admin-attention-resend-pages-${randomUUID()}`;
+  const ordinaryCount = 55;
+  const start = new Date("2032-01-01T12:00:00.000Z").getTime();
+  const rootCreatedAt = new Date(start - 60_000);
+  const resendCreatedAt = new Date(start + ordinaryCount * 1_000 + 60_000);
+
+  const root = await prisma.emailLog.create({
+    data: {
+      type: EmailLogType.GENERIC,
+      status: EmailLogStatus.FAILED,
+      recipientEmail: `root-${suffix}@example.test`,
+      subject: `Starý incident ${suffix}`,
+      templateKey: "admin-attention-resend-pagination-test",
+      errorMessage: "Původní selhání",
+      createdAt: rootCreatedAt,
+    },
+  });
+  const child = await prisma.emailLog.create({
+    data: {
+      type: EmailLogType.GENERIC,
+      status: EmailLogStatus.FAILED,
+      recipientEmail: `resend-${suffix}@example.test`,
+      subject: `Pozdější resend ${suffix}`,
+      templateKey: "admin-attention-resend-pagination-test",
+      errorMessage: "Selhání resendu",
+      resendOfId: root.id,
+      resendRootId: root.id,
+      createdAt: resendCreatedAt,
+    },
+  });
+
+  try {
+    await prisma.emailLog.createMany({
+      data: Array.from({ length: ordinaryCount }, (_, index) => ({
+        type: EmailLogType.GENERIC,
+        status: EmailLogStatus.FAILED,
+        recipientEmail: `${index}-${suffix}@example.test`,
+        subject: `Incident ${suffix} ${index}`,
+        templateKey: "admin-attention-resend-pagination-test",
+        errorMessage: "Selhání",
+        createdAt: new Date(start + index * 1_000),
+      })),
+    });
+
+    const first = await getAdminLogsData({ area: "owner", view: "attention", source: "email", query: suffix });
+
+    assert.equal(first.total, ordinaryCount + 1);
+    assert.equal(first.items.length, 50);
+    assert.equal(first.items[0]?.emailLogId, child.id);
+    assert.equal(first.items[0]?.occurredAt, resendCreatedAt.toISOString());
+  } finally {
+    await prisma.emailLog.deleteMany({ where: { resendRootId: root.id } });
+    await prisma.emailLog.deleteMany({ where: { subject: { contains: suffix } } });
+  }
+});
+
 dbTest("refaktor logů zachová deduplikaci incidentu a OWNER/SALON scope", async () => {
   const [{ prisma }, { getAdminLogsData }] = await Promise.all([
     import("@/lib/prisma"),

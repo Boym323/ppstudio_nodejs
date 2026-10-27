@@ -1,8 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { BookingPaymentStatus } from "@/generated/prisma/browser";
+import { getBookingPaymentSummary } from "@/features/booking/payments/lib/booking-payment-summary";
+
 import { aggregateAcquisition } from "./kpi-acquisition";
 import { calculateDisruptionMetrics } from "./kpi-disruption-metrics";
+import { getKpiHistoricalPrice } from "./kpi-pricing";
 
 const rows = [
   { status: "COMPLETED", price: 1_000, source: "ig" },
@@ -46,6 +50,39 @@ test("kontrolní součty stavů, hodnot a akvizice zůstávají konzistentní", 
     acquisition.summary.reduce((sum, row) => sum + row.completed, 0),
     completed.length,
   );
+});
+
+test("historické KPI ignorují aktuální cenu katalogu u starých rezervací", () => {
+  const oldBooking = { finalPriceCzk: null, servicePriceFromCzk: null, currentServicePriceCzk: 1_800 };
+  const priceChanged = { finalPriceCzk: null, servicePriceFromCzk: 1_000, currentServicePriceCzk: 1_500 };
+  const adjusted = { finalPriceCzk: 1_300, servicePriceFromCzk: 1_000, currentServicePriceCzk: 1_500 };
+
+  assert.equal(getKpiHistoricalPrice(oldBooking), null);
+  assert.equal(getKpiHistoricalPrice(priceChanged), 1_000);
+  assert.equal(getKpiHistoricalPrice(adjusted), 1_300);
+});
+
+test("kombinované platby a vouchery nezmění historickou cenu rezervace ani zůstatek", () => {
+  const totalPriceCzk = getKpiHistoricalPrice({ finalPriceCzk: null, servicePriceFromCzk: 1_700 }) ?? 0;
+  const combined = getBookingPaymentSummary({
+    totalPriceCzk,
+    voucherRedemptions: [{ amountCzk: 500, voucher: { type: "VALUE" } }],
+    payments: [
+      { amountCzk: 1_200, status: BookingPaymentStatus.ACTIVE },
+      { amountCzk: 900, status: BookingPaymentStatus.VOIDED },
+    ],
+  });
+  const serviceVoucher = getBookingPaymentSummary({
+    totalPriceCzk,
+    serviceId: "service-1",
+    servicePriceCzk: 1_700,
+    voucherRedemptions: [{ amountCzk: 1_700, serviceId: "service-1", voucher: { type: "SERVICE" } }],
+  });
+
+  assert.equal(combined.remainingCzk, 0);
+  assert.equal(combined.paidTotalCzk, totalPriceCzk);
+  assert.equal(serviceVoucher.remainingCzk, 0);
+  assert.equal(serviceVoucher.paidTotalCzk, totalPriceCzk);
 });
 
 test("koncept a nepublikovaný záznam nejsou relevantní plánované rezervace", () => {

@@ -1,3 +1,5 @@
+import { getKpiHistoricalPrice } from "./kpi-pricing";
+
 export type ExpectedRevenueBooking = {
   status: string;
   scheduledStartsAt: Date;
@@ -6,7 +8,7 @@ export type ExpectedRevenueBooking = {
 };
 
 export function getExpectedRevenueBookingValue(booking: ExpectedRevenueBooking) {
-  return booking.finalPriceCzk ?? booking.servicePriceFromCzk;
+  return getKpiHistoricalPrice(booking);
 }
 
 export function calculateExpectedRevenue(

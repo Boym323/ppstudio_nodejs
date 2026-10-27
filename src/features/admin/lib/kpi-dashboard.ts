@@ -11,6 +11,7 @@ import { calculateKpiOccupancy, mergeKpiTimeIntervals } from "@/features/admin/l
 import { getKpiMetricPreviousAvailability } from "@/features/admin/lib/kpi-metric-availability";
 import { calculateDisruptionMetrics } from "@/features/admin/lib/kpi-disruption-metrics";
 import { aggregateServiceMetrics } from "@/features/admin/lib/kpi-service-metrics";
+import { getKpiHistoricalPrice } from "@/features/admin/lib/kpi-pricing";
 import { getRetentionBandDateBounds, getRetentionBandLabel, type RetentionBand } from "@/features/admin/lib/kpi-retention";
 import { completeKpiTimeSeries, sortKpiTimeSeries } from "@/features/admin/lib/kpi-time-series";
 import { type KpiDashboardData, type KpiDateRange, type KpiMetric } from "@/features/admin/types/kpi-dashboard";
@@ -28,7 +29,7 @@ async function getBookings(start: Date, end: Date) {
   return prisma.booking.findMany({
     where: { scheduledStartsAt: { gte: start, lt: end } },
     orderBy: { scheduledStartsAt: "asc" },
-    select: { clientId: true, status: true, isManual: true, manualOverride: true, scheduledStartsAt: true, scheduledEndsAt: true, blockedUntil: true, serviceNameSnapshot: true, finalPriceCzk: true, servicePriceFromCzk: true, acquisitionSource: true, acquisitionUtmSource: true, acquisitionUtmMedium: true, acquisitionUtmCampaign: true, slot: { select: { publishedAt: true } }, service: { select: { priceFromCzk: true } } },
+    select: { clientId: true, status: true, isManual: true, manualOverride: true, scheduledStartsAt: true, scheduledEndsAt: true, blockedUntil: true, serviceNameSnapshot: true, finalPriceCzk: true, servicePriceFromCzk: true, acquisitionSource: true, acquisitionUtmSource: true, acquisitionUtmMedium: true, acquisitionUtmCampaign: true, slot: { select: { publishedAt: true } } },
   });
 }
 
@@ -59,11 +60,11 @@ async function getKpiPeriodAggregates(previous: KpiDateRange, current: KpiDateRa
         booking."id",
         booking."status",
         booking."scheduledStartsAt",
-        GREATEST(COALESCE(booking."finalPriceCzk", booking."servicePriceFromCzk", service."priceFromCzk", 0), 0) AS "totalPriceCzk",
-        GREATEST(COALESCE(booking."servicePriceFromCzk", service."priceFromCzk", 0), 0) AS "servicePriceCzk",
+        -- Historické KPI nesmí použít aktuální katalogovou cenu služby.
+        GREATEST(COALESCE(booking."finalPriceCzk", booking."servicePriceFromCzk", 0), 0) AS "totalPriceCzk",
+        GREATEST(COALESCE(booking."servicePriceFromCzk", 0), 0) AS "servicePriceCzk",
         booking."serviceId"
       FROM "Booking" AS booking
-      JOIN "Service" AS service ON service."id" = booking."serviceId"
       WHERE booking."scheduledStartsAt" >= ${previous.start}
         AND booking."scheduledStartsAt" < ${end}
     ), booking_financials AS (
@@ -173,7 +174,7 @@ function getOccupancyLunchMinutes(
 async function getExpectedRevenueAggregate(start: Date, end: Date) {
   const rows = await prisma.$queryRaw<Array<{ amount: number; bookingCount: number; missingPriceCount: number }>>(Prisma.sql`
     SELECT
-      COALESCE(SUM(COALESCE("finalPriceCzk", "servicePriceFromCzk")) FILTER (
+      COALESCE(SUM(GREATEST(COALESCE("finalPriceCzk", "servicePriceFromCzk", 0), 0)) FILTER (
         WHERE COALESCE("finalPriceCzk", "servicePriceFromCzk") IS NOT NULL
       ), 0)::double precision AS "amount",
       COUNT(*) FILTER (
@@ -189,7 +190,7 @@ async function getExpectedRevenueAggregate(start: Date, end: Date) {
   `);
   return rows[0] ?? { amount: 0, bookingCount: 0, missingPriceCount: 0 };
 }
-function price(row: BookingRow) { return row.finalPriceCzk ?? row.servicePriceFromCzk ?? 0; }
+function price(row: BookingRow) { return getKpiHistoricalPrice(row) ?? 0; }
 function summarize(
   rows: BookingRow[],
   range: KpiDateRange,
