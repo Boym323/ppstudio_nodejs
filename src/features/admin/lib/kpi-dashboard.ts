@@ -58,7 +58,6 @@ async function getKpiPeriodAggregates(previous: KpiDateRange, current: KpiDateRa
     WITH booking_prices AS (
       SELECT
         booking."id",
-        booking."status",
         booking."scheduledStartsAt",
         -- Historické KPI nesmí použít aktuální katalogovou cenu služby.
         GREATEST(COALESCE(booking."finalPriceCzk", booking."servicePriceFromCzk", 0), 0) AS "totalPriceCzk",
@@ -67,65 +66,66 @@ async function getKpiPeriodAggregates(previous: KpiDateRange, current: KpiDateRa
       FROM "Booking" AS booking
       WHERE booking."scheduledStartsAt" >= ${previous.start}
         AND booking."scheduledStartsAt" < ${end}
+        AND booking."status" = ${completed}::"BookingStatus"
+    ), booking_payment_totals AS (
+      SELECT
+        payment."bookingId",
+        SUM(GREATEST(payment."amountCzk", 0)) AS "paidCzk"
+      FROM "BookingPayment" AS payment
+      JOIN booking_prices AS booking ON booking."id" = payment."bookingId"
+      WHERE payment."status" <> ${BookingPaymentStatus.VOIDED}::"BookingPaymentStatus"
+      GROUP BY payment."bookingId"
+    ), voucher_redemption_totals AS (
+      SELECT
+        redemption."bookingId",
+        SUM(GREATEST(redemption."amountCzk", 0)) FILTER (
+          WHERE voucher."type" <> ${VoucherType.SERVICE}::"VoucherType"
+        ) AS "valueVoucherCzk",
+        BOOL_OR(
+          voucher."type" = ${VoucherType.SERVICE}::"VoucherType"
+          AND redemption."serviceId" = booking."serviceId"
+        ) AS "hasMatchingServiceVoucher"
+      FROM "VoucherRedemption" AS redemption
+      JOIN "Voucher" AS voucher ON voucher."id" = redemption."voucherId"
+      JOIN booking_prices AS booking ON booking."id" = redemption."bookingId"
+      GROUP BY redemption."bookingId"
     ), booking_financials AS (
       SELECT
         booking.*,
         GREATEST(
           booking."totalPriceCzk"
-          - COALESCE((
-            SELECT SUM(GREATEST(payment."amountCzk", 0))
-            FROM "BookingPayment" AS payment
-            WHERE payment."bookingId" = booking."id"
-              AND payment."status" <> ${BookingPaymentStatus.VOIDED}::"BookingPaymentStatus"
-          ), 0)
-          - COALESCE((
-            SELECT SUM(GREATEST(redemption."amountCzk", 0))
-            FROM "VoucherRedemption" AS redemption
-            JOIN "Voucher" AS voucher ON voucher."id" = redemption."voucherId"
-            WHERE redemption."bookingId" = booking."id"
-              AND voucher."type" <> ${VoucherType.SERVICE}::"VoucherType"
-          ), 0)
-          - CASE WHEN EXISTS (
-              SELECT 1
-              FROM "VoucherRedemption" AS redemption
-              JOIN "Voucher" AS voucher ON voucher."id" = redemption."voucherId"
-              WHERE redemption."bookingId" = booking."id"
-                AND redemption."serviceId" = booking."serviceId"
-                AND voucher."type" = ${VoucherType.SERVICE}::"VoucherType"
-            ) THEN LEAST(booking."totalPriceCzk", booking."servicePriceCzk") ELSE 0 END,
+          - COALESCE(payment."paidCzk", 0)
+          - COALESCE(voucher."valueVoucherCzk", 0)
+          - CASE WHEN voucher."hasMatchingServiceVoucher" THEN LEAST(booking."totalPriceCzk", booking."servicePriceCzk") ELSE 0 END,
           0
         ) AS "outstandingCzk"
       FROM booking_prices AS booking
+      LEFT JOIN booking_payment_totals AS payment ON payment."bookingId" = booking."id"
+      LEFT JOIN voucher_redemption_totals AS voucher ON voucher."bookingId" = booking."id"
     )
     SELECT
       COUNT(*) FILTER (
-        WHERE "status" = ${completed}::"BookingStatus"
-          AND "scheduledStartsAt" >= ${current.start}
+        WHERE "scheduledStartsAt" >= ${current.start}
           AND "scheduledStartsAt" < ${current.end}
       )::int AS "currentCompletedCount",
       COALESCE(SUM("totalPriceCzk") FILTER (
-        WHERE "status" = ${completed}::"BookingStatus"
-          AND "scheduledStartsAt" >= ${current.start}
+        WHERE "scheduledStartsAt" >= ${current.start}
           AND "scheduledStartsAt" < ${current.end}
       ), 0)::double precision AS "currentRevenue",
       COALESCE(SUM("outstandingCzk") FILTER (
-        WHERE "status" = ${completed}::"BookingStatus"
-          AND "scheduledStartsAt" >= ${current.start}
+        WHERE "scheduledStartsAt" >= ${current.start}
           AND "scheduledStartsAt" < ${current.end}
       ), 0)::double precision AS "currentOutstanding",
       COUNT(*) FILTER (
-        WHERE "status" = ${completed}::"BookingStatus"
-          AND "scheduledStartsAt" >= ${previous.start}
+        WHERE "scheduledStartsAt" >= ${previous.start}
           AND "scheduledStartsAt" < ${previous.end}
       )::int AS "previousCompletedCount",
       COALESCE(SUM("totalPriceCzk") FILTER (
-        WHERE "status" = ${completed}::"BookingStatus"
-          AND "scheduledStartsAt" >= ${previous.start}
+        WHERE "scheduledStartsAt" >= ${previous.start}
           AND "scheduledStartsAt" < ${previous.end}
       ), 0)::double precision AS "previousRevenue",
       COALESCE(SUM("outstandingCzk") FILTER (
-        WHERE "status" = ${completed}::"BookingStatus"
-          AND "scheduledStartsAt" >= ${previous.start}
+        WHERE "scheduledStartsAt" >= ${previous.start}
           AND "scheduledStartsAt" < ${previous.end}
       ), 0)::double precision AS "previousOutstanding"
     FROM booking_financials
