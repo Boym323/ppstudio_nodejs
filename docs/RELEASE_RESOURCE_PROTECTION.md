@@ -34,10 +34,14 @@ přejít jen explicitně pro DEV diagnostiku:
 ```bash
 PPSTUDIO_RELEASE_CGROUP_MODE=off \
 PPSTUDIO_RELEASE_ALLOW_UNSCOPED=1 \
+PPSTUDIO_RELEASE_UNSCOPED_TARGET=DEV \
+NODE_ENV=development \
 ./deploy/release.sh --skip-pull --yes
 ```
 
-Tento režim se na produkci nepoužívá. Hodnoty lze pro experiment změnit přes
+Validace tento režim odmítne v `NODE_ENV=production` i bez ohledu na ostatní
+flagy; mimo `development`/`test` navíc vyžaduje přesný cíl `DEV`. Tento režim se
+na produkci nepoužívá. Hodnoty lze pro experiment změnit přes
 `PPSTUDIO_RELEASE_CPU_QUOTA`, `PPSTUDIO_RELEASE_CPU_WEIGHT`,
 `PPSTUDIO_RELEASE_IO_WEIGHT`, `PPSTUDIO_RELEASE_MEMORY_HIGH`,
 `PPSTUDIO_RELEASE_MEMORY_MAX`, `PPSTUDIO_RELEASE_TASKS_MAX` a
@@ -75,6 +79,28 @@ Ověřeno 27. 10. 2026 v DEV checkoutu:
 Toto ověření potvrzuje podporu mechanismu v DEV, nikoli jeho účinek na
 produkční latenci. Před prvním produkčním použitím musí operátor stejným
 read-only probe ověřit cgroup delegaci konkrétního LXC.
+
+### Audit aktivního scope
+
+V aktivním DEV scope `ppstudio-dev-cgroup-audit-17304` byl 27. 10. 2026
+naměřen skutečný cgroup v2 stav. Hodnoty `memory.*` jsou rozpočet a součet
+celého scope; RSS je pouze rezidentní paměť sledovaného procesu a nelze jej
+zaměňovat za paměť cgroup:
+
+| Metrika | Naměřená hodnota | Výklad |
+| --- | ---: | --- |
+| `cpu.max` | `100000 100000` | kvóta 100 %, jeden vCPU |
+| `memory.high` | `2936012800` B | 2800 MiB |
+| `memory.max` | `3221225472` B | 3 GiB |
+| `memory.current` | `271929344` B | přibližně 259 MiB, celý scope |
+| `memory.peak` | `809975808` B | přibližně 772 MiB, celý scope |
+| RSS sledovaného procesu | `269180` KiB | přibližně 263 MiB, jeden proces |
+
+`memory.events` během aktivního scope obsahovalo `low=0`, `high=0`, `max=0`,
+`oom=0`, `oom_kill=0`, `oom_group_kill=0` a `sock_throttled=0`. Proces skončil
+úspěšně a jeho cgroup byl `/system.slice/ppstudio-dev-cgroup-audit-17304.scope`.
+Jde o ověření mechanismu na DEV; DEV má 16 GiB RAM a 4 vCPU, takže z něj nelze
+odvodit produkční SLO ani vyloučit tlak na produkční LXC.
 
 ## Měřicí protokol
 
@@ -142,6 +168,36 @@ reprodukovatelný cold fallback a selhání cache nemůže aktivovat neúplný a
 Případné budoucí sdílení cache musí nejdřív přidat validaci, atomickou obnovu a
 samostatné měření I/O; zrychlení warm buildu samo o sobě není důvodem vystavit
 release společné poškozené cache.
+
+### Finální provozní regresní běh PR #91 na DEV
+
+Byl spuštěn skutečný `next start` nad lokální databází `ppstudio_dst_test` a
+souběžně omezený `next build` v systemd scope s výchozími limity tohoto PR.
+Běh nepracoval s produkční URL, produkční databází ani produkčními writery.
+
+| Route | Požadavků | HTTP chyby | p95 | Maximum |
+| --- | ---: | ---: | ---: | ---: |
+| `/` | 485 | 0 | 68,559 ms | 874,995 ms |
+| `/sluzby` | 485 | 0 | 64,799 ms | 199,301 ms |
+| `/api/health` | 485 | 0 | 9,440 ms | 65,919 ms |
+
+Build skončil s exit statusem 0 za `3:05,05`. Read-only PostgreSQL probe
+proběhl 485/485 krát bez chyby; po běhu byl PostgreSQL `active`, v cílové DB
+bylo `1 active` a `4 idle` spojení. Serverový log neobsahoval chyby podle
+kontroly `error|exception|failed|terminated`.
+
+U tohoto souběžného běhu se po ukončení scope nepodařilo získat jeho aktivní
+cgroup cestu, proto z něj není uváděn `memory.events` ani OOM závěr. OOM stav
+je doložen pouze výše uvedeným samostatným aktivním scope probe, kde byly
+všechny OOM čítače nulové. `/usr/bin/time` obalený kolem `systemd-run` rovněž
+není použit jako náhrada za celkovou paměť cgroup.
+
+Regresní test s mockem `systemd-run` ověřuje předání všech limitů, pracovního
+adresáře a prostředí, exit status příkazu i fail-closed chování. Při chybě
+mocku nevznikne marker nechráněného příkazu; statická kontrola pořadí zároveň
+potvrzuje, že `RELEASE_WRITERS_STOPPED=1` i zastavení writerů následují až po
+úspěšném buildu. Chyba `systemd-run` se tak nemůže změnit v nechráněný běh ani
+v předčasné zastavení produkčních writerů.
 
 ## Srovnávané varianty a rozhodnutí
 

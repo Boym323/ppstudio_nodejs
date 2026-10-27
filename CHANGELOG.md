@@ -14,6 +14,10 @@ Formát je inspirovaný Keep a Changelog.
 
 - Provozní release dokumentace odděluje prokázané údaje incidentu od hypotézy příčiny a přidává DEV měřicí protokol pro RSS, PSI, I/O, build time, HTTP a read-only DB latenci včetně omezení reprezentativnosti DEV.
 
+### Zabezpečení
+
+- Nechráněný release preflight nyní vyžaduje explicitní cíl `DEV` a `NODE_ENV=development`/`test`, v produkci je odmítnut; regresní test ověřuje, že chyba `systemd-run` nepřejde na nechráněný běh ani předčasně nezastaví writery.
+
 ## [3.38.0] - 2026-10-27
 
 ### Změněno

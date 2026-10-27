@@ -109,6 +109,17 @@ validate_release_resource_limits() {
     return 1
   fi
 
+  if [[ "${RELEASE_CGROUP_MODE}" == "off" ]]; then
+    if [[ "${NODE_ENV:-}" == "production" ]]; then
+      echo "Nechráněný release preflight je v NODE_ENV=production zakázaný." >&2
+      return 1
+    fi
+    if [[ "${NODE_ENV:-}" != "development" && "${NODE_ENV:-}" != "test" ]] || [[ "${PPSTUDIO_RELEASE_UNSCOPED_TARGET:-}" != "DEV" ]]; then
+      echo "Nechráněný release preflight vyžaduje NODE_ENV=development/test a PPSTUDIO_RELEASE_UNSCOPED_TARGET=DEV." >&2
+      return 1
+    fi
+  fi
+
   [[ "${RELEASE_CPU_QUOTA}" =~ ^([1-9][0-9]{0,3}|10000)%$ ]] || {
     echo "PPSTUDIO_RELEASE_CPU_QUOTA musí být procento 1–10000 (např. 100%)." >&2
     return 1
