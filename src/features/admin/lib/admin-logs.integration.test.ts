@@ -498,6 +498,41 @@ dbTest("E-maily a Technické stránkují více než 50 záznamů bez ztráty po�
   }
 });
 
+dbTest("Pozornost stránkuje incidenty bez načtení celé historie", async () => {
+  const [{ prisma }, { getAdminLogsData }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-data"),
+  ]);
+  const suffix = `admin-attention-pages-${randomUUID()}`;
+  const count = 65;
+  const start = new Date("2031-01-01T12:00:00.000Z").getTime();
+
+  try {
+    await prisma.emailLog.createMany({
+      data: Array.from({ length: count }, (_, index) => ({
+        type: EmailLogType.GENERIC,
+        status: EmailLogStatus.FAILED,
+        recipientEmail: `${index}-${suffix}@example.test`,
+        subject: `Incident ${suffix} ${index}`,
+        templateKey: "admin-attention-pagination-test",
+        createdAt: new Date(start + index * 1_000),
+      })),
+    });
+
+    const first = await getAdminLogsData({ area: "owner", view: "attention", source: "email", query: suffix });
+    const second = await getAdminLogsData({ area: "owner", view: "attention", source: "email", query: suffix, page: "2" });
+
+    assert.equal(first.total, count);
+    assert.equal(first.pageCount, 2);
+    assert.equal(first.items.length, 50);
+    assert.equal(second.items.length, 15);
+    assert.equal(new Set([...first.items, ...second.items].map((item) => item.id)).size, count);
+    assert.equal(first.items.at(-1)!.occurredAt > second.items[0]!.occurredAt, true);
+  } finally {
+    await prisma.emailLog.deleteMany({ where: { subject: { contains: suffix } } });
+  }
+});
+
 dbTest("refaktor logů zachová deduplikaci incidentu a OWNER/SALON scope", async () => {
   const [{ prisma }, { getAdminLogsData }] = await Promise.all([
     import("@/lib/prisma"),

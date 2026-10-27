@@ -37,6 +37,34 @@ export type { EmailLogDetailData } from "./email-log-presentations";
 export { getEmailLogDetailData } from "./email-log-detail";
 export { getEmailDeliveryFailureWhere, getEmailDeliveryIncidentRootWhere, getUnresolvedEmailDeliveryFailureWhere, getUnresolvedEmailDeliveryIncidentRootWhere } from "@/lib/email/incidents";
 
+const adminLogQueryConcurrency = 4;
+type AdminLogQuery = () => Promise<unknown>;
+
+/** Spouští dotazy feedu paralelně po omezených dávkách, aby nezahltily pool připojení. */
+async function runAdminLogQueries<const T extends readonly AdminLogQuery[]>(
+  queries: T,
+): Promise<{ [K in keyof T]: Awaited<ReturnType<T[K]>> }> {
+  const results = new Array<unknown>(queries.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (true) {
+      const index = nextIndex++;
+      if (index >= queries.length) return;
+      results[index] = await queries[index]();
+    }
+  }
+
+  await Promise.all(
+    Array.from(
+      { length: Math.min(adminLogQueryConcurrency, queries.length) },
+      () => worker(),
+    ),
+  );
+
+  return results as { [K in keyof T]: Awaited<ReturnType<T[K]>> };
+}
+
 const {
   adminSubmissionPrefixes,
   availabilityAuditDescription,
@@ -148,23 +176,23 @@ export async function getAdminLogsData(input: {
   // načítáme omezený prefix každého zdroje.
   // Při řazení podle (čas, id) nemůže položka za tímto prefixem předběhnout
   // požadovanou globální stránku.
-  const eventCounts = safeView === "events" ? await Promise.all([
-    bookingActive ? countDeduplicatedBookingHistory({ query, dateFrom, dateTo, severity }) : Promise.resolve(0),
-    bookingActive ? prisma.bookingRescheduleLog.count({ where: rescheduleWhere }) : Promise.resolve(0),
-    voucherActive ? prisma.voucher.count({ where: voucherWhere }) : Promise.resolve(0),
-    voucherActive ? prisma.voucherRedemption.count({ where: redemptionWhere }) : Promise.resolve(0),
-    voucherActive ? prisma.voucherChangeLog.count({ where: voucherChangeWhere }) : Promise.resolve(0),
-    serviceActive ? prisma.serviceChangeLog.count({ where: serviceChangeWhere }) : Promise.resolve(0),
-    serviceActive ? prisma.servicePriceChangeLog.count({ where: servicePriceChangeWhere }) : Promise.resolve(0),
-    settingsActive ? prisma.siteSettingsChangeLog.count({ where: siteSettingsChangeWhere }) : Promise.resolve(0),
-    availabilityActive ? prisma.availabilityAuditEvent.count({ where: availabilityWhere }) : Promise.resolve(0),
+  const eventCounts = safeView === "events" ? await runAdminLogQueries([
+    () => bookingActive ? countDeduplicatedBookingHistory({ query, dateFrom, dateTo, severity }) : Promise.resolve(0),
+    () => bookingActive ? prisma.bookingRescheduleLog.count({ where: rescheduleWhere }) : Promise.resolve(0),
+    () => voucherActive ? prisma.voucher.count({ where: voucherWhere }) : Promise.resolve(0),
+    () => voucherActive ? prisma.voucherRedemption.count({ where: redemptionWhere }) : Promise.resolve(0),
+    () => voucherActive ? prisma.voucherChangeLog.count({ where: voucherChangeWhere }) : Promise.resolve(0),
+    () => serviceActive ? prisma.serviceChangeLog.count({ where: serviceChangeWhere }) : Promise.resolve(0),
+    () => serviceActive ? prisma.servicePriceChangeLog.count({ where: servicePriceChangeWhere }) : Promise.resolve(0),
+    () => settingsActive ? prisma.siteSettingsChangeLog.count({ where: siteSettingsChangeWhere }) : Promise.resolve(0),
+    () => availabilityActive ? prisma.availabilityAuditEvent.count({ where: availabilityWhere }) : Promise.resolve(0),
   ]) : null;
   // Pro E-maily a Technické načteme jen chronologický prefix potřebný
   // ke složení požadované stránky, nikoli všechny historické záznamy.
-  const [emailTotal, adminAuditTotal, submissionTotal] = await Promise.all([
-    safeView === "emails" && emailActive ? prisma.emailLog.count({ where: emailWhere }) : Promise.resolve(0),
-    safeView === "system" && adminAuditActive ? prisma.adminUserAuditEvent.count({ where: adminUserAuditWhere }) : Promise.resolve(0),
-    safeView === "system" && submissionActive ? prisma.bookingSubmissionLog.count({ where: submissionWhere }) : Promise.resolve(0),
+  const [emailTotal, adminAuditTotal, submissionTotal] = await runAdminLogQueries([
+    () => safeView === "emails" && emailActive ? prisma.emailLog.count({ where: emailWhere }) : Promise.resolve(0),
+    () => safeView === "system" && adminAuditActive ? prisma.adminUserAuditEvent.count({ where: adminUserAuditWhere }) : Promise.resolve(0),
+    () => safeView === "system" && submissionActive ? prisma.bookingSubmissionLog.count({ where: submissionWhere }) : Promise.resolve(0),
   ]);
   const exactSimpleTotal = safeView === "emails" || safeView === "system"
     ? emailTotal + adminAuditTotal + submissionTotal
@@ -172,6 +200,16 @@ export async function getAdminLogsData(input: {
   const simpleMeta = exactSimpleTotal === null ? null : getAdminLogCandidatePlan(exactSimpleTotal, requestedPage);
   const simpleCandidateTake = safeView === "emails" ? adminLogPageSize : simpleMeta?.take;
   const emailPageSkip = safeView === "emails" ? (simpleMeta?.offset ?? 0) : 0;
+  const attentionCounts = safeView === "attention" ? await runAdminLogQueries([
+    () => attentionIncidentActive ? prisma.emailLog.count({ where: attentionIncidentWhere }) : Promise.resolve(0),
+    () => attentionSupplementActive ? prisma.emailLog.count({ where: attentionSupplementWhere }) : Promise.resolve(0),
+    () => submissionActive ? prisma.bookingSubmissionLog.count({ where: submissionWhere }) : Promise.resolve(0),
+  ]) : null;
+  const exactAttentionTotal = attentionCounts ? attentionCounts.reduce((total, count) => total + count, 0) : null;
+  const attentionMeta = exactAttentionTotal === null ? null : getAdminLogCandidatePlan(exactAttentionTotal, requestedPage);
+  const attentionCandidateTake = attentionMeta?.take;
+  const emailCandidateTake = safeView === "attention" ? attentionCandidateTake : simpleCandidateTake;
+  const submissionCandidateTake = safeView === "attention" ? attentionCandidateTake : simpleCandidateTake;
 
   const exactEventTotal = eventCounts ? eventCounts.reduce((total, count) => total + count, 0) : null;
   const eventMeta = exactEventTotal === null ? null : getAdminLogCandidatePlan(exactEventTotal, requestedPage);
@@ -182,55 +220,60 @@ export async function getAdminLogsData(input: {
 
   const attentionHealthActive = safeView === "attention";
   const ownerQueueHealthActive = isOwner && safeView === "system";
-  const [failed, retry, stuck, pending, processing, critical] = await Promise.all([
+  const [failed, retry, stuck, pending, processing, critical] = await runAdminLogQueries([
     // Jeden root = jeden incident i při více resend pokusech; badge viditelný ve všech pohledech.
-    prisma.emailLog.count({ where: getUnresolvedEmailDeliveryIncidentRootWhere() }),
-    attentionHealthActive || ownerQueueHealthActive ? prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, attemptCount: { gt: 0 }, processingStartedAt: null } }) : Promise.resolve(0),
-    attentionHealthActive || ownerQueueHealthActive ? prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, processingStartedAt: { lt: staleBefore } } }) : Promise.resolve(0),
-    ownerQueueHealthActive ? prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, attemptCount: 0, processingStartedAt: null } }) : Promise.resolve(0),
-    ownerQueueHealthActive ? prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, processingStartedAt: { not: null } } }) : Promise.resolve(0),
-    isOwner && safeView === "attention" ? prisma.bookingSubmissionLog.count({ where: criticalBookingSubmissionWhere({ gte: attentionSince }) }) : Promise.resolve(0),
+    () => prisma.emailLog.count({ where: getUnresolvedEmailDeliveryIncidentRootWhere() }),
+    () => attentionHealthActive || ownerQueueHealthActive ? prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, attemptCount: { gt: 0 }, processingStartedAt: null } }) : Promise.resolve(0),
+    () => attentionHealthActive || ownerQueueHealthActive ? prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, processingStartedAt: { lt: staleBefore } } }) : Promise.resolve(0),
+    () => ownerQueueHealthActive ? prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, attemptCount: 0, processingStartedAt: null } }) : Promise.resolve(0),
+    () => ownerQueueHealthActive ? prisma.emailLog.count({ where: { status: EmailLogStatus.PENDING, processingStartedAt: { not: null } } }) : Promise.resolve(0),
+    () => isOwner && safeView === "attention" ? prisma.bookingSubmissionLog.count({ where: criticalBookingSubmissionWhere({ gte: attentionSince }) }) : Promise.resolve(0),
   ]);
-  const [emails, bookingHistory, reschedules, vouchers, redemptions, voucherChanges, serviceChanges, servicePriceChanges, siteSettingsChanges, availabilityAudits, adminUserAudits, submissions] = await Promise.all([
-    emailActive
-      ? attentionIncidentActive
-        ? Promise.all([
-          prisma.emailLog.findMany({
-            where: attentionIncidentWhere,
+  const loadEmails = async () => {
+    if (!emailActive) return [];
+    if (attentionIncidentActive) {
+      const incidents = await prisma.emailLog.findMany({
+        where: attentionIncidentWhere,
+        ...(attentionCandidateTake ? { take: attentionCandidateTake } : {}),
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        include: {
+          booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } },
+          client: { select: { fullName: true } },
+          incidentResends: {
+            where: attentionRepresentativeFailureWhere,
+            orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+            take: 1,
             include: {
               booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } },
               client: { select: { fullName: true } },
-              incidentResends: {
-                where: attentionRepresentativeFailureWhere,
-                orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-                take: 1,
-                include: {
-                  booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } },
-                  client: { select: { fullName: true } },
-                },
-              },
             },
-          }),
-          attentionSupplementActive
-            ? prisma.emailLog.findMany({ where: attentionSupplementWhere, orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, client: { select: { fullName: true } }, resendRoot: { select: { incidentResolvedAt: true, incidentResolvedByEmailLogId: true, incidentResolutionKind: true } } } })
-            : Promise.resolve([]),
-        ]).then(([incidents, supplementary]) => [
-          ...incidents.map((incident) => ({ representativeEmailLog: incident.incidentResends[0] ?? incident, incidentRoot: incident })),
-          ...supplementary.map((log) => ({ representativeEmailLog: log, incidentRoot: log.resendRoot ?? log })),
-        ])
-        : prisma.emailLog.findMany({ where: emailWhere, ...(emailPageSkip ? { skip: emailPageSkip } : {}), ...(simpleCandidateTake ? { take: simpleCandidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, client: { select: { fullName: true } }, resendRoot: { select: { incidentResolvedAt: true, incidentResolvedByEmailLogId: true, incidentResolutionKind: true } } } }).then((logs) => logs.map((log) => ({ representativeEmailLog: log, incidentRoot: log.resendRoot ?? log })))
-      : Promise.resolve([]),
-    bookingHistoryCandidateIds.length > 0 ? prisma.bookingStatusHistory.findMany({ where: { id: { in: bookingHistoryCandidateIds } }, include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
-    bookingActive ? prisma.bookingRescheduleLog.findMany({ where: rescheduleWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, changedByUser: { select: { name: true } } } }) : Promise.resolve([]),
-    voucherActive ? prisma.voucher.findMany({ where: voucherWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { id: true, code: true, createdAt: true, createdByUser: { select: { name: true } } } }) : Promise.resolve([]),
-    voucherActive ? prisma.voucherRedemption.findMany({ where: redemptionWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ redeemedAt: "desc" }, { id: "desc" }], include: { voucher: { select: { id: true, code: true } }, redeemedByUser: { select: { name: true } } } }) : Promise.resolve([]),
-    voucherActive ? prisma.voucherChangeLog.findMany({ where: voucherChangeWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { voucher: { select: { id: true, code: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
-    serviceActive ? prisma.serviceChangeLog.findMany({ where: serviceChangeWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { service: { select: { id: true, name: true, publicName: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
-    serviceActive ? prisma.servicePriceChangeLog.findMany({ where: servicePriceChangeWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { service: { select: { id: true, name: true, publicName: true } }, changedByUser: { select: { name: true } } } }) : Promise.resolve([]),
-    settingsActive ? prisma.siteSettingsChangeLog.findMany({ where: siteSettingsChangeWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { actorUser: { select: { name: true } } } }) : Promise.resolve([]),
-    availabilityActive ? prisma.availabilityAuditEvent.findMany({ where: availabilityWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { actorUser: { select: { name: true } } } }) : Promise.resolve([]),
-    adminAuditActive ? prisma.adminUserAuditEvent.findMany({ where: adminUserAuditWhere, ...(simpleCandidateTake ? { take: simpleCandidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { targetUser: { select: { name: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
-    submissionActive ? prisma.bookingSubmissionLog.findMany({ where: submissionWhere, ...(simpleCandidateTake ? { take: simpleCandidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, client: { select: { fullName: true } } } }) : Promise.resolve([]),
+          },
+        },
+      });
+      const supplementary = attentionSupplementActive
+        ? await prisma.emailLog.findMany({ where: attentionSupplementWhere, ...(attentionCandidateTake ? { take: attentionCandidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, client: { select: { fullName: true } }, resendRoot: { select: { incidentResolvedAt: true, incidentResolvedByEmailLogId: true, incidentResolutionKind: true } } } })
+        : [];
+      return [
+        ...incidents.map((incident) => ({ representativeEmailLog: incident.incidentResends[0] ?? incident, incidentRoot: incident })),
+        ...supplementary.map((log) => ({ representativeEmailLog: log, incidentRoot: log.resendRoot ?? log })),
+      ];
+    }
+    const logs = await prisma.emailLog.findMany({ where: emailWhere, ...(emailPageSkip ? { skip: emailPageSkip } : {}), ...(emailCandidateTake ? { take: emailCandidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, client: { select: { fullName: true } }, resendRoot: { select: { incidentResolvedAt: true, incidentResolvedByEmailLogId: true, incidentResolutionKind: true } } } });
+    return logs.map((log) => ({ representativeEmailLog: log, incidentRoot: log.resendRoot ?? log }));
+  };
+  const [emails, bookingHistory, reschedules, vouchers, redemptions, voucherChanges, serviceChanges, servicePriceChanges, siteSettingsChanges, availabilityAudits, adminUserAudits, submissions] = await runAdminLogQueries([
+    () => loadEmails(),
+    () => bookingHistoryCandidateIds.length > 0 ? prisma.bookingStatusHistory.findMany({ where: { id: { in: bookingHistoryCandidateIds } }, include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
+    () => bookingActive ? prisma.bookingRescheduleLog.findMany({ where: rescheduleWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, changedByUser: { select: { name: true } } } }) : Promise.resolve([]),
+    () => voucherActive ? prisma.voucher.findMany({ where: voucherWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { id: true, code: true, createdAt: true, createdByUser: { select: { name: true } } } }) : Promise.resolve([]),
+    () => voucherActive ? prisma.voucherRedemption.findMany({ where: redemptionWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ redeemedAt: "desc" }, { id: "desc" }], include: { voucher: { select: { id: true, code: true } }, redeemedByUser: { select: { name: true } } } }) : Promise.resolve([]),
+    () => voucherActive ? prisma.voucherChangeLog.findMany({ where: voucherChangeWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { voucher: { select: { id: true, code: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
+    () => serviceActive ? prisma.serviceChangeLog.findMany({ where: serviceChangeWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { service: { select: { id: true, name: true, publicName: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
+    () => serviceActive ? prisma.servicePriceChangeLog.findMany({ where: servicePriceChangeWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { service: { select: { id: true, name: true, publicName: true } }, changedByUser: { select: { name: true } } } }) : Promise.resolve([]),
+    () => settingsActive ? prisma.siteSettingsChangeLog.findMany({ where: siteSettingsChangeWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { actorUser: { select: { name: true } } } }) : Promise.resolve([]),
+    () => availabilityActive ? prisma.availabilityAuditEvent.findMany({ where: availabilityWhere, ...(candidateTake ? { take: candidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { actorUser: { select: { name: true } } } }) : Promise.resolve([]),
+    () => adminAuditActive ? prisma.adminUserAuditEvent.findMany({ where: adminUserAuditWhere, ...(simpleCandidateTake ? { take: simpleCandidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { targetUser: { select: { name: true } }, actorUser: { select: { name: true } } } }) : Promise.resolve([]),
+    () => submissionActive ? prisma.bookingSubmissionLog.findMany({ where: submissionWhere, ...(submissionCandidateTake ? { take: submissionCandidateTake } : {}), orderBy: [{ createdAt: "desc" }, { id: "desc" }], include: { booking: { select: { id: true, clientNameSnapshot: true, serviceNameSnapshot: true } }, client: { select: { fullName: true } } } }) : Promise.resolve([]),
   ]);
   const categoryIds = serviceChanges.flatMap((entry) => [entry.before, entry.after]
     .map((value) => {
@@ -317,7 +360,7 @@ export async function getAdminLogsData(input: {
     if (source !== "all" && item.sourceType !== source) return false;
     return true;
   });
-  const deduplicatedTotal = exactEventTotal ?? exactSimpleTotal ?? visible.length;
-  const deduplicatedMeta = eventMeta ?? simpleMeta ?? getAdminLogPageMeta(deduplicatedTotal, requestedPage);
+  const deduplicatedTotal = exactAttentionTotal ?? exactEventTotal ?? exactSimpleTotal ?? visible.length;
+  const deduplicatedMeta = attentionMeta ?? eventMeta ?? simpleMeta ?? getAdminLogPageMeta(deduplicatedTotal, requestedPage);
   return { area: input.area, view: safeView, items: sortAndPageAdminLogItems(visible, safeView === "emails" ? 1 : deduplicatedMeta.page), total: deduplicatedTotal, page: deduplicatedMeta.page, pageCount: deduplicatedMeta.pageCount, pageSize: adminLogPageSize, filters: { query, severity, source, emailType, dateFrom: input.dateFrom ?? "", dateTo: input.dateTo ?? "" }, attention: { failed, retry, stuck, critical }, queueStats: [{ label: "Čeká", value: String(pending), tone: pending ? "accent" : "muted" }, { label: "Retry", value: String(retry), tone: retry ? "accent" : "muted" }, { label: "Zpracovává se", value: String(processing), tone: processing ? "accent" : "muted" }, { label: "Aktivní incidenty", value: String(failed), tone: failed ? "accent" : "muted" }], workerSummary: getWorkerSummary({ pending, retrying: retry, processing, failed }) };
 }
