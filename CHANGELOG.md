@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.38.0] - 2026-10-27
+
 ### Změněno
 
 - E2E shardy v GitHub Actions běží v oficiálním Playwright Docker image připnutém na verzi z lockfilu, bez opakovaného APT stahování; připojení k PostgreSQL službě přes hostname `postgres` povolují testovací bezpečnostní kontroly jen ve vymezeném CI prostředí a pro izolovanou DB.
