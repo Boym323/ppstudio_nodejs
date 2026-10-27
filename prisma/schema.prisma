@@ -705,6 +705,7 @@ model Voucher {
 
   @@index([status, validUntil])
   @@index([type, status])
+  @@index([createdAt(sort: Desc), code(sort: Asc)])
   @@index([serviceId])
   @@index([createdByUserId])
   @@index([cancelledByUserId])

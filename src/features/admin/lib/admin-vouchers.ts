@@ -7,7 +7,7 @@ import { getVoucherTemplateById, listVoucherTemplatesForIssuance } from "@/featu
 import { getSiteSettings } from "@/lib/site-settings";
 import {
   addVoucherValidityMonths,
-  getVoucherPragueCalendarDate,
+  getVoucherPragueDateBoundary,
 } from "@/features/vouchers/lib/voucher-validity-date";
 import { addPragueCalendarDays } from "@/features/admin/lib/kpi-date-range";
 
@@ -144,16 +144,6 @@ export function buildVoucherCreateInitialValues(
   };
 }
 
-async function countVouchers(where: Prisma.Sql = Prisma.empty) {
-  const rows = await prisma.$queryRaw<Array<{ count: number }>>(Prisma.sql`
-    SELECT COUNT(*)::int AS "count"
-    FROM "Voucher" v
-    ${where}
-  `);
-
-  return rows[0]?.count ?? 0;
-}
-
 function formatRemainingWorkload(valueCzk: number, serviceCount: number) {
   const parts: string[] = [];
 
@@ -178,13 +168,28 @@ export async function getAdminVouchersPageData(
 ) {
   const filters = normalizeSearchParams(searchParams);
   const soonThreshold = addPragueCalendarDays(now, 30);
-  const currentPragueDate = getVoucherPragueCalendarDate(now);
-  const soonPragueDate = getVoucherPragueCalendarDate(soonThreshold);
-  const validFromPragueDate = Prisma.sql`DATE(v."validFrom" AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Prague')`;
-  const validUntilPragueDate = Prisma.sql`DATE(v."validUntil" AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Prague')`;
+  const currentPragueDateStart = getVoucherPragueDateBoundary(now, "start");
+  const currentPragueDateEnd = getVoucherPragueDateBoundary(now, "end");
+  const soonPragueDateEnd = getVoucherPragueDateBoundary(soonThreshold, "end");
+  const openVoucherStatus = Prisma.sql`
+    v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
+  `;
   const activeVoucherValidity = Prisma.sql`
-    ${validFromPragueDate} <= ${currentPragueDate}::date
-    AND (v."validUntil" IS NULL OR ${validUntilPragueDate} >= ${currentPragueDate}::date)
+    v."validFrom" <= ${currentPragueDateEnd}
+    AND (v."validUntil" IS NULL OR v."validUntil" >= ${currentPragueDateStart})
+  `;
+  const openVoucher = Prisma.sql`
+    ${openVoucherStatus}
+    AND ${activeVoucherValidity}
+  `;
+  const expiredVoucher = Prisma.sql`
+    v."status" = 'EXPIRED'::"VoucherStatus"
+    OR (
+      ${openVoucherStatus}
+      AND v."validFrom" <= ${currentPragueDateEnd}
+      AND v."validUntil" IS NOT NULL
+      AND v."validUntil" < ${currentPragueDateStart}
+    )
   `;
   const requestedPage = normalizePage(getSingleParam(searchParams?.page));
   const voucherListFilters = {
@@ -194,53 +199,50 @@ export async function getAdminVouchersPageData(
     now,
   } as const;
 
-  const [
+  const [statsRows, totalVoucherCount] = await Promise.all([
+    prisma.$queryRaw<Array<{
+      openCount: number;
+      soonExpiringCount: number;
+      redeemedCount: number;
+      expiredCount: number;
+      cancelledCount: number;
+      remainingValueCzk: number;
+      remainingServiceCount: number;
+    }>>(Prisma.sql`
+      SELECT
+        COUNT(*) FILTER (WHERE ${openVoucher})::int AS "openCount",
+        COUNT(*) FILTER (
+          WHERE ${openVoucher}
+            AND v."validUntil" IS NOT NULL
+            AND v."validUntil" <= ${soonPragueDateEnd}
+        )::int AS "soonExpiringCount",
+        COUNT(*) FILTER (WHERE v."status" = 'REDEEMED'::"VoucherStatus")::int AS "redeemedCount",
+        COUNT(*) FILTER (WHERE ${expiredVoucher})::int AS "expiredCount",
+        COUNT(*) FILTER (WHERE v."status" = 'CANCELLED'::"VoucherStatus")::int AS "cancelledCount",
+        COALESCE(SUM(v."remainingValueCzk") FILTER (WHERE ${openVoucher} AND v."type" = 'VALUE'::"VoucherType"), 0)::int AS "remainingValueCzk",
+        COUNT(*) FILTER (WHERE ${openVoucher} AND v."type" = 'SERVICE'::"VoucherType")::int AS "remainingServiceCount"
+      FROM "Voucher" v
+    `),
+      countMatchingVouchers(voucherListFilters),
+  ]);
+
+  const {
     openCount,
     soonExpiringCount,
     redeemedCount,
     expiredCount,
     cancelledCount,
-    remainingValueResult,
+    remainingValueCzk,
     remainingServiceCount,
-    totalVoucherCount,
-  ] =
-    await Promise.all([
-      countVouchers(Prisma.sql`
-        WHERE v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
-          AND ${activeVoucherValidity}
-      `),
-      countVouchers(Prisma.sql`
-        WHERE v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
-          AND ${activeVoucherValidity}
-          AND v."validUntil" IS NOT NULL
-          AND ${validUntilPragueDate} >= ${currentPragueDate}::date
-          AND ${validUntilPragueDate} <= ${soonPragueDate}::date
-      `),
-      countVouchers(Prisma.sql`WHERE v."status" = 'REDEEMED'::"VoucherStatus"`),
-      countVouchers(Prisma.sql`
-        WHERE v."status" = 'EXPIRED'::"VoucherStatus"
-          OR (
-            v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
-            AND ${validFromPragueDate} <= ${currentPragueDate}::date
-            AND v."validUntil" IS NOT NULL
-            AND ${validUntilPragueDate} < ${currentPragueDate}::date
-          )
-      `),
-      countVouchers(Prisma.sql`WHERE v."status" = 'CANCELLED'::"VoucherStatus"`),
-      prisma.$queryRaw<Array<{ remainingValueCzk: number }>>(Prisma.sql`
-        SELECT COALESCE(SUM(v."remainingValueCzk"), 0)::int AS "remainingValueCzk"
-        FROM "Voucher" v
-        WHERE v."type" = 'VALUE'::"VoucherType"
-          AND v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
-          AND ${activeVoucherValidity}
-      `),
-      countVouchers(Prisma.sql`
-        WHERE v."type" = 'SERVICE'::"VoucherType"
-          AND v."status" IN ('ACTIVE'::"VoucherStatus", 'PARTIALLY_REDEEMED'::"VoucherStatus")
-          AND ${activeVoucherValidity}
-      `),
-      countMatchingVouchers(voucherListFilters),
-    ]);
+  } = statsRows[0] ?? {
+    openCount: 0,
+    soonExpiringCount: 0,
+    redeemedCount: 0,
+    expiredCount: 0,
+    cancelledCount: 0,
+    remainingValueCzk: 0,
+    remainingServiceCount: 0,
+  };
 
   const totalPages = totalVoucherCount === 0 ? 1 : Math.ceil(totalVoucherCount / ADMIN_VOUCHER_PAGE_SIZE);
   const page = Math.min(requestedPage, totalPages);
@@ -250,7 +252,6 @@ export async function getAdminVouchersPageData(
     skip: (page - 1) * ADMIN_VOUCHER_PAGE_SIZE,
   });
 
-  const remainingValueCzk = remainingValueResult[0]?.remainingValueCzk ?? 0;
   const remainingWorkload = formatRemainingWorkload(remainingValueCzk, remainingServiceCount);
 
   return {
