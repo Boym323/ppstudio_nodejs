@@ -149,13 +149,16 @@ run_release_preflight_command() {
   fi
 
   local unit_name
+  local preserve_env
   local -a runner=(systemd-run)
   RELEASE_CGROUP_SEQUENCE=$((RELEASE_CGROUP_SEQUENCE + 1))
   unit_name="ppstudio-release-preflight-${BASHPID}-${RELEASE_CGROUP_SEQUENCE}"
 
   require_cmd systemd-run
   if [[ "${EUID}" -ne 0 ]]; then
-    runner=(sudo -E systemd-run)
+    require_cmd sudo
+    preserve_env="$(release_preflight_environment_names)" || return 1
+    runner=(sudo "--preserve-env=${preserve_env}" systemd-run)
   fi
 
   log "cgroup ${unit_name}: CPUQuota=${RELEASE_CPU_QUOTA}, CPUWeight=${RELEASE_CPU_WEIGHT}, IOWeight=${RELEASE_IO_WEIGHT}, MemoryHigh=${RELEASE_MEMORY_HIGH}, MemoryMax=${RELEASE_MEMORY_MAX}"
@@ -176,6 +179,28 @@ run_release_preflight_command() {
     -p "MemoryMax=${RELEASE_MEMORY_MAX}" \
     -p "TasksMax=${RELEASE_TASKS_MAX}" \
     -- "$@"
+}
+
+release_preflight_environment_names() {
+  local entry
+  local name
+  local -a names=()
+
+  require_cmd env
+  while IFS= read -r -d '' entry; do
+    name="${entry%%=*}"
+    if [[ "${name}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] && [[ "${name}" != SUDO_* ]] && [[ "${name}" != BASH_FUNC_* ]]; then
+      names+=("${name}")
+    fi
+  done < <(env -0)
+
+  if [[ "${#names[@]}" -eq 0 ]]; then
+    echo "Nelze sestavit seznam prostředí pro sudo; release preflight se zastavuje." >&2
+    return 1
+  fi
+
+  local IFS=,
+  printf '%s' "${names[*]}"
 }
 
 unit_file_name() {

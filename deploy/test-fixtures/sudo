@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+printf '%s\n' "$@" > "${RELEASE_TEST_SUDO_ARGS_FILE:?}"
+
+if [[ "${1:-}" != --preserve-env=* ]]; then
+  echo "Mock sudo nedostal explicitní --preserve-env." >&2
+  exit 75
+fi
+shift
+if [[ "${1:-}" != systemd-run ]]; then
+  echo "Mock sudo nespustil systemd-run." >&2
+  exit 76
+fi
+shift
+exec systemd-run "$@"

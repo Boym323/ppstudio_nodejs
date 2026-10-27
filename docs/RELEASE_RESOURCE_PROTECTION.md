@@ -31,6 +31,13 @@ release. Systemd nebo cgroup v2 musí nastavení přijmout; při nepodporovaném
 hostiteli release skončí před prvním dlouhým krokem. Do nechráněného běhu lze
 přejít jen explicitně pro DEV diagnostiku:
 
+Pokud release spouští běžný deploy uživatel, wrapper nepoužívá `sudo -E`.
+Sestaví explicitní seznam názvů již exportovaných proměnných a předá jej přes
+`sudo --preserve-env`; hodnoty (včetně secretů) zůstávají pouze v prostředí
+scope a nejsou součástí argumentů `systemd-run` ani logu. Když `sudo` odmítne
+prostředí zachovat nebo `systemd-run` skončí chybou, preflight se zastaví bez
+nechráněného fallbacku.
+
 ```bash
 PPSTUDIO_RELEASE_CGROUP_MODE=off \
 PPSTUDIO_RELEASE_ALLOW_UNSCOPED=1 \

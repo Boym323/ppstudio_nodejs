@@ -90,6 +90,41 @@ trap 'rm -rf "${TEMP_DIR}"' EXIT
   fi
   [[ ! -e "${failed_marker}" ]]
 )
+NON_ROOT_TEMP_DIR="$(mktemp -d)"
+chmod 0777 "${NON_ROOT_TEMP_DIR}"
+runuser -u nobody -- env \
+  PATH="${SCRIPT_DIR}/test-fixtures:${PATH}" \
+  RELEASE_TEST_SUDO_ARGS_FILE="${NON_ROOT_TEMP_DIR}/sudo.args" \
+  MOCK_SYSTEMD_RUN_ARGS_FILE="${NON_ROOT_TEMP_DIR}/systemd-run.args" \
+  RELEASE_TEST_OUTPUT="${NON_ROOT_TEMP_DIR}/preflight.output" \
+  RELEASE_TEST_SECRET="secret-value-must-stay-in-environment" \
+  RUN_DB_INTEGRATION_TESTS=0 \
+  NEXT_DEPLOYMENT_ID="deployment-test-id" \
+  DEPLOYMENT_VERSION="deployment-test-version" \
+  NEXT_PUBLIC_APP_URL="https://example.test" \
+  RELEASE_CGROUP_MODE=required \
+  RELEASE_CPU_QUOTA=175% \
+  RELEASE_CPU_WEIGHT=111 \
+  RELEASE_IO_WEIGHT=222 \
+  RELEASE_MEMORY_HIGH=1234M \
+  RELEASE_MEMORY_MAX=2345M \
+  RELEASE_TASKS_MAX=77 \
+  RELEASE_NICE=7 \
+  bash -s "${SCRIPT_DIR}" <<'NON_ROOT_RELEASE_TEST'
+set -euo pipefail
+source "$1/release.sh"
+run_release_preflight_command sh -c 'printf "%s\n%s\n%s\n%s\n" "$RUN_DB_INTEGRATION_TESTS" "$NEXT_DEPLOYMENT_ID" "$DEPLOYMENT_VERSION" "$NEXT_PUBLIC_APP_URL" > "$RELEASE_TEST_OUTPUT"'
+NON_ROOT_RELEASE_TEST
+grep -Fq -- 'RUN_DB_INTEGRATION_TESTS' "${NON_ROOT_TEMP_DIR}/sudo.args"
+grep -Fq -- 'NEXT_DEPLOYMENT_ID' "${NON_ROOT_TEMP_DIR}/sudo.args"
+grep -Fq -- 'NEXT_PUBLIC_APP_URL' "${NON_ROOT_TEMP_DIR}/sudo.args"
+! grep -Fq -- 'secret-value-must-stay-in-environment' "${NON_ROOT_TEMP_DIR}/sudo.args"
+! grep -Fq -- 'secret-value-must-stay-in-environment' "${NON_ROOT_TEMP_DIR}/systemd-run.args"
+[[ "$(sed -n '1p' "${NON_ROOT_TEMP_DIR}/preflight.output")" == 0 ]]
+[[ "$(sed -n '2p' "${NON_ROOT_TEMP_DIR}/preflight.output")" == deployment-test-id ]]
+[[ "$(sed -n '3p' "${NON_ROOT_TEMP_DIR}/preflight.output")" == deployment-test-version ]]
+[[ "$(sed -n '4p' "${NON_ROOT_TEMP_DIR}/preflight.output")" == https://example.test ]]
+rm -rf -- "${NON_ROOT_TEMP_DIR}"
 (
   RELEASE_CGROUP_MODE=off
   PPSTUDIO_RELEASE_ALLOW_UNSCOPED=1

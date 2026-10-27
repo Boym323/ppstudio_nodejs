@@ -17,6 +17,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Zabezpečení
 
 - Nechráněný release preflight nyní vyžaduje explicitní cíl `DEV` a `NODE_ENV=development`/`test`, v produkci je odmítnut; regresní test ověřuje, že chyba `systemd-run` nepřejde na nechráněný běh ani předčasně nezastaví writery.
+- Spuštění release scope pod neprivilegovaným deploy uživatelem používá explicitní `sudo --preserve-env` pouze pro názvy proměnných; hodnoty zůstávají v prostředí a selhání `sudo` nebo `systemd-run` je dál fail-closed.
 
 ## [3.38.0] - 2026-10-27
 
