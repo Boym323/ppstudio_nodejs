@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 
 import { AdminRole, BookingActorType, BookingStatus, BookingSubmissionOutcome, EmailLogStatus, EmailLogType, ServiceChangeOperation, VoucherChangeOperation, VoucherType } from "@/generated/prisma/browser";
+import { Prisma } from "@/generated/prisma/client";
 
 import { formatServicePrice } from "./admin-service-format";
 
@@ -443,6 +444,117 @@ dbTest("admin logy filtrují a popisují oba lifecycle e-maily rezervace", async
   }
 });
 
+dbTest("Pozornost sjednocuje SQL ILIKE a Prisma contains pro speciální znaky", async () => {
+  const [{ prisma }, { getAdminLogsData }] = await Promise.all([
+    import("@/lib/prisma"),
+    import("./admin-data"),
+  ]);
+  const suffix = `admin-log-search-${randomUUID()}`;
+  const cases = [
+    {
+      name: "procento",
+      query: `${suffix}-percent%token`,
+      subjects: [`${suffix}-percent%token`, `${suffix}-percent-middle-token`],
+    },
+    {
+      name: "podtrzitko",
+      query: `${suffix}-underscore_token`,
+      subjects: [`${suffix}-underscore_token`, `${suffix}-underscoreXtoken`],
+    },
+    {
+      name: "zpetne-lomitko",
+      query: `${suffix}-slash\\token`,
+      subjects: [`${suffix}-slashtoken`, `${suffix}-slash\\token`],
+    },
+    {
+      name: "unik-procenta",
+      query: `${suffix}-escaped\\%token`,
+      subjects: [`${suffix}-escaped%token`, `${suffix}-escapedXtoken`],
+    },
+    {
+      name: "unik-podtrzitka",
+      query: `${suffix}-escaped\\_token`,
+      subjects: [`${suffix}-escaped_token`, `${suffix}-escapedXtoken`],
+    },
+    {
+      name: "bez-specialniho-znaku",
+      query: `${suffix}-plain-token`,
+      subjects: [`${suffix}-plain-token`],
+    },
+    {
+      name: "bez-ohledu-na-velikost",
+      query: `${suffix}-case-token`,
+      subjects: [`${suffix}-CASE-TOKEN`],
+    },
+  ] as const;
+  const createdIds: string[] = [];
+
+  try {
+    for (const [caseIndex, searchCase] of cases.entries()) {
+      for (const [subjectIndex, subject] of searchCase.subjects.entries()) {
+        const row = await prisma.emailLog.create({
+          data: {
+            type: EmailLogType.GENERIC,
+            status: EmailLogStatus.FAILED,
+            recipientEmail: `${caseIndex}-${subjectIndex}-${suffix}@example.test`,
+            subject,
+            templateKey: `admin-log-search-${searchCase.name}`,
+            errorMessage: `Selhání ${suffix}`,
+            createdAt: new Date(`2033-03-${String(caseIndex + 1).padStart(2, "0")}T${String(subjectIndex + 10).padStart(2, "0")}:00:00.000Z`),
+          },
+          select: { id: true },
+        });
+        createdIds.push(row.id);
+      }
+    }
+
+    for (const searchCase of cases) {
+      const sqlRows = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+        SELECT "id"
+        FROM "EmailLog"
+        WHERE "id" IN (${Prisma.join(createdIds)})
+          AND "subject" ILIKE ${`%${searchCase.query}%`}
+        ORDER BY "createdAt" DESC, "id" DESC
+      `);
+      const prismaRows = await prisma.emailLog.findMany({
+        where: { id: { in: createdIds }, subject: { contains: searchCase.query, mode: "insensitive" } },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        select: { id: true },
+      });
+
+      // Tohle je záměrně přímé srovnání aktuálního SQL vzoru s Prisma contains.
+      // Pokud by se jejich sémantika pro %, _, nebo \\ rozešla, regresní test selže.
+      assert.deepEqual(new Set(prismaRows.map((row) => row.id)), new Set(sqlRows.map((row) => row.id)), searchCase.name);
+      assert.ok(sqlRows.length > 0, `případ ${searchCase.name} musí mít výsledek`);
+
+      const result = await getAdminLogsData({ area: "owner", view: "attention", source: "email", query: searchCase.query });
+      assert.equal(result.total, sqlRows.length, searchCase.name);
+      assert.equal(result.pageCount, 1, searchCase.name);
+      assert.equal(result.items.length, sqlRows.length, searchCase.name);
+      assert.equal(new Set(result.items.map((item) => item.emailLogId)).size, sqlRows.length, searchCase.name);
+      assert.deepEqual(
+        result.items.map((item) => item.emailLogId),
+        sqlRows.map((row) => row.id),
+        searchCase.name,
+      );
+      for (const item of result.items) {
+        assert.ok(item.emailLogId);
+        const matchingPrismaRows = await prisma.emailLog.count({
+          where: { id: item.emailLogId, subject: { contains: searchCase.query, mode: "insensitive" } },
+        });
+        assert.equal(matchingPrismaRows, 1, `${searchCase.name}: reprezentant nesplňuje Prisma filtr`);
+      }
+    }
+
+    const empty = await getAdminLogsData({ area: "owner", view: "attention", source: "email", query: `${suffix}-no-match` });
+    assert.equal(empty.total, 0);
+    assert.equal(empty.pageCount, 1);
+    assert.deepEqual(empty.items, []);
+  } finally {
+    await prisma.emailLog.deleteMany({ where: { id: { in: createdIds } } });
+  }
+});
+
 dbTest("E-maily a Technické stránkují více než 50 záznamů bez ztráty pořadí", async () => {
   const [{ prisma }, { getAdminLogsData }] = await Promise.all([
     import("@/lib/prisma"),
@@ -525,7 +637,13 @@ dbTest("Pozornost stránkuje incidenty bez načtení celé historie", async () =
     assert.equal(first.total, count);
     assert.equal(first.pageCount, 2);
     assert.equal(first.items.length, 50);
+    assert.equal(first.items.every((item) => item.title.includes(suffix)), true);
+    assert.equal(first.items.every((item) => item.severity === "error"), true);
+    assert.equal(second.total, count);
+    assert.equal(second.pageCount, 2);
     assert.equal(second.items.length, 15);
+    assert.equal(second.items.every((item) => item.title.includes(suffix)), true);
+    assert.equal(second.items.every((item) => item.severity === "error"), true);
     assert.equal(new Set([...first.items, ...second.items].map((item) => item.id)).size, count);
     assert.equal(first.items.at(-1)!.occurredAt > second.items[0]!.occurredAt, true);
   } finally {
@@ -557,7 +675,7 @@ dbTest("Pozornost stránkuje incident podle času posledního selhaného resendu
   });
   const child = await prisma.emailLog.create({
     data: {
-      type: EmailLogType.GENERIC,
+      type: EmailLogType.BOOKING_RECEIVED,
       status: EmailLogStatus.FAILED,
       recipientEmail: `resend-${suffix}@example.test`,
       subject: `Pozdější resend ${suffix}`,
@@ -588,6 +706,37 @@ dbTest("Pozornost stránkuje incident podle času posledního selhaného resendu
     assert.equal(first.items.length, 50);
     assert.equal(first.items[0]?.emailLogId, child.id);
     assert.equal(first.items[0]?.occurredAt, resendCreatedAt.toISOString());
+
+    const rootOnly = await getAdminLogsData({ area: "owner", view: "attention", source: "email", query: `Starý incident ${suffix}` });
+    assert.equal(rootOnly.total, 1);
+    assert.equal(rootOnly.pageCount, 1);
+    assert.deepEqual(rootOnly.items.map((item) => item.emailLogId), [root.id]);
+
+    const childOnly = await getAdminLogsData({
+      area: "owner",
+      view: "attention",
+      source: "email",
+      query: `Pozdější resend ${suffix}`,
+      emailType: EmailLogType.BOOKING_RECEIVED,
+      dateFrom: "2032-01-01",
+      dateTo: "2032-01-01",
+      severity: "error",
+    });
+    assert.equal(childOnly.total, 1);
+    assert.equal(childOnly.pageCount, 1);
+    assert.deepEqual(childOnly.items.map((item) => item.emailLogId), [child.id]);
+    assert.equal(childOnly.items[0]?.title, `Pozdější resend ${suffix}`);
+
+    const rootWithChildType = await getAdminLogsData({
+      area: "owner",
+      view: "attention",
+      source: "email",
+      query: `Starý incident ${suffix}`,
+      emailType: EmailLogType.BOOKING_RECEIVED,
+    });
+    assert.equal(rootWithChildType.total, 0);
+    assert.equal(rootWithChildType.pageCount, 1);
+    assert.deepEqual(rootWithChildType.items, []);
   } finally {
     await prisma.emailLog.deleteMany({ where: { resendRootId: root.id } });
     await prisma.emailLog.deleteMany({ where: { subject: { contains: suffix } } });
