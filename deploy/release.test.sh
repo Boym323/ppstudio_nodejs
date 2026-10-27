@@ -93,7 +93,11 @@ trap 'rm -rf "${TEMP_DIR}"' EXIT
 )
 NON_ROOT_TEMP_DIR="$(mktemp -d)"
 chmod 0777 "${NON_ROOT_TEMP_DIR}"
-runuser -u nobody -- env \
+non_root_runner=(env)
+if [[ "${EUID}" -eq 0 ]]; then
+  non_root_runner=(runuser -u nobody -- env)
+fi
+"${non_root_runner[@]}" \
   PATH="${SCRIPT_DIR}/test-fixtures:${PATH}" \
   RELEASE_TEST_SUDO_ARGS_FILE="${NON_ROOT_TEMP_DIR}/sudo.args" \
   MOCK_SYSTEMD_RUN_ARGS_FILE="${NON_ROOT_TEMP_DIR}/systemd-run.args" \
