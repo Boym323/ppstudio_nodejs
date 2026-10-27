@@ -7,6 +7,7 @@ import { AdminRole } from "@/generated/prisma/client";
 import { bootstrapVoucherTemplates } from "@/features/vouchers/lib/voucher-template-bootstrap";
 import { hashPassword } from "@/lib/auth/password";
 import { prisma } from "@/lib/prisma";
+import { isGitHubActionsPostgresServiceDatabase } from "@/test/ci-postgres-service";
 
 const ownerEmail = process.env.ADMIN_OWNER_EMAIL ?? "owner@example.com";
 const ownerPassword = process.env.ADMIN_OWNER_PASSWORD ?? "change-me-owner";
@@ -22,9 +23,14 @@ function assertIntegrationFixtureEnvironment() {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) throw new Error("DATABASE_URL je pro CI voucher fixtures povinné.");
 
-  const host = new URL(databaseUrl).hostname;
-  if (!["localhost", "127.0.0.1", "::1"].includes(host)) {
-    throw new Error(`CI voucher fixtures jsou povolené pouze proti lokální DB, ne proti hostu ${host}.`);
+  const target = new URL(databaseUrl);
+  const localDatabase = ["localhost", "127.0.0.1", "::1"].includes(target.hostname);
+  if (!localDatabase && !isGitHubActionsPostgresServiceDatabase(target, {
+      CI: process.env.CI,
+      GITHUB_ACTIONS: process.env.GITHUB_ACTIONS,
+      GITHUB_REPOSITORY: process.env.GITHUB_REPOSITORY,
+    })) {
+    throw new Error(`CI voucher fixtures jsou povolené pouze proti lokální DB nebo izolované GitHub Actions DB, ne proti hostu ${target.hostname}.`);
   }
 }
 
