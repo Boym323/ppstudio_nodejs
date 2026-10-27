@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Vyhledávání klientek a voucherů používá PostgreSQL trigramové GIN indexy pro časté podřetězcové dotazy přes jména, kontaktní údaje, kódy a názvy služeb.
 - Seznam klientek agreguje rezervace podle klientky jednou v dotazu pro počty i v dotazu pro stránkování; odstraňuje opakované poddotazy a tři `LATERAL` spojení při výpočtu poslední návštěvy, počtu rezervací a příštího termínu.
 - KPI dashboard agreguje tržby, uhrazené návštěvy, zůstatky, očekávané tržby a retenční pásma v PostgreSQL; do aplikace už nepřenáší platby, uplatněné vouchery ani seznam aktivních klientů s poslední návštěvou.
 - KPI dashboard předagreguje platby a čerpání voucherů podle rezervace pouze pro dokončené návštěvy, aby při výpočtu zůstatků neopakoval korelované poddotazy.
