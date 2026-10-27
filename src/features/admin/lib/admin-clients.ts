@@ -241,7 +241,7 @@ function buildClientOrderBy(sort: Extract<ClientListSortValue, "name" | "created
   }
 }
 
-function buildClientSqlWhere(
+function buildClientSqlPredicate(
   filters: ReturnType<typeof normalizeSearchParams>,
   recentThreshold: Date,
   retentionReference: Date,
@@ -289,7 +289,15 @@ function buildClientSqlWhere(
     );
   }
 
-  return clauses.length > 0 ? Prisma.sql`WHERE ${Prisma.join(clauses, " AND ")}` : Prisma.empty;
+  return clauses.length > 0 ? Prisma.join(clauses, " AND ") : Prisma.sql`TRUE`;
+}
+
+function buildClientSqlWhere(
+  filters: ReturnType<typeof normalizeSearchParams>,
+  recentThreshold: Date,
+  retentionReference: Date,
+) {
+  return Prisma.sql`WHERE ${buildClientSqlPredicate(filters, recentThreshold, retentionReference)}`;
 }
 
 async function getOrderedClientPageIds(
@@ -413,6 +421,66 @@ function getEmptyState(view: ClientListViewValue) {
   return messages[view];
 }
 
+type AdminClientCountRow = {
+  filteredCount: number;
+  allCount: number;
+  upcomingCount: number;
+  outreachCount: number;
+  newCount: number;
+  noContactCount: number;
+  inactiveCount: number;
+  band8: number;
+  band12: number;
+  band16: number;
+};
+
+async function getAdminClientCounts(
+  filters: ReturnType<typeof normalizeSearchParams>,
+  recentThreshold: Date,
+  retentionReference: Date,
+) {
+  const viewFilters = (view: ClientListViewValue) => ({ ...filters, view, quick: "all" as const, retention: undefined });
+  const countFilters = [
+    filters,
+    viewFilters("all"),
+    viewFilters("upcoming"),
+    viewFilters("outreach"),
+    viewFilters("new"),
+    viewFilters("no_contact"),
+    viewFilters("inactive"),
+    { ...filters, view: "outreach" as const, quick: "all" as const, retention: "8_11" as const },
+    { ...filters, view: "outreach" as const, quick: "all" as const, retention: "12_15" as const },
+    { ...filters, view: "outreach" as const, quick: "all" as const, retention: "16_plus" as const },
+  ];
+  const [row] = await prisma.$queryRaw<AdminClientCountRow[]>(Prisma.sql`
+    SELECT
+      COUNT(*) FILTER (WHERE ${buildClientSqlPredicate(countFilters[0], recentThreshold, retentionReference)})::int AS "filteredCount",
+      COUNT(*) FILTER (WHERE ${buildClientSqlPredicate(countFilters[1], recentThreshold, retentionReference)})::int AS "allCount",
+      COUNT(*) FILTER (WHERE ${buildClientSqlPredicate(countFilters[2], recentThreshold, retentionReference)})::int AS "upcomingCount",
+      COUNT(*) FILTER (WHERE ${buildClientSqlPredicate(countFilters[3], recentThreshold, retentionReference)})::int AS "outreachCount",
+      COUNT(*) FILTER (WHERE ${buildClientSqlPredicate(countFilters[4], recentThreshold, retentionReference)})::int AS "newCount",
+      COUNT(*) FILTER (WHERE ${buildClientSqlPredicate(countFilters[5], recentThreshold, retentionReference)})::int AS "noContactCount",
+      COUNT(*) FILTER (WHERE ${buildClientSqlPredicate(countFilters[6], recentThreshold, retentionReference)})::int AS "inactiveCount",
+      COUNT(*) FILTER (WHERE ${buildClientSqlPredicate(countFilters[7], recentThreshold, retentionReference)})::int AS "band8",
+      COUNT(*) FILTER (WHERE ${buildClientSqlPredicate(countFilters[8], recentThreshold, retentionReference)})::int AS "band12",
+      COUNT(*) FILTER (WHERE ${buildClientSqlPredicate(countFilters[9], recentThreshold, retentionReference)})::int AS "band16"
+    FROM "Client" c
+  `);
+
+  return {
+    filteredCount: Number(row?.filteredCount ?? 0),
+    allCount: Number(row?.allCount ?? 0),
+    upcomingCount: Number(row?.upcomingCount ?? 0),
+    outreachCount: Number(row?.outreachCount ?? 0),
+    newCount: Number(row?.newCount ?? 0),
+    noContactCount: Number(row?.noContactCount ?? 0),
+    inactiveCount: Number(row?.inactiveCount ?? 0),
+    band8: Number(row?.band8 ?? 0),
+    band12: Number(row?.band12 ?? 0),
+    band16: Number(row?.band16 ?? 0),
+  };
+}
+
 export async function getAdminClientsPageData(
   area: AdminArea,
   searchParams?: Record<string, string | string[] | undefined>,
@@ -426,19 +494,7 @@ export async function getAdminClientsPageData(
   const recentThreshold = new Date(now);
   recentThreshold.setDate(recentThreshold.getDate() - 30);
   const where = buildClientWhere(filters, recentThreshold, retentionReference);
-  const viewFilters = (view: ClientListViewValue) => buildClientWhere({ ...filters, view, quick: "all", retention: undefined }, recentThreshold, retentionReference);
-  const [filteredCount, allCount, upcomingCount, outreachCount, newCount, noContactCount, inactiveCount, band8, band12, band16] = await Promise.all([
-    prisma.client.count({ where }),
-    prisma.client.count({ where: viewFilters("all") }),
-    prisma.client.count({ where: viewFilters("upcoming") }),
-    prisma.client.count({ where: viewFilters("outreach") }),
-    prisma.client.count({ where: viewFilters("new") }),
-    prisma.client.count({ where: viewFilters("no_contact") }),
-    prisma.client.count({ where: viewFilters("inactive") }),
-    prisma.client.count({ where: buildClientWhere({ ...filters, view: "outreach", quick: "all", retention: "8_11" }, recentThreshold, retentionReference) }),
-    prisma.client.count({ where: buildClientWhere({ ...filters, view: "outreach", quick: "all", retention: "12_15" }, recentThreshold, retentionReference) }),
-    prisma.client.count({ where: buildClientWhere({ ...filters, view: "outreach", quick: "all", retention: "16_plus" }, recentThreshold, retentionReference) }),
-  ]);
+  const { filteredCount, allCount, upcomingCount, outreachCount, newCount, noContactCount, inactiveCount, band8, band12, band16 } = await getAdminClientCounts(filters, recentThreshold, retentionReference);
   const totalPages = filteredCount === 0 ? 1 : Math.ceil(filteredCount / clientPageSize);
   const page = Math.min(filters.page, totalPages);
   const clientIds = await getOrderedClientPageIds(filters, where, recentThreshold, retentionReference, page);

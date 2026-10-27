@@ -10,6 +10,19 @@ test("getAdminClientsPageData clamps page and maps contact and visit summaries",
   const clientIds: Array<{ id: string }> = [];
   const clients: Array<Record<string, unknown>> = [];
   const countCalls: unknown[] = [];
+  const countRow = {
+    id: "client-1",
+    filteredCount: 1,
+    allCount: 1,
+    upcomingCount: 1,
+    outreachCount: 1,
+    newCount: 1,
+    noContactCount: 1,
+    inactiveCount: 1,
+    band8: 1,
+    band12: 1,
+    band16: 1,
+  };
   const prisma = {
     client: {
       count: async (args: unknown) => {
@@ -21,7 +34,7 @@ test("getAdminClientsPageData clamps page and maps contact and visit summaries",
     booking: {
       findMany: async () => [],
     },
-    $queryRaw: async () => clientIds,
+    $queryRaw: async () => [countRow],
   };
   t.mock.module("@/lib/prisma", { exports: { prisma } });
 
@@ -104,5 +117,5 @@ test("getAdminClientsPageData clamps page and maps contact and visit summaries",
   assert.equal(outreachSixteenWeeks.filters.retention, "16_plus");
   assert.equal(invalidFilters.filters.view, "all");
   assert.equal(invalidFilters.filters.quick, "all");
-  assert.equal(countCalls.length, 80);
+  assert.equal(countCalls.length, 0);
 });

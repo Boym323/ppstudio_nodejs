@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Seznam klientek načítá aktuální počet i souhrny všech pohledů a retenčních pásem jedním agregačním dotazem místo deseti samostatných počtů.
 - KPI dashboard agreguje tržby, uhrazené návštěvy, zůstatky, očekávané tržby a retenční pásma v PostgreSQL; do aplikace už nepřenáší platby, uplatněné vouchery ani seznam aktivních klientů s poslední návštěvou.
 - Načítání administračních logů omezuje souběh počtů a dotazů feedu, aby pohled Události ani stav e-mailové fronty nevytvářely špičky zatížení databázového poolu.
 - Pohled Pozornost stránkuje incidenty, e-mailová upozornění i kritické záznamy rezervačního formuláře přímo v databázi a zachovává jejich deduplikované pořadí.
