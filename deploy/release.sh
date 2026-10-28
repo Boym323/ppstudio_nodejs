@@ -163,8 +163,12 @@ resolve_release_memory_limits() {
       [[ -n "${configured_high}" ]] || configured_high="${derived_high}"
       log "Dynamický release memory rozpočet: ${budget_percent}%/${high_percent}% z nejnižšího dostupného memory.max ${parent_limit} B."
     else
-      echo "Konečný memory.max nebyl zjištěn; nastav explicitně PPSTUDIO_RELEASE_MEMORY_MAX a PPSTUDIO_RELEASE_MEMORY_HIGH podle paměťového rozpočtu hostitele." >&2
-      return 1
+      # Produkční LXC má 4 GiB RAM, ale uvnitř kontejneru nemusí být
+      # nadřazený memory.max viditelný. Použijeme konzervativní známý rozpočet;
+      # explicitní PPSTUDIO_RELEASE_MEMORY_* hodnoty mají stále přednost.
+      configured_max="2450M"
+      configured_high="2300M"
+      log "Konečný memory.max nebyl zjištěn; používám známý fallback pro 4 GiB RAM: MemoryMax=${configured_max}, MemoryHigh=${configured_high}."
     fi
   fi
 

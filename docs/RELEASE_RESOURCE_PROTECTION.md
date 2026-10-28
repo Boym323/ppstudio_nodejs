@@ -68,8 +68,11 @@ na produkci nepoužívá. Hodnoty lze pro experiment změnit přes
 `PPSTUDIO_RELEASE_NICE`. Pokud nelze zjistit konečný `memory.max`,
 chráněný release se zastaví a vyžaduje explicitní nastavení obou proměnných
 `PPSTUDIO_RELEASE_MEMORY_HIGH` a `PPSTUDIO_RELEASE_MEMORY_MAX` podle
-paměťového rozpočtu hostitele. Pevný fallback se nepoužívá. V explicitně
-povoleném nechráněném DEV režimu se paměťový rozpočet nevyhodnocuje.
+paměťového rozpočtu hostitele. Pokud limit uvnitř produkčního LXC není
+viditelný, použije se známý fallback pro 4 GiB RAM:
+`MemoryHigh=2300M` a `MemoryMax=2450M`. Explicitní hodnoty mají přednost.
+V explicitně povoleném nechráněném DEV režimu se paměťový rozpočet
+nevyhodnocuje.
 
 ### Next.js a Turbopack
 
