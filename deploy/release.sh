@@ -26,8 +26,10 @@ RELEASE_CGROUP_MODE="${PPSTUDIO_RELEASE_CGROUP_MODE:-required}"
 RELEASE_CPU_QUOTA="${PPSTUDIO_RELEASE_CPU_QUOTA:-100%}"
 RELEASE_CPU_WEIGHT="${PPSTUDIO_RELEASE_CPU_WEIGHT:-20}"
 RELEASE_IO_WEIGHT="${PPSTUDIO_RELEASE_IO_WEIGHT:-20}"
-RELEASE_MEMORY_HIGH="${PPSTUDIO_RELEASE_MEMORY_HIGH:-2800M}"
-RELEASE_MEMORY_MAX="${PPSTUDIO_RELEASE_MEMORY_MAX:-3G}"
+RELEASE_MEMORY_HIGH="${PPSTUDIO_RELEASE_MEMORY_HIGH:-${RELEASE_MEMORY_HIGH:-}}"
+RELEASE_MEMORY_MAX="${PPSTUDIO_RELEASE_MEMORY_MAX:-${RELEASE_MEMORY_MAX:-}}"
+RELEASE_MEMORY_BUDGET_PERCENT="${PPSTUDIO_RELEASE_MEMORY_BUDGET_PERCENT:-60}"
+RELEASE_MEMORY_HIGH_PERCENT="${PPSTUDIO_RELEASE_MEMORY_HIGH_PERCENT:-56}"
 RELEASE_TASKS_MAX="${PPSTUDIO_RELEASE_TASKS_MAX:-512}"
 RELEASE_NICE="${PPSTUDIO_RELEASE_NICE:-10}"
 
@@ -95,6 +97,81 @@ run_timed_step() {
   RELEASE_STEP_DURATIONS+=("${step_name}: ${hours} h ${minutes} min ${seconds} s.")
 }
 
+release_detect_parent_memory_limit() {
+  local hierarchy controllers cgroup_path cgroup_dir value minimum_limit=""
+
+  [[ "$(stat -f -c %T /sys/fs/cgroup 2>/dev/null)" == "cgroup2fs" ]] || return 1
+  cgroup_path=""
+  while IFS=: read -r hierarchy controllers cgroup_path; do
+    if [[ "${hierarchy}" == "0" && -z "${controllers}" ]]; then
+      break
+    fi
+    cgroup_path=""
+  done < /proc/self/cgroup
+  [[ "${cgroup_path}" == /* && "${cgroup_path}" != *..* ]] || return 1
+
+  cgroup_dir="/sys/fs/cgroup${cgroup_path}"
+  while [[ "${cgroup_dir}" == /sys/fs/cgroup* ]]; do
+    if [[ -r "${cgroup_dir}/memory.max" ]]; then
+      value="$(<"${cgroup_dir}/memory.max")"
+      if [[ "${value}" =~ ^[1-9][0-9]*$ ]]; then
+        if [[ -z "${minimum_limit}" ]] || (( value < minimum_limit )); then
+          minimum_limit="${value}"
+        fi
+      fi
+    fi
+    [[ "${cgroup_dir}" == "/sys/fs/cgroup" ]] && break
+    cgroup_dir="${cgroup_dir%/*}"
+  done
+  [[ -n "${minimum_limit}" ]] || return 1
+  printf '%s' "${minimum_limit}"
+}
+
+resolve_release_memory_limits() {
+  # Povolení nechráněného DEV režimu ověří následná validace.
+  [[ "${RELEASE_CGROUP_MODE}" != "off" ]] || return 0
+
+  local configured_high="${RELEASE_MEMORY_HIGH:-${PPSTUDIO_RELEASE_MEMORY_HIGH:-}}"
+  local configured_max="${RELEASE_MEMORY_MAX:-${PPSTUDIO_RELEASE_MEMORY_MAX:-}}"
+  local budget_percent="${PPSTUDIO_RELEASE_MEMORY_BUDGET_PERCENT:-${RELEASE_MEMORY_BUDGET_PERCENT:-60}}"
+  local high_percent="${PPSTUDIO_RELEASE_MEMORY_HIGH_PERCENT:-${RELEASE_MEMORY_HIGH_PERCENT:-56}}"
+  local parent_limit derived_high derived_max
+
+  if [[ -z "${configured_high}" || -z "${configured_max}" ]]; then
+    if parent_limit="$(release_detect_parent_memory_limit)"; then
+      [[ "${budget_percent}" =~ ^[1-9][0-9]?$|^100$ ]] || {
+        echo "PPSTUDIO_RELEASE_MEMORY_BUDGET_PERCENT musí být 1–100." >&2
+        return 1
+      }
+      [[ "${high_percent}" =~ ^[1-9][0-9]?$|^100$ ]] || {
+        echo "PPSTUDIO_RELEASE_MEMORY_HIGH_PERCENT musí být 1–100." >&2
+        return 1
+      }
+      (( high_percent <= budget_percent )) || {
+        echo "PPSTUDIO_RELEASE_MEMORY_HIGH_PERCENT nesmí být vyšší než MEMORY_BUDGET_PERCENT." >&2
+        return 1
+      }
+      derived_max=$((parent_limit * budget_percent / 100))
+      derived_high=$((parent_limit * high_percent / 100))
+      (( derived_high > 0 && derived_max > 0 )) || {
+        echo "Nadřazený memory.max je příliš malý pro dynamický release rozpočet." >&2
+        return 1
+      }
+      # systemd i numfmt přijímají absolutní počet bajtů bez přípony;
+      # přípona "B" není pro numfmt validní.
+      [[ -n "${configured_max}" ]] || configured_max="${derived_max}"
+      [[ -n "${configured_high}" ]] || configured_high="${derived_high}"
+      log "Dynamický release memory rozpočet: ${budget_percent}%/${high_percent}% z nejnižšího dostupného memory.max ${parent_limit} B."
+    else
+      echo "Konečný memory.max nebyl zjištěn; nastav explicitně PPSTUDIO_RELEASE_MEMORY_MAX a PPSTUDIO_RELEASE_MEMORY_HIGH podle paměťového rozpočtu hostitele." >&2
+      return 1
+    fi
+  fi
+
+  RELEASE_MEMORY_MAX="${configured_max}"
+  RELEASE_MEMORY_HIGH="${configured_high}"
+}
+
 validate_release_resource_limits() {
   case "${RELEASE_CGROUP_MODE}" in
     required|off) ;;
@@ -156,6 +233,12 @@ run_release_preflight_command() {
   unit_name="ppstudio-release-preflight-${BASHPID}-${RELEASE_CGROUP_SEQUENCE}"
 
   require_cmd systemd-run
+  require_cmd numfmt
+  local memory_high_bytes memory_max_bytes
+  # Konečné absolutní velikosti: nelze ověřovat infinity ani procenta RAM.
+  memory_high_bytes="$(numfmt --from=iec "${RELEASE_MEMORY_HIGH}")" || return 1
+  memory_max_bytes="$(numfmt --from=iec "${RELEASE_MEMORY_MAX}")" || return 1
+  [[ "${memory_high_bytes}" =~ ^[1-9][0-9]*$ && "${memory_max_bytes}" =~ ^[1-9][0-9]*$ ]] || return 1
   if [[ "${EUID}" -ne 0 ]]; then
     require_cmd sudo
     runner=(sudo /bin/bash -c "${sudo_loader}" --)
@@ -179,7 +262,9 @@ run_release_preflight_command() {
     -p "MemoryHigh=${RELEASE_MEMORY_HIGH}" \
     -p "MemoryMax=${RELEASE_MEMORY_MAX}" \
     -p "TasksMax=${RELEASE_TASKS_MAX}" \
-    -- "$@"
+    -- /bin/bash "${SCRIPT_DIR}/release-scope.sh"
+    "${unit_name}" "${RELEASE_CPU_QUOTA}" "${memory_high_bytes}" "${memory_max_bytes}"
+    "${RELEASE_TASKS_MAX}" "${RELEASE_CPU_WEIGHT}" "${RELEASE_IO_WEIGHT}" "$@"
   )
   if [[ "${EUID}" -ne 0 ]]; then
     if release_preflight_print_environment | "${scope_command[@]}"; then
@@ -889,6 +974,7 @@ run_release() {
   fi
 
   load_runtime_env
+  resolve_release_memory_limits
   validate_release_resource_limits
   prepare_runtime_storage --validate-only
   validate_server_actions_encryption_key

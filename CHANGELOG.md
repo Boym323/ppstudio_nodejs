@@ -8,7 +8,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
-- Release preflight a `next build` nyní běží v ověřeném systemd/cgroup scope s omezením CPU, paměti, I/O a počtu tasků, aby příprava releasu nemohla bez limitu vytlačit živý web v malém LXC; nepodporovaný cgroup hostitel release zastaví před dlouhým buildem.
+- Release preflight a `next build` nyní běží v ověřeném systemd/cgroup scope s omezením CPU, paměti, I/O a počtu tasků, aby příprava releasu nemohla bez limitu vytlačit živý web v malém LXC; před každým příkazem se přímo uvnitř scope ověřují skutečné kernelové limity a nepodporovaný cgroup hostitel release zastaví před dlouhým buildem.
+- Paměťový rozpočet release se při každém běhu odvozuje z nejnižšího dostupného `memory.max` aktuální cgroup a jejích předků (výchozí `MemoryMax=60 %`, `MemoryHigh=56 %`), takže reaguje na změnu RAM produkčního LXC; explicitní `PPSTUDIO_RELEASE_MEMORY_*` hodnoty zůstávají jako override. Pokud konečný limit nelze zjistit, chráněný release vyžaduje explicitní `MemoryHigh` i `MemoryMax` místo pevného fallbacku.
 
 ### Opraveno
 

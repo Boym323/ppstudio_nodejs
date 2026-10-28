@@ -21,15 +21,25 @@ limity jsou záměrně konzervativní pro produkční LXC s 5 GiB RAM a 2 vCPU:
 | `CPUQuota` | `100%` | nejvýše jeden vCPU pro release preflight |
 | `CPUWeight` | `20` | nízká relativní priorita proti běžným službám |
 | `IOWeight` | `20` | nízká relativní priorita blokového I/O |
-| `MemoryHigh` | `2800M` | tlak na reclaim/throttling před kritickým limitem |
-| `MemoryMax` | `3G` | selhání buildu místo vytlačení živé aplikace |
+| `MemoryHigh` | `56 %` nadřazeného `memory.max` | tlak na reclaim/throttling před kritickým limitem |
+| `MemoryMax` | `60 %` nadřazeného `memory.max` | selhání buildu místo vytlačení živé aplikace |
 | `TasksMax` | `512` | ochrana proti nekontrolovanému počtu workerů |
 | `Nice` | `10` | nižší CPU priorita uvnitř přiděleného rozpočtu |
 
 `MemoryMax` není OOM ochrana celé LXC: při překročení selže pouze scope
-release. Systemd nebo cgroup v2 musí nastavení přijmout; při nepodporovaném
-hostiteli release skončí před prvním dlouhým krokem. Do nechráněného běhu lze
-přejít jen explicitně pro DEV diagnostiku:
+release. Výchozí procenta se počítají při každém běhu z nejnižšího dostupného
+konečného `memory.max` aktuální cgroup a všech jejích viditelných předků,
+takže se zohlední i přísnější nadřazený limit. Limity skryté cgroup namespace
+nelze tímto způsobem zjistit.
+Samotné přijetí nastavení systemdem nestačí: před každým příkazem
+wrapper uvnitř scope ověří členství procesu a skutečné soubory `cpu.max`,
+`memory.high`, `memory.max`, `pids.max`, `cpu.weight` a `io.weight`.
+Chybějící controller, neomezený limit nebo limit volnější než požadovaný
+zastaví release ještě před spuštěním příkazu. Váhy musí odpovídat požadavku.
+Vyžaduje se cgroup v2 připojená v `/sys/fs/cgroup` a `numfmt` z GNU coreutils;
+paměťové limity se zadávají jako konečné absolutní velikosti v bajtech nebo
+s IEC příponou (např. `2800M`, `3G`), nikoli procenta či `infinity`.
+Do nechráněného běhu lze přejít jen explicitně pro DEV diagnostiku:
 
 Pokud release spouští běžný deploy uživatel, wrapper nepoužívá `sudo -E` ani
 `sudo --preserve-env`, protože konkrétní sudoers politika může jejich chování
@@ -53,8 +63,13 @@ flagy; mimo `development`/`test` navíc vyžaduje přesný cíl `DEV`. Tento re�
 na produkci nepoužívá. Hodnoty lze pro experiment změnit přes
 `PPSTUDIO_RELEASE_CPU_QUOTA`, `PPSTUDIO_RELEASE_CPU_WEIGHT`,
 `PPSTUDIO_RELEASE_IO_WEIGHT`, `PPSTUDIO_RELEASE_MEMORY_HIGH`,
-`PPSTUDIO_RELEASE_MEMORY_MAX`, `PPSTUDIO_RELEASE_TASKS_MAX` a
-`PPSTUDIO_RELEASE_NICE`.
+`PPSTUDIO_RELEASE_MEMORY_MAX`, `PPSTUDIO_RELEASE_MEMORY_BUDGET_PERCENT`,
+`PPSTUDIO_RELEASE_MEMORY_HIGH_PERCENT`, `PPSTUDIO_RELEASE_TASKS_MAX` a
+`PPSTUDIO_RELEASE_NICE`. Pokud nelze zjistit konečný `memory.max`,
+chráněný release se zastaví a vyžaduje explicitní nastavení obou proměnných
+`PPSTUDIO_RELEASE_MEMORY_HIGH` a `PPSTUDIO_RELEASE_MEMORY_MAX` podle
+paměťového rozpočtu hostitele. Pevný fallback se nepoužívá. V explicitně
+povoleném nechráněném DEV režimu se paměťový rozpočet nevyhodnocuje.
 
 ### Next.js a Turbopack
 

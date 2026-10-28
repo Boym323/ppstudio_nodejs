@@ -26,4 +26,10 @@ if [[ -z "${working_directory}" || "${#command_args[@]}" -eq 0 ]]; then
 fi
 
 cd "${working_directory}"
+# Tento mock ověřuje sestavení launcheru, nevytváří skutečnou cgroup.
+# Kernelové ověření patří skutečnému scope; zde rozbalíme jeho argumenty.
+if [[ "${command_args[0]}" == /bin/bash && "${command_args[1]:-}" == */release-scope.sh ]]; then
+  [[ "${#command_args[@]}" -ge 10 ]] || exit 74
+  command_args=("${command_args[@]:9}")
+fi
 "${command_args[@]}"
