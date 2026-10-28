@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Změněno
+
+- Release opakovaně využívá kompilační cache mezi nasazeními a vynechává duplicitní generování Prisma klienta; příprava oprávnění nového release probíhá před odstávkou služeb. Volba `--no-cache` umožňuje čistý build.
+
 ## [3.38.0] - 2026-10-27
 
 ### Změněno

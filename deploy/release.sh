@@ -26,6 +26,8 @@ RETAIN_RELEASES="${PPSTUDIO_RETAIN_RELEASES:-0}"
 SKIP_PULL=0
 SKIP_LINT=0
 SKIP_CONFIRM=0
+USE_BUILD_CACHE=1
+BUILD_CACHE_KEY=""
 BRANCH="main"
 RELEASE_BUILD_DIR=""
 KEEP_RELEASE_WORKSPACE=0
@@ -43,6 +45,7 @@ Volby:
   --branch <name>    Očekávaná release větev (výchozí: main)
   --skip-pull        Přeskočit 'git pull --ff-only'
   --skip-lint        Přeskočit 'npm run lint'
+  --no-cache         Build bez obnovení a uložení kompilační cache
   --keep-releases N  Ponechat N posledních dalších release (výchozí: 0)
   --yes              Přeskočit interaktivní potvrzení
   -h, --help         Zobrazit nápovědu
@@ -284,6 +287,53 @@ cleanup_release_workspace() {
   if [[ -n "${RELEASE_BUILD_DIR}" && -d "${RELEASE_BUILD_DIR}" ]]; then
     rm -rf "${RELEASE_BUILD_DIR}"
   fi
+}
+
+restore_build_cache() {
+  [[ "${USE_BUILD_CACHE}" -eq 1 ]] || return 0
+  local cache_dir="${RELEASES_DIR}/.build-cache"
+  local cache_name
+
+  # Změny toolchainu, konfigurace nebo produkčního env začnou studeným buildem.
+  BUILD_CACHE_KEY="$(node <<'NODE'
+const { createHash } = require('node:crypto');
+const { readFileSync } = require('node:fs');
+const hash = createHash('sha256').update(JSON.stringify(process.versions));
+for (const file of ['package-lock.json', 'next.config.ts', '.env']) {
+  hash.update(readFileSync(file));
+}
+console.log(hash.digest('hex'));
+NODE
+)"
+  if [[ ! -f "${cache_dir}/key" ]] || [[ "$(<"${cache_dir}/key")" != "${BUILD_CACHE_KEY}" ]]; then
+    log "Kompilační cache chybí nebo neodpovídá prostředí; build začne bez cache."
+    return 0
+  fi
+
+  mkdir -p .next/cache
+  for cache_name in turbopack swc; do
+    if [[ -d "${cache_dir}/${cache_name}" ]]; then
+      cp -R "${cache_dir}/${cache_name}" ".next/cache/${cache_name}"
+    fi
+  done
+  log "Kompilační cache obnovena."
+}
+
+save_build_cache() {
+  [[ "${USE_BUILD_CACHE}" -eq 1 ]] || return 0
+  local cache_dir="${RELEASES_DIR}/.build-cache"
+  local cache_name
+
+  # Jen kompilace: fetch-cache, ISR ani runtime data se mezi releasy nepřenášejí.
+  # Zámek release chrání tuto jedinou cache před souběžným čtením a zápisem.
+  rm -rf -- "${cache_dir}"
+  mkdir -m 0700 "${cache_dir}"
+  for cache_name in turbopack swc; do
+    if [[ -d ".next/cache/${cache_name}" ]]; then
+      cp -R ".next/cache/${cache_name}" "${cache_dir}/${cache_name}"
+    fi
+  done
+  printf '%s\n' "${BUILD_CACHE_KEY}" > "${cache_dir}/key"
 }
 
 finish_release() {
@@ -698,6 +748,10 @@ parse_args() {
         SKIP_LINT=1
         shift
         ;;
+      --no-cache)
+        USE_BUILD_CACHE=0
+        shift
+        ;;
       --keep-releases)
         RETAIN_RELEASES="$2"
         shift 2
@@ -825,7 +879,10 @@ run_release() {
   run_timed_step "test:release" run_release_tests
 
   log "npm run build"
-  run_timed_step "build" npm run build
+  run_timed_step "obnovení kompilační cache" restore_build_cache
+  # Prisma klient už vznikl před quality gates; prebuild jej nemusí generovat znovu.
+  run_timed_step "build" npm --ignore-scripts run build
+  run_timed_step "uložení kompilační cache" save_build_cache
 
   run_timed_step "zápis runtime release environmentu" write_runtime_release_env_file "${RELEASE_BUILD_DIR}/${RUNTIME_RELEASE_ENV_FILE}"
 
@@ -836,6 +893,7 @@ run_release() {
   run_timed_step "finalizace release workspace" mv "${RELEASE_BUILD_DIR}" "${release_dir}"
   RELEASE_BUILD_DIR=""
   cd "${REPO_DIR}"
+  run_timed_step "runtime oprávnění release" prepare_runtime_release "${release_dir}"
   RELEASE_WRITERS_STOPPED=1
   run_timed_step "zastavení a ověření writerů" stop_release_writers
 
@@ -843,7 +901,6 @@ run_release() {
   SYSTEMD_UNITS_CHANGED=1
   run_timed_step "synchronizace systemd unitů" sync_systemd_units
   run_timed_step "příprava runtime storage" prepare_runtime_storage
-  run_timed_step "runtime oprávnění release" prepare_runtime_release "${release_dir}"
 
   cd "${release_dir}"
   log "npx prisma migrate deploy (writeři jsou ověřeně zastavení)"

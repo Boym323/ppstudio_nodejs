@@ -78,6 +78,53 @@ create_release_workspace
 [[ "$(<"${RELEASE_BUILD_DIR}/artifact.txt")" == 'commitnuty obsah' ]]
 [[ ! -e "${RELEASE_BUILD_DIR}/untracked.txt" ]]
 cleanup_release_workspace
+
+# Cache přežije změnu staging cesty; přenáší jen kompilaci a invaliduje env.
+(
+  cd "${archive_repo}"
+  printf '{}\n' > package-lock.json
+  printf 'export default {};\n' > next.config.ts
+  restore_build_cache
+  [[ ! -e .next/cache ]]
+  mkdir -p .next/cache/{turbopack,swc,fetch-cache}
+  printf 'compiled\n' > .next/cache/turbopack/artifact
+  printf 'swc\n' > .next/cache/swc/artifact
+  printf 'runtime data\n' > .next/cache/fetch-cache/private
+  save_build_cache
+  [[ ! -e "${RELEASES_DIR}/.build-cache/fetch-cache" ]]
+  mkdir "${archive_repo}/second-staging"
+  cp package-lock.json next.config.ts .env "${archive_repo}/second-staging/"
+  cd "${archive_repo}/second-staging"
+  restore_build_cache
+  [[ "$(<.next/cache/turbopack/artifact)" == compiled ]]
+  [[ "$(<.next/cache/swc/artifact)" == swc ]]
+  [[ ! -e .next/cache/fetch-cache ]]
+  rm -rf .next
+  printf 'TEST_ENV=2\n' > .env
+  restore_build_cache
+  [[ ! -e .next/cache ]]
+  cp "${archive_repo}/.env" .env
+  printf '{"changed":true}\n' > package-lock.json
+  restore_build_cache
+  [[ ! -e .next/cache ]]
+  cp "${archive_repo}/package-lock.json" package-lock.json
+  printf 'export default { experimental: {} };\n' > next.config.ts
+  restore_build_cache
+  [[ ! -e .next/cache ]]
+  cp "${archive_repo}/next.config.ts" next.config.ts
+  rm "${RELEASES_DIR}/.build-cache/key"
+  restore_build_cache
+  [[ ! -e .next/cache ]]
+  save_build_cache
+  parse_args --no-cache
+  restore_build_cache
+  [[ ! -e .next/cache ]]
+  mkdir -p .next/cache/turbopack
+  printf 'disabled\n' > .next/cache/turbopack/artifact
+  save_build_cache
+  [[ -f "${RELEASES_DIR}/.build-cache/key" ]]
+  [[ ! -e "${RELEASES_DIR}/.build-cache/turbopack" ]]
+)
 # Zámek sdílí i různé cesty přes symlink; po ukončení držitele se uvolní.
 ln -s "${archive_repo}" "${TEMP_DIR}/archive-alias"
 (
@@ -252,6 +299,9 @@ activate_swap_line="$(grep -n 'set_release_link "\${CURRENT_RELEASE_LINK}" "\${r
 activate_start_line="$(grep -n 'if start_release_services && wait_for_web_listener' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
 sync_line="$(grep -n 'run_timed_step "synchronizace systemd unitů"' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
 storage_line="$(grep -n 'run_timed_step "příprava runtime storage"' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
+permissions_line="$(grep -n 'run_timed_step "runtime oprávnění release"' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
+[[ "${build_line}" -lt "${permissions_line}" && "${permissions_line}" -lt "${stop_line}" ]]
+grep -Fq 'run_timed_step "build" npm --ignore-scripts run build' "${SCRIPT_DIR}/release.sh"
 [[ "${stop_line}" -lt "${sync_line}" && "${sync_line}" -lt "${storage_line}" && "${storage_line}" -lt "${migrate_line}" ]]
 [[ "${typecheck_line}" -lt "${test_line}" && "${test_line}" -lt "${build_line}" && "${build_line}" -lt "${stop_line}" && "${stop_line}" -lt "${migrate_line}" && "${migrate_line}" -lt "${bootstrap_line}" && "${bootstrap_line}" -lt "${activate_line}" && "${activate_swap_line}" -lt "${activate_start_line}" ]]
 
@@ -390,7 +440,7 @@ fi
 
 # Celý orchestrátor s nahrazenými kroky: žádné npm, DB ani systémové služby.
 # Samostatný subshell + wait zachová errexit (volání v if by jej vypnulo).
-for scenario in build-failure activation-failure cleanup-failure; do
+for scenario in build-failure permissions-failure activation-failure cleanup-failure; do
   scenario_dir="${TEMP_DIR}/${scenario}"
   mkdir -p "${scenario_dir}/repo/releases"
   touch "${scenario_dir}/repo/package.json"
@@ -421,6 +471,7 @@ for scenario in build-failure activation-failure cleanup-failure; do
           ;;
         "finalizace release workspace") shift; "$@" ;;
         build) [[ "${scenario}" != build-failure ]] ;;
+        "runtime oprávnění release") [[ "${scenario}" != permissions-failure ]] ;;
         "aktivace release") [[ "${scenario}" != activation-failure ]] ;;
         *) return 0 ;;
       esac
@@ -430,7 +481,7 @@ for scenario in build-failure activation-failure cleanup-failure; do
   scenario_status=0
   wait "$!" || scenario_status=$?
   case "${scenario}" in
-    build-failure)
+    build-failure|permissions-failure)
       [[ "${scenario_status}" -ne 0 ]]
       ! grep -q 'synchronizace systemd\|zastavení a ověření\|Prisma migrate deploy' "${scenario_dir}/steps"
       ;;

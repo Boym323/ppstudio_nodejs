@@ -64,7 +64,8 @@ Dělá:
    - `npm run db:generate`
    - `npm run db:check-migrations`
    - `npm run lint`
-   - `npm run build`
+   - obnovení kompilační cache, `npm --ignore-scripts run build` (Prisma klient je již vygenerovaný), uložení cache
+   - přípravu runtime oprávnění nového release před odstávkou
 6. po úspěšném buildu zastaví web i worker a ověří, že žádný z nich neběží jako writer
 7. aplikuje `npx prisma migrate deploy`
 8. z adresáře nového release spustí povinný idempotentní `npm run voucher:templates:bootstrap` se stejným env, private storage a dependencies jako nový runtime
