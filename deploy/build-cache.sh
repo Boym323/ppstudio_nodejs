@@ -21,6 +21,20 @@ build_cache_seed_worktree_root() {
   printf '%s/.build-cache-worktree\n' "${RELEASES_DIR}"
 }
 
+build_cache_generation_source_commit() {
+  node - "$1/metadata.json" <<'NODE'
+const { readFileSync } = require('node:fs');
+let commit;
+try {
+  commit = JSON.parse(readFileSync(process.argv[2], 'utf8')).sourceCommit;
+} catch {
+  process.exit(1);
+}
+if (typeof commit !== 'string' || !/^[0-9a-f]{40}$/.test(commit)) process.exit(1);
+console.log(commit);
+NODE
+}
+
 ensure_build_cache_seed_worktree() {
   local seed_worktree="$(build_cache_seed_worktree_root)"
 
@@ -79,8 +93,15 @@ sync_build_cache_seed_worktree() {
   local generation_dir="$1"
   local seed_worktree="$(build_cache_seed_worktree_root)"
   local cache_name
+  local source_commit
 
+  source_commit="$(build_cache_generation_source_commit "${generation_dir}")" || return 1
   ensure_build_cache_seed_worktree || return 1
+  # Turbopack must compare the new staging checkout with the exact Git revision
+  # that produced the seeded compilation cache, not an older arbitrary HEAD.
+  if [[ "$(git -C "${seed_worktree}" rev-parse HEAD)" != "${source_commit}" ]]; then
+    git -C "${seed_worktree}" reset --hard "${source_commit}" >/dev/null || return 1
+  fi
   for cache_name in turbopack swc; do
     if [[ -d "${generation_dir}/${cache_name}" ]]; then
       replace_seed_cache_tree "${generation_dir}/${cache_name}" "${seed_worktree}/.next/cache/${cache_name}" || return 1
@@ -184,7 +205,10 @@ NODE
 write_build_cache_metadata() {
   local generation_dir="$1"
   local environment_id="$2"
+  local source_commit
 
+  source_commit="$(git -C "${REPO_DIR}" rev-parse HEAD)" || return 1
+  BUILD_CACHE_SOURCE_COMMIT="${source_commit}" \
   BUILD_CACHE_FORMAT_VERSION="${BUILD_CACHE_FORMAT_VERSION:-2}" \
   BUILD_CACHE_KEY="${BUILD_CACHE_KEY}" \
   BUILD_CACHE_ENV_ID="${environment_id}" \
@@ -225,6 +249,7 @@ writeFileSync(path.join(generationDir, 'metadata.json'), `${JSON.stringify({
   formatVersion: Number(process.env.BUILD_CACHE_FORMAT_VERSION),
   environment: process.env.BUILD_CACHE_ENV_ID,
   key: process.env.BUILD_CACHE_KEY,
+  sourceCommit: process.env.BUILD_CACHE_SOURCE_COMMIT,
   entries,
 })}\n`, { mode: 0o600 });
 NODE
@@ -261,6 +286,8 @@ try {
 if (metadata.formatVersion !== Number(process.env.BUILD_CACHE_FORMAT_VERSION)
   || metadata.environment !== process.env.BUILD_CACHE_ENV_ID
   || metadata.key !== process.env.BUILD_CACHE_KEY
+  || typeof metadata.sourceCommit !== 'string'
+  || !/^[0-9a-f]{40}$/.test(metadata.sourceCommit)
   || !Array.isArray(metadata.entries)
   || metadata.entries.length === 0) process.exit(1);
 
@@ -344,7 +371,7 @@ prune_build_cache() {
 
   while IFS= read -r -d '' generation_dir; do
     generation_name="$(basename "${generation_dir}")"
-    [[ "${generation_name}" =~ ^[0-9a-f]{16}-[0-9]{14}-[0-9]+$ ]] || continue
+    [[ "${generation_name}" =~ ^[0-9a-f]{16}-[0-9]{23}-[0-9a-f]{16}$ ]] || continue
     generation_dir="$(readlink -f -- "${generation_dir}")" || return 1
     [[ "$(dirname "${generation_dir}")" == "$(readlink -f -- "${generations_dir}")" ]] || return 1
     generation_index=$((generation_index + 1))
@@ -442,7 +469,9 @@ save_build_cache() {
     return 1
   fi
 
-  generation_id="${BUILD_CACHE_KEY:0:16}-$(date -u +%Y%m%d%H%M%S)-$$"
+  # Nanoseconds preserve chronological pruning order; random bytes prevent
+  # collisions even for multiple saves in one process within one timestamp.
+  generation_id="${BUILD_CACHE_KEY:0:16}-$(date -u +%Y%m%d%H%M%S%N)-$(node -p 'require("node:crypto").randomBytes(8).toString("hex")')"
   generation_dir="${generations_dir}/${generation_id}"
   temporary_dir="$(mktemp -d -p "${generations_dir}" '.staging.XXXXXX')"
   chmod 0700 "${temporary_dir}"
@@ -526,7 +555,9 @@ run_build_with_cache_recovery() {
     remove_restored_build_cache || return 1
     unlink "${BUILD_CACHE_FAILURE_LOG}" 2>/dev/null || true
     BUILD_CACHE_FAILURE_LOG=""
-    if run_build_command; then
+    # Git worktree builds seed from the persistent .build-cache-worktree, not
+    # only .next/cache. Disable both sources for this single clean retry.
+    if PPSTUDIO_DISABLE_TURBOPACK_CACHE=1 run_build_command; then
       unlink "${BUILD_CACHE_FAILURE_LOG}" 2>/dev/null || true
       BUILD_CACHE_FAILURE_LOG=""
       return 0

@@ -163,6 +163,12 @@ RELEASE_BUILD_DIR=""
   printf 'replacement\n' > .next/cache/turbopack/artifact
   save_build_cache
   [[ "$(readlink -f "${cache_root}/current")" != "${old_current}" ]]
+  # Repeated saves within the same second and shell process must never collide.
+  for cache_round in 1 2 3; do
+    previous_generation="$(readlink -f "${cache_root}/current")"
+    save_build_cache
+    [[ "$(readlink -f "${cache_root}/current")" != "${previous_generation}" ]]
+  done
   new_generation="$(readlink -f "${cache_root}/current")"
   printf 'unexpected\n' > "${new_generation}/turbopack/unexpected"
   rm -rf .next
@@ -262,6 +268,79 @@ RELEASE_BUILD_DIR=""
   [[ "$(<"${TEMP_DIR}/build-attempts")" -eq 1 ]]
   [[ -f .next/cache/turbopack/artifact ]]
   unset -f npm
+)
+
+# A cached Git seed must track the exact revision that produced each
+# generation, even after several consecutive releases with source changes.
+(
+  chain_repo="${TEMP_DIR}/cache-commit-chain"
+  mkdir -p "${chain_repo}"
+  git -C "${chain_repo}" init --quiet
+  git -C "${chain_repo}" config user.email 'cache-test@example.test'
+  git -C "${chain_repo}" config user.name 'Cache test'
+  printf 'version-1\n' > "${chain_repo}/source.txt"
+  printf 'TEST_ENV=dev\n' > "${chain_repo}/.env"
+  git -C "${chain_repo}" add source.txt
+  git -C "${chain_repo}" commit --quiet -m 'Cache source 1'
+  REPO_DIR="${chain_repo}"
+  RELEASES_DIR="${chain_repo}/releases"
+  PPSTUDIO_BUILD_CACHE_ENV_ID=dev
+  export PPSTUDIO_BUILD_CACHE_ENV_ID
+
+  for version in 1 2 3; do
+    if (( version > 1 )); then
+      printf 'version-%s\n' "${version}" > "${chain_repo}/source.txt"
+      git -C "${chain_repo}" add source.txt
+      git -C "${chain_repo}" commit --quiet -m "Cache source ${version}"
+    fi
+    create_release_workspace
+    (
+      cd "${RELEASE_BUILD_DIR}"
+      [[ -f .git ]]
+      restore_build_cache
+      if (( version == 1 )); then
+        [[ "${BUILD_CACHE_RESTORED}" -eq 0 ]]
+      else
+        [[ "${BUILD_CACHE_RESTORED}" -eq 1 ]]
+        expected_seed_commit="$(git -C "${chain_repo}" rev-parse HEAD~1)"
+        [[ "$(git -C "${RELEASES_DIR}/.build-cache-worktree" rev-parse HEAD)" == "${expected_seed_commit}" ]]
+      fi
+
+      if (( version == 3 )); then
+        # A failed seeded worktree build may retry only with seed disabled.
+        # Simulate the two builds and verify that the flag is scoped.
+        mkdir -p .next/cache/turbopack
+        printf 'corrupt\n' > .next/cache/turbopack/artifact
+        attempts_file="${TEMP_DIR}/cache-seed-retry-attempts"
+        printf '0\n' > "${attempts_file}"
+        npm() {
+          local attempts
+          attempts=$(( $(<"${attempts_file}") + 1 ))
+          printf '%s\n' "${attempts}" > "${attempts_file}"
+          if (( attempts == 1 )); then
+            [[ "${PPSTUDIO_DISABLE_TURBOPACK_CACHE:-0}" != 1 ]] || return 3
+            echo 'Failed to restore task data' >&2
+            return 1
+          fi
+          [[ "${PPSTUDIO_DISABLE_TURBOPACK_CACHE:-0}" == 1 ]]
+        }
+        run_build_with_cache_recovery
+        unset -f npm
+        [[ "$(<"${attempts_file}")" -eq 2 ]]
+        [[ ! -e .next/cache/turbopack ]]
+        [[ "${PPSTUDIO_DISABLE_TURBOPACK_CACHE:-0}" != 1 ]]
+      fi
+
+      mkdir -p .next/cache/turbopack
+      printf 'version-%s\n' "${version}" > .next/cache/turbopack/artifact
+      save_build_cache
+    )
+    current_commit="$(git -C "${chain_repo}" rev-parse HEAD)"
+    seed_dir="${RELEASES_DIR}/.build-cache-worktree"
+    [[ "$(git -C "${seed_dir}" rev-parse HEAD)" == "${current_commit}" ]]
+    [[ "$(<"${seed_dir}/.next/cache/turbopack/artifact")" == "version-${version}" ]]
+    cleanup_release_workspace
+  done
 )
 # Zámek sdílí i různé cesty přes symlink; po ukončení držitele se uvolní.
 ln -s "${archive_repo}" "${TEMP_DIR}/archive-alias"
