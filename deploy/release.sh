@@ -28,6 +28,10 @@ SKIP_LINT=0
 SKIP_CONFIRM=0
 USE_BUILD_CACHE=1
 BUILD_CACHE_KEY=""
+BUILD_CACHE_FORMAT_VERSION=2
+BUILD_CACHE_RESTORED=0
+BUILD_CACHE_RECOVERY_ATTEMPTED=0
+BUILD_CACHE_FAILURE_LOG=""
 BRANCH="main"
 RELEASE_BUILD_DIR=""
 KEEP_RELEASE_WORKSPACE=0
@@ -273,10 +277,12 @@ EOF
 create_release_workspace() {
   mkdir -p "${RELEASES_DIR}"
   RELEASE_BUILD_DIR="$(mktemp -d -p "${RELEASES_DIR}" ".staging.XXXXXX")"
+  rmdir "${RELEASE_BUILD_DIR}"
 
   log "Připravuji izolovaný build workspace ${RELEASE_BUILD_DIR}"
-  git -C "${REPO_DIR}" archive --format=tar HEAD | tar -xf - -C "${RELEASE_BUILD_DIR}"
+  git -C "${REPO_DIR}" worktree add --detach "${RELEASE_BUILD_DIR}" HEAD >/dev/null
   cp "${REPO_DIR}/.env" "${RELEASE_BUILD_DIR}/.env"
+  chmod 0600 "${RELEASE_BUILD_DIR}/.env"
 }
 
 cleanup_release_workspace() {
@@ -285,56 +291,29 @@ cleanup_release_workspace() {
   fi
 
   if [[ -n "${RELEASE_BUILD_DIR}" && -d "${RELEASE_BUILD_DIR}" ]]; then
-    rm -rf "${RELEASE_BUILD_DIR}"
+    if [[ -f "${RELEASE_BUILD_DIR}/.git" ]]; then
+      if ! git -C "${REPO_DIR}" worktree remove --force "${RELEASE_BUILD_DIR}" >/dev/null 2>&1; then
+        safe_remove_cache_path "${RELEASE_BUILD_DIR}" "${RELEASES_DIR}" || return 1
+      fi
+    else
+      safe_remove_cache_path "${RELEASE_BUILD_DIR}" "${RELEASES_DIR}" || return 1
+    fi
   fi
 }
 
-restore_build_cache() {
-  [[ "${USE_BUILD_CACHE}" -eq 1 ]] || return 0
-  local cache_dir="${RELEASES_DIR}/.build-cache"
-  local cache_name
+finalize_release_workspace() {
+  local release_dir="$1"
 
-  # Změny toolchainu, konfigurace nebo produkčního env začnou studeným buildem.
-  BUILD_CACHE_KEY="$(node <<'NODE'
-const { createHash } = require('node:crypto');
-const { readFileSync } = require('node:fs');
-const hash = createHash('sha256').update(JSON.stringify(process.versions));
-for (const file of ['package-lock.json', 'next.config.ts', '.env']) {
-  hash.update(readFileSync(file));
-}
-console.log(hash.digest('hex'));
-NODE
-)"
-  if [[ ! -f "${cache_dir}/key" ]] || [[ "$(<"${cache_dir}/key")" != "${BUILD_CACHE_KEY}" ]]; then
-    log "Kompilační cache chybí nebo neodpovídá prostředí; build začne bez cache."
+  if [[ -f "${RELEASE_BUILD_DIR}/.git" ]]; then
+    git -C "${REPO_DIR}" worktree move "${RELEASE_BUILD_DIR}" "${release_dir}" >/dev/null
+    unlink "${release_dir}/.git"
+    git -C "${REPO_DIR}" worktree prune
     return 0
   fi
-
-  mkdir -p .next/cache
-  for cache_name in turbopack swc; do
-    if [[ -d "${cache_dir}/${cache_name}" ]]; then
-      cp -R "${cache_dir}/${cache_name}" ".next/cache/${cache_name}"
-    fi
-  done
-  log "Kompilační cache obnovena."
+  mv "${RELEASE_BUILD_DIR}" "${release_dir}"
 }
 
-save_build_cache() {
-  [[ "${USE_BUILD_CACHE}" -eq 1 ]] || return 0
-  local cache_dir="${RELEASES_DIR}/.build-cache"
-  local cache_name
-
-  # Jen kompilace: fetch-cache, ISR ani runtime data se mezi releasy nepřenášejí.
-  # Zámek release chrání tuto jedinou cache před souběžným čtením a zápisem.
-  rm -rf -- "${cache_dir}"
-  mkdir -m 0700 "${cache_dir}"
-  for cache_name in turbopack swc; do
-    if [[ -d ".next/cache/${cache_name}" ]]; then
-      cp -R ".next/cache/${cache_name}" "${cache_dir}/${cache_name}"
-    fi
-  done
-  printf '%s\n' "${BUILD_CACHE_KEY}" > "${cache_dir}/key"
-}
+source "${SCRIPT_DIR}/build-cache.sh"
 
 finish_release() {
   local exit_status=$?
@@ -399,6 +378,9 @@ cleanup_old_releases() {
     fi
 
     log "Mažu starý release ${release_dir}"
+    if [[ -f "${release_dir}/.git" ]]; then
+      git -C "${REPO_DIR}" worktree remove --force "${release_dir}" || return 1
+    fi
     # Runtime uživatel může během provozu vytvořit .next/cache soubory a
     # adresáře, ke kterým deploy účet nemá právo traversalu. Cíl je už výše
     # omezený na release adresář mimo current/previous, proto je odstranění
@@ -881,7 +863,7 @@ run_release() {
   log "npm run build"
   run_timed_step "obnovení kompilační cache" restore_build_cache
   # Prisma klient už vznikl před quality gates; prebuild jej nemusí generovat znovu.
-  run_timed_step "build" npm --ignore-scripts run build
+  run_timed_step "build" run_build_with_cache_recovery
   run_timed_step "uložení kompilační cache" save_build_cache
 
   run_timed_step "zápis runtime release environmentu" write_runtime_release_env_file "${RELEASE_BUILD_DIR}/${RUNTIME_RELEASE_ENV_FILE}"
@@ -890,7 +872,7 @@ run_release() {
   local release_dir
   release_name="${GIT_HASH}-$(date -u +%Y%m%d%H%M%S)"
   release_dir="${RELEASES_DIR}/${release_name}"
-  run_timed_step "finalizace release workspace" mv "${RELEASE_BUILD_DIR}" "${release_dir}"
+  run_timed_step "finalizace release workspace" finalize_release_workspace "${release_dir}"
   RELEASE_BUILD_DIR=""
   cd "${REPO_DIR}"
   run_timed_step "runtime oprávnění release" prepare_runtime_release "${release_dir}"

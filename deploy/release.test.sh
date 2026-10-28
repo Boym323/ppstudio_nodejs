@@ -79,11 +79,33 @@ create_release_workspace
 [[ ! -e "${RELEASE_BUILD_DIR}/untracked.txt" ]]
 cleanup_release_workspace
 
-# Cache přežije změnu staging cesty; přenáší jen kompilaci a invaliduje env.
+RELEASE_BUILD_DIR=""
+create_release_workspace
+finalized_release_dir="${RELEASES_DIR}/finalized-test"
+finalize_release_workspace "${finalized_release_dir}"
+[[ -d "${finalized_release_dir}" ]]
+[[ ! -e "${finalized_release_dir}/.git" ]]
+! git -C "${archive_repo}" worktree list --porcelain | grep -Fq "worktree ${finalized_release_dir}"
+find -P "${finalized_release_dir}" -depth -delete
+git -C "${archive_repo}" worktree prune
+RELEASE_BUILD_DIR=""
+
+# Cache má metadata, integritu, atomické publikování a přenáší jen kompilaci.
 (
   cd "${archive_repo}"
+  PPSTUDIO_BUILD_CACHE_ENV_ID=dev
+  export PPSTUDIO_BUILD_CACHE_ENV_ID
   printf '{}\n' > package-lock.json
   printf 'export default {};\n' > next.config.ts
+  mkdir -p src/config
+  printf 'export const cacheInput = "one";\n' > src/config/security-headers.ts
+  NEXT_DEPLOYMENT_ID=deployment-one
+  compute_build_cache_key
+  deployment_one_key="${BUILD_CACHE_KEY}"
+  NEXT_DEPLOYMENT_ID=deployment-two
+  compute_build_cache_key
+  [[ "${BUILD_CACHE_KEY}" == "${deployment_one_key}" ]]
+  NEXT_DEPLOYMENT_ID=test-release
   restore_build_cache
   [[ ! -e .next/cache ]]
   mkdir -p .next/cache/{turbopack,swc,fetch-cache}
@@ -91,9 +113,15 @@ cleanup_release_workspace
   printf 'swc\n' > .next/cache/swc/artifact
   printf 'runtime data\n' > .next/cache/fetch-cache/private
   save_build_cache
-  [[ ! -e "${RELEASES_DIR}/.build-cache/fetch-cache" ]]
+  cache_root="${RELEASES_DIR}/.build-cache"
+  [[ -L "${cache_root}/current" ]]
+  first_generation="$(readlink -f "${cache_root}/current")"
+  [[ -f "${first_generation}/metadata.json" ]]
+  [[ ! -e "${first_generation}/fetch-cache" ]]
+  grep -Fq '"environment":"dev"' "${first_generation}/metadata.json"
   mkdir "${archive_repo}/second-staging"
   cp package-lock.json next.config.ts .env "${archive_repo}/second-staging/"
+  cp -R src "${archive_repo}/second-staging/"
   cd "${archive_repo}/second-staging"
   restore_build_cache
   [[ "$(<.next/cache/turbopack/artifact)" == compiled ]]
@@ -104,6 +132,10 @@ cleanup_release_workspace
   restore_build_cache
   [[ ! -e .next/cache ]]
   cp "${archive_repo}/.env" .env
+  printf 'export const cacheInput = "two";\n' > src/config/security-headers.ts
+  restore_build_cache
+  [[ ! -e .next/cache ]]
+  printf 'export const cacheInput = "one";\n' > src/config/security-headers.ts
   printf '{"changed":true}\n' > package-lock.json
   restore_build_cache
   [[ ! -e .next/cache ]]
@@ -112,18 +144,124 @@ cleanup_release_workspace
   restore_build_cache
   [[ ! -e .next/cache ]]
   cp "${archive_repo}/next.config.ts" next.config.ts
-  rm "${RELEASES_DIR}/.build-cache/key"
-  restore_build_cache
-  [[ ! -e .next/cache ]]
-  save_build_cache
-  parse_args --no-cache
+  unlink "${first_generation}/metadata.json"
   restore_build_cache
   [[ ! -e .next/cache ]]
   mkdir -p .next/cache/turbopack
+  printf 'replacement\n' > .next/cache/turbopack/artifact
+  old_current="$(readlink -f "${cache_root}/current")"
+  # Simulace přerušeného kopírování včetně typické chyby nedostatku místa.
+  cp() { echo 'No space left on device' >&2; return 1; }
+  if save_build_cache; then
+    echo "Přerušené ukládání cache neočekávaně prošlo." >&2
+    exit 1
+  fi
+  unset -f cp
+  [[ "$(readlink -f "${cache_root}/current")" == "${old_current}" ]]
+  [[ -e "${old_current}" ]]
+  mkdir -p .next/cache/turbopack
+  printf 'replacement\n' > .next/cache/turbopack/artifact
+  save_build_cache
+  [[ "$(readlink -f "${cache_root}/current")" != "${old_current}" ]]
+  new_generation="$(readlink -f "${cache_root}/current")"
+  printf 'unexpected\n' > "${new_generation}/turbopack/unexpected"
+  rm -rf .next
+  restore_build_cache
+  [[ ! -e .next/cache ]]
+  unlink "${new_generation}/turbopack/unexpected"
+  BUILD_CACHE_FORMAT_VERSION=999
+  rm -rf .next
+  restore_build_cache
+  [[ ! -e .next/cache ]]
+  BUILD_CACHE_FORMAT_VERSION=2
+  printf 'tampered\n' > "${new_generation}/turbopack/artifact"
+  rm -rf .next
+  restore_build_cache
+  [[ ! -e .next/cache ]]
+  PPSTUDIO_BUILD_CACHE_ENV_ID=other
+  export PPSTUDIO_BUILD_CACHE_ENV_ID
+  restore_build_cache
+  [[ ! -e .next/cache ]]
+  PPSTUDIO_BUILD_CACHE_ENV_ID=dev
+  export PPSTUDIO_BUILD_CACHE_ENV_ID
+  USE_BUILD_CACHE=1
+  mkdir -p .next/cache
+  ln -s /tmp .next/cache/turbopack
+  if save_build_cache; then
+    echo "Symlink v lokální cache byl neočekávaně přijat." >&2
+    exit 1
+  fi
+  unlink .next/cache/turbopack
+  rm -rf .next
+  USE_BUILD_CACHE=0
+  restore_build_cache
+  [[ ! -e .next/cache ]]
+  [[ "${PPSTUDIO_DISABLE_TURBOPACK_CACHE}" == 1 ]]
+  mkdir -p .next/cache/turbopack
   printf 'disabled\n' > .next/cache/turbopack/artifact
   save_build_cache
-  [[ -f "${RELEASES_DIR}/.build-cache/key" ]]
-  [[ ! -e "${RELEASES_DIR}/.build-cache/turbopack" ]]
+  [[ "$(readlink -f "${cache_root}/current")" == "${new_generation}" ]]
+  unset PPSTUDIO_DISABLE_TURBOPACK_CACHE
+  PPSTUDIO_BUILD_CACHE_MAX_GENERATIONS=1
+  USE_BUILD_CACHE=1
+  rm -rf .next
+  mkdir -p .next/cache/turbopack
+  printf 'limited\n' > .next/cache/turbopack/artifact
+  save_build_cache
+  [[ "$(find -P "${cache_root}/generations" -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq 1 ]]
+  mv "${cache_root}/generations" "${cache_root}/generations-real"
+  ln -s /tmp "${cache_root}/generations"
+  if restore_build_cache; then
+    echo "Symlink v adresáři generací byl neočekávaně přijat." >&2
+    exit 1
+  fi
+  unlink "${cache_root}/generations"
+  mv "${cache_root}/generations-real" "${cache_root}/generations"
+)
+
+# Recovery opakuje pouze prokazatelnou chybu cache a maximálně jednou.
+(
+  cd "${archive_repo}/second-staging"
+  USE_BUILD_CACHE=1
+  BUILD_CACHE_RESTORED=1
+  BUILD_CACHE_RECOVERY_ATTEMPTED=0
+  mkdir -p .next/cache/turbopack
+  printf 'restored\n' > .next/cache/turbopack/artifact
+  printf '0\n' > "${TEMP_DIR}/build-attempts"
+  npm() {
+    local attempts
+    attempts=$(( $(<"${TEMP_DIR}/build-attempts") + 1 ))
+    printf '%s\n' "${attempts}" > "${TEMP_DIR}/build-attempts"
+    if [[ "${attempts}" -eq 1 ]]; then
+      echo 'Failed to restore task data' >&2
+      return 1
+    fi
+    return 0
+  }
+  run_build_with_cache_recovery
+  [[ "$(<"${TEMP_DIR}/build-attempts")" -eq 2 ]]
+  [[ ! -e .next/cache/turbopack ]]
+  unset -f npm
+
+  BUILD_CACHE_RESTORED=1
+  BUILD_CACHE_RECOVERY_ATTEMPTED=0
+  mkdir -p .next/cache/turbopack
+  printf 'restored\n' > .next/cache/turbopack/artifact
+  printf '0\n' > "${TEMP_DIR}/build-attempts"
+  npm() {
+    local attempts
+    attempts=$(( $(<"${TEMP_DIR}/build-attempts") + 1 ))
+    printf '%s\n' "${attempts}" > "${TEMP_DIR}/build-attempts"
+    echo 'TypeScript compilation failed' >&2
+    return 1
+  }
+  if run_build_with_cache_recovery; then
+    echo "Běžná chyba kompilace byla neočekávaně opakována jako recovery." >&2
+    exit 1
+  fi
+  [[ "$(<"${TEMP_DIR}/build-attempts")" -eq 1 ]]
+  [[ -f .next/cache/turbopack/artifact ]]
+  unset -f npm
 )
 # Zámek sdílí i různé cesty přes symlink; po ukončení držitele se uvolní.
 ln -s "${archive_repo}" "${TEMP_DIR}/archive-alias"
@@ -301,7 +439,8 @@ sync_line="$(grep -n 'run_timed_step "synchronizace systemd unitů"' "${SCRIPT_D
 storage_line="$(grep -n 'run_timed_step "příprava runtime storage"' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
 permissions_line="$(grep -n 'run_timed_step "runtime oprávnění release"' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
 [[ "${build_line}" -lt "${permissions_line}" && "${permissions_line}" -lt "${stop_line}" ]]
-grep -Fq 'run_timed_step "build" npm --ignore-scripts run build' "${SCRIPT_DIR}/release.sh"
+  grep -Fq 'run_timed_step "build" run_build_with_cache_recovery' "${SCRIPT_DIR}/release.sh"
+  grep -Fq 'npm --ignore-scripts run build' "${SCRIPT_DIR}/build-cache.sh"
 [[ "${stop_line}" -lt "${sync_line}" && "${sync_line}" -lt "${storage_line}" && "${storage_line}" -lt "${migrate_line}" ]]
 [[ "${typecheck_line}" -lt "${test_line}" && "${test_line}" -lt "${build_line}" && "${build_line}" -lt "${stop_line}" && "${stop_line}" -lt "${migrate_line}" && "${migrate_line}" -lt "${bootstrap_line}" && "${bootstrap_line}" -lt "${activate_line}" && "${activate_swap_line}" -lt "${activate_start_line}" ]]
 

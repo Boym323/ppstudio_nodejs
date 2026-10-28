@@ -49,6 +49,8 @@ const nextConfig: NextConfig = {
     || process.env.GIT_HASH
     || undefined,
   experimental: {
+    turbopackFileSystemCacheForBuild: true,
+    turbopackSeedCacheFromWorktree: process.env.PPSTUDIO_DISABLE_TURBOPACK_CACHE !== "1",
     // Tailwindovy styly jsou malé a pro první návštěvu je výhodnější je vložit
     // přímo do HTML než čekat na blokující CSS požadavky.
     inlineCss: true,
