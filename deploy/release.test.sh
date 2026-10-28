@@ -516,6 +516,10 @@ for scenario in build-failure activation-failure cleanup-failure; do
     source "${SCRIPT_DIR}/release.sh"
     REPO_DIR="${scenario_dir}/repo"
     RELEASES_DIR="${REPO_DIR}/releases"
+    NODE_ENV=test
+    RELEASE_CGROUP_MODE=off
+    PPSTUDIO_RELEASE_ALLOW_UNSCOPED=1
+    PPSTUDIO_RELEASE_UNSCOPED_TARGET=DEV
     SKIP_PULL=1
     SKIP_CONFIRM=1
     RETAIN_RELEASES=0
