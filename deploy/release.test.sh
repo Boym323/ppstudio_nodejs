@@ -16,12 +16,6 @@ grep -q '^StateDirectory=ppstudio$' "${SCRIPT_DIR}/systemd/ppstudio-web.service"
 ! grep -q '^\(AmbientCapabilities\|CapabilityBoundingSet\|PermissionsStartOnly\)=' "${SCRIPT_DIR}/systemd/ppstudio-web.service"
 ! grep -q '^\(AmbientCapabilities\|CapabilityBoundingSet\|PermissionsStartOnly\)=' "${SCRIPT_DIR}/systemd/ppstudio-email-worker.service"
 grep -q 'install -d -m 0755 /etc/sysusers.d /etc/tmpfiles.d' "${SCRIPT_DIR}/release.sh"
-grep -q 'RELEASE_CGROUP_MODE="${PPSTUDIO_RELEASE_CGROUP_MODE:-required}"' "${SCRIPT_DIR}/release.sh"
-grep -q 'MemoryHigh=${RELEASE_MEMORY_HIGH}' "${SCRIPT_DIR}/release.sh"
-grep -q 'MemoryMax=${RELEASE_MEMORY_MAX}' "${SCRIPT_DIR}/release.sh"
-grep -q 'CPUQuota=${RELEASE_CPU_QUOTA}' "${SCRIPT_DIR}/release.sh"
-grep -q 'IOWeight=${RELEASE_IO_WEIGHT}' "${SCRIPT_DIR}/release.sh"
-grep -q 'PPSTUDIO_RELEASE_UNSCOPED_TARGET=DEV' "${SCRIPT_DIR}/release.sh"
 if validate_runtime_path "/" "test" >/dev/null 2>&1; then
   echo "Nebezpečně široká runtime cesta byla neočekávaně přijata." >&2
   exit 1
@@ -43,111 +37,6 @@ fi
 
 TEMP_DIR="$(mktemp -d)"
 trap 'rm -rf "${TEMP_DIR}"' EXIT
-(
-  export PATH="${SCRIPT_DIR}/test-fixtures:${PATH}"
-  export RELEASE_TEST_SUDO_ARGS_FILE="${TEMP_DIR}/systemd-run-sudo.args"
-  export MOCK_SYSTEMD_RUN_ARGS_FILE="${TEMP_DIR}/systemd-run.args"
-  export RELEASE_TEST_ENV="mocked-release-environment"
-  export RELEASE_TEST_OUTPUT="${TEMP_DIR}/preflight.output"
-  mkdir -p "${TEMP_DIR}/preflight-workdir"
-  cd "${TEMP_DIR}/preflight-workdir"
-
-  RELEASE_CGROUP_MODE=required
-  RELEASE_CPU_QUOTA=175%
-  RELEASE_CPU_WEIGHT=111
-  RELEASE_IO_WEIGHT=222
-  RELEASE_MEMORY_HIGH=1234M
-  RELEASE_MEMORY_MAX=2345M
-  RELEASE_TASKS_MAX=77
-  RELEASE_NICE=7
-  run_release_preflight_command sh -c 'printf "%s\n%s\n" "$PWD" "$RELEASE_TEST_ENV" > "$RELEASE_TEST_OUTPUT"'
-
-  [[ "$(sed -n '1p' "${RELEASE_TEST_OUTPUT}")" == "${TEMP_DIR}/preflight-workdir" ]]
-  [[ "$(sed -n '2p' "${RELEASE_TEST_OUTPUT}")" == "mocked-release-environment" ]]
-  grep -Fxq -- '--scope' "${MOCK_SYSTEMD_RUN_ARGS_FILE}"
-  grep -Fxq -- '--collect' "${MOCK_SYSTEMD_RUN_ARGS_FILE}"
-  grep -Fxq -- '--expand-environment=no' "${MOCK_SYSTEMD_RUN_ARGS_FILE}"
-  grep -Fxq -- "--working-directory=${TEMP_DIR}/preflight-workdir" "${MOCK_SYSTEMD_RUN_ARGS_FILE}"
-  grep -Fxq -- '--nice=7' "${MOCK_SYSTEMD_RUN_ARGS_FILE}"
-  grep -Fxq -- 'CPUQuota=175%' "${MOCK_SYSTEMD_RUN_ARGS_FILE}"
-  grep -Fxq -- 'CPUWeight=111' "${MOCK_SYSTEMD_RUN_ARGS_FILE}"
-  grep -Fxq -- 'IOWeight=222' "${MOCK_SYSTEMD_RUN_ARGS_FILE}"
-  grep -Fxq -- 'MemoryHigh=1234M' "${MOCK_SYSTEMD_RUN_ARGS_FILE}"
-  grep -Fxq -- 'MemoryMax=2345M' "${MOCK_SYSTEMD_RUN_ARGS_FILE}"
-  grep -Fxq -- 'TasksMax=77' "${MOCK_SYSTEMD_RUN_ARGS_FILE}"
-
-  if run_release_preflight_command sh -c 'exit 23'; then
-    echo "Exit status mockovaného preflightu byl neočekávaně úspěšný." >&2
-    exit 1
-  else
-    [[ "$?" -eq 23 ]]
-  fi
-
-  export MOCK_SYSTEMD_RUN_FAIL=1
-  failed_marker="${TEMP_DIR}/systemd-run-failure-marker"
-  if run_release_preflight_command sh -c "touch '${failed_marker}'"; then
-    echo "Selhání systemd-run bylo neočekávaně ignorováno." >&2
-    exit 1
-  fi
-  [[ ! -e "${failed_marker}" ]]
-)
-NON_ROOT_TEMP_DIR="$(mktemp -d)"
-chmod 0777 "${NON_ROOT_TEMP_DIR}"
-non_root_runner=(env)
-if [[ "${EUID}" -eq 0 ]]; then
-  non_root_runner=(runuser -u nobody -- env)
-fi
-"${non_root_runner[@]}" \
-  PATH="${SCRIPT_DIR}/test-fixtures:${PATH}" \
-  RELEASE_TEST_SUDO_ARGS_FILE="${NON_ROOT_TEMP_DIR}/sudo.args" \
-  MOCK_SYSTEMD_RUN_ARGS_FILE="${NON_ROOT_TEMP_DIR}/systemd-run.args" \
-  RELEASE_TEST_OUTPUT="${NON_ROOT_TEMP_DIR}/preflight.output" \
-  RELEASE_TEST_SECRET="secret-value-must-stay-in-environment" \
-  RUN_DB_INTEGRATION_TESTS=0 \
-  NEXT_DEPLOYMENT_ID="deployment-test-id" \
-  DEPLOYMENT_VERSION="deployment-test-version" \
-  NEXT_PUBLIC_APP_URL="https://example.test" \
-  RELEASE_CGROUP_MODE=required \
-  RELEASE_CPU_QUOTA=175% \
-  RELEASE_CPU_WEIGHT=111 \
-  RELEASE_IO_WEIGHT=222 \
-  RELEASE_MEMORY_HIGH=1234M \
-  RELEASE_MEMORY_MAX=2345M \
-  RELEASE_TASKS_MAX=77 \
-  RELEASE_NICE=7 \
-  bash -s "${SCRIPT_DIR}" <<'NON_ROOT_RELEASE_TEST'
-set -euo pipefail
-source "$1/release.sh"
-run_release_preflight_command sh -c 'printf "%s\n%s\n%s\n%s\n" "$RUN_DB_INTEGRATION_TESTS" "$NEXT_DEPLOYMENT_ID" "$DEPLOYMENT_VERSION" "$NEXT_PUBLIC_APP_URL" > "$RELEASE_TEST_OUTPUT"'
-NON_ROOT_RELEASE_TEST
-grep -Fxq -- '/bin/bash' "${NON_ROOT_TEMP_DIR}/sudo.args"
-grep -Fxq -- '-c' "${NON_ROOT_TEMP_DIR}/sudo.args"
-! grep -Fq -- '--preserve-env' "${NON_ROOT_TEMP_DIR}/sudo.args"
-! grep -Fq -- 'secret-value-must-stay-in-environment' "${NON_ROOT_TEMP_DIR}/sudo.args"
-! grep -Fq -- 'secret-value-must-stay-in-environment' "${NON_ROOT_TEMP_DIR}/systemd-run.args"
-[[ "$(sed -n '1p' "${NON_ROOT_TEMP_DIR}/preflight.output")" == 0 ]]
-[[ "$(sed -n '2p' "${NON_ROOT_TEMP_DIR}/preflight.output")" == deployment-test-id ]]
-[[ "$(sed -n '3p' "${NON_ROOT_TEMP_DIR}/preflight.output")" == deployment-test-version ]]
-[[ "$(sed -n '4p' "${NON_ROOT_TEMP_DIR}/preflight.output")" == https://example.test ]]
-rm -rf -- "${NON_ROOT_TEMP_DIR}"
-(
-  RELEASE_CGROUP_MODE=off
-  PPSTUDIO_RELEASE_ALLOW_UNSCOPED=1
-  PPSTUDIO_RELEASE_UNSCOPED_TARGET=DEV
-  NODE_ENV=development
-  validate_release_resource_limits
-  scope_marker="${TEMP_DIR}/scope-marker"
-  run_release_preflight_command sh -c 'printf ready > "$1"' sh "${scope_marker}"
-  [[ "$(<"${scope_marker}")" == ready ]]
-)
-if (RELEASE_CGROUP_MODE=off validate_release_resource_limits) >/dev/null 2>&1; then
-  echo "Nechráněný release preflight byl povolen bez explicitního diagnostického opt-inu." >&2
-  exit 1
-fi
-if (RELEASE_CGROUP_MODE=off PPSTUDIO_RELEASE_ALLOW_UNSCOPED=1 PPSTUDIO_RELEASE_UNSCOPED_TARGET=DEV NODE_ENV=production validate_release_resource_limits) >/dev/null 2>&1; then
-  echo "Nechráněný release preflight prošel v NODE_ENV=production." >&2
-  exit 1
-fi
 REPO_DIR="${TEMP_DIR}/repo"
 RELEASES_DIR="${REPO_DIR}/releases"
 CURRENT_RELEASE_LINK="${REPO_DIR}/current"
@@ -356,7 +245,6 @@ typecheck_line="$(grep -n 'npm run typecheck' "${SCRIPT_DIR}/release.sh" | tail 
 test_line="$(grep -n 'npm run test:release' "${SCRIPT_DIR}/release.sh" | tail -1 | cut -d: -f1)"
 build_line="$(grep -n 'npm run build' "${SCRIPT_DIR}/release.sh" | tail -1 | cut -d: -f1)"
 stop_line="$(grep -n 'run_timed_step "zastavení a ověření writerů" stop_release_writers' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
-writers_flag_line="$(grep -n '^  RELEASE_WRITERS_STOPPED=1$' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
 migrate_line="$(grep -n 'npx prisma migrate deploy (writeři jsou ověřeně zastavení)' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
 bootstrap_line="$(grep -n 'run_timed_step "voucher template bootstrap" run_voucher_template_bootstrap' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
 activate_line="$(grep -n 'activate_release "\${release_dir}"' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
@@ -365,7 +253,7 @@ activate_start_line="$(grep -n 'if start_release_services && wait_for_web_listen
 sync_line="$(grep -n 'run_timed_step "synchronizace systemd unitů"' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
 storage_line="$(grep -n 'run_timed_step "příprava runtime storage"' "${SCRIPT_DIR}/release.sh" | cut -d: -f1)"
 [[ "${stop_line}" -lt "${sync_line}" && "${sync_line}" -lt "${storage_line}" && "${storage_line}" -lt "${migrate_line}" ]]
-[[ "${typecheck_line}" -lt "${test_line}" && "${test_line}" -lt "${build_line}" && "${build_line}" -lt "${writers_flag_line}" && "${writers_flag_line}" -le "${stop_line}" && "${stop_line}" -lt "${migrate_line}" && "${migrate_line}" -lt "${bootstrap_line}" && "${bootstrap_line}" -lt "${activate_line}" && "${activate_swap_line}" -lt "${activate_start_line}" ]]
+[[ "${typecheck_line}" -lt "${test_line}" && "${test_line}" -lt "${build_line}" && "${build_line}" -lt "${stop_line}" && "${stop_line}" -lt "${migrate_line}" && "${migrate_line}" -lt "${bootstrap_line}" && "${bootstrap_line}" -lt "${activate_line}" && "${activate_swap_line}" -lt "${activate_start_line}" ]]
 
 # Bootstrap je fail-closed krok: jeho neúspěch nesmí pokračovat do aktivace.
 ACTIVATE_CALLED=0
@@ -389,13 +277,7 @@ npm() {
   [[ "$1" == "run" && "$2" == "test:release" ]]
   node --env-file="${TEMP_DIR}/test.env" -e 'if (process.env.RUN_DB_INTEGRATION_TESTS !== "0") process.exit(1)'
 }
-(
-  RELEASE_CGROUP_MODE=off
-  PPSTUDIO_RELEASE_ALLOW_UNSCOPED=1
-  PPSTUDIO_RELEASE_UNSCOPED_TARGET=DEV
-  NODE_ENV=development
-  RUN_DB_INTEGRATION_TESTS=1 run_release_tests
-)
+RUN_DB_INTEGRATION_TESTS=1 run_release_tests
 unset -f npm activate_release
 
 WEB_ACTIVE=1
@@ -516,10 +398,6 @@ for scenario in build-failure activation-failure cleanup-failure; do
     source "${SCRIPT_DIR}/release.sh"
     REPO_DIR="${scenario_dir}/repo"
     RELEASES_DIR="${REPO_DIR}/releases"
-    NODE_ENV=test
-    RELEASE_CGROUP_MODE=off
-    PPSTUDIO_RELEASE_ALLOW_UNSCOPED=1
-    PPSTUDIO_RELEASE_UNSCOPED_TARGET=DEV
     SKIP_PULL=1
     SKIP_CONFIRM=1
     RETAIN_RELEASES=0

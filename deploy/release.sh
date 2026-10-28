@@ -22,16 +22,6 @@ HEALTH_RETRY_SECONDS="${PPSTUDIO_HEALTH_RETRY_SECONDS:-2}"
 WEB_READY_RETRIES="${PPSTUDIO_WEB_READY_RETRIES:-20}"
 WEB_READY_RETRY_SECONDS="${PPSTUDIO_WEB_READY_RETRY_SECONDS:-0.25}"
 RETAIN_RELEASES="${PPSTUDIO_RETAIN_RELEASES:-0}"
-RELEASE_CGROUP_MODE="${PPSTUDIO_RELEASE_CGROUP_MODE:-required}"
-RELEASE_CPU_QUOTA="${PPSTUDIO_RELEASE_CPU_QUOTA:-100%}"
-RELEASE_CPU_WEIGHT="${PPSTUDIO_RELEASE_CPU_WEIGHT:-20}"
-RELEASE_IO_WEIGHT="${PPSTUDIO_RELEASE_IO_WEIGHT:-20}"
-RELEASE_MEMORY_HIGH="${PPSTUDIO_RELEASE_MEMORY_HIGH:-${RELEASE_MEMORY_HIGH:-}}"
-RELEASE_MEMORY_MAX="${PPSTUDIO_RELEASE_MEMORY_MAX:-${RELEASE_MEMORY_MAX:-}}"
-RELEASE_MEMORY_BUDGET_PERCENT="${PPSTUDIO_RELEASE_MEMORY_BUDGET_PERCENT:-60}"
-RELEASE_MEMORY_HIGH_PERCENT="${PPSTUDIO_RELEASE_MEMORY_HIGH_PERCENT:-56}"
-RELEASE_TASKS_MAX="${PPSTUDIO_RELEASE_TASKS_MAX:-512}"
-RELEASE_NICE="${PPSTUDIO_RELEASE_NICE:-10}"
 
 SKIP_PULL=0
 SKIP_LINT=0
@@ -44,7 +34,6 @@ RELEASE_STARTED_AT=""
 SYSTEMD_BACKUP_DIR=""
 SYSTEMD_UNITS_CHANGED=0
 RELEASE_STEP_DURATIONS=()
-RELEASE_CGROUP_SEQUENCE=0
 
 usage() {
   cat <<'USAGE'
@@ -97,213 +86,6 @@ run_timed_step() {
   RELEASE_STEP_DURATIONS+=("${step_name}: ${hours} h ${minutes} min ${seconds} s.")
 }
 
-release_detect_parent_memory_limit() {
-  local hierarchy controllers cgroup_path cgroup_dir value minimum_limit=""
-
-  [[ "$(stat -f -c %T /sys/fs/cgroup 2>/dev/null)" == "cgroup2fs" ]] || return 1
-  cgroup_path=""
-  while IFS=: read -r hierarchy controllers cgroup_path; do
-    if [[ "${hierarchy}" == "0" && -z "${controllers}" ]]; then
-      break
-    fi
-    cgroup_path=""
-  done < /proc/self/cgroup
-  [[ "${cgroup_path}" == /* && "${cgroup_path}" != *..* ]] || return 1
-
-  cgroup_dir="/sys/fs/cgroup${cgroup_path}"
-  while [[ "${cgroup_dir}" == /sys/fs/cgroup* ]]; do
-    if [[ -r "${cgroup_dir}/memory.max" ]]; then
-      value="$(<"${cgroup_dir}/memory.max")"
-      if [[ "${value}" =~ ^[1-9][0-9]*$ ]]; then
-        if [[ -z "${minimum_limit}" ]] || (( value < minimum_limit )); then
-          minimum_limit="${value}"
-        fi
-      fi
-    fi
-    [[ "${cgroup_dir}" == "/sys/fs/cgroup" ]] && break
-    cgroup_dir="${cgroup_dir%/*}"
-  done
-  [[ -n "${minimum_limit}" ]] || return 1
-  printf '%s' "${minimum_limit}"
-}
-
-resolve_release_memory_limits() {
-  # Povolení nechráněného DEV režimu ověří následná validace.
-  [[ "${RELEASE_CGROUP_MODE}" != "off" ]] || return 0
-
-  local configured_high="${RELEASE_MEMORY_HIGH:-${PPSTUDIO_RELEASE_MEMORY_HIGH:-}}"
-  local configured_max="${RELEASE_MEMORY_MAX:-${PPSTUDIO_RELEASE_MEMORY_MAX:-}}"
-  local budget_percent="${PPSTUDIO_RELEASE_MEMORY_BUDGET_PERCENT:-${RELEASE_MEMORY_BUDGET_PERCENT:-60}}"
-  local high_percent="${PPSTUDIO_RELEASE_MEMORY_HIGH_PERCENT:-${RELEASE_MEMORY_HIGH_PERCENT:-56}}"
-  local parent_limit derived_high derived_max
-
-  if [[ -z "${configured_high}" || -z "${configured_max}" ]]; then
-    if parent_limit="$(release_detect_parent_memory_limit)"; then
-      [[ "${budget_percent}" =~ ^[1-9][0-9]?$|^100$ ]] || {
-        echo "PPSTUDIO_RELEASE_MEMORY_BUDGET_PERCENT musí být 1–100." >&2
-        return 1
-      }
-      [[ "${high_percent}" =~ ^[1-9][0-9]?$|^100$ ]] || {
-        echo "PPSTUDIO_RELEASE_MEMORY_HIGH_PERCENT musí být 1–100." >&2
-        return 1
-      }
-      (( high_percent <= budget_percent )) || {
-        echo "PPSTUDIO_RELEASE_MEMORY_HIGH_PERCENT nesmí být vyšší než MEMORY_BUDGET_PERCENT." >&2
-        return 1
-      }
-      derived_max=$((parent_limit * budget_percent / 100))
-      derived_high=$((parent_limit * high_percent / 100))
-      (( derived_high > 0 && derived_max > 0 )) || {
-        echo "Nadřazený memory.max je příliš malý pro dynamický release rozpočet." >&2
-        return 1
-      }
-      # systemd i numfmt přijímají absolutní počet bajtů bez přípony;
-      # přípona "B" není pro numfmt validní.
-      [[ -n "${configured_max}" ]] || configured_max="${derived_max}"
-      [[ -n "${configured_high}" ]] || configured_high="${derived_high}"
-      log "Dynamický release memory rozpočet: ${budget_percent}%/${high_percent}% z nejnižšího dostupného memory.max ${parent_limit} B."
-    else
-      # Produkční LXC má 4 GiB RAM, ale uvnitř kontejneru nemusí být
-      # nadřazený memory.max viditelný. Použijeme konzervativní známý rozpočet;
-      # explicitní PPSTUDIO_RELEASE_MEMORY_* hodnoty mají stále přednost.
-      configured_max="2450M"
-      configured_high="2300M"
-      log "Konečný memory.max nebyl zjištěn; používám známý fallback pro 4 GiB RAM: MemoryMax=${configured_max}, MemoryHigh=${configured_high}."
-    fi
-  fi
-
-  RELEASE_MEMORY_MAX="${configured_max}"
-  RELEASE_MEMORY_HIGH="${configured_high}"
-}
-
-validate_release_resource_limits() {
-  case "${RELEASE_CGROUP_MODE}" in
-    required|off) ;;
-    *)
-      echo "PPSTUDIO_RELEASE_CGROUP_MODE musí být 'required' nebo 'off'." >&2
-      return 1
-      ;;
-  esac
-
-  if [[ "${RELEASE_CGROUP_MODE}" == "off" && "${PPSTUDIO_RELEASE_ALLOW_UNSCOPED:-0}" != "1" ]]; then
-    echo "Nechráněný release preflight je zakázaný. Pro diagnostiku nastav PPSTUDIO_RELEASE_CGROUP_MODE=off PPSTUDIO_RELEASE_ALLOW_UNSCOPED=1." >&2
-    return 1
-  fi
-
-  if [[ "${RELEASE_CGROUP_MODE}" == "off" ]]; then
-    if [[ "${NODE_ENV:-}" == "production" ]]; then
-      echo "Nechráněný release preflight je v NODE_ENV=production zakázaný." >&2
-      return 1
-    fi
-    if [[ "${NODE_ENV:-}" != "development" && "${NODE_ENV:-}" != "test" ]] || [[ "${PPSTUDIO_RELEASE_UNSCOPED_TARGET:-}" != "DEV" ]]; then
-      echo "Nechráněný release preflight vyžaduje NODE_ENV=development/test a PPSTUDIO_RELEASE_UNSCOPED_TARGET=DEV." >&2
-      return 1
-    fi
-  fi
-
-  [[ "${RELEASE_CPU_QUOTA}" =~ ^([1-9][0-9]{0,3}|10000)%$ ]] || {
-    echo "PPSTUDIO_RELEASE_CPU_QUOTA musí být procento 1–10000 (např. 100%)." >&2
-    return 1
-  }
-  [[ "${RELEASE_CPU_WEIGHT}" =~ ^([1-9][0-9]{0,3}|10000)$ ]] || {
-    echo "PPSTUDIO_RELEASE_CPU_WEIGHT musí být celé číslo 1–10000." >&2
-    return 1
-  }
-  [[ "${RELEASE_IO_WEIGHT}" =~ ^([1-9][0-9]{0,3}|10000)$ ]] || {
-    echo "PPSTUDIO_RELEASE_IO_WEIGHT musí být celé číslo 1–10000." >&2
-    return 1
-  }
-  [[ "${RELEASE_TASKS_MAX}" =~ ^[1-9][0-9]*$ ]] || {
-    echo "PPSTUDIO_RELEASE_TASKS_MAX musí být kladné celé číslo." >&2
-    return 1
-  }
-  [[ "${RELEASE_NICE}" =~ ^-?[0-9]+$ ]] && (( RELEASE_NICE >= -20 && RELEASE_NICE <= 19 )) || {
-    echo "PPSTUDIO_RELEASE_NICE musí být celé číslo od -20 do 19." >&2
-    return 1
-  }
-}
-
-run_release_preflight_command() {
-  if [[ "${RELEASE_CGROUP_MODE}" == "off" ]]; then
-    "$@"
-    return
-  fi
-
-  local unit_name
-  local exit_status=0
-  local sudo_loader='while IFS= read -r -d "" entry; do export "$entry"; done; exec /usr/bin/systemd-run "$@"'
-  local -a runner=(systemd-run)
-  RELEASE_CGROUP_SEQUENCE=$((RELEASE_CGROUP_SEQUENCE + 1))
-  unit_name="ppstudio-release-preflight-${BASHPID}-${RELEASE_CGROUP_SEQUENCE}"
-
-  require_cmd systemd-run
-  require_cmd numfmt
-  local memory_high_bytes memory_max_bytes
-  # Konečné absolutní velikosti: nelze ověřovat infinity ani procenta RAM.
-  memory_high_bytes="$(numfmt --from=iec "${RELEASE_MEMORY_HIGH}")" || return 1
-  memory_max_bytes="$(numfmt --from=iec "${RELEASE_MEMORY_MAX}")" || return 1
-  [[ "${memory_high_bytes}" =~ ^[1-9][0-9]*$ && "${memory_max_bytes}" =~ ^[1-9][0-9]*$ ]] || return 1
-  if [[ "${EUID}" -ne 0 ]]; then
-    require_cmd sudo
-    runner=(sudo /bin/bash -c "${sudo_loader}" --)
-  fi
-
-  log "cgroup ${unit_name}: CPUQuota=${RELEASE_CPU_QUOTA}, CPUWeight=${RELEASE_CPU_WEIGHT}, IOWeight=${RELEASE_IO_WEIGHT}, MemoryHigh=${RELEASE_MEMORY_HIGH}, MemoryMax=${RELEASE_MEMORY_MAX}"
-  local -a scope_command=(
-    "${runner[@]}"
-    --scope \
-    --collect \
-    --quiet \
-    --expand-environment=no \
-    --unit="${unit_name}" \
-    --uid="$(id -u)" \
-    --gid="$(id -g)" \
-    --working-directory="${PWD}" \
-    --nice="${RELEASE_NICE}" \
-    -p "CPUQuota=${RELEASE_CPU_QUOTA}" \
-    -p "CPUWeight=${RELEASE_CPU_WEIGHT}" \
-    -p "IOWeight=${RELEASE_IO_WEIGHT}" \
-    -p "MemoryHigh=${RELEASE_MEMORY_HIGH}" \
-    -p "MemoryMax=${RELEASE_MEMORY_MAX}" \
-    -p "TasksMax=${RELEASE_TASKS_MAX}" \
-    -- /bin/bash "${SCRIPT_DIR}/release-scope.sh"
-    "${unit_name}" "${RELEASE_CPU_QUOTA}" "${memory_high_bytes}" "${memory_max_bytes}"
-    "${RELEASE_TASKS_MAX}" "${RELEASE_CPU_WEIGHT}" "${RELEASE_IO_WEIGHT}" "$@"
-  )
-  if [[ "${EUID}" -ne 0 ]]; then
-    if release_preflight_print_environment | "${scope_command[@]}"; then
-      exit_status=0
-    else
-      exit_status=$?
-    fi
-  elif "${scope_command[@]}"; then
-    exit_status=0
-  else
-    exit_status=$?
-  fi
-  return "${exit_status}"
-}
-
-release_preflight_print_environment() {
-  local entry
-  local name
-
-  require_cmd env
-  if ! env -0 | while IFS= read -r -d '' entry; do
-    name="${entry%%=*}"
-    [[ "${name}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
-    case "${name}" in
-      BASH_FUNC_*|BASH_ENV|CDPATH|DYLD_*|ENV|GCONV_PATH|LD_*|SUDO_*)
-        continue
-        ;;
-    esac
-    printf '%s\0' "${entry}"
-  done; then
-    echo "Nelze bezpečně předat prostředí release preflightu; release se zastavuje." >&2
-    return 1
-  fi
-}
-
 unit_file_name() {
   printf '%s.service' "$1"
 }
@@ -334,7 +116,7 @@ acquire_release_lock() {
 
 run_release_tests() {
   # Dotenv nesmí ani při zděděném RUN_DB_INTEGRATION_TESTS=1 zapnout zápisy do DB.
-  RUN_DB_INTEGRATION_TESTS=0 run_release_preflight_command npm run test:release
+  RUN_DB_INTEGRATION_TESTS=0 npm run test:release
 }
 
 require_cmd() {
@@ -978,8 +760,6 @@ run_release() {
   fi
 
   load_runtime_env
-  resolve_release_memory_limits
-  validate_release_resource_limits
   prepare_runtime_storage --validate-only
   validate_server_actions_encryption_key
 
@@ -1017,35 +797,35 @@ run_release() {
 
   cd "${RELEASE_BUILD_DIR}"
 
-  log "npm ci --include=dev (izolovaný release cgroup)"
-  run_timed_step "npm ci" run_release_preflight_command npm ci --include=dev
+  log "npm ci --include=dev"
+  run_timed_step "npm ci" npm ci --include=dev
 
   log "npm run db:generate"
-  run_timed_step "Prisma generate" run_release_preflight_command npm run db:generate
+  run_timed_step "Prisma generate" npm run db:generate
 
   log "npm run db:check-migrations"
-  run_timed_step "kontrola historie migrací" run_release_preflight_command npm run db:check-migrations
+  run_timed_step "kontrola historie migrací" npm run db:check-migrations
 
   log "npx prisma validate (bez zápisu do DB)"
-  run_timed_step "Prisma validate" run_release_preflight_command npx prisma validate
+  run_timed_step "Prisma validate" npx prisma validate
 
   if [[ "${SKIP_LINT}" -ne 1 ]]; then
     log "npm run lint"
-    run_timed_step "lint" run_release_preflight_command npm run lint
+    run_timed_step "lint" npm run lint
   else
     log "Přeskakuji lint (--skip-lint)."
   fi
 
   log "npm run typecheck"
-  run_timed_step "typecheck" run_release_preflight_command npm run typecheck
+  run_timed_step "typecheck" npm run typecheck
 
   # Produkční .env nesmí spouštět zapisující DB integrační testy. Tento běh
   # ověřuje unit/regresní testy; DB integrační a E2E zůstávají CI bránou.
   log "npm run test:release (bez produkční DB)"
   run_timed_step "test:release" run_release_tests
 
-  log "npm run build (izolovaný release cgroup)"
-  run_timed_step "build" run_release_preflight_command npm run build
+  log "npm run build"
+  run_timed_step "build" npm run build
 
   run_timed_step "zápis runtime release environmentu" write_runtime_release_env_file "${RELEASE_BUILD_DIR}/${RUNTIME_RELEASE_ENV_FILE}"
 

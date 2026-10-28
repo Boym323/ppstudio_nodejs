@@ -6,20 +6,6 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
-### Změněno
-
-- Release preflight a `next build` nyní běží v ověřeném systemd/cgroup scope s omezením CPU, paměti, I/O a počtu tasků, aby příprava releasu nemohla bez limitu vytlačit živý web v malém LXC; před každým příkazem se přímo uvnitř scope ověřují skutečné kernelové limity a nepodporovaný cgroup hostitel release zastaví před dlouhým buildem.
-- Paměťový rozpočet release se při každém běhu odvozuje z nejnižšího dostupného `memory.max` aktuální cgroup a jejích předků (výchozí `MemoryMax=60 %`, `MemoryHigh=56 %`); pokud produkční LXC limit skryje, použije se fallback `MemoryHigh=2300M` a `MemoryMax=2450M` pro přidělené 4 GiB RAM. Explicitní `PPSTUDIO_RELEASE_MEMORY_*` hodnoty zůstávají jako override.
-
-### Opraveno
-
-- Provozní release dokumentace odděluje prokázané údaje incidentu od hypotézy příčiny a přidává DEV měřicí protokol pro RSS, PSI, I/O, build time, HTTP a read-only DB latenci včetně omezení reprezentativnosti DEV.
-
-### Zabezpečení
-
-- Nechráněný release preflight nyní vyžaduje explicitní cíl `DEV` a `NODE_ENV=development`/`test`, v produkci je odmítnut; regresní test ověřuje, že chyba `systemd-run` nepřejde na nechráněný běh ani předčasně nezastaví writery.
-- Spuštění release scope pod neprivilegovaným deploy uživatelem předává filtrované prostředí jednorázovým NUL-delimited pipe; hodnoty nejsou v argumentech, na disku ani v logu a selhání `sudo` nebo `systemd-run` je dál fail-closed.
-
 ## [3.38.0] - 2026-10-27
 
 ### Změněno
