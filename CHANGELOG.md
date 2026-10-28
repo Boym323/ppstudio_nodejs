@@ -8,7 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
-- Release opakovaně využívá kompilační cache mezi nasazeními a vynechává duplicitní generování Prisma klienta; příprava oprávnění nového release probíhá před odstávkou služeb. Volba `--no-cache` umožňuje čistý build.
+- Release používá bezpečnou generovanou Turbopack/SWC kompilační cache s kontrolou integrity, omezením velikosti, izolací prostředí a seed worktree pro reuse mezi různými staging cestami; deployment identita se při běžné změně nemění na invalidátor cache a zůstává správně zapsaná ve výsledném artefaktu. Poškození cache vyvolá nejvýše jeden čistý retry buildu, `--no-cache` cache přeskočí a příprava oprávnění nového release probíhá před odstávkou služeb.
 
 ## [3.38.0] - 2026-10-27
 

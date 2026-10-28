@@ -39,6 +39,10 @@ Stručný runtime přehled prostředí a vazeb na infrastrukturu je v kořenové
 - Cooldown DB failure alertu z `/api/health` je záměrně pevný na 10 minut v aplikaci a nepřidává žádnou env proměnnou; tím nemůže být omylem vystaven nebo rozvolněn pouze změnou prostředí.
 - Selhání základní DB kontroly `/api/health` používá bezpečný `503` kontrakt. Detailní e-mailové metriky jsou oddělené v owner-only `/api/health/diagnostics`; pro konkrétní chyby slouží systemd journal webové služby.
 - `turbopack.root` je odvozený od adresáře `next.config.ts` a nepoužívá env proměnnou ani pevnou cestu; tím funguje v kořeni repozitáře i v dočasném staging release.
+- `PPSTUDIO_BUILD_CACHE_ENV_ID`: volitelný bezpečnostní identifikátor prostředí pro persistentní Turbopack/SWC cache; výchozí je `production`, pro DEV používej například `dev`. Hodnota smí obsahovat pouze ASCII písmena, číslice, tečku, podtržítko a pomlčku.
+- `PPSTUDIO_BUILD_CACHE_MAX_GENERATIONS`: maximální počet zachovaných cache generací mimo aktuální pointer (výchozí `2`).
+- `PPSTUDIO_BUILD_CACHE_MAX_BYTES`: maximální velikost generací cache v bajtech (výchozí `1073741824`).
+- `PPSTUDIO_DISABLE_TURBOPACK_CACHE`: interní fail-safe flag release helperu; při `--no-cache` dočasně vypne persistentní Turbopack cache a nemá se nastavovat pro běžící runtime.
 - Diagnostika health/smoke kroku releasu používá volitelné `PPSTUDIO_LIVENESS_URL`, `PPSTUDIO_HEALTH_URL` a `PPSTUDIO_SMOKE_URL`, které se ve výpisu selhání zobrazí včetně HTTP statusu.
 - `PPSTUDIO_WEB_READY_RETRIES` (výchozí `20`) a `PPSTUDIO_WEB_READY_RETRY_SECONDS` (výchozí `0.25`) jsou volitelné CLI-only proměnné release helperu pro tiché čekání na otevření webového endpointu po restartu; nejsou součástí runtime validace aplikace.
 - `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`: stabilní base64 AES klíč pro Next.js Server Actions; na produkci musí zůstat stejný mezi release buildy.
