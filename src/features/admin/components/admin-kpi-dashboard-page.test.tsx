@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { getKpiDateRanges } from "../lib/kpi-date-range";
 import { kpiComparisonConfig } from "../lib/kpi-config";
 import type { KpiDashboardData, KpiMetric } from "../types/kpi-dashboard";
+import type { MetaAdsCostReport } from "../lib/meta-ads-reporting";
 
 process.env.NEXT_PUBLIC_APP_NAME ??= "PP Studio";
 process.env.NEXT_PUBLIC_APP_URL ??= "http://127.0.0.1:3100";
@@ -20,6 +21,11 @@ let AdminKpiDashboardPage: typeof import("./admin-kpi-dashboard-page")["AdminKpi
 before(async () => {
   ({ AdminKpiDashboardPage } = await import("./admin-kpi-dashboard-page"));
 });
+
+const metaAds: MetaAdsCostReport = {
+  status: "ok", spend: 3000, currency: "CZK", bookings: 15, completed: 12,
+  costPerBooking: 200, costPerCompleted: 250, hasSpendData: true,
+};
 
 function metric(value: number, previousValue = 0): KpiMetric {
   return { value, previousValue, previousHasData: true, difference: value - previousValue, change: previousValue ? (value - previousValue) / previousValue * 100 : null };
@@ -50,7 +56,7 @@ function card(html: string, label: string) {
 }
 
 test("chybějící jmenovatel nezobrazuje nulovou obsazenost, útratu ani míru storen", () => {
-  const html = renderToStaticMarkup(<AdminKpiDashboardPage data={dashboard()} area="owner" />);
+  const html = renderToStaticMarkup(<AdminKpiDashboardPage metaAds={metaAds} data={dashboard()} area="owner" />);
   for (const label of ["Obsazenost · využití kapacity", "Průměrná útrata", "Míra storen"]) {
     const content = card(html, label);
     assert.match(content, />—</);
@@ -64,7 +70,7 @@ test("obsazenost ukazuje hodiny a desetinné procentní body bez hodnocení lep�
   data.occupancy = { reservedMinutes: 302.4, bookableMinutes: 600 };
   data.monthlyOccupancy = { reservedMinutes: 420, bookableMinutes: 600, percent: 70 };
   data.metrics.occupancy = metric(50.4, 50);
-  const html = renderToStaticMarkup(<AdminKpiDashboardPage data={data} area="salon" />);
+  const html = renderToStaticMarkup(<AdminKpiDashboardPage metaAds={metaAds} data={data} area="salon" />);
   const content = card(html, "Obsazenost · využití kapacity");
   assert.match(content, /5 h využito z 10 h dostupných/);
   assert.match(content, /\+0,4 p\. b\./);
@@ -80,7 +86,7 @@ test("přesah kapacity je viditelný a storna se hodnotí podle míry i při rů
   data.disruptionBookingCount = 40;
   data.metrics.cancellations = metric(4, 3);
   data.metrics.cancellationRate = metric(10, 15);
-  const html = renderToStaticMarkup(<AdminKpiDashboardPage data={data} area="owner" />);
+  const html = renderToStaticMarkup(<AdminKpiDashboardPage metaAds={metaAds} data={data} area="owner" />);
   assert.match(card(html, "Obsazenost · využití kapacity"), /125.*Využití přesahuje evidovanou kapacitu/);
   const cancellations = card(html, "Míra storen");
   assert.match(cancellations, /4 storen z 40 rezervací/);
@@ -93,7 +99,7 @@ test("výsledek a výhled spojí tržby i návštěvy do stejného období", () 
   data.metrics.completed = metric(2);
   data.expectedRevenue = { bookingCount: 4, missingPriceCount: 0, isHistorical: false };
   data.metrics.expectedRevenue = metric(2200);
-  const html = renderToStaticMarkup(<AdminKpiDashboardPage data={data} area="owner" />);
+  const html = renderToStaticMarkup(<AdminKpiDashboardPage metaAds={metaAds} data={data} area="owner" />);
   assert.match(card(html, "Tržby"), /Dokončeno.*1\s*000\s*Kč/);
   assert.match(card(html, "Tržby"), /Očekáváno do konce měsíce.*2\s*200\s*Kč/);
   assert.match(card(html, "Tržby"), /Odhad celkem.*3\s*200\s*Kč/);
@@ -107,14 +113,23 @@ test("výsledek a výhled spojí tržby i návštěvy do stejného období", () 
 test("neúplný odhad tržeb ukáže chybějící ceny a historický výhled nevydává za nulu", () => {
   const data = dashboard();
   data.expectedRevenue = { bookingCount: 4, missingPriceCount: 2, isHistorical: false };
-  let html = renderToStaticMarkup(<AdminKpiDashboardPage data={data} area="owner" />);
+  let html = renderToStaticMarkup(<AdminKpiDashboardPage metaAds={metaAds} data={data} area="owner" />);
   assert.match(card(html, "Tržby"), /2 budoucích rezervací bez ceny · odhad tržeb je neúplný/);
   data.expectedRevenue.isHistorical = true;
-  html = renderToStaticMarkup(<AdminKpiDashboardPage data={data} area="owner" />);
+  html = renderToStaticMarkup(<AdminKpiDashboardPage metaAds={metaAds} data={data} area="owner" />);
   for (const label of ["Tržby", "Návštěvy"]) {
     const content = card(html, label);
     assert.match(content, />—</);
     assert.match(content, /Historický výhled není dostupný/);
     assert.doesNotMatch(content, /Odhad celkem|odhad tržeb je neúplný/);
   }
+});
+
+
+test("automatický Meta Ads panel ukazuje správnou cenu za rezervaci", () => {
+  const html = renderToStaticMarkup(<AdminKpiDashboardPage data={dashboard()} area="owner" metaAds={metaAds} />);
+  assert.match(html, /Meta reklamy · cena za rezervaci/);
+  assert.match(html, /Cena za aktivní rezervaci/);
+  assert.match(html, /200(?:,00)?\s*Kč/);
+  assert.match(html, /250(?:,00)?\s*Kč/);
 });

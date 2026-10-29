@@ -34,6 +34,8 @@ Stručný runtime přehled prostředí a vazeb na infrastrukturu je v kořenové
 - `MATOMO_URL`: server-side URL Matomo instance pro Reporting API; typicky stejný origin jako veřejné Matomo, ale bez vystavení tokenu klientovi.
 - `MATOMO_SITE_ID`: server-side ID webu pro Reporting API.
 - `MATOMO_AUTH_TOKEN`: tajný Matomo Reporting API token pro dashboard agregace; nikdy nepoužívej prefix `NEXT_PUBLIC_`.
+- `META_ADS_ACCOUNT_ID`: číselné ID Meta reklamního účtu bez prefixu `act_`; serverový přehled ceny za rezervaci je deaktivován, pokud chybí.
+- `META_ADS_ACCESS_TOKEN`: serverový Meta Marketing API token s přístupem `ads_read` k reklamnímu účtu. Nikdy nepoužívej prefix `NEXT_PUBLIC_`, necommituj token do GitHubu a neposílej ho do klientské analytiky.
 - `PUSHOVER_ENABLED`: server-only globalni vypinac owner Pushover notifikaci; odesila se pouze pri presne hodnote `true`.
 - `PUSHOVER_APP_TOKEN`: server-only Pushover application token pro projekt; nikdy nepouzivej prefix `NEXT_PUBLIC_`.
 - Cooldown DB failure alertu z `/api/health` je záměrně pevný na 10 minut v aplikaci a nepřidává žádnou env proměnnou; tím nemůže být omylem vystaven nebo rozvolněn pouze změnou prostředí.
