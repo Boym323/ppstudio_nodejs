@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Release při chybách rozbalování npm balíčků (`TAR_ENTRY_ERROR ENOENT`) jednou zopakuje čistou instalaci s izolovanou cache; při opakování chyby zastaví nasazení před odstávkou a uchová instalační logy.
+
 ## [3.38.1] - 2026-10-30
 
 ### Opraveno

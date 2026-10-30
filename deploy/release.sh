@@ -126,6 +126,42 @@ run_release_tests() {
   RUN_DB_INTEGRATION_TESTS=0 npm run test:release
 }
 
+install_release_dependencies() {
+  local log_dir
+  local attempt status
+  local -a pipeline_status npm_options=()
+
+  log_dir="$(mktemp -d -p "${RELEASES_DIR}" '.npm-ci.XXXXXX')" || return 1
+  for attempt in 1 2; do
+    # Zachovej výstup i návratový kód npm; samotné tar warningy mohou přijít s 0.
+    if npm ci --include=dev "${npm_options[@]}" 2>&1 | tee "${log_dir}/attempt-${attempt}.log"; then
+      pipeline_status=(0 0)
+    else
+      pipeline_status=("${PIPESTATUS[@]}")
+    fi
+    status="${pipeline_status[0]}"
+    if [[ "${pipeline_status[1]}" -ne 0 ]]; then
+      echo "Nelze uložit log npm ci do ${log_dir}." >&2
+      return 1
+    fi
+    if ! grep -Eq 'TAR_ENTRY_ERROR.*ENOENT' "${log_dir}/attempt-${attempt}.log"; then
+      if [[ "${status}" -eq 0 ]]; then
+        safe_remove_cache_path "${log_dir}" "${RELEASES_DIR}" || return 1
+        return 0
+      fi
+      echo "Instalace závislostí selhala (exit ${status}); log: ${log_dir}/attempt-${attempt}.log" >&2
+      return "${status}"
+    fi
+    if [[ "${attempt}" -eq 2 ]]; then
+      echo "npm ci opakovaně nedokáže rozbalit závislosti; release zastavuji. Logy: ${log_dir}" >&2
+      return 1
+    fi
+    log "npm ci hlásí TAR_ENTRY_ERROR ENOENT; opakuji jednou čistou instalaci s izolovanou npm cache. Log: ${log_dir}/attempt-1.log"
+    # npm ci samo odstraní neúplné node_modules. Sdílenou npm cache neměníme.
+    npm_options=(--cache "${log_dir}/cache" --prefer-online)
+  done
+}
+
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "Chybí požadovaný příkaz: $1" >&2
@@ -772,6 +808,7 @@ run_release() {
   require_cmd mktemp
   require_cmd node
   require_cmd npm
+  require_cmd tee
   require_cmd npx
   require_cmd systemctl
   require_cmd systemd-sysusers
@@ -834,7 +871,7 @@ run_release() {
   cd "${RELEASE_BUILD_DIR}"
 
   log "npm ci --include=dev"
-  run_timed_step "npm ci" npm ci --include=dev
+  run_timed_step "npm ci" install_release_dependencies
 
   log "npm run db:generate"
   run_timed_step "Prisma generate" npm run db:generate

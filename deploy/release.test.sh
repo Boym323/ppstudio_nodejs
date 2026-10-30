@@ -51,6 +51,57 @@ mkdir -p "${RELEASES_DIR}/old" "${RELEASES_DIR}/new/node_modules" "${RELEASES_DI
 touch "${RELEASES_DIR}/new/package.json"
 ln -s "${RELEASES_DIR}/old" "${CURRENT_RELEASE_LINK}"
 
+# Instalační recovery musí fungovat i pro tar warningy s úspěšným exit kódem.
+for install_scenario in clean recover-warning recover-error repeated-warning unrelated-error retry-error; do
+  (
+    RELEASES_DIR="${TEMP_DIR}/npm-${install_scenario}"
+    mkdir -p "${RELEASES_DIR}"
+    npm() {
+      printf '%s\n' "$*" >> "${RELEASES_DIR}/calls"
+      local attempt
+      attempt="$(wc -l < "${RELEASES_DIR}/calls")"
+      [[ "$1" == ci && "$2" == --include=dev ]] || return 99
+      if [[ "${attempt}" -eq 2 ]]; then
+        [[ "$3" == --cache && "$4" == "${RELEASES_DIR}"/.npm-ci.*/cache && "$5" == --prefer-online ]] || return 99
+        [[ -d "$(dirname "$4")" ]] || return 99
+      fi
+      case "${install_scenario}:${attempt}" in
+        clean:1|recover-warning:2|recover-error:2) echo 'added packages'; return 0 ;;
+        unrelated-error:1|retry-error:2) echo 'npm error EACCES'; return 7 ;;
+        *)
+          echo 'npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory'
+          [[ "${install_scenario}" != recover-error ]] || return 8
+          return 0
+          ;;
+      esac
+    }
+    install_status=0
+    install_release_dependencies || install_status=$?
+    case "${install_scenario}" in
+      clean|recover-warning|recover-error)
+        [[ "${install_status}" -eq 0 ]]
+        [[ -z "$(find "${RELEASES_DIR}" -maxdepth 1 -name '.npm-ci.*' -print)" ]]
+        ;;
+      *)
+        [[ "${install_status}" -ne 0 ]]
+        log_file="$(find "${RELEASES_DIR}" -name attempt-1.log -print)"
+        [[ -f "${log_file}" ]]
+        if [[ "${install_scenario}" != unrelated-error ]]; then
+          [[ -f "$(dirname "${log_file}")/attempt-2.log" ]]
+        fi
+        if [[ "${install_scenario}" == unrelated-error || "${install_scenario}" == retry-error ]]; then
+          [[ "${install_status}" -eq 7 ]]
+        fi
+        ;;
+    esac
+    expected_calls=2
+    if [[ "${install_scenario}" == clean || "${install_scenario}" == unrelated-error ]]; then
+      expected_calls=1
+    fi
+    [[ "$(wc -l < "${RELEASES_DIR}/calls")" -eq "${expected_calls}" ]]
+  )
+done
+
 archive_repo="${TEMP_DIR}/archive-repo"
 archive_releases_dir="${archive_repo}/releases"
 mkdir -p "${archive_repo}"
@@ -658,7 +709,7 @@ fi
 
 # Celý orchestrátor s nahrazenými kroky: žádné npm, DB ani systémové služby.
 # Samostatný subshell + wait zachová errexit (volání v if by jej vypnulo).
-for scenario in build-failure permissions-failure activation-failure cleanup-failure; do
+for scenario in install-failure build-failure permissions-failure activation-failure cleanup-failure; do
   scenario_dir="${TEMP_DIR}/${scenario}"
   mkdir -p "${scenario_dir}/repo/releases"
   touch "${scenario_dir}/repo/package.json"
@@ -676,6 +727,7 @@ for scenario in build-failure permissions-failure activation-failure cleanup-fai
     git() { printf 'main\n'; }
     systemctl() { printf 'systemctl %s\n' "$*" >> "${scenario_dir}/steps"; }
     sudo() { "$@"; }
+    npm() { echo 'npm warn tar TAR_ENTRY_ERROR ENOENT'; return 8; }
     restore_systemd_units() { printf 'restore\n' >> "${scenario_dir}/steps"; }
     cleanup_old_releases() { return 1; }
     run_timed_step() {
@@ -688,6 +740,11 @@ for scenario in build-failure permissions-failure activation-failure cleanup-fai
           mkdir -p "${RELEASE_BUILD_DIR}"
           ;;
         "finalizace release workspace") shift; "$@" ;;
+        "npm ci")
+          if [[ "${scenario}" == install-failure ]]; then
+            shift; "$@"
+          fi
+          ;;
         build) [[ "${scenario}" != build-failure ]] ;;
         "runtime oprávnění release") [[ "${scenario}" != permissions-failure ]] ;;
         "aktivace release") [[ "${scenario}" != activation-failure ]] ;;
@@ -699,9 +756,14 @@ for scenario in build-failure permissions-failure activation-failure cleanup-fai
   scenario_status=0
   wait "$!" || scenario_status=$?
   case "${scenario}" in
-    build-failure|permissions-failure)
+    install-failure|build-failure|permissions-failure)
       [[ "${scenario_status}" -ne 0 ]]
       ! grep -q 'synchronizace systemd\|zastavení a ověření\|Prisma migrate deploy' "${scenario_dir}/steps"
+      if [[ "${scenario}" == install-failure ]]; then
+        ! grep -q '^Prisma generate$\|^aktivace release$' "${scenario_dir}/steps"
+        [[ ! -d "${scenario_dir}/repo/releases/.staging.test" ]]
+        [[ "$(find "${scenario_dir}/repo/releases" -name 'attempt-*.log' | wc -l)" -eq 2 ]]
+      fi
       ;;
     activation-failure)
       [[ "${scenario_status}" -ne 0 ]]

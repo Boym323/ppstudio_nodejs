@@ -25,6 +25,7 @@ Rollout musí držet následující pořadí; nový web ani worker nesmí mezi m
 ## Artefakty a zavislosti
 - `node_modules` nesmi byt soucasti Git repozitare ani release ZIP/TAR artefaktu.
 - Build/deploy host musi vzdy instalovat zavislosti z cisteho checkoutu pomoci `npm ci` podle `package-lock.json`.
+- `release.sh` při `TAR_ENTRY_ERROR ENOENT` jednou opakuje `npm ci` s izolovanou npm cache. Opakované warningy zastaví release i při návratovém kódu npm `0`; ostatní chyby se neopakují. Při selhání zůstanou logy v `releases/.npm-ci.*/attempt-*.log` i po úklidu stagingu. `--no-cache` řídí pouze kompilační cache, nikoli tuto obnovu instalace.
 - Pokud dojde k prenosu projektu mezi stroji, prenasi se zdrojove soubory + lockfile, ne predinstalovane zavislosti.
 - Cílový runtime tohoto repa je `Node 24 LTS`; před releasem ověř `node -v` a `npm -v` přímo na deploy hostu.
 - Pokud produkční systemd služby používají systémový `node` z `PATH`, po upgrade ověř, že stejnou verzi vidí i restartované jednotky `ppstudio-web` a `ppstudio-email-worker`.
