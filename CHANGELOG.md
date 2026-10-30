@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.38.1] - 2026-10-30
+
 ### Opraveno
 
 - Oprava nedoručeného e-mailu umožňuje použít správnou adresu již uloženou u klientky, i když rezervace stále obsahuje chybnou adresu; aktualizuje rezervaci a připraví nové odeslání.
