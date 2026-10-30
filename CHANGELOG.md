@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.38.2] - 2026-10-30
+
 ### Opraveno
 
 - Release automaticky obnoví chybějící seed worktree kompilační cache i při zbylé Git registraci, takže tento stav neblokuje nasazení; zamčené worktree zachová.
