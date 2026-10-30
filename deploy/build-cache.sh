@@ -43,7 +43,9 @@ ensure_build_cache_seed_worktree() {
     return 1
   fi
   if [[ ! -e "${seed_worktree}" ]]; then
-    git -C "${REPO_DIR}" worktree add --detach "${seed_worktree}" HEAD >/dev/null
+    # Chybějící adresář může být stále registrovaný v Gitu. Jedno --force
+    # obnoví pouze tento záznam; zamčený worktree Git nadále odmítne.
+    git -C "${REPO_DIR}" worktree add --force --detach "${seed_worktree}" HEAD >/dev/null || return 1
   fi
   [[ -f "${seed_worktree}/.git" ]] || return 1
   if [[ -L "${seed_worktree}/.next" || ( -e "${seed_worktree}/.next" && ! -d "${seed_worktree}/.next" ) ]] \

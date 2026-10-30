@@ -15,6 +15,7 @@ Evidence produkčních incidentů a jejich řešení.
 - Riziko rollout/DB skewu: `release.sh` po buildu zastaví web i worker, ověří jejich neaktivní stav a teprve potom aplikuje migraci před přepnutím `current`. Při selhání migrace nebo nového runtime zůstanou writeři fail-closed zastavení; symlink se může vrátit, ale starý runtime se automaticky nespustí nad změněným schématem. DB se automaticky nevrací a případná oprava musí být dopředná, bez destruktivní down migrace.
 - Zaplněný disk kvůli release artefaktům: ověř `du -sh /var/www/ppstudio/releases` a poslední výstup `release.sh`. Po úspěchu se automaticky ponechá `current` a `previous`; pro delší rollback historii zvyš limit přes `--keep-releases N`, ale nikdy ručně nemaž cíl symlinků.
 - `next build` během staging releasu hlásí více lockfileů v `releases/.staging.*`: ověř `next.config.ts` a jeho `turbopack.root`. Musí mířit na `__dirname` aktuálního release, nikoli na rodičovský adresář se všemi verzovanými release.
+- Git hlásí `.build-cache-worktree is a missing but already registered worktree`: adresář seedu chybí, ale jeho Git registrace zůstala. Release jej automaticky obnoví cíleným `worktree add --force` pouze při chybějícím adresáři; zamčený worktree nepřepisuje. Pro okamžité nasazení bez kompilační cache lze použít `./deploy/release.sh --no-cache`.
 
 - Datum a čas: 2026-05-20 16:10 CEST
   Dopad (uživatelé/systém): v admin pracovním seznamu rezervací se po kliknutí na `Potvrdit` mohla karta zaseknout ve stavu `Ukládám...`, i když booking stav už byl v DB změněný.

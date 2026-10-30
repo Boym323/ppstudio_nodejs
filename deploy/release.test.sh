@@ -338,11 +338,19 @@ RELEASE_BUILD_DIR=""
   PPSTUDIO_BUILD_CACHE_ENV_ID=dev
   export PPSTUDIO_BUILD_CACHE_ENV_ID
 
+  # Cizí chybějící worktree nesmí cílená obnova seedu odregistrovat.
+  other_worktree="${chain_repo}/other-worktree"
+  git -C "${chain_repo}" worktree add --detach "${other_worktree}" HEAD >/dev/null
+  safe_remove_cache_path "${other_worktree}" "${chain_repo}"
+
   for version in 1 2 3; do
     if (( version > 1 )); then
       printf 'version-%s\n' "${version}" > "${chain_repo}/source.txt"
       git -C "${chain_repo}" add source.txt
       git -C "${chain_repo}" commit --quiet -m "Cache source ${version}"
+    fi
+    if (( version == 2 )); then
+      safe_remove_cache_path "$(build_cache_seed_worktree_root)" "${RELEASES_DIR}"
     fi
     create_release_workspace
     (
@@ -384,6 +392,9 @@ RELEASE_BUILD_DIR=""
 
       mkdir -p .next/cache/turbopack
       printf 'version-%s\n' "${version}" > .next/cache/turbopack/artifact
+      if (( version == 3 )); then
+        safe_remove_cache_path "$(build_cache_seed_worktree_root)" "${RELEASES_DIR}"
+      fi
       save_build_cache
     )
     current_commit="$(git -C "${chain_repo}" rev-parse HEAD)"
@@ -392,6 +403,19 @@ RELEASE_BUILD_DIR=""
     [[ "$(<"${seed_dir}/.next/cache/turbopack/artifact")" == "version-${version}" ]]
     cleanup_release_workspace
   done
+  git -C "${chain_repo}" worktree list --porcelain | grep -Fxq "worktree ${other_worktree}"
+
+  # Záměrně zamčený worktree se nesmí násilně přepsat ani při chybějící cestě.
+  git -C "${chain_repo}" worktree lock "${seed_dir}"
+  safe_remove_cache_path "${seed_dir}" "${RELEASES_DIR}"
+  if ensure_build_cache_seed_worktree; then
+    echo 'Obnova neočekávaně přepsala zamčený seed worktree.' >&2
+    exit 1
+  fi
+  [[ ! -e "${seed_dir}" ]]
+  git -C "${chain_repo}" worktree unlock "${seed_dir}"
+  ensure_build_cache_seed_worktree
+  [[ -f "${seed_dir}/.git" ]]
 )
 # Zámek sdílí i různé cesty přes symlink; po ukončení držitele se uvolní.
 ln -s "${archive_repo}" "${TEMP_DIR}/archive-alias"

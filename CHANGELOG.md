@@ -8,6 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Release automaticky obnoví chybějící seed worktree kompilační cache i při zbylé Git registraci, takže tento stav neblokuje nasazení; zamčené worktree zachová.
 - Release při chybách rozbalování npm balíčků (`TAR_ENTRY_ERROR ENOENT`) jednou zopakuje čistou instalaci s izolovanou cache; při opakování chyby zastaví nasazení před odstávkou a uchová instalační logy.
 
 ## [3.38.1] - 2026-10-30
