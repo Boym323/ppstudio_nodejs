@@ -250,9 +250,6 @@ export async function updateClientContactAction(
         },
       }) : null;
       const sourceBooking = source?.bookingId ? activeBookings.find((booking) => booking.id === source.bookingId) : null;
-      if (incidentEmailLogId && normalizedEmail && normalizedEmail === currentClient.email) {
-        throw new Error("EMAIL_RECIPIENT_UNCHANGED");
-      }
       if (incidentEmailLogId && (
         !source || source.clientId !== client.id || source.audience !== "CLIENT"
         || source.processingStartedAt !== null || !isEmailDeliveryFailure(source)
@@ -261,6 +258,9 @@ export async function updateClientContactAction(
         || (source.bookingId !== null && (!sourceBooking || source.communicationGeneration !== sourceBooking.communicationGeneration))
       )) {
         throw new Error("EMAIL_INCIDENT_CHANGED");
+      }
+      if (source && normalizedEmail === normalizeClientEmail(source.recipientEmail)) {
+        throw new Error("EMAIL_RECIPIENT_UNCHANGED");
       }
       const bookingIdsWithChangedEmailSnapshot = getBookingIdsWithChangedEmailSnapshot(
         activeBookings,
@@ -372,7 +372,7 @@ export async function updateClientContactAction(
     };
   } catch (error) {
     if (error instanceof Error && error.message === "EMAIL_RECIPIENT_UNCHANGED") {
-      return { status: "error", formError: "Zadejte opravenou e-mailovou adresu.", fieldErrors: { email: "Adresa se neliší od aktuálního kontaktu klientky." } };
+      return { status: "error", formError: "Zadejte opravenou e-mailovou adresu.", fieldErrors: { email: "Adresa se neliší od příjemce nedoručeného e-mailu." } };
     }
     if (error instanceof Error && error.message === "EMAIL_INCIDENT_CHANGED") {
       return { status: "error", formError: "E-mail nebo rezervace se mezitím změnily, případně zprávu už nelze bezpečně opakovat. Obnovte detail a zkontrolujte aktuální stav." };

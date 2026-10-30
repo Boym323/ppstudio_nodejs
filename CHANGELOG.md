@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Oprava nedoručeného e-mailu umožňuje použít správnou adresu již uloženou u klientky, i když rezervace stále obsahuje chybnou adresu; aktualizuje rezervaci a připraví nové odeslání.
+
 ### Změněno
 
 - Release používá bezpečnou generovanou Turbopack/SWC kompilační cache s kontrolou integrity, omezením velikosti, izolací prostředí a seed worktree pro reuse mezi různými staging cestami; deployment identita se při běžné změně nemění na invalidátor cache a zůstává správně zapsaná ve výsledném artefaktu. Poškození cache vyvolá nejvýše jeden čistý retry buildu, `--no-cache` cache přeskočí a příprava oprávnění nového release probíhá před odstávkou služeb.

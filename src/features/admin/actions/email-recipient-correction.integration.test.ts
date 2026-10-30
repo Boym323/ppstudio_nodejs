@@ -21,7 +21,8 @@ process.env.SMTP_FROM_EMAIL = "noreply@example.test";
 
 const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
 
-dbTest("oprava kontaktu propojí resend s incidentem a uzavře jej až po doručení", async (t) => {
+for (const profileAlreadyCorrect of [false, true]) {
+dbTest(`oprava kontaktu propojí resend s incidentem a uzavře jej až po doručení (profil ${profileAlreadyCorrect ? "již správný" : "s chybnou adresou"})`, async (t) => {
   if (typeof t.mock.module !== "function") {
     t.skip("Vyžaduje --experimental-test-module-mocks.");
     return;
@@ -36,7 +37,7 @@ dbTest("oprava kontaktu propojí resend s incidentem a uzavře jej až po doruč
   const newEmail = `new-${seed}@example.test`;
   const category = await prisma.serviceCategory.create({ data: { name: "Test", slug: `category-${seed}` } });
   const service = await prisma.service.create({ data: { categoryId: category.id, name: "Test", slug: `service-${seed}`, durationMinutes: 60 } });
-  const client = await prisma.client.create({ data: { fullName: "Test", email: oldEmail, phone: "+420777111222" } });
+  const client = await prisma.client.create({ data: { fullName: "Test", email: profileAlreadyCorrect ? newEmail : oldEmail, phone: "+420777111222" } });
   const startsAt = new Date(Date.now() + 86400000 * 5);
   const endsAt = new Date(startsAt.getTime() + 3600000);
   const slot = await prisma.availabilitySlot.create({ data: { startsAt, endsAt, status: AvailabilitySlotStatus.PUBLISHED } });
@@ -65,9 +66,16 @@ dbTest("oprava kontaktu propojí resend s incidentem a uzavře jej až po doruč
   form.set("area", "owner"); form.set("clientId", client.id); form.set("incidentEmailLogId", source.id); form.set("email", newEmail);
   await prisma.emailLog.update({ where: { id: source.id }, data: { communicationGeneration: 0 } });
   assert.equal((await updateClientContactAction({ status: "idle" }, form)).status, "error");
-  assert.equal((await prisma.client.findUniqueOrThrow({ where: { id: client.id } })).email, oldEmail);
+  assert.equal((await prisma.client.findUniqueOrThrow({ where: { id: client.id } })).email, client.email);
   assert.equal(await prisma.emailLog.count({ where: { resendOfId: source.id } }), 0);
   await prisma.emailLog.update({ where: { id: source.id }, data: { communicationGeneration: booking.communicationGeneration } });
+  form.set("email", oldEmail);
+  const unchangedResult = await updateClientContactAction({ status: "idle" }, form);
+  assert.equal(unchangedResult.status, "error");
+  assert.equal(unchangedResult.fieldErrors?.email, "Adresa se neliší od příjemce nedoručeného e-mailu.");
+  assert.equal((await prisma.client.findUniqueOrThrow({ where: { id: client.id } })).email, client.email);
+  assert.equal(await prisma.emailLog.count({ where: { resendOfId: source.id } }), 0);
+  form.set("email", newEmail);
   const result = await updateClientContactAction({ status: "idle" }, form);
   assert.equal(result.status, "success", result.formError ?? "Oprava selhala.");
   const updatedClient = await prisma.client.findUniqueOrThrow({ where: { id: client.id } });
@@ -77,6 +85,8 @@ dbTest("oprava kontaktu propojí resend s incidentem a uzavře jej až po doruč
   assert.equal(updatedClient.email, newEmail);
   assert.equal(updatedClient.phone, client.phone);
   assert.equal(updatedBooking.clientEmailSnapshot, newEmail);
+  assert.equal(updatedBooking.communicationGeneration, booking.communicationGeneration + 2);
+  assert.equal(resend.communicationGeneration, updatedBooking.communicationGeneration);
   assert.equal(original.recipientEmail, oldEmail);
   assert.ok(original.trackingBouncedAt);
   assert.equal(original.incidentResolvedAt, null);
@@ -92,3 +102,4 @@ dbTest("oprava kontaktu propojí resend s incidentem a uzavře jej až po doruč
   assert.equal(resolved.incidentResolutionKind, "DELIVERED_RESEND");
   assert.equal(resolved.recipientEmail, oldEmail);
 });
+}
