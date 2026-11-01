@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Mobilní plánovač zpřístupňuje celý časový rozsah až do 20:00 jediným posuvem stránky bez vnitřních svislých scrollovacích kontejnerů a umožňuje vybírat termíny dlouhým dotykem.
+
 ## [3.38.2] - 2026-10-30
 
 ### Opraveno

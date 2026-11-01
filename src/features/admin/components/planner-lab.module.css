@@ -80,9 +80,15 @@
 .cleanupEvent { display: flex; align-items: center; gap: .3rem; min-width: 0; overflow: hidden; color: #f6e7bc; font-size: 10px; line-height: 1; white-space: nowrap; }
 .cleanupEvent > b { flex: none; font-variant-numeric: tabular-nums; }
 .cleanupEvent > span { overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: .04em; font-size: 9px; font-weight: 700; }
+@media (max-width: 1023px) {
+  .page { height: auto; min-height: 0; overflow: visible; }
+  .planner { grid-template-rows: auto auto auto auto; }
+  .calendar { height: auto; overflow: clip; }
+  .workWeek { overflow-x: auto; }
+  .calendarScroller { overflow: visible !important; }
+}
 @media (max-width: 639px) {
-  .page { height: calc(100dvh - 6.25rem); min-height: 32rem; gap: .5rem; }
-  .planner { grid-template-rows: auto auto auto minmax(28rem, 1fr); }
+  .page { gap: .5rem; }
   .controls { gap: .35rem; padding: .4rem; }
   .weekRange { flex-basis: 100%; margin-right: 0; font-size: .8125rem; }
   .status { margin-left: auto; }
