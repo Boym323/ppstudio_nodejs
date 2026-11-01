@@ -20,7 +20,6 @@ let buildPersonJsonLd: typeof import("./seo-json-ld")["buildPersonJsonLd"];
 let buildFaqPageJsonLd: typeof import("./seo-json-ld")["buildFaqPageJsonLd"];
 let buildBreadcrumbListJsonLd: typeof import("./seo-json-ld")["buildBreadcrumbListJsonLd"];
 let buildServiceJsonLd: typeof import("./seo-json-ld")["buildServiceJsonLd"];
-let durationMinutesToIsoDuration: typeof import("./seo-json-ld")["durationMinutesToIsoDuration"];
 let serializeJsonLd: typeof import("./seo-json-ld")["serializeJsonLd"];
 
 before(async () => {
@@ -32,7 +31,6 @@ before(async () => {
   buildFaqPageJsonLd = seoJsonLd.buildFaqPageJsonLd;
   buildBreadcrumbListJsonLd = seoJsonLd.buildBreadcrumbListJsonLd;
   buildServiceJsonLd = seoJsonLd.buildServiceJsonLd;
-  durationMinutesToIsoDuration = seoJsonLd.durationMinutesToIsoDuration;
   serializeJsonLd = seoJsonLd.serializeJsonLd;
 });
 
@@ -149,7 +147,7 @@ describe("seo json-ld helpers", () => {
       "@id": string;
       url: string;
       offers?: { "@type": string; price: string; priceCurrency: string; url: string; availability?: string };
-      duration?: string;
+      duration?: unknown;
     };
 
     assert.equal(jsonLd["@context"], "https://schema.org");
@@ -165,7 +163,8 @@ describe("seo json-ld helpers", () => {
     assert.equal(serviceNode.offers["@type"], "Offer");
     assert.equal(serviceNode.offers.availability, undefined);
     assert.equal(serviceNode["@id"], `${serviceNode.url}#service`);
-    assert.equal(serviceNode.duration, "PT75M");
+    assert.equal(Object.hasOwn(serviceNode, "duration"), false);
+    assert.doesNotMatch(serializeJsonLd(jsonLd), /"duration"\s*:/);
   });
 
   test("builds Person JSON-LD for the about page entity", () => {
@@ -229,10 +228,17 @@ describe("seo json-ld helpers", () => {
     assert.match(price, /^\d+$/);
   });
 
-  test("converts 75 minutes to PT75M", () => {
-    assert.equal(durationMinutesToIsoDuration(75), "PT75M");
-    assert.equal(durationMinutesToIsoDuration(75.5), undefined);
-    assert.equal(durationMinutesToIsoDuration(0), undefined);
+  test("does not publish the unsupported Service.duration property for any treatment length", () => {
+    for (const durationMinutes of [30, 75, 120]) {
+      const publicService = { ...service, durationMinutes, duration: `${durationMinutes} min` };
+      const jsonLd = buildServiceJsonLd(publicService, salonProfile);
+      const serviceNode = jsonLd["@graph"][0] as { name: string; duration?: unknown; offers?: unknown };
+      assert.equal(Object.hasOwn(serviceNode, "duration"), false);
+      assert.doesNotMatch(serializeJsonLd(jsonLd), /"duration"\s*:/);
+      assert.equal(serviceNode.name, publicService.name);
+      assert.ok(serviceNode.offers);
+      assert.equal(publicService.durationMinutes, durationMinutes);
+    }
   });
 
   test("does not publish starting, consultation or invalid prices as fixed offers", () => {

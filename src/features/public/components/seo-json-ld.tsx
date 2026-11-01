@@ -157,7 +157,6 @@ export function buildBreadcrumbListJsonLd(items: BreadcrumbJsonLdItem[]) {
 export function buildServiceJsonLd(service: Service, profile: BusinessProfile) {
   const pageUrl = `${SEO_BASE_URL}/sluzby/${service.slug}`;
   const price = parseCzkPrice(service.priceFrom);
-  const durationMinutes = service.durationMinutes ?? parseDurationMinutes(service.duration);
   const offer =
     price === undefined
       ? undefined
@@ -185,18 +184,9 @@ export function buildServiceJsonLd(service: Service, profile: BusinessProfile) {
           name: profile.city,
         },
         offers: offer,
-        duration: durationMinutesToIsoDuration(durationMinutes),
       },
     ],
   };
-}
-
-export function durationMinutesToIsoDuration(minutes: number | undefined) {
-  if (minutes === undefined || !Number.isInteger(minutes) || minutes <= 0) {
-    return undefined;
-  }
-
-  return `PT${minutes}M`;
 }
 
 function buildLocalBusinessNode(profile: BusinessProfile) {
@@ -258,12 +248,6 @@ function parseCzkPrice(value: string) {
   const amount = exactPublishedPrice?.[1].replace(/[^\d]/g, "");
 
   return amount && Number(amount) > 0 ? amount : undefined;
-}
-
-function parseDurationMinutes(value: string) {
-  const minutes = value.normalize("NFKC").match(/^\s*(\d+)\s*(?:min(?:ut(?:a|y)?)?)\s*$/i)?.[1];
-
-  return minutes ? Number(minutes) : undefined;
 }
 
 function buildAbsoluteSiteUrl(href: string) {
