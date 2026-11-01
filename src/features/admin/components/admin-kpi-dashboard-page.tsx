@@ -7,6 +7,8 @@ import { BookingTrendChart, ClientMixChart, RevenueTrendChart } from "@/features
 import { AdminPanel, AdminPageShell } from "@/features/admin/components/admin-page-shell";
 import { KpiPeriodFilter } from "@/features/admin/components/kpi-period-filter";
 import { KpiServicesTable } from "@/features/admin/components/kpi-services-table";
+import { MetaAdsCostPanel } from "@/features/admin/components/meta-ads-cost-panel";
+import type { MetaAdsCostReport } from "@/features/admin/lib/meta-ads-reporting";
 import { interpretKpiComparison } from "@/features/admin/lib/kpi-comparison";
 import { kpiComparisonConfig } from "@/features/admin/lib/kpi-config";
 import { usesMonthlyKpiBuckets } from "@/features/admin/lib/kpi-date-range";
@@ -66,7 +68,7 @@ function ForecastPairCard({ title, actualLabel, actualValue, actualComparison, f
     <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-t border-white/10 pt-3 text-xs leading-5 text-white/65"><span>{actualComparison}</span>{forecastAvailable && forecastDetail ? <span className="text-amber-200/85">{forecastDetail}</span> : null}<span className="sm:ml-auto">{forecastAvailable ? <><span>{totalLabel}: </span><span className="font-semibold text-white">{totalValue}</span></> : "Historický výhled není dostupný"}</span></div>
   </article>;
 }
-export function AdminKpiDashboardPage({ data, area }: { data: KpiDashboardData; area: "owner" | "salon"; searchParams?: Record<string, string | string[] | undefined> }) {
+export function AdminKpiDashboardPage({ data, area, metaAds }: { data: KpiDashboardData; area: "owner" | "salon"; metaAds: MetaAdsCostReport; searchParams?: Record<string, string | string[] | undefined> }) {
   const path = area === "owner" ? "/admin/statistiky" : "/admin/provoz/statistiky";
   const bookingHref = area === "owner" ? "/admin/rezervace" : "/admin/provoz/rezervace";
   const unavailableComparisons = Object.values(data.metrics).filter((metric) => !metric.previousHasData).length;
@@ -126,6 +128,7 @@ export function AdminKpiDashboardPage({ data, area }: { data: KpiDashboardData; 
       <KpiCard label="Neuhrazená částka" metric={data.metrics.outstanding} format={money.format} kpiKey="outstanding" href={`${bookingHref}?status=completed`} detail="U dokončených návštěv v období. Odkaz otevře všechny dokončené rezervace." tooltip="Zbývající částka po neanulovaných platbách a čerpání voucherů u dokončených návštěv." />
     </AdminPanel>
     <section className="grid min-w-0 gap-4 xl:grid-cols-2"><AdminPanel title="Nejvýdělečnější služby" description="Cena a skutečně rezervovaný čas dokončených návštěv." className="min-w-0" compact denseHeader><KpiServicesTable services={data.services} /></AdminPanel><AdminPanel title="Nové vs. vracející se klientky" description={`Vracející se klientka měla alespoň jednu dokončenou návštěvu už před vybraným obdobím. Stav k ${new Intl.DateTimeFormat("cs-CZ", { dateStyle: "medium", timeZone: "Europe/Prague" }).format(data.retentionReference)}.`} className="min-w-0" compact denseHeader><ClientMixChart newClients={data.clientMix.newClients} returningClients={data.clientMix.returningClients} /><div className="mt-5"><h3 className="text-sm font-semibold text-white">Klientky podle doby od poslední návštěvy</h3><p className="mt-1 text-xs text-white/60">Kliknutím otevřete odpovídající seznam klientek.</p><div className="mt-3 space-y-2">{data.retention.map((item) => <Link key={item.band} href={item.href} className="flex items-center justify-between rounded-xl border border-white/10 px-3 py-3 text-sm hover:border-[var(--color-accent)]/40"><span>{item.label}</span><span className="font-display text-xl">{number.format(item.count)}</span></Link>)}</div></div></AdminPanel></section>
+    <MetaAdsCostPanel report={metaAds} />
     <TablePanel title="Odkud přicházejí rezervace" description="Souhrn podle zdroje a plánovaného data návštěvy. Objednaná hodnota zahrnuje všechny rezervace, tržby pouze dokončené návštěvy." headers={["Zdroj", "Rezervace", "Dokončeno", "Objednaná hodnota", "Tržby z dokončených", "Průměr na rezervaci"]} empty="Pro vybrané období nejsou dostupná data o zdrojích rezervací." rows={data.acquisition.summary.map((row) => [row.source, number.format(row.bookings), number.format(row.completed), money.format(row.bookingValue), money.format(row.revenue), money.format(row.averageValue)])} />
     <details className="min-w-0 rounded-[var(--radius-panel)] border border-white/10 bg-black/10 p-4">
       <summary className="cursor-pointer rounded-sm text-sm font-medium text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]">Podrobnosti zdrojů a kampaní</summary>

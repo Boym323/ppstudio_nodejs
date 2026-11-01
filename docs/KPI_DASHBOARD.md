@@ -135,6 +135,16 @@ Implementace: `kpi-service-metrics.ts`, `kpi-services-table.tsx`.
 
 Implementace: `kpi-acquisition.ts`.
 
+## Meta Ads – automatická cena za rezervaci
+
+- Panel ve Statistikách čte **skutečnou útratu** reklamního účtu přes Meta Marketing API v26.0; cache Next fetch je 3600 sekund.
+- Náklady se porovnávají pouze s **webovými rezervacemi vytvořenými** ve stejném vybraném období (`createdAt`), nikoli podle `scheduledStartsAt` jako ostatní KPI. Toto je výslovně uvedeno v UI.
+- Rezervace se počítá jako Meta placená jen při `acquisitionSource` Facebook/Instagram a `acquisitionUtmMedium` odpovídajícím `paid_social`, `paid`, `cpc`, `ppc` (nebo ekvivalentu s pomlčkou); `social` a chybějící medium se NEpočítá jako placené.
+- Denominator aktivních rezervací zahrnuje PENDING, CONFIRMED a COMPLETED; CANCELLED / NO_SHOW jsou mimo. Cena za dokončenou návštěvu u stejného kohortního období se může později měnit, protože návštěvy teprve proběhnou.
+- Útrata je za **celý Meta reklamní účet**, ne za jedinou kampaň. Rezervace přes zprávy a návštěvy bez označené reklamy nelze spolehlivě přiřadit. Report je orientační a neodpovídá automaticky atribuci Meta Ads Manageru.
+- Chybějící konfigurace, chyba API a budoucí období mají vlastní informační stav místo zavádějících nul. Žádný Meta token ani raw API payload se nedostane do klienta.
+- Implementace: `src/features/admin/lib/meta-ads-reporting.ts`, čisté výpočty v `meta-ads-cost.ts`, UI `meta-ads-cost-panel.tsx`. Nastavení: [META_ADS_COST_PER_BOOKING.md](META_ADS_COST_PER_BOOKING.md).
+
 ## Retence
 
 - Referenční okamžik je konec vybraného období, nejvýše aktuální okamžik.

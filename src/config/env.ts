@@ -22,6 +22,8 @@ const serverEnvSchema = z
     MATOMO_URL: z.string().trim().optional(),
     MATOMO_SITE_ID: z.string().trim().optional(),
     MATOMO_AUTH_TOKEN: z.string().trim().optional(),
+    META_ADS_ACCOUNT_ID: z.string().trim().optional(),
+    META_ADS_ACCESS_TOKEN: z.string().trim().optional(),
     PUSHOVER_ENABLED: z.enum(["true", "false"]).optional().default("false"),
     PUSHOVER_APP_TOKEN: z.string().trim().optional(),
     DATABASE_URL: z.string().min(1),
