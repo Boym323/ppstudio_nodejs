@@ -15,6 +15,8 @@ export type BookingAcquisitionData = {
   utmSource: string | null;
   utmMedium: string | null;
   utmCampaign: string | null;
+  mtmContent: string | null;
+  mtmPlacement: string | null;
   referrerHost: string | null;
 };
 
@@ -26,6 +28,8 @@ type BookingAcquisitionCookiePayload = {
   utmSource?: string;
   utmMedium?: string;
   utmCampaign?: string;
+  mtmContent?: string;
+  mtmPlacement?: string;
   referrerHost?: string;
 };
 
@@ -36,6 +40,20 @@ function sanitizeTextValue(value: unknown) {
 
   const normalized = value.trim().slice(0, MAX_VALUE_LENGTH).toLowerCase();
   return normalized.length > 0 ? normalized : undefined;
+}
+
+function sanitizeAttributionValue(value: unknown) {
+  const normalized = sanitizeTextValue(value);
+
+  if (
+    !normalized ||
+    /[^\s@]+@[^\s@]+\.[^\s@]+/.test(normalized) ||
+    /\+?\d[\d\s().-]{7,}\d/.test(normalized)
+  ) {
+    return undefined;
+  }
+
+  return normalized;
 }
 
 function sanitizePathValue(value: unknown) {
@@ -51,7 +69,27 @@ function sanitizePathValue(value: unknown) {
 
   try {
     const parsed = new URL(trimmed, "https://ppstudio.local");
-    const relativePath = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    const safeSearchParams = new URLSearchParams();
+    const allowedQueryKeys = new Set([
+      "service",
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "mtm_source",
+      "mtm_medium",
+      "mtm_campaign",
+      "mtm_content",
+      "mtm_placement",
+    ]);
+
+    parsed.searchParams.forEach((value, key) => {
+      if (!allowedQueryKeys.has(key.toLowerCase())) return;
+      const safeValue = sanitizeAttributionValue(value);
+      if (safeValue) safeSearchParams.set(key.toLowerCase(), safeValue);
+    });
+
+    const queryString = safeSearchParams.toString();
+    const relativePath = `${parsed.pathname}${queryString ? `?${queryString}` : ""}`;
 
     return relativePath.startsWith("/") && !relativePath.startsWith("//") ? relativePath.slice(0, 512) : "/";
   } catch {
@@ -194,9 +232,11 @@ function decodeCookiePayload(value?: string): BookingAcquisitionCookiePayload | 
       firstSeenAt: sanitizeIsoDateValue(candidate.firstSeenAt, new Date().toISOString()),
       lastSeenAt: sanitizeIsoDateValue(candidate.lastSeenAt, new Date().toISOString()),
       landingPath: sanitizePathValue(candidate.landingPath),
-      utmSource: sanitizeTextValue(candidate.utmSource),
-      utmMedium: sanitizeTextValue(candidate.utmMedium),
-      utmCampaign: sanitizeTextValue(candidate.utmCampaign),
+      utmSource: sanitizeAttributionValue(candidate.utmSource),
+      utmMedium: sanitizeAttributionValue(candidate.utmMedium),
+      utmCampaign: sanitizeAttributionValue(candidate.utmCampaign),
+      mtmContent: sanitizeAttributionValue(candidate.mtmContent),
+      mtmPlacement: sanitizeAttributionValue(candidate.mtmPlacement),
       referrerHost: normalizeHost(candidate.referrerHost),
     };
   } catch {
@@ -206,9 +246,11 @@ function decodeCookiePayload(value?: string): BookingAcquisitionCookiePayload | 
 
 export function parseBookingAcquisitionCookie(value?: string): BookingAcquisitionData {
   const parsed = decodeCookiePayload(value);
-  const utmSource = sanitizeTextValue(parsed?.utmSource);
-  const utmMedium = sanitizeTextValue(parsed?.utmMedium);
-  const utmCampaign = sanitizeTextValue(parsed?.utmCampaign);
+  const utmSource = sanitizeAttributionValue(parsed?.utmSource);
+  const utmMedium = sanitizeAttributionValue(parsed?.utmMedium);
+  const utmCampaign = sanitizeAttributionValue(parsed?.utmCampaign);
+  const mtmContent = sanitizeAttributionValue(parsed?.mtmContent);
+  const mtmPlacement = sanitizeAttributionValue(parsed?.mtmPlacement);
   const referrerHost = normalizeHost(parsed?.referrerHost);
 
   return {
@@ -216,6 +258,8 @@ export function parseBookingAcquisitionCookie(value?: string): BookingAcquisitio
     utmSource: utmSource ?? null,
     utmMedium: utmMedium ?? null,
     utmCampaign: utmCampaign ?? null,
+    mtmContent: mtmContent ?? null,
+    mtmPlacement: mtmPlacement ?? null,
     referrerHost: referrerHost ?? null,
   };
 }
@@ -243,21 +287,29 @@ export function buildBookingAcquisitionCookieValue(input: {
   const existing = decodeCookiePayload(input.existingCookieValue);
   const params = new URLSearchParams(input.search);
 
-  const utmSource = sanitizeTextValue(
+  const utmSource = sanitizeAttributionValue(
     params.get("utm_source") ?? params.get("mtm_source") ?? existing?.utmSource,
   );
-  const utmMedium = sanitizeTextValue(
+  const utmMedium = sanitizeAttributionValue(
     params.get("utm_medium") ?? params.get("mtm_medium") ?? existing?.utmMedium,
   );
-  const utmCampaign = sanitizeTextValue(
+  const utmCampaign = sanitizeAttributionValue(
     params.get("utm_campaign") ?? params.get("mtm_campaign") ?? existing?.utmCampaign,
+  );
+  const mtmContent = sanitizeAttributionValue(
+    params.get("mtm_content") ?? existing?.mtmContent,
+  );
+  const mtmPlacement = sanitizeAttributionValue(
+    params.get("mtm_placement") ?? existing?.mtmPlacement,
   );
 
   const referrerHost = getHostFromReferrer(input.referrer);
   const isExternalReferrer = referrerHost && referrerHost !== input.hostname.toLowerCase();
   const normalizedReferrerHost = normalizeHost(existing?.referrerHost ?? (isExternalReferrer ? referrerHost : undefined));
 
-  const shouldPersist = Boolean(utmSource || utmMedium || utmCampaign || normalizedReferrerHost || existing);
+  const shouldPersist = Boolean(
+    utmSource || utmMedium || utmCampaign || mtmContent || mtmPlacement || normalizedReferrerHost || existing,
+  );
 
   if (!shouldPersist) {
     return null;
@@ -271,6 +323,8 @@ export function buildBookingAcquisitionCookieValue(input: {
     utmSource,
     utmMedium,
     utmCampaign,
+    mtmContent,
+    mtmPlacement,
     referrerHost: normalizedReferrerHost,
   };
 

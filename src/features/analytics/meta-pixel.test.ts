@@ -148,3 +148,23 @@ test("trackMetaPixelCustomEvent falls back to event-only call when payload sanit
 
   assert.deepEqual(calls, [["trackCustom", "BookingDateSelected"]]);
 });
+
+test("Schedule sends the shared event id using Pixel's eventID option", () => {
+  setMetaPixelConfigured();
+
+  const calls: unknown[][] = [];
+  setMockWindow({
+    fbq: (...args: unknown[]) => {
+      calls.push(args);
+    },
+  });
+
+  trackMetaPixelStandardEvent("Schedule", { content_type: "service" }, "b0b797be-516d-4d10-bf70-9491e50c14e9");
+
+  assert.deepEqual(calls, [[
+    "track",
+    "Schedule",
+    { content_type: "service" },
+    { eventID: "b0b797be-516d-4d10-bf70-9491e50c14e9" },
+  ]]);
+});

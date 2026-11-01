@@ -31,7 +31,7 @@ export async function SiteShell({ children, variant = "public" }: SiteShellProps
         <GoogleAdsTracker disabled={hasAdminSessionCookie} />
         <MatomoTracker disabled={hasAdminSessionCookie} />
         <MetaPixelTracker disabled={hasAdminSessionCookie} />
-        <WebVitalsReporter />
+        <WebVitalsReporter disabled={hasAdminSessionCookie} />
       </Suspense>
       <SiteHeader variant={variant} brandName={salonProfile.name} />
       <main className="flex-1">{children}</main>

@@ -534,6 +534,17 @@ test.describe("rezervační toky", () => {
     fixtures = [];
   });
 
+  test("veřejné trackery se načtou bez consent cookie", async ({ page }) => {
+    await page.context().clearCookies();
+    await page.goto("/");
+
+    await expect(page.getByRole("dialog", { name: "Nastavení cookies" })).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => ({
+      matomo: "_paq" in window,
+      metaPixel: "fbq" in window,
+    }))).toEqual({ matomo: true, metaPixel: true });
+  });
+
   test("veřejný návštěvník vytvoří čekající rezervaci", async ({ page }) => {
     const fixture = await createPublicBookingFixture();
     fixtures.push(fixture);

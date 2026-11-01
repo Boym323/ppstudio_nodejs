@@ -21,6 +21,15 @@ export function shouldTrackBookingTimeSelection(
   return Boolean(nextSlotKey && nextSlotKey !== lastTrackedSlotKey);
 }
 
+export function claimBookingScheduleEvent(
+  confirmedBookingIds: Set<string>,
+  bookingId: string,
+) {
+  if (!bookingId || confirmedBookingIds.has(bookingId)) return false;
+  confirmedBookingIds.add(bookingId);
+  return true;
+}
+
 type SlotWithCanonicalKey = {
   key: string;
 };

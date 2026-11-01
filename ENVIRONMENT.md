@@ -4,7 +4,7 @@ Tento dokument shrnuje runtime prostředí projektu a nejdůležitější promě
 
 ## Runtime profil
 
-Přesné verze ověř vždy proti `package.json` a `package-lock.json`; níže uvedený stav odpovídá kontrole z 26. 10. 2026. Podrobnější přehled závislostí je v [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md).
+Přesné verze ověř vždy proti `package.json` a `package-lock.json`; níže uvedený stav odpovídá kontrole z 1. 11. 2026. Podrobnější přehled závislostí je v [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md).
 
 - Node.js `24 LTS`
 - npm `>=10`
@@ -127,6 +127,11 @@ Klientské:
 - `NEXT_PUBLIC_CLARITY_PROJECT_ID`
 - `NEXT_PUBLIC_META_PIXEL_ENABLED`
 - `NEXT_PUBLIC_META_PIXEL_ID`
+- `META_CAPI_ENABLED`
+- `META_CAPI_DATASET_ID`
+- `META_CAPI_ACCESS_TOKEN`
+- `META_CAPI_API_VERSION`
+- `META_CAPI_TEST_EVENT_CODE`
 - `NEXT_PUBLIC_GOOGLE_ADS_ENABLED`
 - `NEXT_PUBLIC_GOOGLE_ADS_ID`
 - `NEXT_PUBLIC_WEB_VITALS_ENABLED`
@@ -136,6 +141,8 @@ Serverové:
 - `MATOMO_URL`
 - `MATOMO_SITE_ID`
 - `MATOMO_AUTH_TOKEN`
+
+Meta CAPI zůstává vypnuté, dokud není `META_CAPI_ENABLED=true`. Produkční token je pouze serverový a musí být v chráněném `.env`; outbox, Test Events a rollout popisuje [docs/META_CONVERSIONS_API.md](docs/META_CONVERSIONS_API.md).
 
 ### Notifikace
 

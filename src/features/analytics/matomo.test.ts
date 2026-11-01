@@ -143,6 +143,23 @@ test("trackMatomoEvent allows safe storno actions but still blocks raw token pat
   ]);
 });
 
+test("Matomo events are sent without a consent cookie", () => {
+  setMatomoConfigured();
+
+  const calls: unknown[][] = [];
+  setMockWindow({
+    _paq: {
+      push(payload: unknown[]) {
+        calls.push(payload);
+      },
+    } as unknown as Array<unknown[]>,
+  });
+
+  trackBookingEvent("Vytvořena", "bez-cookie");
+
+  assert.deepEqual(calls, [["trackEvent", "Rezervace", "Vytvořena", "bez-cookie"]]);
+});
+
 test("trackBookingEvent uses the stable Czech taxonomy and service slug", () => {
   setMatomoConfigured();
 

@@ -19,9 +19,15 @@ const sensitiveValuePattern =
 const sensitiveKeyPattern = /email|e-mail|mail|phone|telefon|tel|token|note|poznam|client|voucher|booking[_-]?id/i;
 
 export function isMetaPixelConfigured() {
+  const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID;
+
   return (
     process.env.NEXT_PUBLIC_META_PIXEL_ENABLED === "true" &&
-    Boolean(process.env.NEXT_PUBLIC_META_PIXEL_ID)
+    Boolean(pixelId) &&
+    !(
+      process.env.NODE_ENV !== "production" &&
+      pixelId === "1002460135763604"
+    )
   );
 }
 
@@ -118,27 +124,39 @@ function trackMetaPixel(
   method: "track" | "trackCustom",
   eventName: string,
   payload?: MetaPixelPayload,
+  eventId?: string,
   retryCount = 30,
   recordDebugCall = true,
 ) {
-  if (typeof window === "undefined" || !isMetaPixelConfigured() || !isSafeMetaPixelStringValue(eventName)) {
+  if (
+    typeof window === "undefined" ||
+    !isMetaPixelConfigured() ||
+    !isSafeMetaPixelStringValue(eventName)
+  ) {
     return;
   }
 
   const sanitizedPayload = sanitizeMetaPixelPayload(payload);
+  const eventOptions = eventId ? { eventID: eventId } : undefined;
 
   if (recordDebugCall && Array.isArray(window.__metaPixelCalls)) {
     if (sanitizedPayload) {
-      window.__metaPixelCalls.push([method, eventName, sanitizedPayload]);
+      window.__metaPixelCalls.push(
+        eventOptions
+          ? [method, eventName, sanitizedPayload, eventOptions]
+          : [method, eventName, sanitizedPayload],
+      );
     } else {
-      window.__metaPixelCalls.push([method, eventName]);
+      window.__metaPixelCalls.push(eventOptions
+        ? [method, eventName, {}, eventOptions]
+        : [method, eventName]);
     }
   }
 
   if (!window.fbq) {
     if (retryCount > 0) {
       window.setTimeout(() => {
-        trackMetaPixel(method, eventName, payload, retryCount - 1, false);
+        trackMetaPixel(method, eventName, payload, eventId, retryCount - 1, false);
       }, 100);
     }
 
@@ -147,11 +165,19 @@ function trackMetaPixel(
 
   try {
     if (sanitizedPayload) {
-      window.fbq(method, eventName, sanitizedPayload);
+      if (eventOptions) {
+        window.fbq(method, eventName, sanitizedPayload, eventOptions);
+      } else {
+        window.fbq(method, eventName, sanitizedPayload);
+      }
       return;
     }
 
-    window.fbq(method, eventName);
+    if (eventOptions) {
+      window.fbq(method, eventName, {}, eventOptions);
+    } else {
+      window.fbq(method, eventName);
+    }
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
       console.warn(`Meta Pixel ${method} event failed.`, error);
@@ -159,12 +185,20 @@ function trackMetaPixel(
   }
 }
 
-export function trackMetaPixelStandardEvent(eventName: string, payload?: MetaPixelPayload) {
-  trackMetaPixel("track", eventName, payload);
+export function trackMetaPixelStandardEvent(
+  eventName: string,
+  payload?: MetaPixelPayload,
+  eventId?: string,
+) {
+  trackMetaPixel("track", eventName, payload, eventId);
 }
 
-export function trackMetaPixelCustomEvent(eventName: string, payload?: MetaPixelPayload) {
-  trackMetaPixel("trackCustom", eventName, payload);
+export function trackMetaPixelCustomEvent(
+  eventName: string,
+  payload?: MetaPixelPayload,
+  eventId?: string,
+) {
+  trackMetaPixel("trackCustom", eventName, payload, eventId);
 }
 
 export function shouldTrackMetaPixelPageView(previousPathname: string | null, pathname: string) {

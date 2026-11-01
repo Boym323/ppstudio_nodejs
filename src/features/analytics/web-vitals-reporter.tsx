@@ -28,8 +28,11 @@ const reportWebVital: ReportWebVitalsCallback = (metric) => {
   );
 };
 
-export function WebVitalsReporter() {
-  useReportWebVitals(reportWebVital);
+export function WebVitalsReporter({ disabled = false }: { disabled?: boolean }) {
+  useReportWebVitals((metric) => {
+    if (disabled) return;
+    reportWebVital(metric);
+  });
 
   return null;
 }

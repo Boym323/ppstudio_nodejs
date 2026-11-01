@@ -26,6 +26,7 @@ import { StickyCTA } from "./sticky-cta";
 import { BookingContactStep } from "./booking-flow/contact-step";
 import { shouldTrackContactFieldInput } from "./booking-flow/contact-analytics";
 import {
+  claimBookingScheduleEvent,
   formatBookingMatomoSlotName,
   formatSuggestedSlotSelectionMatomoName,
   formatSuggestedSlotsDisplayedMatomoName,
@@ -980,9 +981,7 @@ export function BookingFlow({
     }
 
     const bookingId = serverState.confirmation.bookingId;
-    if (confirmedBookingIdsRef.current.has(bookingId)) return;
-
-    confirmedBookingIdsRef.current.add(bookingId);
+    if (!claimBookingScheduleEvent(confirmedBookingIdsRef.current, bookingId)) return;
     trackBookingEvent("Vytvořena", selectedService?.slug ?? "unknown_service");
     trackMetaPixelStandardEvent("Schedule", {
       content_type: "service",
@@ -990,7 +989,7 @@ export function BookingFlow({
       content_category: selectedService?.categoryName,
       content_ids: selectedService ? [selectedService.slug] : undefined,
       duration_minutes: selectedService?.durationMinutes,
-    });
+    }, serverState.confirmation.metaEventId);
   }, [
     selectedService,
     selectedService?.categoryName,

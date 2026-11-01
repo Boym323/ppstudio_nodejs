@@ -135,6 +135,8 @@ Tento seznam zahrnuje i dříve schválená a později nahrazená rozhodnutí. A
 - `0116-public-media-route-handler-consolidation.md` — jeden bezpečnostně citlivý handler pro kanonické i legacy veřejné media URL.
 - `0117-release-quality-gates.md` — samostatný typecheck v release preflightu a testovací/E2E gate v CI.
 - `0118-fullcalendar-planner-autosave-v1.md` — jediný produkční planner s autosave.
+- `0119-meta-capi-schedule-outbox-v1.md` — měření `Schedule` přes Pixel a transakční PostgreSQL outbox (historické rozhodnutí, nahrazeno ADR 0120).
+- `0120-public-tracking-without-consent-gate.md` — veřejné trackery se řídí konfigurací bez cookie souhlasové brány.
 
 Poznámka:
 - Historicky existují duplicitní indexy (`0026`, `0090`). Ber to jako legacy stav, čísla zpětně nepřejmenovávat.

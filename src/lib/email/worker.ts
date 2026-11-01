@@ -9,6 +9,7 @@ import { deliverEmailLog } from "@/lib/email/delivery";
 import { getEmailWorkerStaleBefore } from "@/lib/email/booking-delivery-fence";
 import { prisma } from "@/lib/prisma";
 import { cleanupExpiredRateLimitReservations } from "@/lib/security/rate-limit-reservation-cleanup";
+import { runMetaConversionWorkerOnce } from "@/lib/analytics/meta-capi-worker";
 
 const WORKER_BATCH_SIZE = 10;
 const WORKER_IDLE_DELAY_MS = 5_000;
@@ -142,9 +143,17 @@ export async function startEmailDeliveryWorker() {
       nextRateLimitCleanupAt = now + RATE_LIMIT_CLEANUP_INTERVAL_MS;
     }
 
+    let processedMeta = 0;
+    try {
+      const metaResult = await runMetaConversionWorkerOnce();
+      processedMeta = metaResult.attempted;
+    } catch {
+      // Outbox zůstává uložený v PostgreSQL a worker jej zkusí zpracovat znovu.
+      console.error("Meta CAPI worker iteration failed");
+    }
     const processed = await runEmailDeliveryWorkerOnce();
 
-    if (processed === 0) {
+    if (processed === 0 && processedMeta === 0) {
       await new Promise((resolve) => setTimeout(resolve, WORKER_IDLE_DELAY_MS));
     }
   }

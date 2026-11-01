@@ -39,6 +39,8 @@ test("parseBookingAcquisitionCookie does not classify substring host matches as 
     utmSource: null,
     utmMedium: null,
     utmCampaign: null,
+    mtmContent: null,
+    mtmPlacement: null,
     referrerHost: "facebook.com.evil.example",
   });
 });
@@ -121,6 +123,49 @@ test("buildBookingAcquisitionCookieValue maps mtm params into acquisition fields
     utmSource: "instagram",
     utmMedium: "social",
     utmCampaign: "jaro-2026",
+    mtmContent: null,
+    mtmPlacement: null,
     referrerHost: null,
   });
+});
+
+test("booking acquisition keeps MTM content and placement but never persists fbclid", () => {
+  const cookieValue = buildBookingAcquisitionCookieValue({
+    pathname: "/rezervace",
+    search: "?utm_source=facebook&mtm_content=video-1&mtm_placement=stories&fbclid=click-secret",
+    hostname: "ppstudio.cz",
+    referrer: "",
+  });
+
+  assert.ok(cookieValue);
+  const decoded = decodeURIComponent(cookieValue);
+  const parsedPayload = JSON.parse(decoded) as { landingPath: string };
+
+  assert.equal(parsedPayload.landingPath.includes("fbclid"), false);
+  assert.deepEqual(parseBookingAcquisitionCookie(cookieValue), {
+    source: "FACEBOOK",
+    utmSource: "facebook",
+    utmMedium: null,
+    utmCampaign: null,
+    mtmContent: "video-1",
+    mtmPlacement: "stories",
+    referrerHost: null,
+  });
+});
+
+test("booking acquisition drops obvious contact data from campaign parameters", () => {
+  const cookieValue = buildBookingAcquisitionCookieValue({
+    pathname: "/rezervace",
+    search: "?utm_source=someone%40example.com&mtm_content=%2B420777123456&mtm_placement=instagram_story",
+    hostname: "ppstudio.cz",
+    referrer: "",
+  });
+
+  assert.ok(cookieValue);
+  const acquisition = parseBookingAcquisitionCookie(cookieValue);
+
+  assert.equal(acquisition.utmSource, null);
+  assert.equal(acquisition.mtmContent, null);
+  assert.equal(acquisition.mtmPlacement, "instagram_story");
+  assert.doesNotMatch(decodeURIComponent(cookieValue), /someone@example\.com|420777123456/i);
 });

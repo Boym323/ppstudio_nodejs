@@ -6,6 +6,18 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Přidáno
+
+- Veřejné měření `Schedule` propojuje Meta Pixel a Conversions API stabilním deduplikačním ID a odolnou databázovou frontou.
+
+### Změněno
+
+- Interní akvizice rezervací podporuje také `mtm_content` a `mtm_placement` a zahazuje `fbclid` i zjevné kontaktní údaje z kampaní.
+
+### Odstraněno
+
+- Cookie panel i souhlasové kontroly trackerů; měření se nyní řídí pouze konfigurací jednotlivých služeb.
+
 ## [3.38.2] - 2026-10-30
 
 ### Opraveno

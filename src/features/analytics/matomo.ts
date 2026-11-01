@@ -207,7 +207,11 @@ export function trackMatomoEvent(
   name?: string,
   value?: MatomoEventValue,
 ) {
-  if (typeof window === "undefined" || !isMatomoConfigured() || !window._paq) {
+  if (
+    typeof window === "undefined" ||
+    !isMatomoConfigured() ||
+    !window._paq
+  ) {
     return;
   }
 

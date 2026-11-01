@@ -1,6 +1,6 @@
 # Architektura PP Studio
 
-Tento dokument shrnuje architekturu aplikace a její hlavní provozní hranice. Při rozporu má přednost aktuální implementace; přesné verze závislostí určují `package.json` a `package-lock.json`. Přehled verzí níže byl ověřen vůči `package.json` dne 26. 10. 2026 (PP Studio `3.36.3`).
+Tento dokument shrnuje architekturu aplikace a její hlavní provozní hranice. Při rozporu má přednost aktuální implementace; přesné verze závislostí určují `package.json` a `package-lock.json`. Přehled verzí níže byl ověřen vůči `package.json` dne 1. 11. 2026 (PP Studio `3.38.2`).
 
 ## Přehled systému
 
@@ -100,6 +100,8 @@ Schéma je v [prisma/schema.prisma](prisma/schema.prisma#L1).
   - `acquisitionUtmSource`
   - `acquisitionUtmMedium`
   - `acquisitionUtmCampaign`
+  - `acquisitionMtmContent`
+  - `acquisitionMtmPlacement`
 - podporuje public i manual booking
 - podporuje cleanup blokaci přes `cleanupMinutes`, `cleanupBlockMinutes`, `blockedUntil`
 - podporuje voucher intent i individuální finální cenu
@@ -132,6 +134,13 @@ Schéma je v [prisma/schema.prisma](prisma/schema.prisma#L1).
 
 - audit veřejných booking pokusů a rate limitů
 
+`MetaConversionEvent`
+
+- transakční outbox veřejných událostí `Schedule`
+- stabilní unikátní `eventId` propojuje Pixel a CAPI; `bookingId` je unikátní vazba na zdrojovou rezervaci
+- claim používá lease token, retry/backoff a stavy `PENDING` / `PROCESSING` / `SENT` / `FAILED`
+- user-agent a případné Meta browser identifikátory se po dokončení nebo expiraci mažou
+
 `SiteSettings`
 
 - singleton s provozními kontakty, booking pravidly a e-mail brandingem
@@ -150,7 +159,7 @@ Veřejný formulář, jeho stav a validační kontrakt: [docs/BOOKING_FORM.md](d
 ## Booking a provozní dataflow
 
 1. Veřejný web načte katalog přes `src/features/booking/lib/booking-public/catalog.ts`.
-2. UTM/referrer metadata se uloží do cookie `ppstudio-booking-acq`.
+2. UTM/MTM/referrer metadata se uloží na 30 dní do cookie `ppstudio-booking-acq`; `fbclid` se do interní atribuce neukládá.
 3. Server action `createPublicBookingAction` validuje formulář, audit a rate limit.
 4. Booking engine v `booking-public/engine.ts`:
    - načte službu
@@ -160,6 +169,8 @@ Veřejný formulář, jeho stav a validační kontrakt: [docs/BOOKING_FORM.md](d
    - založí `Booking`
    - založí booking tokeny a `EmailLog` záznamy
 5. Podle `EMAIL_DELIVERY_MODE` se e-mail buď jen zaloguje, nebo zpracuje workerem.
+6. Pokud je CAPI nakonfigurované, transakce založí pro novou veřejnou rezervaci `MetaConversionEvent` se stejným náhodným ID jako Pixel.
+7. Stávající `ppstudio-email-worker` claimuje Meta outbox přes `FOR UPDATE SKIP LOCKED`, odesílá dávky s omezeným retry a po úspěchu maže uložené identifikátory.
 
 Booking doména je navržená tak, aby UI bylo v klientu, ale rozhodující business pravidla byla jen na serveru.
 
@@ -204,6 +215,8 @@ Implementace:
 
 ## Analytika: Matomo, UTM, Clarity, Meta Pixel, Google Ads
 
+Volitelná měření řídí jejich konfigurační přepínače; při zapnutí se veřejné trackery načítají bez cookie souhlasu. Provozní návod je v [docs/META_CONVERSIONS_API.md](docs/META_CONVERSIONS_API.md).
+
 ### Matomo
 
 Klientská vrstva:
@@ -223,7 +236,7 @@ Serverová vrstva:
 
 Implementace: [src/features/booking/lib/booking-acquisition.ts](src/features/booking/lib/booking-acquisition.ts#L1)
 
-- do cookie se ukládá landing path, referrer host a `utm_*` nebo `mtm_*`
+- na 30 dní se ukládá očištěný landing path, referrer host a `utm_*` nebo `mtm_*`; `fbclid` se do interních polí neukládá
 - při vytvoření rezervace se metadata propíší do `Booking`
 - zdroj se normalizuje na:
   - `DIRECT`
@@ -236,7 +249,8 @@ Implementace: [src/features/booking/lib/booking-acquisition.ts](src/features/boo
 ### Další trackery
 
 - Clarity: jen veřejný web, bez adminu a tokenových route
-- Meta Pixel: standardní funnel eventy bez PII
+- Meta Pixel: standardní funnel eventy bez PII; `Schedule` nese UUID, které CAPI používá ve stejné události pro deduplikaci
+- Meta CAPI: pouze veřejné `Schedule` po atomickém zápisu rezervace; transakční outbox sdílí stávající PostgreSQL a e-mail worker
 - Google Ads: pageview tracking přes App Router navigaci
 
 ## Role v adminu
