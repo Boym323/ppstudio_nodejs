@@ -136,7 +136,7 @@ describe("seo json-ld helpers", () => {
     ]);
   });
 
-  test("builds Service JSON-LD with offer, CZK currency and ISO duration", () => {
+  test("builds Service JSON-LD with CZK offer and without unsupported duration", () => {
     const jsonLd = buildServiceJsonLd(service, salonProfile);
     const serviceNode = jsonLd["@graph"][0] as {
       "@type": string;
