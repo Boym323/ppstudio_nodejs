@@ -8,6 +8,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Veřejný kontakt i JSON-LD salonu už nevydávají vypsané termíny za pravidelnou otevírací dobu ani kosmetické služby za skladovou dostupnost; pevnou cenu publikují jen při jednoznačné částce a Pavlínu propojují se salonem bez přisuzování firemních profilů její osobě.
+- JSON-LD detailů služeb už nepoužívá nepodporované `Service.duration`; délka ošetření zůstává dostupná v HTML. Sjednocena dokumentace, že `priceFromCzk` aktuálně představuje pevnou ceníkovou cenu, a doplněny regresní testy strukturovaných dat.
 - Mobilní plánovač zpřístupňuje celý časový rozsah až do 20:00 jediným posuvem stránky bez vnitřních svislých scrollovacích kontejnerů a umožňuje vybírat termíny dlouhým dotykem.
 
 ## [3.38.2] - 2026-10-30
