@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.38.3] - 2026-11-01
+
 ### Opraveno
 
 - Veřejný kontakt i JSON-LD salonu už nevydávají vypsané termíny za pravidelnou otevírací dobu ani kosmetické služby za skladovou dostupnost; pevnou cenu publikují jen při jednoznačné částce a Pavlínu propojují se salonem bez přisuzování firemních profilů její osobě.
