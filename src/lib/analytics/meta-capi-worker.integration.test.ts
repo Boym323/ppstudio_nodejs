@@ -35,6 +35,8 @@ dbTest("Meta CAPI worker retries the same event id and recovers stale claims wit
     data: {
       eventId,
       eventTime,
+      // Worker dostane cas `now` vytvoreny pred insertem; DB default now() by byl pozdejsi.
+      nextAttemptAt: new Date(now.getTime() - 1_000),
       eventSourceUrl: "http://127.0.0.1:3000/rezervace",
       userAgent: "Integration test browser",
       fbp: "fb.1.1793528132000.1234567890",
