@@ -29,12 +29,12 @@ Tichý startup readiness probe nepřidává závislost; používá stejný `curl
 
 ## Aktuální verze stacku
 
-Přímé verze níže byly porovnány s `package.json` k 27. 10. 2026 (PP Studio `3.38.0`); pro přesné resolved verze platí `package-lock.json`. Po dalších aktualizacích ověř oba soubory.
+Přímé verze hlavního stacku níže byly opět porovnány s `package.json` dne 2. 11. 2026 (PP Studio `3.38.3`); pro přesné resolved verze platí `package-lock.json`. Po dalších aktualizacích ověř oba soubory.
 - Zdroj pravdy je `package.json` v kořeni projektu.
 - Projektový runtime cíl je `Node 24 LTS`; repozitář to explicitně deklaruje přes [`.nvmrc`](../.nvmrc#L1) a `package.json.engines`.
 - `next`: `16.4.3`
 - `zod`: `^4.6.6` (lockfile: `4.6.7`, bezpečnostní oprava validace kolekcí).
-- `nodemailer`: `^10.1.6` (lockfile: `10.2.1`, opravy parsování adres).
+- `nodemailer`: `^10.3.1` (lockfile: `10.3.1`; další upgrady ověř podle manifestu a lockfilu).
 - Tranzitivní `fast-uri`: `3.1.9` (bezpečnostní opravy parsování URI; není přímá závislost v manifestu).
 - `react`: `19.3.1`
 - `react-dom`: `19.3.1`
@@ -44,15 +44,15 @@ Přímé verze níže byly porovnány s `package.json` k 27. 10. 2026 (PP Studio
 - `prisma`: `7.10.1`
 - `@prisma/client`: `7.10.1`
 - `@prisma/adapter-pg`: `7.10.1`
-- `@fullcalendar/react`: `^7.0.2` – jediný produkční planner dostupnosti s autosave.
-- `react-email`: `6.11.3` a `@react-email/ui`: `6.11.3` – HTML e-maily a vývojové preview.
+- `@fullcalendar/react`: `^7.0.2` (lockfile: `7.1.3`) – jediný produkční planner dostupnosti s autosave.
+- `react-email`: `6.11.6` a `@react-email/ui`: `6.11.6` – HTML e-maily a vývojové preview.
 - `@radix-ui/react-dialog`, `@radix-ui/react-alert-dialog`, `@radix-ui/react-dropdown-menu`, `@radix-ui/react-toast` – dialogy, drawery, menu a toast notifikace.
 - `@tanstack/react-table`: `^9.3.1` – administrační tabulky.
 - `recharts`: `^3.10.1` – grafy.
 - `package.json.allowScripts` na npm 11 vědomě whitelisuje install hooky pro `prisma`, `@prisma/engines`, `sharp`, `esbuild` a `unrs-resolver`. Záznamy jsou připnuté na konkrétní verze, aby se při upgradu znovu explicitně zrevidovalo, které postinstall/preinstall skripty repo pouští.
 - Historický lokální `npm audit` z 2. 7. 2026 hlásil `1 low` a `6 moderate` nálezů bez `high` / `critical`. **Jde o archivní výsledek**, nikoliv o aktuální bezpečnostní stav závislostí. Audit CI z 24. 10. 2026 na předchozím lockfilu odhalil `zod` (high), `nodemailer` (moderate) a `fast-uri` (moderate); opravy jsou zaznamenány výše. Aktuální nálezy ověř pomocí `npm audit --omit=dev --audit-level=high` v CI.
 - `npm audit fix` nespouštěj bez kontroly navržených změn manifestu a lockfilu; starší audit vracel i nekompatibilní návrhy zásahu do `next` a `prisma`. Případné upgrady ověř samostatným dependency passem.
-- `@playwright/test`: browser E2E test runner pro hlavní rezervační a admin flow; v projektu držíme `^1.63.0` (lockfile: `1.63.0`), protože starší `1.59.1` se v CI na Node 24 zasekávala při instalaci browseru.
+- `@playwright/test`: browser E2E test runner pro hlavní rezervační a admin flow; manifest drží `^1.63.0`, aktuální lockfile řeší `1.64.1`. Verze `1.59.1` v CI na Node 24 dříve způsobovala problém při instalaci browseru.
 - `@axe-core/playwright`: automatizovaná axe kontrola přístupnosti v reprezentativních Playwright scénářích veřejného webu, rezervace a administrace.
 - `c8`: V8 coverage reporter nad stávajícím `node --test` setupem; generuje HTML/LCOV/JSON reporty bez nutnosti přechodu na jiný test runner.
 - `react` a `react-dom` drž vždy na přesně stejné patch verzi. U Next.js/React serverového renderu repo nesmí přijmout jednostranný bump jen `react`, protože CI pak spadne na runtime kontrolu `Incompatible React versions`.
@@ -77,7 +77,7 @@ Přímé verze níže byly porovnány s `package.json` k 27. 10. 2026 (PP Studio
 - Ruční odesílání voucheru e-mailem nepřidává žádnou npm závislost; používá stávající `EmailLog` outbox, existující worker, `nodemailer` provider a worker-safe PDF core `src/features/vouchers/lib/voucher-pdf-core.ts`.
 - Dev generování e-mailových náhledů nepřidává žádnou npm závislost; `npm run email:previews` používá stávající `tsx`, Node `fs/promises` a existující renderer `renderEmailTemplate(...)`.
 - UX refaktor admin detailu voucheru nepřidává žádnou npm závislost; jde jen o přeskupení existujících serverových read modelů, klientského e-mailového panelu a Tailwind layoutu.
-- UX density pass admin planneru `Volné termíny` nepřidává žádnou npm závislost; jde čistě o úpravu existujících React/Tailwind komponent, layoutu toolbaru, pravého inspektoru a kontrastu gridu.
+- Aktuální FullCalendar planner `Volné termíny` nepřidává při úpravách hustoty UI novou npm závislost; používá stávající FullCalendar, React a Tailwind. Historický pravý inspektor byl odstraněn, proto není součástí současného editačního workflow.
 - Oprava fragmentace chained booking slotů pro admin planner nepřidává žádnou npm závislost; používá stávající Prisma transakce a sdílenou coverage logiku.
 - Repair helper `scripts/repair-legacy-chained-slots.mjs` nepřidává žádnou npm závislost; používá stávající `pg` driver a `DATABASE_URL`.
 - Oprava planner read modelu pro `CANCELLED` bookingy nepřidává žádnou npm závislost; jde jen o úpravu stávající Prisma/Tailwind admin vrstvy.

@@ -1,5 +1,8 @@
 # ADR 0033: Admin Manual Booking V1
 
+## Stav
+Neuvedeno v původním záznamu (historické ADR; aktuální stav rozhodnutí je nutné ověřit proti implementaci a novějším ADR).
+
 ## Kontext
 
 Salon v praxi nevytváří rezervace jen přes veřejný web. Část termínů vzniká telefonicky, přes Instagram, osobně nebo při opakované domluvě s klientkou na konci předchozí návštěvy.

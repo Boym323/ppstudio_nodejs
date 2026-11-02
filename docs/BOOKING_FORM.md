@@ -1,6 +1,6 @@
 # Rezervační formulář – současná implementace PP Studio
 
-> Aktualizováno proti zdrojovému kódu k verzi **3.36.1** dne 24. 10. 2026. Při rozporu má přednost implementace a `prisma/schema.prisma`. Tento dokument popisuje veřejný formulář; správa a publikování termínů jsou v [AVAILABILITY_PLANNER.md](AVAILABILITY_PLANNER.md), celý životní cyklus rezervace a e-mailů v [BOOKING_FLOW.md](../BOOKING_FLOW.md).
+> Hlavní kontrakty formuláře (vstup, kroky, serverový submit, validace a obnovování dostupnosti) znovu zkontrolovány proti `main` ve verzi **3.38.3** dne 2. 11. 2026. Při rozporu má přednost implementace a `prisma/schema.prisma`. Tento dokument popisuje veřejný formulář; správa a publikování termínů jsou v [AVAILABILITY_PLANNER.md](AVAILABILITY_PLANNER.md), celý životní cyklus rezervace a e-mailů v [BOOKING_FLOW.md](../BOOKING_FLOW.md).
 
 ## Cesty a vstupní data
 
@@ -16,7 +16,7 @@
 | --- | --- | --- |
 | Služba | [`service-step.tsx`](../src/features/booking/components/booking-flow/service-step.tsx), [`category-select.tsx`](../src/features/booking/components/category-select.tsx) | Kategorie, nabídka služby, délka a orientační cena, změna služby či předvýběr ze slugu |
 | Termín | [`term-step.tsx`](../src/features/booking/components/booking-flow/term-step.tsx) | Doporučené časy, kalendář dostupných dní, hodinové skupiny, fallback při nulové nabídce pro službu |
-| Doporučení | [`suggested-slots.tsx`](../src/features/booking/components/suggested-slots.tsx) | Výběr a zobrazení podmnožiny vhodných časů (nejvýše šest), nikoliv celá dostupnost |
+| Doporučení | [`suggested-slots.tsx`](../src/features/booking/components/suggested-slots.tsx) | Výběr a zobrazení podmnožiny vhodných časů (nejvýše čtyři na mobilu, šest na desktopu), nikoliv celá dostupnost |
 | Kontakt | [`contact-step.tsx`](../src/features/booking/components/booking-flow/contact-step.tsx) | Jméno, e-mail, nepovinný telefon, poznámka, voucher; inline chyby, `aria-describedby`, focus |
 | Souhrn / mobil | [`summary-sidebar.tsx`](../src/features/booking/components/booking-flow/summary-sidebar.tsx), [`sticky-cta.tsx`](../src/features/booking/components/sticky-cta.tsx) | Revize výběru, návrat k editaci, finální CTA „Odeslat rezervaci“ |
 | Výsledek | [`booking-confirmation-panel.tsx`](../src/features/booking/components/booking-confirmation-panel.tsx) | Výsledek založení požadavku, kontakt a odkazy pro správu rezervace |

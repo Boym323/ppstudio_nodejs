@@ -525,13 +525,24 @@ Při změně schématu dodrž standardní Prisma workflow: před migrací `npx p
 - CI používá testovací env hodnoty přímo ve workflow a e-maily drží v `EMAIL_DELIVERY_MODE=log`, aby browser a DB testy nevytvářely reálné SMTP side effects.
 - Repo-level enforcement zůstává mimo git: po přidání nebo přejmenování workflow ručně slad branch protection / rulesets a required status checks v GitHub nastavení repozitáře, jinak budou nové kontroly jen informativní. Required checks hlavního CI mají mířit na přesné GitHub job names `lint`, `typecheck`, `test`, `build`, `e2e`, `e2e chromium shard 2`, `e2e mobile (mobile-chrome)`, `e2e mobile (mobile-safari)`, `e2e mobile shard 2 (mobile-chrome)` a `e2e mobile shard 2 (mobile-safari)`; `coverage` sem nepatří, protože samostatný status check nevytváří.
 
+## Slučování klientů — implementace z PR #101
+
+Aktuální technický kontrakt je v [`CLIENT_MERGE.md`](CLIENT_MERGE.md). Produkční owner UI, transakce a e-mailová ochrana patří do společného workflow, nikoli do samostatného opravného skriptu.
+
+- `AdminClientMergeForm` v detailu klienta je k dispozici pouze roli `OWNER`. Server action `mergeClientProfilesAction` používá `requireAdminArea("owner")`, Zod, 15minutový podepsaný náhled JWT a kontrolu aktuálnosti fingerprintu.
+- `client-merge.ts` používá Serializable DB transakci a řádkové zámky pro profily, rezervace a navázané logy. Kontroluje probíhající odesílání a delivery lease, přenáší vazby rezervací i historie, zajišťuje nový jmenný/telefonní snapshot aktivních budoucích termínů a aktualizuje čekající e-mailové payloady.
+- Změna e-mailu zdrojové rezervace vede k bezpečné rotaci klientských akčních tokenů a přípravě náhradního potvrzení. E-mailový preflight odmítá zastaralé jméno; pozdní failure webhook po uzavření incidentu nesmí vyvolat duplicitní upozornění.
+- Původní profil se archivuje se značkou `CLIENT_MERGE_AUDIT_MARKER` a auditním snapshotem v `internalNote`; administrace nepodporuje automatické vrácení sloučení.
+- `npm run db:merge-duplicate-client` má výchozí dry-run a **zápis pouze mimo produkci** při `EMAIL_DELIVERY_MODE=log` a dalších explicitních kontrolách. Nesmí se používat jako obecný produkční nástroj.
+- Integrační testy slučování a e-mailového outboxu používají `--experimental-test-module-mocks`; chybějící Node `t.mock.module` je chyba testu, nikoli důvod k jeho tichému přeskočení.
+
 ## Admin Informační Architektura
 - Sekce `volne-terminy` je znovu aktivní jako týdenní planner nad 30min gridem.
 - Serverový read/persistence model je v `src/features/admin/lib/admin-slots.ts`.
 - Server action adaptéry planneru jsou v `src/features/admin/actions/slot-planner-actions.ts`.
 - Jediným produkčním UI je FullCalendar: serverový wrapper `AdminWeeklyPlannerPage` používá klientský kalendář `AdminWeeklyPlannerClient` pro OWNER i SALON. Soubory si kvůli kontinuitě historie zatím ponechávají původní název `*-lab-*`; nejde o samostatný experimentální workflow ani veřejnou route.
 - `src/components/layout/admin-shell.tsx` je klientský kvůli mobilnímu draweru sidebaru; desktop shell zůstává záměrně úzký, aby většina šířky patřila planner gridu.
-- Pravý panel planneru je akční inspektor dne; na menších breakpointech se otevírá jako `MobileInspectorSheet`.
+- Produkční FullCalendar nepoužívá pravý inspektor dne ani `MobileInspectorSheet`. Režim Prohlížení/Přidat/Odebrat a stav FIFO autosave jsou součástí horní lišty; mobil používá denní pohled, posuv celé stránky a dlouhý dotyk pro výběr rozsahu. Současný kontrakt viz [`AVAILABILITY_PLANNER.md`](AVAILABILITY_PLANNER.md).
 - `src/config/navigation.ts` drží centrální definici admin sekcí, slugů a navigace pro obě role.
 - `src/features/admin/components/admin-sidebar-nav.tsx` je klientská navigace s aktivním stavem podle pathname.
 - Sdílené admin sekce pro `OWNER` i `SALON` zahrnují také `vouchery`; pokud se přidává detail, tvorba nebo čerpání voucheru, zachovej paralelní URL tvar `/admin/vouchery/*` a `/admin/provoz/vouchery/*`, pokud role nemá být záměrně omezená.
@@ -588,7 +599,7 @@ Při změně schématu dodrž standardní Prisma workflow: před migrací `npx p
 - `Service.cleanupMinutes` je interní provozní metadata služby s validací nezáporných celých minut; při vytvoření/přesunu rezervace se snapshotuje do `Booking.cleanupMinutes` a `Booking.cleanupBlockMinutes` (zaokrouhlení nahoru na 15 minut).
 - Booking dostupnost a kolize používají interní interval `scheduledStartsAt -> blockedUntil`, ale klientský termín i veřejné texty zůstávají `scheduledStartsAt -> scheduledEndsAt` bez zmínky o úklidu.
 - Při výběru termínu musí publikované okno pokrýt jen samotnou službu; cleanup blokace může přetéct za konec slotu. Backend kolize ale dál musí používat `blockedUntil`, aby se navazující slot nebo dodatečně publikované okno nenabídly dřív, než interní blokace opravdu skončí.
-- Totéž pravidlo drž i planner read model v `src/features/admin/lib/admin-slots/queries.ts`: `availableIntervals` se musí odečítat proti všem booking blokacím překrývajícím slot, ne jen proti bookingům se stejným `slotId`, jinak inspektor dne ukáže falešné `Volné okno` po cleanup overflowu do sousedního slotu.
+- Totéž pravidlo drž i planner read model v `src/features/admin/lib/admin-slots/queries.ts`: `availableIntervals` se musí odečítat proti všem booking blokacím překrývajícím slot, ne jen proti bookingům se stejným `slotId`, jinak FullCalendar/read model může vykázat falešné `Volné okno` po přesahu úklidu do sousedního slotu.
 - Totéž pravidlo drž i admin dashboard read model v `src/features/admin/lib/admin-dashboard.ts`: sekce `Nejbližší volné termíny` nesmí zobrazit začátek slotu jen proto, že `slot.bookings.length < capacity`; musí odečíst všechny blokace `scheduledStartsAt -> blockedUntil` překrývající publikované sloty a navazující volné intervaly sloučit do stejných souvislých oken, jaká vidí planner.
 - Po zrušení rezervace přes klientský token i přes admin změnu stavu systém nově spouští post-cancel kompaktaci slotů: pokud se kolem zrušeného bookingu dotýkají sousední běžné publikované editable fragmenty a žádný z nich už nemá aktivní rezervaci, helper `src/features/booking/lib/booking-slot-compaction.ts` je sloučí zpět do jednoho souvislého slotu a případné historické `CANCELLED` booking vazby přesune na anchor slot.
 - FullCalendar planner zobrazuje úklid a rezervace jako samostatné události nad 30min mřížkou; read model proto dál posílá `cleanupBlocks` v minutách od začátku planner dne.

@@ -1,5 +1,8 @@
 # ADR 0107: Tokenovaný claim a idempotence e-mailového outboxu
 
+## Stav
+Neuvedeno v původním záznamu (historické ADR; aktuální stav rozhodnutí je nutné ověřit proti implementaci a novějším ADR).
+
 ## Kontext
 
 `EmailLog` už při claimu vytvářel `processingToken`, ale doručení jej nekontrolovalo. Zastaralý nebo paralelní caller proto mohl zapsat výsledek cizího claimu a dva cally mohly poslat stejný e-mail. Po ACK poskytovatele a před DB zápisem navíc nelze z databáze poznat, zda zpráva odešla.

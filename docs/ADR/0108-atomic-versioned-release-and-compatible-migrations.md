@@ -1,5 +1,8 @@
 # 0108: Atomický verzovaný release a kompatibilní migrace
 
+## Stav
+Neuvedeno v původním záznamu (historické ADR; aktuální stav rozhodnutí je nutné ověřit proti implementaci a novějším ADR).
+
 ## Kontext
 
 Původní rollout vyměňoval jen `.next` a `node_modules`, zatímco checkout zůstal po `git pull` nový. E-mail worker se ale spouští přes `tsx` přímo ze zdrojových TypeScript souborů. Selhání buildu nebo startu tedy mohlo kombinovat starý runtime s novým schématem databáze nebo s novými zdroji workeru.
