@@ -255,7 +255,8 @@ Plný seznam proměnných a detailní vysvětlení je v `docs/ENVIRONMENT.md`.
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): release checklist a nasazení
 - [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md): přehled hlavních závislostí
 - [docs/INCIDENTS.md](docs/INCIDENTS.md): provozní incidenty a jejich řešení
-- [docs/audits/2026-11-02-documentation-main-reality.md](docs/audits/2026-11-02-documentation-main-reality.md): cílené porovnání dokumentace s `main`, včetně historických výjimek
+- [docs/audits/2026-11-02-documentation-main-reality.md](docs/audits/2026-11-02-documentation-main-reality.md): první cílené porovnání dokumentace s `main`
+- [docs/audits/2026-11-02-documentation-full.md](docs/audits/2026-11-02-documentation-full.md): úplný statický audit Markdown dokumentace, konzistence příkazů, odkazů, verzí a ADR
 - [docs/ADR/README.md](docs/ADR/README.md): architektonická rozhodnutí
 
 ## Nasazení

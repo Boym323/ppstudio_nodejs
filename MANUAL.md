@@ -359,8 +359,8 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](docs/API.md).
   - `SALON` vidí jen provozní sekce a jednodušší copy bez technických pojmů
 - Přesun termínu má pro `OWNER` i `SALON` stejné chování; role mění jen administrativní cestu, ne business logiku reschedule flow.
 - Filtrační lišta sekce `Služby` je na desktopu sticky a zůstává během scrollu po ruce; horní statistiky jsou záměrně menší, aby nepřebíraly roli hlavního obsahu. Scope běžného katalogu se v toolbaru komunikuje jen přes malé pill stavy typu `Běžný katalog` a `Systémové skryté`.
-- Sekce `Volné termíny / Týdenní plán dostupností` drží grid-first provozní workflow: horní hlavička je nízká, datum týdne se ukazuje jen v planner toolbaru a pravý panel je zhuštěný do bloků `Inspektor dne` a `Detail výběru`.
-- V planneru má legenda stavů zůstat sekundární a sbalená u detailu výběru; čitelnost času se zvyšuje spíš kontrastem levé osy, jemným zvýrazněním celých hodin a jasnějším selected stavem než dalšími vysvětlovacími kartami.
+- Sekce `Volné termíny` má jediný produkční FullCalendar pro `OWNER` i `SALON`. Navigace, režimy úprav, stav autosave a legenda jsou přímo nad kalendářem; historický pravý panel `Inspektor dne` ani `Detail výběru` již v aktuálním UI neexistují.
+- Legenda současného planneru je pod horními ovladači, oddělená od výběru rozsahu; při vizuálních úpravách zachovej čitelnost hodin a barevné rozlišení dostupnosti, rezervací a ochranných bloků.
 - `CANCELLED` rezervace už v týdenním planneru nemá působit jako barevná nebo editační překážka. Historie zrušené rezervace se zachová v archivovaném slotu na pozadí, ale samotná mřížka má pro obsluhu ukazovat jen reálně důležitou dostupnost, aktivní rezervace a omezení.
 - Týdenní planner dostupností a veřejná booking service vrstva jsou po stabilizačním refaktoru modulární i v kódu, ale bez změny URL, exportů nebo databázového modelu.
 - Prisma schema v1 už pokrývá:
