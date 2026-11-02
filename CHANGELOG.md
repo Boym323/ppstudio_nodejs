@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Změněno
+
+- Vlastník může sloučit duplicitní klientské profily po porovnání obou profilů a výběru jména a telefonu. Formulář jasně uvádí, jaké jméno bude po sloučení na zachovaném profilu, a předvolí ponechání jeho současného jména. Systém ověřuje aktuálnost náhledu, zachovává audit a historii komunikace, obnoví odkazy dotčených rezervací a chrání archivovaný profil před opětovným použitím. Doručené náhradní potvrzení včetně jeho opakovaného odeslání uzavírá související incidenty původních zpráv, i když jejich selhání dorazí dodatečně.
+
 ## [3.38.3] - 2026-11-01
 
 ### Opraveno

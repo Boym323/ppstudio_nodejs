@@ -150,6 +150,7 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
   const originalTransaction = prisma.$transaction;
   const originalWebhookCreateMany = prisma.emailProviderWebhookEvent.createMany;
   const originalWebhookUpdateMany = prisma.emailProviderWebhookEvent.updateMany;
+  const originalHistoryFindMany = prisma.bookingStatusHistory.findMany;
   const originalExecuteRaw = prisma.$executeRaw;
   const originalFetch = globalThis.fetch;
   const updates: unknown[] = [];
@@ -178,6 +179,7 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
     return { count: 1 };
   }) as typeof prisma.emailProviderWebhookEvent.createMany;
   prisma.emailProviderWebhookEvent.updateMany = (async () => ({ count: 1 })) as typeof prisma.emailProviderWebhookEvent.updateMany;
+  prisma.bookingStatusHistory.findMany = (async () => []) as typeof prisma.bookingStatusHistory.findMany;
   prisma.$executeRaw = (async () => 1) as typeof prisma.$executeRaw;
   prisma.$transaction = (async (callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma)) as unknown as typeof prisma.$transaction;
   globalThis.fetch = (async () => {
@@ -240,6 +242,7 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
     prisma.emailLog.update = originalUpdate;
     prisma.emailProviderWebhookEvent.createMany = originalWebhookCreateMany;
     prisma.emailProviderWebhookEvent.updateMany = originalWebhookUpdateMany;
+    prisma.bookingStatusHistory.findMany = originalHistoryFindMany;
     prisma.$executeRaw = originalExecuteRaw;
     prisma.$transaction = originalTransaction;
     globalThis.fetch = originalFetch;

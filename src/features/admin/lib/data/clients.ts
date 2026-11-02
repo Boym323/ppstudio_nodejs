@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { isMergedClientProfile } from "@/features/clients/lib/client-merge-marker";
 
 export async function getManualBookingClientById(clientId: string) {
   const client = await prisma.client.findUnique({
@@ -15,7 +16,7 @@ export async function getManualBookingClientById(clientId: string) {
     },
   });
 
-  if (!client) {
+  if (!client || isMergedClientProfile(client)) {
     return null;
   }
 
