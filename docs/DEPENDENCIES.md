@@ -29,7 +29,7 @@ Tichý startup readiness probe nepřidává závislost; používá stejný `curl
 
 ## Aktuální verze stacku
 
-Přímé verze hlavního stacku níže byly opět porovnány s `package.json` dne 2. 11. 2026 (PP Studio `3.38.3`); pro přesné resolved verze platí `package-lock.json`. Po dalších aktualizacích ověř oba soubory.
+Přímé verze hlavního stacku níže byly opět porovnány s `package.json` dne 2. 11. 2026 (PP Studio `3.39.0`); pro přesné resolved verze platí `package-lock.json`. Po dalších aktualizacích ověř oba soubory.
 - Zdroj pravdy je `package.json` v kořeni projektu.
 - Projektový runtime cíl je `Node 24 LTS`; repozitář to explicitně deklaruje přes [`.nvmrc`](../.nvmrc#L1) a `package.json.engines`.
 - `next`: `16.4.3`

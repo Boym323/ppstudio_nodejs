@@ -1,6 +1,6 @@
 # Volné termíny – admin planner a propojení s rezervacemi
 
-> Hlavní kontrakty plánovače znovu ověřeny proti kódu `main` dne 2. 11. 2026 (PP Studio **3.38.3**). Při rozporu platí kód a [Prisma schéma](../prisma/schema.prisma). Výběr a odeslání termínu klientkou popisuje [BOOKING_FORM.md](BOOKING_FORM.md); stavové přechody a e-maily [BOOKING_FLOW.md](../BOOKING_FLOW.md).
+> Hlavní kontrakty plánovače znovu ověřeny proti kódu `main` dne 2. 11. 2026 (PP Studio **3.39.0**). Při rozporu platí kód a [Prisma schéma](../prisma/schema.prisma). Výběr a odeslání termínu klientkou popisuje [BOOKING_FORM.md](BOOKING_FORM.md); stavové přechody a e-maily [BOOKING_FLOW.md](../BOOKING_FLOW.md).
 
 ## Co tato sekce dělá
 

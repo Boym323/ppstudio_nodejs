@@ -1,6 +1,6 @@
 # Rezervační formulář – současná implementace PP Studio
 
-> Hlavní kontrakty formuláře (vstup, kroky, serverový submit, validace a obnovování dostupnosti) znovu zkontrolovány proti `main` ve verzi **3.38.3** dne 2. 11. 2026. Při rozporu má přednost implementace a `prisma/schema.prisma`. Tento dokument popisuje veřejný formulář; správa a publikování termínů jsou v [AVAILABILITY_PLANNER.md](AVAILABILITY_PLANNER.md), celý životní cyklus rezervace a e-mailů v [BOOKING_FLOW.md](../BOOKING_FLOW.md).
+> Hlavní kontrakty formuláře (vstup, kroky, serverový submit, validace a obnovování dostupnosti) znovu zkontrolovány proti `main` ve verzi **3.39.0** dne 2. 11. 2026. Při rozporu má přednost implementace a `prisma/schema.prisma`. Tento dokument popisuje veřejný formulář; správa a publikování termínů jsou v [AVAILABILITY_PLANNER.md](AVAILABILITY_PLANNER.md), celý životní cyklus rezervace a e-mailů v [BOOKING_FLOW.md](../BOOKING_FLOW.md).
 
 ## Cesty a vstupní data
 

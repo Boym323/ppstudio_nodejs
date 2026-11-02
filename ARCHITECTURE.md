@@ -1,6 +1,6 @@
 # Architektura PP Studio
 
-Tento dokument shrnuje architekturu aplikace a její hlavní provozní hranice. Při rozporu má přednost aktuální implementace; přesné verze závislostí určují `package.json` a `package-lock.json`. Přehled hlavních verzí níže byl znovu porovnán s `package.json` na větvi `main` dne 2. 11. 2026 (PP Studio `3.38.3`). Při dalším upgradu má přednost aktuální manifest a lockfile.
+Tento dokument shrnuje architekturu aplikace a její hlavní provozní hranice. Při rozporu má přednost aktuální implementace; přesné verze závislostí určují `package.json` a `package-lock.json`. Přehled hlavních verzí níže byl znovu porovnán s `package.json` na větvi `main` dne 2. 11. 2026 (PP Studio `3.39.0`). Při dalším upgradu má přednost aktuální manifest a lockfile.
 
 ## Přehled systému
 

@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.39.0] - 2026-11-02
+
 ### Opraveno
 
 - Sloučení klientských profilů nyní sjednotí jméno v aktivních budoucích rezervacích a čekajících potvrzeních, zachová původní snapshoty v auditu a po uzavření merge incidentu už neposílá duplicitní upozornění na opožděné failure webhooky. Při zpracování klientského e-mailu dotčené rezervace sloučení dočasně zablokuje, aby změna jména nezpůsobila přeskočení čekající zprávy.
