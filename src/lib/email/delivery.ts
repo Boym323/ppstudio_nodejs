@@ -95,6 +95,7 @@ function usesClientBookingDeliveryFence(emailLog: {
 type ClientBookingDeliveryBooking = {
   status: BookingStatus;
   clientEmailSnapshot: string;
+  clientNameSnapshot: string;
   communicationGeneration: number;
   clientDeliveryLeaseToken: string | null;
   clientDeliveryLeaseExpiresAt: Date | null;
@@ -127,6 +128,7 @@ function evaluateClientBookingDelivery(
     templateKey: emailLog.templateKey,
     payload: emailLog.payload,
     booking,
+    checkClientName: true,
   });
 
   if (!bookingEmailPreflight.shouldSend) {
@@ -201,6 +203,7 @@ async function authorizeClientBookingDelivery(
       select: {
         status: true,
         clientEmailSnapshot: true,
+        clientNameSnapshot: true,
         communicationGeneration: true,
         clientDeliveryLeaseToken: true,
         clientDeliveryLeaseExpiresAt: true,
@@ -418,6 +421,7 @@ export async function deliverEmailLog(
       select: {
         status: true,
         clientEmailSnapshot: true,
+        clientNameSnapshot: true,
         communicationGeneration: true,
         clientDeliveryLeaseToken: true,
         clientDeliveryLeaseExpiresAt: true,
@@ -535,6 +539,7 @@ export async function deliverEmailLog(
           select: {
             status: true,
             clientEmailSnapshot: true,
+            clientNameSnapshot: true,
             communicationGeneration: true,
             clientDeliveryLeaseToken: true,
             clientDeliveryLeaseExpiresAt: true,

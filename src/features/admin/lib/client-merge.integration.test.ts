@@ -31,7 +31,7 @@ const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
 dbTest("náhled chrání směr sloučení, kontakty, audit, pozdní webhook i starý výběr klientky", async (t) => {
   const databaseHost = new URL(process.env.DATABASE_URL!).hostname;
   assert.ok(["localhost", "127.0.0.1", "::1"].includes(databaseHost), "Test vyžaduje izolovanou lokální databázi.");
-  if (typeof t.mock.module !== "function") return t.skip("Vyžaduje --experimental-test-module-mocks.");
+  assert.equal(typeof t.mock?.module, "function", "Integrační test vyžaduje --experimental-test-module-mocks.");
 
   const { prisma } = await import("@/lib/prisma");
   const suffix = randomUUID();
@@ -171,8 +171,10 @@ dbTest("náhled chrání směr sloučení, kontakty, audit, pozdní webhook i st
   assert.equal(savedTarget.phone, source.phone);
   assert.match(savedTarget.internalNote ?? "", /Poznámka zdroje/);
   assert.equal(savedBooking.clientId, target.id);
+  assert.equal(savedBooking.clientNameSnapshot, source.fullName);
   assert.equal(savedBooking.clientEmailSnapshot, correctEmail);
   assert.equal(savedBooking.clientPhoneSnapshot, source.phone);
+  assert.equal(savedTargetBooking.clientNameSnapshot, source.fullName);
   assert.equal(savedTargetBooking.clientPhoneSnapshot, source.phone);
   assert.ok(revoked.revokedAt);
   const audit = JSON.parse(savedSource.internalNote!.split(CLIENT_MERGE_AUDIT_MARKER)[1]!);
@@ -180,6 +182,7 @@ dbTest("náhled chrání směr sloučení, kontakty, audit, pozdní webhook i st
   assert.equal(audit.sourceBefore.phone, source.phone);
   assert.equal(audit.targetBefore.phone, null);
   assert.ok(audit.bookingBefore.some((booking: { id: string }) => booking.id === sourceBooking.id));
+  assert.ok(audit.bookingBefore.some((booking: { id: string; clientNameSnapshot: string }) => booking.id === sourceBooking.id && booking.clientNameSnapshot === "Veronika"));
   assert.ok(audit.bookingBefore.some((booking: { id: string; clientPhoneSnapshot: string | null }) => booking.id === targetBooking.id && booking.clientPhoneSnapshot === null));
   assert.equal((await prisma.bookingSubmissionLog.findUniqueOrThrow({ where: { id: submission.id } })).clientId, target.id);
   const archivedDetail = await getAdminClientDetailData("owner", source.id);
@@ -198,11 +201,12 @@ dbTest("náhled chrání směr sloučení, kontakty, audit, pozdní webhook i st
   const replacement = await prisma.emailLog.findFirstOrThrow({ where: { bookingId: sourceBooking.id, clientId: target.id, status: EmailLogStatus.PENDING, type: EmailLogType.BOOKING_CONFIRMED } });
   assert.ok(audit.createdEmailLogIds.includes(replacement.id));
   assert.equal(replacement.recipientEmail, correctEmail);
+  const notifications: string[] = [];
   await prisma.emailLog.update({ where: { id: replacement.id }, data: { status: EmailLogStatus.SENT, providerMessageId: `replacement-${suffix}` } });
   const webhook = (type: string, providerMessageId: string, id: string) => applyResendWebhookEvent({
     event: { type, created_at: new Date().toISOString(), data: { email_id: providerMessageId } },
     providerEventId: `${id}-${suffix}`,
-    notifyDeliveryIssue: async () => undefined,
+    notifyDeliveryIssue: async ({ emailLogId }) => { notifications.push(emailLogId); },
   });
   await webhook("email.bounced", `early-${suffix}`, "event-early");
   assert.equal((await prisma.emailLog.findUniqueOrThrow({ where: { id: oldEarly.id } })).incidentResolvedAt, null);
@@ -213,11 +217,25 @@ dbTest("náhled chrání směr sloučení, kontakty, audit, pozdní webhook i st
   assert.ok((await prisma.emailLog.findUniqueOrThrow({ where: { id: oldBounce.id } })).incidentResolvedAt);
   assert.ok((await prisma.emailLog.findUniqueOrThrow({ where: { id: oldEarly.id } })).incidentResolvedAt);
   assert.ok((await prisma.emailLog.findUniqueOrThrow({ where: { id: oldConcurrent.id } })).incidentResolvedAt);
+  assert.ok(notifications.every((emailLogId) => [oldEarly.id, oldConcurrent.id].includes(emailLogId)));
+  const notificationsAfterReplacement = notifications.length;
   await webhook("email.bounced", `late-${suffix}`, "event-late");
   const savedLate = await prisma.emailLog.findUniqueOrThrow({ where: { id: oldLate.id } });
   assert.ok(savedLate.incidentResolvedAt);
   assert.equal(savedLate.incidentResolvedByEmailLogId, replacement.id);
   assert.equal(savedLate.recipientEmail, oldEmail);
+  await webhook("email.failed", `late-${suffix}`, "event-late-failed");
+  await webhook("email.suppressed", `late-${suffix}`, "event-late-suppressed");
+  assert.equal(notifications.length, notificationsAfterReplacement);
+  const newIncident = await prisma.emailLog.create({ data: {
+    clientId: target.id, bookingId: targetBooking.id, type: EmailLogType.BOOKING_CONFIRMED,
+    audience: EmailAudience.CLIENT, status: EmailLogStatus.SENT, recipientEmail: correctEmail,
+    subject: "Nový incident", templateKey: "booking-approved-v1", provider: "resend",
+    providerMessageId: `new-incident-${suffix}`,
+  } });
+  await webhook("email.failed", `new-incident-${suffix}`, "event-new-incident");
+  assert.equal(notifications.length, notificationsAfterReplacement + 1);
+  assert.equal(notifications.at(-1), newIncident.id);
   assert.equal((await prisma.emailLog.findUniqueOrThrow({ where: { id: unrelated.id } })).incidentResolvedAt, null);
 
   await assert.rejects(() => createManualBooking({
@@ -251,4 +269,72 @@ dbTest("sloučení profilu bez rezervací zachová audit i původní kontakty", 
   assert.equal(audit.sourceBefore.phone, source.phone);
   assert.equal(audit.targetBefore.phone, target.phone);
   assert.deepEqual(audit.bookingBefore, []);
+});
+
+dbTest("volba jména cílového profilu sjednotí aktivní snapshoty a čekající potvrzení", async (t) => {
+  assert.equal(typeof t.mock?.module, "function", "Integrační test vyžaduje --experimental-test-module-mocks.");
+  const [{ prisma }, { loadClientMergePreview }, { mergeClientProfiles }] = await Promise.all([
+    import("@/lib/prisma"), import("./client-merge-preview"), import("./client-merge"),
+  ]);
+  const suffix = randomUUID();
+  const category = await prisma.serviceCategory.create({ data: { name: `Jméno merge ${suffix}`, slug: `merge-name-${suffix}` } });
+  const service = await prisma.service.create({ data: { categoryId: category.id, name: `Služba merge ${suffix}`, slug: `merge-name-service-${suffix}`, durationMinutes: 60 } });
+  const source = await prisma.client.create({ data: { fullName: `Zdrojové jméno ${suffix}`, email: `merge-name-source-${suffix}@example.test`, phone: "+420777000111" } });
+  const target = await prisma.client.create({ data: { fullName: `Cílové jméno ${suffix}`, email: `merge-name-target-${suffix}@example.test`, phone: "+420777000222" } });
+  const now = new Date();
+  const futureStart = new Date(now.getTime() + 7 * 86400000);
+  const historicalStart = new Date(now.getTime() - 7 * 86400000);
+  const slots = await Promise.all([futureStart, historicalStart].map((startsAt) => prisma.availabilitySlot.create({
+    data: { startsAt, endsAt: new Date(startsAt.getTime() + 3600000), status: AvailabilitySlotStatus.PUBLISHED },
+  })));
+  const sourceBooking = await prisma.booking.create({ data: {
+    clientId: source.id, slotId: slots[0]!.id, serviceId: service.id, status: BookingStatus.CONFIRMED,
+    clientNameSnapshot: source.fullName, clientEmailSnapshot: source.email!, clientPhoneSnapshot: source.phone,
+    serviceNameSnapshot: service.name, serviceDurationMinutes: 60, scheduledStartsAt: futureStart, scheduledEndsAt: new Date(futureStart.getTime() + 3600000),
+  } });
+  const targetBooking = await prisma.booking.create({ data: {
+    clientId: target.id, slotId: slots[1]!.id, serviceId: service.id, status: BookingStatus.COMPLETED,
+    clientNameSnapshot: `Historické jméno ${suffix}`, clientEmailSnapshot: target.email!, clientPhoneSnapshot: target.phone,
+    serviceNameSnapshot: service.name, serviceDurationMinutes: 60, scheduledStartsAt: historicalStart, scheduledEndsAt: new Date(historicalStart.getTime() + 3600000),
+  } });
+  const targetFutureSlot = await prisma.availabilitySlot.create({ data: { startsAt: new Date(futureStart.getTime() + 86400000), endsAt: new Date(futureStart.getTime() + 86400000 + 3600000), status: AvailabilitySlotStatus.PUBLISHED } });
+  const targetFutureBooking = await prisma.booking.create({ data: {
+    clientId: target.id, slotId: targetFutureSlot.id, serviceId: service.id, status: BookingStatus.PENDING,
+    clientNameSnapshot: target.fullName, clientEmailSnapshot: target.email!, clientPhoneSnapshot: target.phone,
+    serviceNameSnapshot: service.name, serviceDurationMinutes: 60, scheduledStartsAt: targetFutureSlot.startsAt, scheduledEndsAt: targetFutureSlot.endsAt,
+  } });
+  const pendingTargetEmail = await prisma.emailLog.create({ data: {
+    clientId: target.id, bookingId: targetFutureBooking.id, type: EmailLogType.BOOKING_RECEIVED,
+    audience: EmailAudience.CLIENT, status: EmailLogStatus.PENDING, recipientEmail: target.email!, subject: "Čekající potvrzení",
+    templateKey: "booking-confirmation-v1", payload: { clientName: target.fullName, scheduledStartsAt: targetFutureBooking.scheduledStartsAt.toISOString(), scheduledEndsAt: targetFutureBooking.scheduledEndsAt.toISOString() },
+  } });
+
+  try {
+    const preview = await loadClientMergePreview(source.id, target.id);
+    assert.ok(preview);
+    await mergeClientProfiles({
+      sourceClientId: source.id, targetClientId: target.id, actorUserId: null,
+      expectedSourceEmail: source.email!, expectedTargetEmail: target.email!, expectedFingerprint: preview.fingerprint,
+      nameChoice: "target", phoneChoice: "target",
+    });
+    const [savedSourceBooking, savedTargetBooking, savedHistorical, savedPending, replacement] = await Promise.all([
+      prisma.booking.findUniqueOrThrow({ where: { id: sourceBooking.id } }),
+      prisma.booking.findUniqueOrThrow({ where: { id: targetFutureBooking.id } }),
+      prisma.booking.findUniqueOrThrow({ where: { id: targetBooking.id } }),
+      prisma.emailLog.findUniqueOrThrow({ where: { id: pendingTargetEmail.id } }),
+      prisma.emailLog.findFirstOrThrow({ where: { bookingId: sourceBooking.id, clientId: target.id, status: EmailLogStatus.PENDING, type: EmailLogType.BOOKING_CONFIRMED } }),
+    ]);
+    assert.equal(savedSourceBooking.clientNameSnapshot, target.fullName);
+    assert.equal(savedTargetBooking.clientNameSnapshot, target.fullName);
+    assert.equal(savedHistorical.clientNameSnapshot, `Historické jméno ${suffix}`);
+    assert.equal((savedPending.payload as { clientName: string }).clientName, target.fullName);
+    assert.equal((replacement.payload as { clientName: string }).clientName, target.fullName);
+  } finally {
+    await prisma.emailLog.deleteMany({ where: { bookingId: { in: [sourceBooking.id, targetBooking.id, targetFutureBooking.id] } } });
+    await prisma.booking.deleteMany({ where: { id: { in: [sourceBooking.id, targetBooking.id, targetFutureBooking.id] } } });
+    await prisma.availabilitySlot.deleteMany({ where: { id: { in: [...slots.map((slot) => slot.id), targetFutureSlot.id] } } });
+    await prisma.client.deleteMany({ where: { id: { in: [source.id, target.id] } } });
+    await prisma.service.delete({ where: { id: service.id } });
+    await prisma.serviceCategory.delete({ where: { id: category.id } });
+  }
 });

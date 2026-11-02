@@ -290,6 +290,7 @@ async function createConfirmedManualBooking(
     startsAt,
     endsAt,
     email: `worker-${seed}@example.com`,
+    fullName: `Worker klientka ${seed}`,
   };
 }
 
@@ -346,7 +347,7 @@ function buildBookingEmailPayload(
     bookingId: fixture.bookingId,
     serviceId: fixture.serviceId,
     serviceName: `Worker service ${fixture.bookingId}`,
-    clientName: `Worker klientka ${fixture.bookingId}`,
+    clientName: fixture.fullName,
     scheduledStartsAt: fixture.startsAt.toISOString(),
     scheduledEndsAt: fixture.endsAt.toISOString(),
     previousStartsAt: addMinutes(fixture.startsAt, -60).toISOString(),
@@ -831,7 +832,7 @@ dbTest("resend aktuálního FAILED booking e-mailu vydá nové tokeny a nový pa
         payload: {
           bookingId: fixture.bookingId,
           serviceName: `Worker service ${fixture.bookingId}`,
-          clientName: `Worker klientka ${fixture.bookingId}`,
+          clientName: fixture.fullName,
           scheduledStartsAt: fixture.startsAt.toISOString(),
           scheduledEndsAt: fixture.endsAt.toISOString(),
           manageReservationUrl: "[REDACTED]",

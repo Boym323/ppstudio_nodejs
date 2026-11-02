@@ -8,6 +8,7 @@ import { Prisma } from "@/generated/prisma/client";
 export type BookingEmailPreflightBooking = {
   status: BookingStatus;
   serviceId: string;
+  clientNameSnapshot?: string;
   scheduledStartsAt: Date;
   scheduledEndsAt: Date;
 };
@@ -73,6 +74,14 @@ function matchesService(payload: unknown, booking: BookingEmailPreflightBooking)
   return serviceId === null || serviceId === booking.serviceId;
 }
 
+function matchesClientName(payload: unknown, booking: BookingEmailPreflightBooking) {
+  const clientName = readPayloadString(payload, "clientName");
+
+  // Legacy payloads without a name remain deliverable; all newly generated
+  // canonical payloads carry the snapshot and are checked strictly.
+  return clientName === null || booking.clientNameSnapshot === undefined || clientName === booking.clientNameSnapshot;
+}
+
 function isClientBookingTemplate(templateKey: string) {
   return [
     "booking-confirmation-v1",
@@ -118,12 +127,14 @@ export function evaluateBookingEmailPreflight({
   templateKey,
   payload,
   booking,
+  checkClientName = false,
 }: {
   type: EmailLogType;
   audience: EmailAudience;
   templateKey: string;
   payload: unknown;
   booking: BookingEmailPreflightBooking | null;
+  checkClientName?: boolean;
 }): BookingEmailPreflightResult {
   if (
     audience !== EmailAudience.CLIENT
@@ -143,6 +154,13 @@ export function evaluateBookingEmailPreflight({
     return {
       shouldSend: false,
       reason: "Booking service no longer matches the email.",
+    };
+  }
+
+  if (checkClientName && !matchesClientName(payload, booking)) {
+    return {
+      shouldSend: false,
+      reason: "Booking client name no longer matches the email.",
     };
   }
 

@@ -7,7 +7,10 @@ import {
   Prisma,
 } from "@/generated/prisma/client";
 
-import { rotateClientBookingTokensForEmailChange } from "@/features/admin/lib/client-contact-token-rotation";
+import {
+  refreshPendingClientBookingEmailNames,
+  rotateClientBookingTokensForEmailChange,
+} from "@/features/admin/lib/client-contact-token-rotation";
 import { loadClientMergePreview } from "@/features/admin/lib/client-merge-preview";
 import { normalizeClientEmail } from "@/features/booking/lib/booking-public";
 import { CLIENT_MERGE_AUDIT_MARKER } from "@/features/clients/lib/client-merge-marker";
@@ -75,10 +78,17 @@ export async function mergeClientProfiles(input: {
         ORDER BY "id" FOR UPDATE
       `);
     }
+    // Čekající zprávy cíle nesmí worker převzít mezi kontrolou claimu
+    // a aktualizací jejich jména. Rezervace už jsou zamčené výše.
     await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
       SELECT "id" FROM "EmailLog"
       WHERE "clientId" = ${source.id}
       ${bookingIds.length > 0 ? Prisma.sql`OR "bookingId" IN (${Prisma.join(bookingIds)})` : Prisma.empty}
+      ${allBookingIds.length > 0 ? Prisma.sql`OR (
+        "bookingId" IN (${Prisma.join(allBookingIds)})
+        AND "audience" = ${EmailAudience.CLIENT}
+        AND "status" = ${EmailLogStatus.PENDING}
+      )` : Prisma.empty}
       ORDER BY "id" FOR UPDATE
     `);
     await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
@@ -107,6 +117,7 @@ export async function mergeClientProfiles(input: {
           clientId: true,
           status: true,
           scheduledStartsAt: true,
+          clientNameSnapshot: true,
           clientEmailSnapshot: true,
           clientPhoneSnapshot: true,
           communicationGeneration: true,
@@ -147,7 +158,19 @@ export async function mergeClientProfiles(input: {
     if (sourceEmailLogs.some((log) => log.status === EmailLogStatus.PENDING || log.processingStartedAt !== null)) {
       throw new ClientMergeError("Profil má e-mail ve frontě nebo právě zpracovávaný. Počkejte na dokončení a zkuste sloučení znovu.");
     }
-    if (bookings.some((booking) => booking.clientDeliveryLeaseExpiresAt && booking.clientDeliveryLeaseExpiresAt > now)) {
+    const processingClientEmail = await tx.emailLog.findFirst({
+      where: {
+        bookingId: { in: activeFutureBookings.map((booking) => booking.id) },
+        audience: EmailAudience.CLIENT,
+        status: EmailLogStatus.PENDING,
+        OR: [{ processingStartedAt: { not: null } }, { processingToken: { not: null } }],
+      },
+      select: { id: true },
+    });
+    if (processingClientEmail) {
+      throw new ClientMergeError("U některé rezervace právě probíhá zpracování e-mailu. Počkejte na dokončení a zkuste sloučení znovu.");
+    }
+    if (activeFutureBookings.some((booking) => booking.clientDeliveryLeaseExpiresAt && booking.clientDeliveryLeaseExpiresAt > now)) {
       throw new ClientMergeError("U některé rezervace právě probíhá autorizované odesílání. Zkuste to později.");
     }
     if (sourceEmailLogs.some((log) => log.clientId && log.clientId !== source.id)
@@ -182,13 +205,17 @@ export async function mergeClientProfiles(input: {
 
     const selectedPhone = input.phoneChoice === "source" ? source.phone : target.phone;
     const selectedName = input.nameChoice === "source" ? source.fullName : target.fullName;
+    const nameChangedBookingIds = activeFutureBookings
+      .filter((booking) => booking.clientNameSnapshot !== selectedName)
+      .map((booking) => booking.id);
     const phoneChangedBookingIds = activeFutureBookings
       .filter((booking) => (booking.clientPhoneSnapshot ?? null) !== (selectedPhone ?? null))
       .map((booking) => booking.id);
-    if (phoneChangedBookingIds.length > 0) {
+    const changedBookingIds = [...new Set([...nameChangedBookingIds, ...phoneChangedBookingIds])];
+    if (changedBookingIds.length > 0) {
       await tx.booking.updateMany({
-        where: { id: { in: phoneChangedBookingIds } },
-        data: { clientPhoneSnapshot: selectedPhone },
+        where: { id: { in: changedBookingIds } },
+        data: { clientNameSnapshot: selectedName, clientPhoneSnapshot: selectedPhone },
       });
     }
 
@@ -200,6 +227,10 @@ export async function mergeClientProfiles(input: {
         now,
       });
     }
+    await refreshPendingClientBookingEmailNames(tx, {
+      bookingIds: activeFutureBookings.map((booking) => booking.id),
+      clientName: selectedName,
+    });
 
     const mergedNote = source.internalNote?.trim()
       ? `Sloučený profil ${source.fullName} (${source.email ?? "bez e-mailu"}):\n${source.internalNote.trim()}`
@@ -271,7 +302,11 @@ export async function mergeClientProfiles(input: {
       },
     });
 
-    const historyBookings = allBookings.filter((booking) => booking.clientId === source.id || phoneChangedBookingIds.includes(booking.id));
+    const historyBookings = allBookings.filter((booking) => (
+      booking.clientId === source.id
+      || phoneChangedBookingIds.includes(booking.id)
+      || nameChangedBookingIds.includes(booking.id)
+    ));
     if (historyBookings.length > 0) {
       await tx.bookingStatusHistory.createMany({
         data: historyBookings.map((booking) => ({
