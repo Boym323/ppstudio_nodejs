@@ -58,6 +58,7 @@ async function resolveMergedBookingIncidents(
     select: { metadata: true },
   });
   let resolved = 0;
+  let closed = 0;
   for (const item of history) {
     const metadata = item.metadata;
     if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) continue;
@@ -82,6 +83,10 @@ async function resolveMergedBookingIncidents(
       orderBy: [{ trackingDeliveredAt: "desc" }, { id: "desc" }],
     });
     if (!replacement) continue;
+    // Náhradní potvrzení mohlo incident uzavřít už před příchodem tohoto
+    // opožděného webhooku. V takovém případě je třeba potlačit pouze nové
+    // upozornění, nikoli znovu měnit auditní stav.
+    closed += 1;
     const matchingRoots = eventType === "email.delivered" ? rootIds : [eventRootId];
     if (matchingRoots.length === 0) continue;
     const updated = await tx.emailLog.updateMany({
@@ -94,7 +99,7 @@ async function resolveMergedBookingIncidents(
     });
     resolved += updated.count;
   }
-  return resolved;
+  return { resolved, closed };
 }
 
 export async function verifyResendWebhookPayload(input: {
@@ -265,8 +270,8 @@ async function applyStoredResendWebhookEvent(tx: WebhookTransaction, input: {
   }
 
   if (emailLog.bookingId && relevantMergeEvent) {
-    const resolved = await resolveMergedBookingIncidents(tx, emailLog.bookingId, emailLog.id, emailLog.resendRootId ?? emailLog.id, eventType);
-    if (resolved > 0 && eventType !== "email.delivered") shouldNotifyDeliveryIssue = false;
+    const mergeResolution = await resolveMergedBookingIncidents(tx, emailLog.bookingId, emailLog.id, emailLog.resendRootId ?? emailLog.id, eventType);
+    if (mergeResolution.closed > 0 && eventType !== "email.delivered") shouldNotifyDeliveryIssue = false;
   }
 
   return {

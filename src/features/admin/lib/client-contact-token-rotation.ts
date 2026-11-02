@@ -25,6 +25,47 @@ import {
   assertNoActiveClientDeliveryLease,
 } from "@/lib/email/booking-delivery-fence";
 
+const CLIENT_BOOKING_EMAIL_TYPES = [
+  EmailLogType.BOOKING_RECEIVED,
+  EmailLogType.BOOKING_CONFIRMED,
+  EmailLogType.BOOKING_REMINDER,
+  EmailLogType.BOOKING_CANCELLED,
+  EmailLogType.BOOKING_RESCHEDULED,
+] as const;
+
+function updateClientNameInEmailPayload(payload: Prisma.JsonValue | null, clientName: string): Prisma.InputJsonObject {
+  if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+    return { ...payload, clientName };
+  }
+
+  return { clientName };
+}
+
+/** Aktualizuje pouze neodeslané klientské booking payloady po změně jména snapshotu. */
+export async function refreshPendingClientBookingEmailNames(
+  tx: Prisma.TransactionClient,
+  input: { bookingIds: string[]; clientName: string },
+) {
+  if (input.bookingIds.length === 0) return;
+
+  const pendingLogs = await tx.emailLog.findMany({
+    where: {
+      bookingId: { in: input.bookingIds },
+      audience: EmailAudience.CLIENT,
+      status: EmailLogStatus.PENDING,
+      type: { in: [...CLIENT_BOOKING_EMAIL_TYPES] },
+    },
+    select: { id: true, payload: true },
+  });
+
+  for (const emailLog of pendingLogs) {
+    await tx.emailLog.update({
+      where: { id: emailLog.id },
+      data: { payload: updateClientNameInEmailPayload(emailLog.payload, input.clientName) },
+    });
+  }
+}
+
 async function systemSkipPendingClientEmailLog(
   tx: Prisma.TransactionClient,
   emailLog: { id: string; payload: Prisma.JsonValue | null },
@@ -264,6 +305,7 @@ export async function rotateClientBookingTokensForEmailChange(
         templateKey: emailLog.templateKey,
         payload: emailLog.payload,
         booking,
+        checkClientName: true,
       }).shouldSend;
     });
     const reminderWindowPosition = getBookingReminder24hEnqueueWindowPosition(
@@ -288,6 +330,7 @@ export async function rotateClientBookingTokensForEmailChange(
             templateKey: emailLog.templateKey,
             payload: emailLog.payload,
             booking,
+            checkClientName: true,
           }).shouldSend && evaluateBookingReminderDelivery({
             bookingStatus: booking.status,
             reminder24hSentAt: booking.reminder24hSentAt,

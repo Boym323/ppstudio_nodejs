@@ -23,10 +23,7 @@ const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
 
 for (const profileAlreadyCorrect of [false, true]) {
 dbTest(`oprava kontaktu propojí resend s incidentem a uzavře jej až po doručení (profil ${profileAlreadyCorrect ? "již správný" : "s chybnou adresou"})`, async (t) => {
-  if (typeof t.mock.module !== "function") {
-    t.skip("Vyžaduje --experimental-test-module-mocks.");
-    return;
-  }
+  assert.equal(typeof t.mock?.module, "function", "Integrační test vyžaduje --experimental-test-module-mocks.");
   t.mock.module("@/lib/auth/session", { exports: { requireAdminArea: async () => ({ email: "owner@example.com" }) } });
   t.mock.module("next/cache", { exports: { revalidatePath: () => undefined } });
   const [{ prisma }, { updateClientContactAction }, { applyResendWebhookEvent }] = await Promise.all([
