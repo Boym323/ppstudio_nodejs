@@ -101,7 +101,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.63.0",
-    "@react-email/ui": "6.11.3",
+    "@react-email/ui": "6.11.6",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26.1.2",
     "@types/nodemailer": "^8.0.1",
