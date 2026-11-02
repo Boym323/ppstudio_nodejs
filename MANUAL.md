@@ -703,7 +703,7 @@ npm run db:clear-booking-data -- --confirm
   - detail klientky ukazuje kontakty, poslední a budoucí termín, nejčastější službu a posledních 10 rezervací
   - interní poznámka se upravuje přímo v detailu klientky a po uložení se propisuje do obou admin oblastí
   - vlastník může z detailu duplicitního profilu otevřít `Sloučit duplicitní profil`, zadat e-mail profilu, který má zůstat, a v náhledu porovnat jméno, kontakty a rezervace obou profilů. Formulář výslovně popisuje výsledné jméno na zachovaném profilu a jako výchozí ponechává jeho současné jméno; telefon se vybírá samostatně. Před potvrzením opíše e-mail archivovaného profilu; pokud se údaje mezitím změní, je nutné načíst nový náhled. Sloučení přesune rezervace a historii, zachová audit původních údajů a u dotčených budoucích rezervací připraví nové potvrzení na zachovanou adresu. Archivovaný profil odkazuje na zachovaný a nelze jej použít pro novou rezervaci; automatické vrácení sloučení v administraci není dostupné.
-  - Detailní technická pravidla sloučení klientských profilů a e-mailů je nutné ověřit v příslušných server actions a doménové vrstvě.
+  - Technický popis, bezpečnostní pravidla, e-mailové dopady a neprodukční DB nástroj jsou v [`docs/CLIENT_MERGE.md`](docs/CLIENT_MERGE.md).
 - Sekce `Přístupy` je nyní vyhrazená jen pro `OWNER` na `/admin/uzivatele`:
   - obrazovka je rozdělená na hlavní blok `Seznam přístupů` a vedlejší read-only blok `Přehled rolí`
   - systém používá pouze dvě role `OWNER` a `SALON`; neexistuje žádná role `ADMIN`

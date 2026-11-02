@@ -34,6 +34,15 @@
 ## Co audit nedokazuje
 Statická existence souboru/routy/konfigurace nedokazuje funkčnost produkční DB, loginu, doručování e-mailu, voucher PDF, kalendářového feedu, provozních proxy pravidel ani skutečné rendering/SEO chování. Doporučené navazující ověření: CI pro výsledný commit, produkční smoke test, ruční QA s oběma rolemi a samostatný kontrolovaný bezpečnostní audit konfigurace serveru.
 
+## Synchronizace po PR #101 — 2. 11. 2026
+
+- PR #100 byl aktualizován na `main` commit `90389a54d30b529d9f35ab2e9559ea05726a1d03`, který obsahuje PR #101. Původní inventura a výsledky statické kontroly výše zůstávají historickým snímkem.
+- Nová funkcionalita slučování klientů je doložena přímo v `src/features/admin/lib/client-merge.ts`, `client-merge-preview.ts`, `client-merge-actions.ts`, `client-contact-token-rotation.ts`, `src/lib/email/booking-preflight.ts`, `delivery.ts` a `resend-webhooks.ts`.
+- Nový návod [`CLIENT_MERGE.md`](../CLIENT_MERGE.md) popisuje uživatelské oprávnění OWNER, 15minutový JWT náhledu, Serializable ochranu, auditní archivaci profilu, úpravy booking snapshotů a neodeslaných e-mailů a bezpečné hranice neprodukčního CLI.
+- Návod ke sloučení v `MANUAL.md`, přidaný na `main` v PR #101, byl při merge zachován. `package.json` zůstává ve verzi `3.38.3`, nové změny jsou v `CHANGELOG.md` pod `Unreleased`.
+- Integrační test runner vyžaduje `--experimental-test-module-mocks`, aby bezpečnostní testy nebyly tiše přeskočeny. Po každém novém dokumentačním commitu znovu vyhodnoť CI a diff vůči `main`.
+- Ověřeny byly kódové kontrakty a Git historie, nikoli produkční databáze, skutečné doručování e-mailů nebo běžící server.
+
 ## Údržba
 - Každý nový provozní postup musí být ověřen proti aktuálnímu zdrojovému kódu, nikoli vyvozen z historických ADR nebo changelogu.
 - Pokud se mění závislosti, synchronizovat `docs/DEPENDENCIES.md` podle **manifestu i resolved verze v lockfilu**.

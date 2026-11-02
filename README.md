@@ -254,6 +254,7 @@ Plný seznam proměnných a detailní vysvětlení je v `docs/ENVIRONMENT.md`.
 - [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md): úplný katalog env proměnných
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): release checklist a nasazení
 - [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md): přehled hlavních závislostí
+- [docs/CLIENT_MERGE.md](docs/CLIENT_MERGE.md): aktuální kontrakt slučování klientů včetně e-mailového outboxu a bezpečného neprodukčního nástroje
 - [docs/INCIDENTS.md](docs/INCIDENTS.md): provozní incidenty a jejich řešení
 - [docs/audits/2026-11-02-documentation-main-reality.md](docs/audits/2026-11-02-documentation-main-reality.md): první cílené porovnání dokumentace s `main`
 - [docs/audits/2026-11-02-documentation-full.md](docs/audits/2026-11-02-documentation-full.md): úplný statický audit Markdown dokumentace, konzistence příkazů, odkazů, verzí a ADR

@@ -525,6 +525,17 @@ Při změně schématu dodrž standardní Prisma workflow: před migrací `npx p
 - CI používá testovací env hodnoty přímo ve workflow a e-maily drží v `EMAIL_DELIVERY_MODE=log`, aby browser a DB testy nevytvářely reálné SMTP side effects.
 - Repo-level enforcement zůstává mimo git: po přidání nebo přejmenování workflow ručně slad branch protection / rulesets a required status checks v GitHub nastavení repozitáře, jinak budou nové kontroly jen informativní. Required checks hlavního CI mají mířit na přesné GitHub job names `lint`, `typecheck`, `test`, `build`, `e2e`, `e2e chromium shard 2`, `e2e mobile (mobile-chrome)`, `e2e mobile (mobile-safari)`, `e2e mobile shard 2 (mobile-chrome)` a `e2e mobile shard 2 (mobile-safari)`; `coverage` sem nepatří, protože samostatný status check nevytváří.
 
+## Slučování klientů — implementace z PR #101
+
+Aktuální technický kontrakt je v [`CLIENT_MERGE.md`](CLIENT_MERGE.md). Produkční owner UI, transakce a e-mailová ochrana patří do společného workflow, nikoli do samostatného opravného skriptu.
+
+- `AdminClientMergeForm` v detailu klienta je k dispozici pouze roli `OWNER`. Server action `mergeClientProfilesAction` používá `requireAdminArea("owner")`, Zod, 15minutový podepsaný náhled JWT a kontrolu aktuálnosti fingerprintu.
+- `client-merge.ts` používá Serializable DB transakci a řádkové zámky pro profily, rezervace a navázané logy. Kontroluje probíhající odesílání a delivery lease, přenáší vazby rezervací i historie, zajišťuje nový jmenný/telefonní snapshot aktivních budoucích termínů a aktualizuje čekající e-mailové payloady.
+- Změna e-mailu zdrojové rezervace vede k bezpečné rotaci klientských akčních tokenů a přípravě náhradního potvrzení. E-mailový preflight odmítá zastaralé jméno; pozdní failure webhook po uzavření incidentu nesmí vyvolat duplicitní upozornění.
+- Původní profil se archivuje se značkou `CLIENT_MERGE_AUDIT_MARKER` a auditním snapshotem v `internalNote`; administrace nepodporuje automatické vrácení sloučení.
+- `npm run db:merge-duplicate-client` má výchozí dry-run a **zápis pouze mimo produkci** při `EMAIL_DELIVERY_MODE=log` a dalších explicitních kontrolách. Nesmí se používat jako obecný produkční nástroj.
+- Integrační testy slučování a e-mailového outboxu používají `--experimental-test-module-mocks`; chybějící Node `t.mock.module` je chyba testu, nikoli důvod k jeho tichému přeskočení.
+
 ## Admin Informační Architektura
 - Sekce `volne-terminy` je znovu aktivní jako týdenní planner nad 30min gridem.
 - Serverový read/persistence model je v `src/features/admin/lib/admin-slots.ts`.
