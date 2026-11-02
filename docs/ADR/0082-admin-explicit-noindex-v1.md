@@ -1,5 +1,8 @@
 # ADR 0082: Admin explicit noindex v1
 
+## Stav
+Neuvedeno v původním záznamu (historické ADR; aktuální stav rozhodnutí je nutné ověřit proti implementaci a novějším ADR).
+
 ## Context
 
 - Administrace je neveřejná část aplikace chráněná session a už blokovaná v `robots.txt`.

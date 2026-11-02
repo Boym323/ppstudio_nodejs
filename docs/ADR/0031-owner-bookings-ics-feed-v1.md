@@ -1,5 +1,8 @@
 # ADR 0031: Owner Bookings ICS Feed V1
 
+## Stav
+Neuvedeno v původním záznamu (historické ADR; aktuální stav rozhodnutí je nutné ověřit proti implementaci a novějším ADR).
+
 ## Kontext
 
 Majitelka potřebuje vidět potvrzené rezervace v Apple Kalendáři na iPhonu a Macu, ale nechceme:

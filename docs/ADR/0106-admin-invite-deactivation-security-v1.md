@@ -1,5 +1,8 @@
 # ADR 0106: Deaktivace administrátora revokuje pozvánky atomicky
 
+## Stav
+Neuvedeno v původním záznamu (historické ADR; aktuální stav rozhodnutí je nutné ověřit proti implementaci a novějším ADR).
+
 ## Kontext
 
 Veřejná action pro nastavení hesla dříve po ověření pozvánky bezpodmínečně zapisovala `AdminUser.isActive = true`. Účet deaktivovaný ownerem se tak mohl držitelem dosud nepoužitého odkazu znovu aktivovat. Oddělené čtení a zápis navíc dovolovalo souběžné použití téhož tokenu.

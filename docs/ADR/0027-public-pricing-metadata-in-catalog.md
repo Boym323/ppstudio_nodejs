@@ -1,5 +1,8 @@
 # ADR 0027: Veřejná pricing metadata patří přímo do katalogu služeb a kategorií
 
+## Stav
+Neuvedeno v původním záznamu (historické ADR; aktuální stav rozhodnutí je nutné ověřit proti implementaci a novějším ADR).
+
 ## Kontext
 
 Po redesignu `/cenik` jsme měli přesnější layout, ale pořád jsme drželi badge, krátké pricing popisy, layout kategorií a public názvy v lokálních mapách podle `slug`.

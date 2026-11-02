@@ -1,5 +1,8 @@
 # ADR 0081: Public FAQ SEO content v2
 
+## Stav
+Neuvedeno v původním záznamu (historické ADR; aktuální stav rozhodnutí je nutné ověřit proti implementaci a novějším ADR).
+
 ## Context
 
 - FAQ stránka už měla vhodný vizuální styl i tematické sekce, ale část odpovědí byla příliš obecná pro klientku, která se rozhoduje před první návštěvou.
