@@ -40,6 +40,7 @@ try {
     PPSTUDIO_INTEGRATION_FIXTURES: "1",
   });
   await run(process.execPath, [
+    "--experimental-test-module-mocks",
     "--import", "./src/test/register-server-only.mjs",
     "--import", "tsx",
     "--test", "--test-concurrency=1", "src/**/*.integration.test.ts",

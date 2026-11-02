@@ -161,3 +161,17 @@ test("legacy client payload without serviceId remains compatible", () => {
 
   assert.equal(result.shouldSend, true);
 });
+
+test("client booking email rejects a stale client name snapshot", () => {
+  const result = evaluateBookingEmailPreflight({
+    type: EmailLogType.BOOKING_CONFIRMED,
+    audience: EmailAudience.CLIENT,
+    templateKey: "booking-approved-v1",
+    payload: payload({ clientName: "Staré jméno" }),
+    booking: { ...booking, clientNameSnapshot: "Nové jméno" },
+    checkClientName: true,
+  });
+
+  assert.equal(result.shouldSend, false);
+  assert.match(result.reason ?? "", /client name/i);
+});

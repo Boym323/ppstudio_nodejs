@@ -1,6 +1,7 @@
 import { BookingStatus, Prisma } from "@/generated/prisma/client";
 
 import { type AdminArea } from "@/config/navigation";
+import { CLIENT_MERGE_AUDIT_MARKER, isMergedClientProfile, mergedClientTargetId } from "@/features/clients/lib/client-merge-marker";
 import {
   clientListSearchParamsSchema,
   normalizeClientListPage,
@@ -664,6 +665,8 @@ export type AdminClientDetailData = {
   phoneValue: string;
   phoneHref: string | null;
   isActive: boolean;
+  isMerged: boolean;
+  mergedTargetHref: string | null;
   statusLabel: string;
   createdAtLabel: string;
   updatedAtLabel: string;
@@ -866,6 +869,9 @@ export async function getAdminClientDetailData(
   const normalizedEmail = normalizeEmailHref(client.email);
   const emailValue = client.email ?? "";
   const phoneValue = client.phone ? formatClientPhoneForDisplay(client.phone) : "";
+  const isMerged = isMergedClientProfile(client);
+  const mergedTargetId = mergedClientTargetId(client);
+  const auditIndex = client.internalNote?.indexOf(CLIENT_MERGE_AUDIT_MARKER) ?? -1;
 
   return {
     id: client.id,
@@ -878,6 +884,8 @@ export async function getAdminClientDetailData(
     phoneValue,
     phoneHref: normalizedPhone,
     isActive: client.isActive,
+    isMerged,
+    mergedTargetHref: mergedTargetId ? `${area === "owner" ? "/admin/klienti" : "/admin/provoz/klienti"}/${encodeURIComponent(mergedTargetId)}` : null,
     statusLabel: client.isActive ? "Aktivní" : "Neaktivní",
     createdAtLabel: formatDateTimeLabel(client.createdAt),
     updatedAtLabel: formatDateTimeLabel(client.updatedAt),
@@ -892,7 +900,7 @@ export async function getAdminClientDetailData(
     upcomingBookings,
     favoriteServiceName: favoriteService[0]?.serviceNameSnapshot ?? "Zatím bez historie",
     crmSummary: getClientCrmSummary(crmBookings, { now }),
-    internalNote: client.internalNote ?? "",
+    internalNote: auditIndex >= 0 ? (client.internalNote ?? "").slice(0, auditIndex).trimEnd() : client.internalNote ?? "",
     bookings: client.bookings.map((booking) => ({
       id: booking.id,
       serviceName: booking.serviceNameSnapshot,

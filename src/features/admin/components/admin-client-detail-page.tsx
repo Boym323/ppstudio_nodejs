@@ -6,6 +6,7 @@ import { type AdminClientDetailData } from "@/features/admin/lib/admin-clients";
 import { cn } from "@/lib/utils";
 
 import { AdminClientContactForm } from "./admin-client-contact-form";
+import { AdminClientMergeForm } from "./admin-client-merge-form";
 import { AdminClientNoteForm } from "./admin-client-note-form";
 import { AdminPanel } from "./admin-page-shell";
 
@@ -23,6 +24,11 @@ export function AdminClientDetailPage({ data }: AdminClientDetailPageProps) {
   return (
     <div className="min-w-0 space-y-4">
       <ClientDetailHeader data={data} />
+      {data.isMerged ? (
+        <AdminPanel title="Profil byl sloučen" description="Rezervace a komunikace jsou dostupné u zachovaného profilu." compact>
+          {data.mergedTargetHref ? <Link href={data.mergedTargetHref} className="text-sm text-[var(--color-accent-soft)] underline underline-offset-4">Otevřít zachovaný profil</Link> : <p className="text-sm text-white/70">Zachovaný profil se nepodařilo určit.</p>}
+        </AdminPanel>
+      ) : <>
       <ClientKpiCards data={data} />
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
@@ -34,16 +40,31 @@ export function AdminClientDetailPage({ data }: AdminClientDetailPageProps) {
         <aside className="space-y-4">
           <ClientContactCard data={data} />
           <ClientOverviewCard data={data} />
+          {data.area === "owner" && data.isActive && data.emailValue ? (
+            <AdminPanel
+              title="Sloučit duplicitní profil"
+              description="Pouze pro vlastníka. Tento profil bude archivován a jeho záznamy se přesunou do cílového profilu."
+              compact
+              denseHeader
+            >
+              <AdminClientMergeForm
+                clientId={data.id}
+                fullName={data.fullName}
+                email={data.emailValue}
+              />
+            </AdminPanel>
+          ) : null}
           <ClientProfileMetadata data={data} />
         </aside>
       </div>
+      </>}
     </div>
   );
 }
 
 function ClientDetailHeader({ data }: { data: AdminClientDetailData }) {
   const listHref = data.area === "owner" ? "/admin/klienti" : "/admin/provoz/klienti";
-  const createBookingHref = buildCreateBookingHref(data.area, data.id);
+  const createBookingHref = data.isMerged ? null : buildCreateBookingHref(data.area, data.id);
 
   return (
     <section className="rounded-[1.25rem] border border-white/10 bg-white/6 p-4 backdrop-blur-xl sm:p-4">

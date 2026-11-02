@@ -8,6 +8,7 @@ import {
 import { revalidatePath } from "next/cache";
 
 import { type AdminArea } from "@/config/navigation";
+import { CLIENT_MERGE_AUDIT_MARKER, isMergedClientProfile } from "@/features/clients/lib/client-merge-marker";
 import { type UpdateClientContactActionState } from "@/features/admin/actions/update-client-contact-action-state";
 import { type UpdateClientNoteActionState } from "@/features/admin/actions/update-client-note-action-state";
 import { createResendEmailLog } from "@/features/admin/actions/email-log-resend";
@@ -100,12 +101,19 @@ export async function updateClientNoteAction(
     };
   }
 
-  await prisma.client.update({
-    where: { id: client.id },
+  if (parsed.data.internalNote?.includes(CLIENT_MERGE_AUDIT_MARKER)) {
+    return { status: "error", formError: "Poznámka obsahuje vyhrazenou značku sloučeného profilu." };
+  }
+  const updated = await prisma.client.updateMany({
+    where: {
+      id: client.id,
+      OR: [{ internalNote: null }, { NOT: { internalNote: { contains: CLIENT_MERGE_AUDIT_MARKER } } }],
+    },
     data: {
       internalNote: parsed.data.internalNote || null,
     },
   });
+  if (updated.count !== 1) return { status: "error", formError: "Sloučený profil nelze upravovat. Otevřete zachovaný profil." };
 
   revalidateClientPaths(client.id);
 
@@ -213,12 +221,13 @@ export async function updateClientContactAction(
       `);
       const currentClient = await tx.client.findUnique({
         where: { id: client.id },
-        select: { id: true, email: true, phone: true },
+        select: { id: true, email: true, phone: true, isActive: true, internalNote: true },
       });
 
       if (!currentClient) {
         throw new Error("Client disappeared during contact update.");
       }
+      if (isMergedClientProfile(currentClient)) throw new Error("CLIENT_ALREADY_MERGED");
 
       if (incidentEmailLogId) normalizedPhone = currentClient.phone;
 
@@ -371,6 +380,9 @@ export async function updateClientContactAction(
           : "Kontakt je uložený.",
     };
   } catch (error) {
+    if (error instanceof Error && error.message === "CLIENT_ALREADY_MERGED") {
+      return { status: "error", formError: "Sloučený profil nelze upravovat. Otevřete zachovaný profil." };
+    }
     if (error instanceof Error && error.message === "EMAIL_RECIPIENT_UNCHANGED") {
       return { status: "error", formError: "Zadejte opravenou e-mailovou adresu.", fieldErrors: { email: "Adresa se neliší od příjemce nedoručeného e-mailu." } };
     }
