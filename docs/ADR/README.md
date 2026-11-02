@@ -137,4 +137,5 @@ Tento seznam zahrnuje i dříve schválená a později nahrazená rozhodnutí. A
 - `0118-fullcalendar-planner-autosave-v1.md` — jediný produkční planner s autosave.
 
 Poznámka:
-- Historicky existují duplicitní indexy (`0026`, `0090`). Ber to jako legacy stav, čísla zpětně nepřejmenovávat.
+- Historicky existují duplicitní indexy (`0026`, `0090`). Jde o **vědomě zachovaný legacy stav**, nikoli o dvě nová ADR čekající na přečíslování. Soubory zpětně nepřejmenovávej (mohlo by to rozbít historii a odkazy); v odkazech a auditech používej **celou cestu/název** ADR. Nová rozhodnutí dostanou dosud nepoužité číslo.
+- Některá stará schválená ADR popisují již odstraněné workflow (např. copy-day/copy-week v ADR 0089). Pro současné provozní návody platí aktuální kód, [AVAILABILITY_PLANNER.md](../AVAILABILITY_PLANNER.md) a novější ADR 0118. Historické ADR nemaž a nepovažuj je bez kontextu za popis současného UI.

@@ -29,7 +29,7 @@ Tichý startup readiness probe nepřidává závislost; používá stejný `curl
 
 ## Aktuální verze stacku
 
-Přímé verze níže byly porovnány s `package.json` k 27. 10. 2026 (PP Studio `3.38.0`); pro přesné resolved verze platí `package-lock.json`. Po dalších aktualizacích ověř oba soubory.
+Přímé verze hlavního stacku níže byly opět porovnány s `package.json` dne 2. 11. 2026 (PP Studio `3.38.3`); pro přesné resolved verze platí `package-lock.json`. Po dalších aktualizacích ověř oba soubory.
 - Zdroj pravdy je `package.json` v kořeni projektu.
 - Projektový runtime cíl je `Node 24 LTS`; repozitář to explicitně deklaruje přes [`.nvmrc`](../.nvmrc#L1) a `package.json.engines`.
 - `next`: `16.4.3`
@@ -77,7 +77,7 @@ Přímé verze níže byly porovnány s `package.json` k 27. 10. 2026 (PP Studio
 - Ruční odesílání voucheru e-mailem nepřidává žádnou npm závislost; používá stávající `EmailLog` outbox, existující worker, `nodemailer` provider a worker-safe PDF core `src/features/vouchers/lib/voucher-pdf-core.ts`.
 - Dev generování e-mailových náhledů nepřidává žádnou npm závislost; `npm run email:previews` používá stávající `tsx`, Node `fs/promises` a existující renderer `renderEmailTemplate(...)`.
 - UX refaktor admin detailu voucheru nepřidává žádnou npm závislost; jde jen o přeskupení existujících serverových read modelů, klientského e-mailového panelu a Tailwind layoutu.
-- UX density pass admin planneru `Volné termíny` nepřidává žádnou npm závislost; jde čistě o úpravu existujících React/Tailwind komponent, layoutu toolbaru, pravého inspektoru a kontrastu gridu.
+- Aktuální FullCalendar planner `Volné termíny` nepřidává při úpravách hustoty UI novou npm závislost; používá stávající FullCalendar, React a Tailwind. Historický pravý inspektor byl odstraněn, proto není součástí současného editačního workflow.
 - Oprava fragmentace chained booking slotů pro admin planner nepřidává žádnou npm závislost; používá stávající Prisma transakce a sdílenou coverage logiku.
 - Repair helper `scripts/repair-legacy-chained-slots.mjs` nepřidává žádnou npm závislost; používá stávající `pg` driver a `DATABASE_URL`.
 - Oprava planner read modelu pro `CANCELLED` bookingy nepřidává žádnou npm závislost; jde jen o úpravu stávající Prisma/Tailwind admin vrstvy.

@@ -1,6 +1,6 @@
 # Volné termíny – admin planner a propojení s rezervacemi
 
-> Technický popis aktualizovaný k PP Studio **3.36.1 dne 24. 10. 2026**. Při rozporu platí kód a [Prisma schéma](../prisma/schema.prisma). Výběr a odeslání termínu klientkou popisuje [BOOKING_FORM.md](BOOKING_FORM.md); stavové přechody a e-maily [BOOKING_FLOW.md](../BOOKING_FLOW.md).
+> Hlavní kontrakty plánovače znovu ověřeny proti kódu `main` dne 2. 11. 2026 (PP Studio **3.38.3**). Při rozporu platí kód a [Prisma schéma](../prisma/schema.prisma). Výběr a odeslání termínu klientkou popisuje [BOOKING_FORM.md](BOOKING_FORM.md); stavové přechody a e-maily [BOOKING_FLOW.md](../BOOKING_FLOW.md).
 
 ## Co tato sekce dělá
 
@@ -18,7 +18,7 @@ Obě routy (`src/app/(admin)/admin/volne-terminy/page.tsx` a `src/app/(admin)/ad
 - Jeden **FullCalendar planner**, nikoliv historický draft-first workflow. Módy: **Prohlížení**, **Přidat termín**, **Odebrat termín**. Změna se ukládá **automaticky po jednotlivých interakcích** – není tlačítko pro hromadné publikování rozpracovaného týdne.
 - Mřížka `06:00–20:00`, obvykle po **30 minutách** v `Europe/Prague` (konstanty v [`admin-slots/time.ts`](../src/features/admin/lib/admin-slots/time.ts)). Speciální 15minutová hranice je přípustná například bezprostředně po rezervaci či úklidu; read-only zobrazení umí přesnější bloky než základní grid.
 - UI zobrazuje volnou dostupnost, rezervace `PENDING` a `CONFIRMED`, dokončené návštěvy `COMPLETED`, navazující úklid, omezené či neaktivní intervaly a vypočtený oběd. Kliknutí na událost rezervace může otevřít admin detail. Prezentaci událostí vytváří [`planner-lab-adapter.ts`](../src/features/admin/components/planner-lab-adapter.ts).
-- Na menším displeji se mění pohled mezi dnem, pracovními dny a víkendem; kalendář udržuje kontext při navigaci `week/day`. Serverový read model řídí fakta, vizuální buňky nejsou samostatná datová entita.
+- Výchozí pohled na desktopu je **Po–Pá** (volitelně **Celý týden**), na mobilu **Den** (volitelně **Po–Pá** či **Víkend**). Na mobilu má kalendář výšku `auto`, používá posuv celé stránky do 20:00 bez druhého svislého scrollu a tažení rozsahu podporuje dlouhý dotyk (`450 ms`). Kontext navigace drží URL `week/day`. Serverový read model řídí fakta, vizuální buňky nejsou samostatná datová entita.
 - Historický koncept `ADR 0023` je nahrazen [ADR 0118 – FullCalendar a autosave](ADR/0118-fullcalendar-planner-autosave-v1.md). Nesmí se automaticky obnovit předchozí „Zahodit / Publikovat změny týdne“ z historických MD.
 
 ## Datový model a read
