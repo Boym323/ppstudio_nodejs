@@ -427,6 +427,7 @@ export async function enqueueBookingReminder24hJobs(
         type: "REMINDER_FAILED",
         title: "PP Studio - chyba reminderu",
         message: "Nepodarilo se zalozit 24h reminder do emailove fronty.",
+        url: claimedBookingId ? `${env.NEXT_PUBLIC_APP_URL}/admin/rezervace/${claimedBookingId}` : undefined,
         priority: 1,
         context: {
           contextId: claimedBookingId ?? `reminder-scan-${now.toISOString()}`,

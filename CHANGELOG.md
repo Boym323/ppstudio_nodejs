@@ -17,6 +17,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Pushover neposílá texty interních výjimek, správně rozlišuje selhání doručení připomínek a samostatné e-mailové incidenty a po neúspěšném odeslání neblokuje další pokus cooldownem. Vracející se klientku určuje podle předchozí dokončené návštěvy; chyby založení připomínek odkazují na rezervaci. Pro systémové chyby při výpadku DB lze nakonfigurovat nezávislého nouzového příjemce.
+
 - Karty klientek na mobilu lze otevřít klepnutím na celou kartu nebo klávesnicí; kontaktní akce zůstávají oddělené.
 - Admin formuláře na iPhonu používají minimálně 16px text, takže při fokusu nevyvolávají nechtěné přiblížení Safari.
 

@@ -24,6 +24,7 @@ const serverEnvSchema = z
     MATOMO_AUTH_TOKEN: z.string().trim().optional(),
     PUSHOVER_ENABLED: z.enum(["true", "false"]).optional().default("false"),
     PUSHOVER_APP_TOKEN: z.string().trim().optional(),
+    PUSHOVER_EMERGENCY_USER_KEY: z.string().trim().optional(),
     DATABASE_URL: z.string().min(1),
     ADMIN_SESSION_SECRET: z.string().min(32),
     ADMIN_OWNER_EMAIL: z.email(),

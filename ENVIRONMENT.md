@@ -141,8 +141,9 @@ Serverové:
 
 - `PUSHOVER_ENABLED`
 - `PUSHOVER_APP_TOKEN`
+- `PUSHOVER_EMERGENCY_USER_KEY` (volitelné): explicitní nouzový příjemce systémových chyb při selhání načtení příjemců z DB. Respektuje globální vypínač a vyžaduje app token; při tomto fallbacku nelze ověřit per-user nastavení z DB.
 
-Per-user klíče ownerů nejsou v env, ale v databázi `UserNotificationSettings`.
+Běžné per-user klíče ownerů jsou v databázi `UserNotificationSettings`. Nouzový klíč slouží pouze jako serverová provozní konfigurace, nepoužívá se pro rezervace ani chyby e-mailů.
 
 ## Vazba na databázi a doménu
 

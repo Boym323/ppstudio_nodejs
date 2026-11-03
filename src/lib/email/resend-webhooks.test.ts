@@ -161,6 +161,7 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
   prisma.emailLog.findFirst = (async () => ({
     id: "email-log-bounce",
     bookingId: "booking-bounce",
+    type: "BOOKING_CONFIRMATION",
     trackingLastEventAt: null,
     trackingDeliveredAt: null,
     trackingOpenedAt: null,
@@ -169,7 +170,7 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
     trackingComplainedAt: null,
     trackingFailedAt: null,
     trackingSuppressedAt: null,
-  })) as typeof prisma.emailLog.findFirst;
+  })) as unknown as typeof prisma.emailLog.findFirst;
   prisma.emailLog.update = (async (args) => {
     updates.push(args);
     return {};
@@ -197,7 +198,7 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
       },
     });
 
-    assert.deepEqual(result, { matched: true, ignored: false, outcome: "MATCHED", deliveryIssue: { emailLogId: "email-log-bounce", bookingId: "booking-bounce", eventType: "email.bounced" }, duplicate: false });
+    assert.deepEqual(result, { matched: true, ignored: false, outcome: "MATCHED", deliveryIssue: { emailLogId: "email-log-bounce", bookingId: "booking-bounce", eventType: "email.bounced", isReminder: false }, duplicate: false });
     assert.deepEqual(updates, [{
       where: { id: "email-log-bounce" },
       data: {
@@ -224,8 +225,20 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
       emailLogId: "email-log-bounce",
       bookingId: "booking-bounce",
       eventType: "email.bounced",
+      isReminder: false,
       emailType: "email.bounced",
     }]);
+
+    prisma.emailLog.findFirst = (async () => ({
+      id: "reminder-log", bookingId: null, type: "BOOKING_REMINDER",
+    })) as unknown as typeof prisma.emailLog.findFirst;
+    let reminderIssue: boolean | undefined;
+    await applyResendWebhookEvent({
+      providerEventId: "msg_unit_reminder_bounce",
+      event: { type: "email.bounced", created_at: "2026-08-16T10:00:00.000Z", data: { email_id: "reminder-provider" } },
+      notifyDeliveryIssue: async (issue) => { reminderIssue = issue.isReminder; },
+    });
+    assert.equal(reminderIssue, true);
 
     const { buildOwnerEmailFailurePushover } = await import("@/lib/notifications/pushover-core");
     const payload = buildOwnerEmailFailurePushover({

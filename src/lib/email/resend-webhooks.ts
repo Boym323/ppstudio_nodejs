@@ -1,3 +1,5 @@
+import { EmailLogType } from "@/generated/prisma/browser";
+
 import { prisma } from "@/lib/prisma";
 import { getUnresolvedEmailDeliveryIncidentRootWhere } from "@/lib/email/incidents";
 
@@ -22,10 +24,11 @@ type ResendWebhookApplyInput = {
     emailLogId: string;
     bookingId: string | null;
     emailType: string;
+    isReminder: boolean;
   }) => Promise<void>;
 };
 
-type DeliveryIssue = { emailLogId: string; bookingId: string | null; eventType: string };
+type DeliveryIssue = { emailLogId: string; bookingId: string | null; eventType: string; isReminder: boolean };
 type WebhookTransaction = Pick<typeof prisma, "emailLog" | "emailProviderWebhookEvent" | "bookingStatusHistory" | "$executeRaw">;
 
 const EMAIL_EVENT_TYPES = new Set([
@@ -222,7 +225,7 @@ async function applyStoredResendWebhookEvent(tx: WebhookTransaction, input: {
   const emailLog = await tx.emailLog.findFirst({
     where: { providerMessageId: emailId },
     select: {
-      id: true, bookingId: true, resendRootId: true, trackingLastEventAt: true,
+      id: true, type: true, bookingId: true, resendRootId: true, trackingLastEventAt: true,
       trackingDeliveredAt: true, trackingOpenedAt: true, trackingClickedAt: true,
       trackingBouncedAt: true, trackingComplainedAt: true, trackingFailedAt: true,
       trackingSuppressedAt: true,
@@ -279,7 +282,7 @@ async function applyStoredResendWebhookEvent(tx: WebhookTransaction, input: {
     ignored: false,
     outcome: "MATCHED",
     deliveryIssue: shouldNotifyDeliveryIssue
-      ? { emailLogId: emailLog.id, bookingId: emailLog.bookingId, eventType }
+      ? { emailLogId: emailLog.id, bookingId: emailLog.bookingId, eventType, isReminder: emailLog.type === EmailLogType.BOOKING_REMINDER }
       : null,
   };
 }
@@ -293,7 +296,7 @@ async function notifyDeliveryIssues(issues: DeliveryIssue[], notifyDeliveryIssue
         const { sendOwnerEmailFailurePushover } = await import("@/lib/notifications/pushover-core");
         await sendOwnerEmailFailurePushover({
           emailLogId: issue.emailLogId, bookingId: issue.bookingId, emailType: issue.eventType,
-          isReminder: false, failureKind: "provider-delivery",
+          isReminder: issue.isReminder, failureKind: "provider-delivery",
         });
       }
     } catch (error) {
