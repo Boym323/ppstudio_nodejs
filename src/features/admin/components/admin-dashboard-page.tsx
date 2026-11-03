@@ -207,18 +207,14 @@ function DashboardActionPill({
 function DashboardContactActions({
   phoneHref,
   emailHref,
-  compact = false,
 }: {
   phoneHref: string | null;
   emailHref: string | null;
-  compact?: boolean;
 }) {
-  return (
-    <div className={cn("flex flex-wrap gap-2", compact && "pt-1")}>
-      {phoneHref ? <DashboardActionPill href={phoneHref} label="Volat" /> : null}
-      {emailHref ? <DashboardActionPill href={emailHref} label="E-mail" /> : null}
-    </div>
-  );
+  return <div className="flex flex-wrap gap-2">
+    {phoneHref ? <DashboardActionPill href={phoneHref} label="Volat" /> : null}
+    {emailHref ? <DashboardActionPill href={emailHref} label="E-mail" /> : null}
+  </div>;
 }
 
 function getCompactTodayStatus(data: AdminDashboardData) {
@@ -496,7 +492,7 @@ function DashboardBookingRow({ area, item }: {
     <article
       key={item.id}
       className={cn(
-        "grid min-h-14 gap-2 rounded-lg px-2.5 py-3 sm:px-3 md:grid-cols-[112px_minmax(0,1fr)] md:items-start",
+        "grid gap-x-2 gap-y-1 rounded-lg px-2.5 py-2 sm:px-3 md:grid-cols-[112px_minmax(0,1fr)] md:items-start md:gap-x-3",
         "border-b border-white/5 last:border-b-0",
         item.isCurrent && "border border-[var(--color-accent)]/24 bg-[rgba(190,160,120,0.10)]",
         item.isCompleted && "opacity-68",
@@ -508,54 +504,65 @@ function DashboardBookingRow({ area, item }: {
       >
         {item.timeLabel}
       </Link>
-      <div className="min-w-0">
-        <Link
-          href={item.href}
-          className="block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55"
-        >
-          <p className="break-words text-base font-semibold text-white">{item.clientName}</p>
-          <p className="mt-0.5 break-words text-sm text-white/75">{item.serviceName}</p>
-        </Link>
-        {item.notes.length > 0 ? (
-          <div className="mt-1 space-y-0.5">
-            {item.notes.map((note) => (
-              <details key={note.label} className="text-sm leading-6 text-white/75">
-                <summary className="cursor-pointer truncate font-medium text-white/72">
-                  {note.label}: {note.value}
-                </summary>
-                <p className="mt-1 whitespace-pre-wrap break-words pl-2">{note.value}</p>
-              </details>
-            ))}
+      <div className="min-w-0 md:col-start-2 md:row-start-1 md:flex md:items-start md:justify-between md:gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <Link
+              href={item.href}
+              className="min-w-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/55"
+            >
+              <p className="break-words text-base font-semibold text-white">
+                {item.clientName}
+                <span className="ml-2 font-normal text-white/75">· {item.serviceName}</span>
+              </p>
+            </Link>
           </div>
-        ) : null}
-        <div className="mt-2">
-          <DashboardContactActions
-            phoneHref={item.phoneHref}
-            emailHref={item.emailHref}
-            compact
-          />
+          {item.notes.length > 0 ? (
+            <div className="mt-0.5 space-y-0.5">
+              {item.notes.map((note) => {
+                const isExpandable = note.value.length > 72 || /\r?\n/u.test(note.value);
+
+                if (!isExpandable) {
+                  return (
+                    <p key={note.label} className="break-words text-sm leading-5 text-white/75">
+                      <span className="font-medium text-white/72">{note.label}:</span> {note.value}
+                    </p>
+                  );
+                }
+
+                return (
+                  <details key={note.label} className="text-sm leading-5 text-white/75">
+                    <summary className="cursor-pointer truncate font-medium text-white/72">
+                      {note.label}: {note.value}
+                    </summary>
+                    <p className="mt-1 whitespace-pre-wrap break-words pl-2">{note.value}</p>
+                  </details>
+                );
+              })}
+            </div>
+          ) : null}
         </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-2 md:col-start-2">
-        <span
-          className={cn(
-            "rounded-full border px-2.5 py-1 text-xs font-medium",
-            item.isCompleted
-              ? "border-emerald-300/18 bg-emerald-400/7 text-emerald-100/70"
-              : item.isCurrent
-                ? "border-[var(--color-accent)]/35 bg-[rgba(190,160,120,0.14)] text-[var(--color-accent-soft)]"
-                : "border-violet-400/25 bg-violet-400/10 text-violet-200",
-          )}
-        >
-          {item.statusLabel}
-        </span>
-        {item.primaryAction ? <DashboardBookingAction area={area} item={item} /> : null}
-        <Link
-          href={item.href}
-          className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--color-accent-soft)] transition hover:text-white"
-        >
-          Otevřít
-        </Link>
+        <div className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 md:justify-end">
+          <span
+            className={cn(
+              "rounded-full border px-2 py-0.5 text-xs font-medium",
+              item.isCompleted
+                ? "border-emerald-300/18 bg-emerald-400/7 text-emerald-100/70"
+                : item.isCurrent
+                  ? "border-[var(--color-accent)]/35 bg-[rgba(190,160,120,0.14)] text-[var(--color-accent-soft)]"
+                  : "border-violet-400/25 bg-violet-400/10 text-violet-200",
+            )}
+          >
+            {item.statusLabel}
+          </span>
+          {item.primaryAction ? <DashboardBookingAction area={area} item={item} /> : null}
+          <Link
+            href={item.href}
+            className="inline-flex min-h-8 items-center text-sm font-medium text-[var(--color-accent-soft)] transition hover:text-white"
+          >
+            Otevřít
+          </Link>
+        </div>
       </div>
     </article>
   );
