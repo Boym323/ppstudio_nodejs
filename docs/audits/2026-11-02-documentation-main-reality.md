@@ -1,5 +1,7 @@
 # Kontrola souladu dokumentace s main – 2. 11. 2026
 
+> **Archivní snímek k 2. 11. 2026, nikoli potvrzení aktuálního stavu.** Výchozí commit a verze 3.38.3 uvedené níže jsou historické. Ke 3. 11. 2026 má `main` commit `0bca28181424c5a216e584219ace6294d4525349` a verzi **3.39.0**; pro současné workflow a verze používej aktuální kód, `package.json` a živé provozní návody.
+
 ## Rozsah a zdroje
 - Výchozí commit: `47a0b949a8412e35e56b6886a304258bcdaab2db` na `main`, verze `3.38.3` dle `package.json`, `README.md` a `CHANGELOG.md`.
 - Staticky ověřené zdroje: `src/features/admin/components/admin-weekly-planner-lab-client.tsx`, `src/features/admin/components/planner-lab-week.ts`, `src/features/admin/actions/slot-planner-actions.ts`, `src/features/admin/lib/admin-slots/time.ts`, `src/features/booking/components/booking-flow.tsx`, `src/features/booking/actions/create-public-booking.ts`, `package.json` a ADR 0118.
