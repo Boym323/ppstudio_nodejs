@@ -8,6 +8,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Filtry rezervací mají sjednocenou výšku a vzhled polí, přehlednější rozbalovací panel a kompaktní akce; počet výsledků je vedle vyhledávání.
+
 - KPI přehled odděluje hlavní výsledky od rozbalovacích analýz, zpřesňuje názvy tržeb a výhledu a vynechává samostatnou platební sekci. Průběžný měsíc porovnává se stejnou částí minulého měsíce a do očekávaných návštěv zahrnuje i potvrzené rezervace bez ceny.
 
 - Seznam klientek zobrazuje tržbu jako součet dokončených a plně uhrazených služeb a umožňuje podle ní klientky řadit.
