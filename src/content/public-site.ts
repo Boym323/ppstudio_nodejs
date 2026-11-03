@@ -304,7 +304,7 @@ export const aboutContent: AboutContent = {
   },
   story: {
     eyebrow: 'Můj příběh',
-    title: 'Moje cesta v beauty oboru začala v roce 2024',
+    title: 'V kosmetice jsem začala v roce 2024',
     paragraphs: [
       'Po získání potřebných kvalifikací jsem začala budovat PP Studio jako místo, kde má péče jasný smysl, klidný průběh a osobní přístup. Od začátku je pro mě důležité spojit pečlivou techniku s přirozeným výsledkem a prostředím, ve kterém se klientka cítí dobře.',
     ],
