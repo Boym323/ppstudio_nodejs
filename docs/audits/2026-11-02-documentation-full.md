@@ -1,5 +1,7 @@
 # Úplný statický audit dokumentace PP Studio — 2. 11. 2026
 
+> **Historický audit, nikoli aktuální inventář větve `main`.** Níže uvedené výsledky a počty platí pro kontrolovaný stav z 2. 11. 2026 (výchozí verze 3.38.3). Ke 3. 11. 2026 je `main` na commitu `0bca28181424c5a216e584219ace6294d4525349` a verzi **3.39.0**; obsahuje **156 Markdown souborů**, z toho **120 souborů v `docs/ADR/`** včetně šablony. Historické nálezy zpětně nepřepisuj; aktuální stav vždy ověř proti `package.json`, lockfilu a kódu.
+
 ## Výchozí stav a meze auditu
 - Projekt: `Boym323/ppstudio_nodejs`, větev `codex/docs-main-reality-20261102` (PR #100) odvozená z `main` `47a0b949a8412e35e56b6886a304258bcdaab2db`.
 - V kontrolovaném stromu: **1 259 souborů** včetně **154 Markdown souborů** (35 nečíslovaných/provozních a 119 číslovaných ADR). Šlo o **statický audit** proti obsahu GitHub repozitáře a vybraným kódovým souborům.

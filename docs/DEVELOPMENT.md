@@ -40,7 +40,7 @@ Pro centralizovaný přehled hlavních route handler kontraktů používej i [`d
 ### Vývoj e-mailů
 
 Produkční HTML templates jsou v `src/lib/email/react-email/` a sdílené komponenty v `_components`. `npm run email:dev` slouží k interaktivnímu vývoji React Email šablon, zatímco `npm run email:previews` vytváří regresní preview přes aplikační renderer. `renderEmailTemplate(...)` zůstává orchestration hranicí; React Email e-maily negeneruje ani neposílá, transport pokračuje přes současnou delivery infrastrukturu. Plain-text generování a přílohy zůstávají v orchestrace.
-- Vývoj i CI standardizujeme na `Node 24 LTS`. Repo drží [`.nvmrc`](../.nvmrc#L1) s hodnotou `24` a `package.json` deklaruje `engines.node = ^24.0.0`; před prvním `npm install` nebo po upgrade runtime si ověř `node -v`.
+- Vývoj i CI standardizujeme na `Node 24 LTS`. Repo drží [`.nvmrc`](../.nvmrc#L1) s hodnotou `24` a `package.json` deklaruje `engines.node = ^24.0.0`; před první instalací závislostí nebo po upgrade runtime si ověř `node -v`.
 - Výchozí `npm run dev` používá Next.js 16 dev server s Turbopackem kvůli rychlosti kompilace velké admin route. Webpack je dostupný přes `npm run dev:webpack` jako stabilnější fallback při problémech s Turbopack HMR.
 - `next.config.ts` nastavuje `turbopack.root` na `__dirname`; při verzovaném release/staging buildu tak Turbopack nepovažuje sourozenecké `releases/*/package-lock.json` za další workspace. Při přesunu projektu neměň tuto hodnotu na pevnou absolutní cestu.
 - U admin formulářů nepočítej s tím, že stylování nativního `<select>/<option>` bude konzistentní napříč OS. Chrome na Windows může ignorovat kontrast očekávaný z Tailwind tříd a vykreslit nečitelný dropdown; pro business-kritický výběr (např. voucher na službu) preferuj vlastní seznam/radio/button picker nad hidden inputem.
@@ -70,9 +70,9 @@ Produkční HTML templates jsou v `src/lib/email/react-email/` a sdílené kompo
   - `src/features/vouchers/lib/**/*.ts`
   - `src/lib/email/**/*.ts`
 - Report generuje formáty `text-summary`, `html`, `lcov` a `json-summary`, takže se hodí jak pro lokální čtení, tak pro CI artefakty.
-- Coverage běh nezapíná `RUN_DB_INTEGRATION_TESTS=1`; díky tomu měří hlavně unit/business logiku a nespadne na prostředí bez lokální databáze. `npm run test:db:integration` spouští aktuálně 47 DB integračních souborů samostatně proti připravenému PostgreSQL a vždy sériově přes `--test-concurrency=1`; glob automaticky zahrne i další budoucí soubory. `npm run test:ci` tuto vrstvu povinně navazuje za coverage, takže ji CI nemůže omylem přeskočit.
+- Coverage běh nezapíná `RUN_DB_INTEGRATION_TESTS=1`; díky tomu měří hlavně unit/business logiku a nespadne na prostředí bez lokální databáze. `npm run test:db:integration` spouští všechny soubory odpovídající globu `src/**/*.integration.test.ts` (k 3. 11. 2026 celkem 50 souborů) samostatně proti připravenému PostgreSQL a vždy sériově přes `--test-concurrency=1`; glob automaticky zahrne i další budoucí soubory. `npm run test:ci` tuto vrstvu povinně navazuje za coverage, takže ji CI nemůže omylem přeskočit.
 - GitHub Actions baseline je teď rozdělená do čtyř vrstev:
-  - hlavní `CI` má samostatné joby `lint`, `typecheck`, `test`, `build`, pomocný `e2e build`, `e2e`, `e2e chromium shard 2`, `e2e mobile` a `e2e mobile shard 2`; mobilní matrix vytváří checky `e2e mobile (mobile-chrome)`, `e2e mobile (mobile-safari)`, `e2e mobile shard 2 (mobile-chrome)` a `e2e mobile shard 2 (mobile-safari)`. Coverage je krok a artefakt jobu `test`, nikoli samostatný check.
+  - hlavní `CI` má samostatné joby `lint`, `typecheck` (TypeScript 7), `typecheck (TypeScript 6 compatibility)`, `test`, `build`, pomocný `e2e build`, `e2e`, `e2e chromium shard 2`, `e2e mobile` a `e2e mobile shard 2`; mobilní matrix vytváří checky `e2e mobile (mobile-chrome)`, `e2e mobile (mobile-safari)`, `e2e mobile shard 2 (mobile-chrome)` a `e2e mobile shard 2 (mobile-safari)`. Coverage je krok a artefakt jobu `test`, nikoli samostatný check.
   - `Dependency Review` pro PR dependency diff
   - `CodeQL` pro statickou security analýzu `javascript-typescript`
   - `Security Audit` pro scheduled/push `npm audit --audit-level=high`
@@ -93,7 +93,7 @@ Produkční HTML templates jsou v `src/lib/email/react-email/` a sdílené kompo
   1. `cp .env.example .env`
   2. doplnit lokální `DATABASE_URL`, `SHADOW_DATABASE_URL`, `ADMIN_SESSION_SECRET`, `NEXT_PUBLIC_APP_URL`
   3. `nvm use` (nebo jiný ekvivalentní přepínač na `Node 24` podle [`.nvmrc`](../.nvmrc#L1))
-  4. `npm install`
+  4. `npm run deps:install` (reprodukovatelná instalace přes `npm ci --include=dev` podle `package-lock.json`)
   5. `npm run db:generate`
   6. `npm run db:migrate`
   7. `npm run dev`
