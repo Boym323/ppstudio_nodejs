@@ -8,6 +8,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Seznam klientek ve sloupci Rezervace započítává pouze dokončené návštěvy a aktuálně naplánované rezervace; zrušené, `NO_SHOW` a prošlé nedokončené rezervace se do počtu ani řazení nezahrnou.
+
 - Detail rezervace zvýrazňuje termín, provozní blokaci a stav úhrady, zachovává pevné místo pro stručné poznámky a omezuje duplicitní údaje. Ovladače úpravy ceny a zápisu platby jsou vedle sebe podle šířky displeje, rozbalený formulář využívá celou šířku pod nimi; formulář ceny používá stručný souhrn a náhled až při změně částky. Sjednocuje rozbalovací ovladače a přístupnou zpětnou vazbu formulářů; kombinovaná úhrada navrhuje přímý doplatek po započtení voucheru a ukazuje plánovaný součet.
 
 - Provozní přehled zvýrazňuje časy a klientky, zlepšuje čitelnost služeb a stavů rezervací a ztišuje kontaktní akce; na mobilu jsou rychlé akce dostupné před denním plánem.
@@ -16,6 +18,8 @@ Formát je inspirovaný Keep a Changelog.
 - Mobilní planner má čitelnější ovladače, jasnější nápovědu pro týdenní horizontální pohyb a zachovává denní pohled jako rychlý výchozí režim.
 
 ### Opraveno
+
+- Seznam klientek se na užší desktopové šířce už neořezává vpravo; tabulka využije dostupný prostor a lze ji v případě potřeby vodorovně posunout.
 
 - Skupiny administrační navigace mají čitelnější kontrast a tlačítko mobilního menu používá viditelný text také jako přístupný název.
 - Pushover neposílá texty interních výjimek, správně rozlišuje selhání doručení připomínek a samostatné e-mailové incidenty a po neúspěšném odeslání neblokuje další pokus cooldownem. Vracející se klientku určuje podle předchozí dokončené návštěvy; chyby založení připomínek odkazují na rezervaci. Pro systémové chyby při výpadku DB lze nakonfigurovat nezávislého nouzového příjemce.

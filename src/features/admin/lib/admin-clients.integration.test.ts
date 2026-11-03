@@ -99,6 +99,9 @@ dbTest("admin clients řadí a stránkuje globálně před načtením profilů",
     await createBooking(tieNewId, new Date(reference.getTime() - 2 * 86_400_000));
     await createBooking(retentionId, new Date(reference.getTime() - 9 * 7 * 86_400_000));
     for (let index = 0; index < 3; index += 1) await createBooking(bookedMostId, new Date(reference.getTime() - (index + 3) * 86_400_000));
+    await createBooking(bookedMostId, new Date(reference.getTime() - 2 * 86_400_000), BookingStatus.CANCELLED);
+    await createBooking(bookedMostId, new Date(reference.getTime() - 86_400_000), BookingStatus.NO_SHOW);
+    await createBooking(bookedMostId, new Date(reference.getTime() - 12 * 86_400_000), BookingStatus.PENDING);
     for (const [index, clientId] of clientIds.slice(5, 53).entries()) {
       await createBooking(clientId, new Date(reference.getTime() - (index + 4) * 86_400_000));
     }
@@ -122,6 +125,7 @@ dbTest("admin clients řadí a stránkuje globálně před načtením profilů",
 
     const bookings = await getAdminClientsPageData("owner", { ...baseParams, sort: "bookings" });
     assert.equal(bookings.clients[0]?.fullName, `Rezervace nejvíc ${suffix}`);
+    assert.equal(bookings.clients[0]?.totalBookings, 3);
     const byName = await getAdminClientsPageData("owner", { ...baseParams, sort: "name" });
     assert.equal(byName.clients[0]?.fullName, `Bez návštěvy A ${suffix}`);
     const byCreated = await getAdminClientsPageData("owner", { ...baseParams, sort: "created" });

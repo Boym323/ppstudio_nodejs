@@ -50,22 +50,12 @@ const columns: ColumnDef<typeof tableFeaturesForClients, AdminClientListItem>[] 
   {
     id: "nextBooking",
     header: "Příští návštěva",
-    cell: ({ row }) => <p className={cn("min-w-44", row.original.nextBookingLabel === "Bez další rezervace" ? "text-white/45" : "text-emerald-200/82")}>{row.original.nextBookingLabel}</p>,
+    cell: ({ row }) => <p className={cn("min-w-0 break-words", row.original.nextBookingLabel === "Bez další rezervace" ? "text-white/45" : "text-emerald-200/82")}>{row.original.nextBookingLabel}</p>,
   },
   {
     accessorKey: "totalBookings",
     header: "Rezervace",
     cell: ({ getValue }) => <p className="text-white/78">{getValue<number>()}</p>,
-  },
-  {
-    id: "context",
-    header: "Kontext",
-    cell: ({ row }) => <div className="grid gap-1.5"><NoteBadge hasNote={row.original.hasNote} /><StatusBadge isActive={row.original.isActive} /></div>,
-  },
-  {
-    id: "actions",
-    header: "Akce",
-    cell: ({ row }) => <Link href={row.original.href} className="inline-flex min-h-9 items-center rounded-full border border-white/10 px-3 text-xs font-medium text-white/78 transition hover:border-[var(--color-accent)]/40 hover:bg-[rgba(190,160,120,0.10)] hover:text-white">Detail</Link>,
   },
 ];
 
@@ -83,13 +73,19 @@ export function AdminClientsList({ clients, resetHref, emptyState }: AdminClient
 
   return (
     <div className="min-w-0 max-w-full overflow-x-clip">
-      <div className="hidden overflow-x-auto rounded-[1.1rem] border border-white/8 bg-white/4 lg:block">
-        <table className="min-w-[900px] w-full border-collapse text-left text-sm">
+      <div className="hidden max-w-full overflow-x-auto rounded-[1.1rem] border border-white/8 bg-white/4 lg:block" tabIndex={0} aria-label="Seznam klientek, tabulku lze posouvat vodorovně">
+        <table className="w-full min-w-[760px] table-fixed border-collapse text-left text-sm">
+          <colgroup>
+            <col className="w-[34%]" />
+            <col className="w-[23%]" />
+            <col className="w-[31%]" />
+            <col className="w-[12%]" />
+          </colgroup>
           <thead className="border-b border-white/8 text-[11px] uppercase tracking-[0.16em] text-white/42">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <th key={header.id} scope="col" className="px-3 py-2 font-medium">
+                  <th key={header.id} scope="col" className="whitespace-nowrap px-3 py-2 font-medium">
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </th>
                 ))}
@@ -122,11 +118,11 @@ function EmptyState({ resetHref, emptyState }: { resetHref: string; emptyState?:
 }
 
 function ClientCell({ client }: { client: AdminClientListItem }) {
-  return <div className={cn("min-w-52", !client.isActive && "opacity-65")}><div className="flex items-center gap-2"><Link href={client.href} className="truncate font-medium text-white transition hover:text-[var(--color-accent-soft)]">{client.fullName}</Link>{client.isTestRecord ? <TestBadge /> : null}</div><Contact client={client} compact /></div>;
+  return <div className={cn("min-w-0", !client.isActive && "opacity-65")}><div className="flex min-w-0 items-center gap-2"><Link href={client.href} className="min-w-0 truncate font-medium text-white transition hover:text-[var(--color-accent-soft)]">{client.fullName}</Link>{client.isTestRecord ? <TestBadge /> : null}</div><Contact client={client} compact /><div className="mt-1 flex flex-wrap gap-1.5">{client.hasNote ? <NoteBadge hasNote /> : null}<StatusBadge isActive={client.isActive} /></div></div>;
 }
 
 function LastVisitCell({ client }: { client: AdminClientListItem }) {
-  return <div className="min-w-40"><p className={client.lastVisitLabel === "Bez návštěvy" ? "text-white/45" : "text-white/76"}>{client.lastVisitLabel}</p>{client.lastServiceName ? <p className="mt-0.5 truncate text-xs text-white/48">{client.lastServiceName}</p> : null}{client.weeksWithoutVisit !== null ? <p className="mt-0.5 text-xs text-white/42">{client.weeksWithoutVisit} {client.weeksWithoutVisit === 1 ? "týden" : "týdnů"} od návštěvy</p> : null}</div>;
+  return <div className="min-w-0"><p className={client.lastVisitLabel === "Bez návštěvy" ? "text-white/45" : "text-white/76"}>{client.lastVisitLabel}</p>{client.lastServiceName ? <p className="mt-0.5 truncate text-xs text-white/48">{client.lastServiceName}</p> : null}{client.weeksWithoutVisit !== null ? <p className="mt-0.5 text-xs text-white/42">{client.weeksWithoutVisit} {client.weeksWithoutVisit === 1 ? "týden" : "týdnů"} od návštěvy</p> : null}</div>;
 }
 
 function ClientCard({ client, onOpen }: { client: AdminClientListItem; onOpen: () => void }) {
@@ -138,7 +134,7 @@ function ClientCard({ client, onOpen }: { client: AdminClientListItem; onOpen: (
     }
   };
 
-  return <article onClick={onOpen} onKeyDown={handleKeyDown} tabIndex={0} aria-label={`Otevřít detail klientky ${client.fullName}`} className={cn("w-full min-w-0 cursor-pointer overflow-hidden rounded-[1.05rem] border border-white/8 bg-white/5 p-3 transition hover:border-white/16 hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60", !client.isActive && "opacity-70")}><div className="flex min-w-0 items-start justify-between gap-3"><div className="min-w-0"><div className="flex min-w-0 items-center gap-2"><h3 className="min-w-0 break-words text-base font-medium text-white">{client.fullName}</h3>{client.isTestRecord ? <TestBadge /> : null}</div><Contact client={client} /></div><StatusBadge isActive={client.isActive} /></div><dl className="mt-3 grid min-w-0 grid-cols-1 gap-y-2 text-sm sm:grid-cols-2 sm:gap-x-3"><CardDetail label="Poslední návštěva" value={client.lastVisitLabel} detail={client.lastServiceName ?? (client.weeksWithoutVisit !== null ? `${client.weeksWithoutVisit} týdnů od návštěvy` : undefined)} /><CardDetail label="Příští návštěva" value={client.nextBookingLabel} /><CardDetail label="Rezervace" value={formatBookingCount(client.totalBookings)} /><CardDetail label="Poznámka" value={client.hasNote ? "S poznámkou" : "Bez poznámky"} /></dl><div className="mt-3 flex min-w-0 flex-wrap gap-2">{client.phoneHref ? <a href={client.phoneHref} onClick={stopCardNavigation} className="inline-flex min-h-11 min-w-0 items-center rounded-full border border-white/10 px-3 text-sm text-white/80">Zavolat</a> : null}{client.emailHref ? <a href={client.emailHref} onClick={stopCardNavigation} className="inline-flex min-h-11 min-w-0 items-center rounded-full border border-white/10 px-3 text-sm text-white/80">Napsat</a> : null}<Link href={client.href} onClick={stopCardNavigation} className="inline-flex min-h-11 min-w-0 items-center rounded-full bg-[var(--color-accent)] px-4 text-sm font-semibold text-[var(--color-accent-contrast)]">Detail</Link></div></article>;
+  return <article onClick={onOpen} onKeyDown={handleKeyDown} tabIndex={0} aria-label={`Otevřít detail klientky ${client.fullName}`} className={cn("w-full min-w-0 cursor-pointer overflow-hidden rounded-[1.05rem] border border-white/8 bg-white/5 p-3 transition hover:border-white/16 hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60", !client.isActive && "opacity-70")}><div className="flex min-w-0 items-start justify-between gap-3"><div className="min-w-0"><div className="flex min-w-0 items-center gap-2"><h3 className="min-w-0 break-words text-base font-medium text-white">{client.fullName}</h3>{client.isTestRecord ? <TestBadge /> : null}</div><Contact client={client} compact /></div><StatusBadge isActive={client.isActive} /></div><dl className="mt-2.5 grid min-w-0 grid-cols-2 gap-x-3 gap-y-2 text-sm sm:grid-cols-4"><CardDetail label="Poslední návštěva" value={client.lastVisitLabel} detail={client.lastServiceName ?? (client.weeksWithoutVisit !== null ? `${client.weeksWithoutVisit} týdnů od návštěvy` : undefined)} /><CardDetail label="Příští návštěva" value={client.nextBookingLabel} /><CardDetail label="Rezervace" value={formatBookingCount(client.totalBookings)} /><CardDetail label="Poznámka" value={client.hasNote ? "S poznámkou" : "Bez poznámky"} /></dl><div className="mt-2.5 flex min-w-0 flex-wrap gap-1.5">{client.phoneHref ? <a href={client.phoneHref} onClick={stopCardNavigation} className="inline-flex min-h-10 min-w-0 items-center rounded-full border border-white/10 px-3 text-sm text-white/80">Zavolat</a> : null}{client.emailHref ? <a href={client.emailHref} onClick={stopCardNavigation} className="inline-flex min-h-10 min-w-0 items-center rounded-full border border-white/10 px-3 text-sm text-white/80">Napsat</a> : null}<Link href={client.href} onClick={stopCardNavigation} className="inline-flex min-h-10 min-w-0 items-center rounded-full bg-[var(--color-accent)] px-3.5 text-sm font-semibold text-[var(--color-accent-contrast)]">Detail</Link></div></article>;
 }
 
 function Contact({ client, compact = false }: { client: AdminClientListItem; compact?: boolean }) {

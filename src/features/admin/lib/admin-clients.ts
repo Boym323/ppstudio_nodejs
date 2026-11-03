@@ -309,6 +309,7 @@ function buildBookingStatsCte(
     nextBooking: boolean;
     upcoming: boolean;
   },
+  totalReference = retentionReference,
 ) {
   const columns: Prisma.Sql[] = [Prisma.sql`b."clientId"`];
 
@@ -320,7 +321,14 @@ function buildBookingStatsCte(
       ) AS "lastVisitAt"`);
   }
   if (needs.total) {
-    columns.push(Prisma.sql`COUNT(*)::int AS total`);
+    columns.push(Prisma.sql`
+      COUNT(*) FILTER (
+        WHERE b.status = ${BookingStatus.COMPLETED}
+          OR (
+            b.status IN (${BookingStatus.PENDING}, ${BookingStatus.CONFIRMED})
+            AND b."scheduledStartsAt" >= ${totalReference}
+          )
+      )::int AS total`);
   }
   if (needs.nextBooking) {
     columns.push(Prisma.sql`
@@ -350,6 +358,7 @@ async function getOrderedClientPageIds(
   where: Prisma.ClientWhereInput,
   recentThreshold: Date,
   retentionReference: Date,
+  now: Date,
   page: number,
 ) {
   const skip = (page - 1) * clientPageSize;
@@ -375,7 +384,7 @@ async function getOrderedClientPageIds(
     total: needsTotal,
     nextBooking: needsNextBooking,
     upcoming: needsUpcoming,
-  });
+  }, now);
   const sqlWhere = buildClientSqlWhere(filters, recentThreshold, retentionReference);
   const orderBy = filters.view === "upcoming"
     ? Prisma.sql`booking_stats."nextBookingAt" ASC, c."fullName" ASC, c.id ASC`
@@ -545,14 +554,24 @@ export async function getAdminClientsPageData(
   const { filteredCount, allCount, upcomingCount, outreachCount, newCount, noContactCount, inactiveCount, band8, band12, band16 } = await getAdminClientCounts(filters, recentThreshold, retentionReference);
   const totalPages = filteredCount === 0 ? 1 : Math.ceil(filteredCount / clientPageSize);
   const page = Math.min(filters.page, totalPages);
-  const clientIds = await getOrderedClientPageIds(filters, where, recentThreshold, retentionReference, page);
+  const clientIds = await getOrderedClientPageIds(filters, where, recentThreshold, retentionReference, now, page);
   const clients = clientIds.length > 0
     ? await prisma.client.findMany({
       where: { id: { in: clientIds } },
       include: {
         _count: {
           select: {
-            bookings: true,
+            bookings: {
+              where: {
+                OR: [
+                  { status: BookingStatus.COMPLETED },
+                  {
+                    status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
+                    scheduledStartsAt: { gte: now },
+                  },
+                ],
+              },
+            },
           },
         },
         bookings: {
