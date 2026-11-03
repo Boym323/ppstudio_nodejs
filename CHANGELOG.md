@@ -8,6 +8,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Provozní přehled zvýrazňuje časy a klientky, zlepšuje čitelnost služeb a stavů rezervací a ztišuje kontaktní akce; na mobilu jsou rychlé akce dostupné před denním plánem.
+
 - Admin rozhraní sjednocuje mobilní ergonomii napříč dashboardem, rezervacemi, klientkami, vouchery a službami: hlavičky se na úzkých displejích skládají bez překryvu, navigace je rozdělena do provozních skupin a hlavní ovladače respektují dotykovou výšku 44 px.
 - Mobilní planner má čitelnější ovladače, jasnější nápovědu pro týdenní horizontální pohyb a zachovává denní pohled jako rychlý výchozí režim.
 
