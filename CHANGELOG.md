@@ -8,6 +8,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Seznam klientek zobrazuje tržbu jako součet dokončených a plně uhrazených služeb a umožňuje podle ní klientky řadit.
+
 - Seznam klientek ve sloupci Rezervace započítává pouze dokončené návštěvy a aktuálně naplánované rezervace; zrušené, `NO_SHOW` a prošlé nedokončené rezervace se do počtu ani řazení nezahrnou.
 
 - Detail rezervace zvýrazňuje termín, provozní blokaci a stav úhrady, zachovává pevné místo pro stručné poznámky a omezuje duplicitní údaje. Ovladače úpravy ceny a zápisu platby jsou vedle sebe podle šířky displeje, rozbalený formulář využívá celou šířku pod nimi; formulář ceny používá stručný souhrn a náhled až při změně částky. Sjednocuje rozbalovací ovladače a přístupnou zpětnou vazbu formulářů; kombinovaná úhrada navrhuje přímý doplatek po započtení voucheru a ukazuje plánovaný součet.
@@ -18,6 +20,8 @@ Formát je inspirovaný Keep a Changelog.
 - Mobilní planner má čitelnější ovladače, jasnější nápovědu pro týdenní horizontální pohyb a zachovává denní pohled jako rychlý výchozí režim.
 
 ### Opraveno
+
+- Hlavičky sloupců Rezervace a Tržba v seznamu klientek se na desktopu nepřekrývají ani při užší šířce; tabulka se vejde do dostupného prostoru, hlavičky se mohou zalomit a číselné údaje jsou zarovnané doprava.
 
 - Poslední návštěva v seznamu klientek zobrazuje pouze datum a službu ve dvou řádcích; redundantní údaj o počtu týdnů se nezobrazuje.
 

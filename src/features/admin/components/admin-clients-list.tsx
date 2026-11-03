@@ -20,6 +20,7 @@ type AdminClientListItem = {
   phoneHref: string | null;
   isActive: boolean;
   totalBookings: number;
+  totalRevenueCzk: number;
   lastVisitLabel: string;
   lastServiceName: string | null;
   weeksWithoutVisit: number | null;
@@ -55,7 +56,12 @@ const columns: ColumnDef<typeof tableFeaturesForClients, AdminClientListItem>[] 
   {
     accessorKey: "totalBookings",
     header: "Rezervace",
-    cell: ({ getValue }) => <p className="text-white/78">{getValue<number>()}</p>,
+    cell: ({ getValue }) => <p className="text-right text-white/78">{getValue<number>()}</p>,
+  },
+  {
+    accessorKey: "totalRevenueCzk",
+    header: "Tržba",
+    cell: ({ getValue }) => <p className="whitespace-nowrap text-right text-white/78">{formatCzk(getValue<number>())}</p>,
   },
 ];
 
@@ -74,18 +80,19 @@ export function AdminClientsList({ clients, resetHref, emptyState }: AdminClient
   return (
     <div className="min-w-0 max-w-full overflow-x-clip">
       <div className="hidden max-w-full overflow-x-auto rounded-[1.1rem] border border-white/8 bg-white/4 lg:block" tabIndex={0} aria-label="Seznam klientek, tabulku lze posouvat vodorovně">
-        <table className="w-full min-w-[760px] table-fixed border-collapse text-left text-sm">
+        <table className="w-full min-w-0 table-fixed border-collapse text-left text-sm">
           <colgroup>
-            <col className="w-[34%]" />
-            <col className="w-[23%]" />
-            <col className="w-[31%]" />
+            <col className="w-[30%]" />
+            <col className="w-[20%]" />
+            <col className="w-[27%]" />
+            <col className="w-[11%]" />
             <col className="w-[12%]" />
           </colgroup>
           <thead className="border-b border-white/8 text-[11px] uppercase tracking-[0.16em] text-white/42">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <th key={header.id} scope="col" className="whitespace-nowrap px-3 py-2 font-medium">
+                  <th key={header.id} scope="col" className={cn("px-3 py-2 font-medium leading-tight", header.id === "totalBookings" || header.id === "totalRevenueCzk" ? "text-right" : null)}>
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </th>
                 ))}
@@ -96,7 +103,7 @@ export function AdminClientsList({ clients, resetHref, emptyState }: AdminClient
             {table.getRowModel().rows.map((row) => (
               <tr key={row.id} className={cn("transition hover:bg-white/5", !row.original.isActive && "text-white/52") }>
                 {row.getAllCells().map((cell) => (
-                  <td key={cell.id} className="px-3 py-3 align-middle">
+                  <td key={cell.id} className={cn("px-3 py-3 align-middle", cell.column.id === "totalBookings" || cell.column.id === "totalRevenueCzk" ? "text-right" : null)}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
@@ -134,7 +141,7 @@ function ClientCard({ client, onOpen }: { client: AdminClientListItem; onOpen: (
     }
   };
 
-  return <article onClick={onOpen} onKeyDown={handleKeyDown} tabIndex={0} aria-label={`Otevřít detail klientky ${client.fullName}`} className={cn("w-full min-w-0 cursor-pointer overflow-hidden rounded-[1.05rem] border border-white/8 bg-white/5 p-3 transition hover:border-white/16 hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60", !client.isActive && "opacity-70")}><div className="flex min-w-0 items-start justify-between gap-3"><div className="min-w-0"><div className="flex min-w-0 items-center gap-2"><h3 className="min-w-0 break-words text-base font-medium text-white">{client.fullName}</h3>{client.isTestRecord ? <TestBadge /> : null}</div><Contact client={client} compact /></div>{!client.isActive ? <InactiveBadge /> : null}</div><dl className="mt-2.5 grid min-w-0 grid-cols-2 gap-x-3 gap-y-2 text-sm sm:grid-cols-4"><CardDetail label="Poslední návštěva" value={client.lastVisitLabel} detail={client.lastServiceName ?? undefined} /><CardDetail label="Příští návštěva" value={client.nextBookingLabel} /><CardDetail label="Rezervace" value={formatBookingCount(client.totalBookings)} /><CardDetail label="Poznámka" value={client.hasNote ? "S poznámkou" : "Bez poznámky"} /></dl><div className="mt-2.5 flex min-w-0 flex-wrap gap-1.5">{client.phoneHref ? <a href={client.phoneHref} onClick={stopCardNavigation} className="inline-flex min-h-10 min-w-0 items-center rounded-full border border-white/10 px-3 text-sm text-white/80">Zavolat</a> : null}{client.emailHref ? <a href={client.emailHref} onClick={stopCardNavigation} className="inline-flex min-h-10 min-w-0 items-center rounded-full border border-white/10 px-3 text-sm text-white/80">Napsat</a> : null}<Link href={client.href} onClick={stopCardNavigation} className="inline-flex min-h-10 min-w-0 items-center rounded-full bg-[var(--color-accent)] px-3.5 text-sm font-semibold text-[var(--color-accent-contrast)]">Detail</Link></div></article>;
+  return <article onClick={onOpen} onKeyDown={handleKeyDown} tabIndex={0} aria-label={`Otevřít detail klientky ${client.fullName}`} className={cn("w-full min-w-0 cursor-pointer overflow-hidden rounded-[1.05rem] border border-white/8 bg-white/5 p-3 transition hover:border-white/16 hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60", !client.isActive && "opacity-70")}><div className="flex min-w-0 items-start justify-between gap-3"><div className="min-w-0"><div className="flex min-w-0 items-center gap-2"><h3 className="min-w-0 break-words text-base font-medium text-white">{client.fullName}</h3>{client.isTestRecord ? <TestBadge /> : null}</div><Contact client={client} compact /></div>{!client.isActive ? <InactiveBadge /> : null}</div><dl className="mt-2.5 grid min-w-0 grid-cols-2 gap-x-3 gap-y-2 text-sm sm:grid-cols-4"><CardDetail label="Poslední návštěva" value={client.lastVisitLabel} detail={client.lastServiceName ?? undefined} /><CardDetail label="Příští návštěva" value={client.nextBookingLabel} /><CardDetail label="Rezervace" value={formatBookingCount(client.totalBookings)} /><CardDetail label="Tržba" value={formatCzk(client.totalRevenueCzk)} /><CardDetail label="Poznámka" value={client.hasNote ? "S poznámkou" : "Bez poznámky"} /></dl><div className="mt-2.5 flex min-w-0 flex-wrap gap-1.5">{client.phoneHref ? <a href={client.phoneHref} onClick={stopCardNavigation} className="inline-flex min-h-10 min-w-0 items-center rounded-full border border-white/10 px-3 text-sm text-white/80">Zavolat</a> : null}{client.emailHref ? <a href={client.emailHref} onClick={stopCardNavigation} className="inline-flex min-h-10 min-w-0 items-center rounded-full border border-white/10 px-3 text-sm text-white/80">Napsat</a> : null}<Link href={client.href} onClick={stopCardNavigation} className="inline-flex min-h-10 min-w-0 items-center rounded-full bg-[var(--color-accent)] px-3.5 text-sm font-semibold text-[var(--color-accent-contrast)]">Detail</Link></div></article>;
 }
 
 function Contact({ client, compact = false }: { client: AdminClientListItem; compact?: boolean }) {
@@ -144,6 +151,7 @@ function Contact({ client, compact = false }: { client: AdminClientListItem; com
 
 function CardDetail({ label, value, detail }: { label: string; value: string; detail?: string }) { return <div className="min-w-0"><dt className="text-[10px] uppercase tracking-[0.14em] text-white/38">{label}</dt><dd className="mt-0.5 break-words text-white/75">{value}</dd>{detail ? <dd className="break-words text-xs text-white/43">{detail}</dd> : null}</div>; }
 function formatBookingCount(count: number) { return `${count} ${count === 1 ? "rezervace" : count >= 2 && count <= 4 ? "rezervace" : "rezervací"}`; }
+function formatCzk(value: number) { return new Intl.NumberFormat("cs-CZ", { style: "currency", currency: "CZK", maximumFractionDigits: 0 }).format(value); }
 function NoteBadge({ hasNote }: { hasNote: boolean }) { return <span className={cn("inline-flex w-fit rounded-full border px-2 py-1 text-xs leading-none", hasNote ? "border-[var(--color-accent)]/28 bg-[rgba(190,160,120,0.10)] text-[var(--color-accent-soft)]" : "border-white/8 bg-black/10 text-white/42")}>{hasNote ? "S poznámkou" : "Bez poznámky"}</span>; }
 function InactiveBadge() { return <span className="inline-flex w-fit shrink-0 rounded-full border border-white/10 bg-black/10 px-2.5 py-1 text-xs leading-none text-white/58">Neaktivní</span>; }
 function TestBadge() { return <span className="shrink-0 rounded-full border border-amber-300/20 bg-amber-300/10 px-2 py-0.5 text-[10px] leading-none text-amber-100/78">test</span>; }

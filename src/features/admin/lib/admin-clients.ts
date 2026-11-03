@@ -1,4 +1,5 @@
-import { BookingStatus, Prisma } from "@/generated/prisma/client";
+import { BookingPaymentStatus, BookingStatus, VoucherType } from "@/generated/prisma/browser";
+import { Prisma } from "@/generated/prisma/client";
 
 import { type AdminArea } from "@/config/navigation";
 import { CLIENT_MERGE_AUDIT_MARKER, isMergedClientProfile, mergedClientTargetId } from "@/features/clients/lib/client-merge-marker";
@@ -53,6 +54,7 @@ export type AdminClientsListItem = {
   phoneHref: string | null;
   isActive: boolean;
   totalBookings: number;
+  totalRevenueCzk: number;
   lastVisitLabel: string;
   lastServiceName: string | null;
   weeksWithoutVisit: number | null;
@@ -306,12 +308,53 @@ function buildBookingStatsCte(
   needs: {
     lastVisit: boolean;
     total: boolean;
+    revenue?: boolean;
     nextBooking: boolean;
     upcoming: boolean;
   },
   totalReference = retentionReference,
 ) {
   const columns: Prisma.Sql[] = [Prisma.sql`b."clientId"`];
+  const financialCtes = needs.revenue
+    ? Prisma.sql`
+      booking_direct_payments AS (
+        SELECT "bookingId", SUM(GREATEST("amountCzk", 0)) AS "directPaidCzk"
+        FROM "BookingPayment"
+        WHERE "status" <> ${BookingPaymentStatus.VOIDED}
+        GROUP BY "bookingId"
+      ),
+      booking_voucher_redemptions AS (
+        SELECT
+          redemption."bookingId",
+          SUM(GREATEST(redemption."amountCzk", 0)) FILTER (WHERE voucher."type" <> ${VoucherType.SERVICE}) AS "valueVoucherCzk",
+          BOOL_OR(voucher."type" = ${VoucherType.SERVICE} AND redemption."serviceId" = booking."serviceId") AS "hasMatchingServiceVoucher"
+        FROM "VoucherRedemption" redemption
+        JOIN "Voucher" voucher ON voucher."id" = redemption."voucherId"
+        JOIN "Booking" booking ON booking."id" = redemption."bookingId"
+        GROUP BY redemption."bookingId"
+      ),
+      booking_financials AS (
+        SELECT
+          booking."id",
+          GREATEST(COALESCE(booking."finalPriceCzk", booking."servicePriceFromCzk", 0), 0) AS "totalPriceCzk",
+          GREATEST(
+            COALESCE(direct."directPaidCzk", 0)
+            + COALESCE(voucher."valueVoucherCzk", 0)
+            + CASE
+              WHEN voucher."hasMatchingServiceVoucher" THEN LEAST(
+                GREATEST(COALESCE(booking."finalPriceCzk", booking."servicePriceFromCzk", 0), 0),
+                GREATEST(COALESCE(booking."servicePriceFromCzk", 0), 0)
+              )
+              ELSE 0
+            END,
+            0
+          ) AS "paidCzk"
+        FROM "Booking" booking
+        LEFT JOIN booking_direct_payments direct ON direct."bookingId" = booking."id"
+        LEFT JOIN booking_voucher_redemptions voucher ON voucher."bookingId" = booking."id"
+      ),
+    `
+    : Prisma.sql``;
 
   if (needs.lastVisit) {
     columns.push(Prisma.sql`
@@ -330,6 +373,17 @@ function buildBookingStatsCte(
           )
       )::int AS total`);
   }
+  if (needs.revenue) {
+    columns.push(Prisma.sql`
+      COALESCE(SUM(
+        CASE
+          WHEN b.status = ${BookingStatus.COMPLETED}
+            AND financials."paidCzk" >= financials."totalPriceCzk"
+          THEN financials."totalPriceCzk"
+          ELSE 0
+        END
+      ), 0)::int AS revenue`);
+  }
   if (needs.nextBooking) {
     columns.push(Prisma.sql`
       MIN(b."scheduledStartsAt") FILTER (
@@ -346,9 +400,11 @@ function buildBookingStatsCte(
   }
 
   return Prisma.sql`
-    WITH booking_stats AS (
+    WITH ${financialCtes}
+    booking_stats AS (
       SELECT ${Prisma.join(columns, ",")}
       FROM "Booking" b
+      ${needs.revenue ? Prisma.sql`JOIN booking_financials financials ON financials."id" = b."id"` : Prisma.sql``}
       GROUP BY b."clientId"
     )`;
 }
@@ -375,13 +431,15 @@ async function getOrderedClientPageIds(
   }
 
   const usesAggregateOrder = filters.view !== "upcoming" && filters.view !== "new";
-  const needsLastVisit = filters.view === "outreach" || (usesAggregateOrder && (filters.sort === "recent" || filters.sort === "bookings"));
+  const needsLastVisit = filters.view === "outreach" || (usesAggregateOrder && (filters.sort === "recent" || filters.sort === "bookings" || filters.sort === "revenue"));
   const needsTotal = usesAggregateOrder && filters.sort === "bookings";
+  const needsRevenue = usesAggregateOrder && filters.sort === "revenue";
   const needsNextBooking = filters.view === "upcoming";
   const needsUpcoming = filters.view === "upcoming" || (filters.view === "outreach" && !filters.retention);
   const bookingStatsCte = buildBookingStatsCte(retentionReference, {
     lastVisit: needsLastVisit,
     total: needsTotal,
+    revenue: needsRevenue,
     nextBooking: needsNextBooking,
     upcoming: needsUpcoming,
   }, now);
@@ -392,9 +450,11 @@ async function getOrderedClientPageIds(
       ? Prisma.sql`booking_stats."lastVisitAt" DESC, c.id ASC`
       : filters.view === "new"
         ? Prisma.sql`c."createdAt" DESC, c.id DESC`
-        : filters.sort === "recent"
+          : filters.sort === "recent"
           ? Prisma.sql`booking_stats."lastVisitAt" DESC NULLS LAST, c."createdAt" DESC, c.id DESC`
-          : Prisma.sql`COALESCE(booking_stats.total, 0) DESC, booking_stats."lastVisitAt" DESC NULLS LAST, c."fullName" ASC, c.id ASC`;
+          : filters.sort === "bookings"
+            ? Prisma.sql`COALESCE(booking_stats.total, 0) DESC, booking_stats."lastVisitAt" DESC NULLS LAST, c."fullName" ASC, c.id ASC`
+            : Prisma.sql`COALESCE(booking_stats.revenue, 0) DESC, booking_stats."lastVisitAt" DESC NULLS LAST, c."fullName" ASC, c.id ASC`;
   const pageQuery = Prisma.sql`
     ${bookingStatsCte}
     SELECT c.id
@@ -407,6 +467,28 @@ async function getOrderedClientPageIds(
   const rows = await prisma.$queryRaw<Array<{ id: string }>>(pageQuery);
 
   return rows.map((row) => row.id);
+}
+
+async function getClientRevenueById(clientIds: string[], now: Date) {
+  if (clientIds.length === 0) {
+    return new Map<string, number>();
+  }
+
+  const bookingStatsCte = buildBookingStatsCte(now, {
+    lastVisit: false,
+    total: false,
+    revenue: true,
+    nextBooking: false,
+    upcoming: false,
+  });
+  const rows = await prisma.$queryRaw<Array<{ clientId: string; revenue: number }>>(Prisma.sql`
+    ${bookingStatsCte}
+    SELECT "clientId", COALESCE(revenue, 0)::int AS revenue
+    FROM booking_stats
+    WHERE "clientId" IN (${Prisma.join(clientIds.map((id) => Prisma.sql`${id}`), ",")})
+  `);
+
+  return new Map(rows.map((row) => [row.clientId, Number(row.revenue ?? 0)]));
 }
 
 export function getAdminClientHref(area: AdminArea, clientId: string) {
@@ -555,6 +637,7 @@ export async function getAdminClientsPageData(
   const totalPages = filteredCount === 0 ? 1 : Math.ceil(filteredCount / clientPageSize);
   const page = Math.min(filters.page, totalPages);
   const clientIds = await getOrderedClientPageIds(filters, where, recentThreshold, retentionReference, now, page);
+  const revenueByClientId = await getClientRevenueById(clientIds, now);
   const clients = clientIds.length > 0
     ? await prisma.client.findMany({
       where: { id: { in: clientIds } },
@@ -613,6 +696,7 @@ export async function getAdminClientsPageData(
       lastVisitAt: client.bookings[0]?.scheduledStartsAt ?? null,
       lastServiceName: client.bookings[0]?.serviceNameSnapshot ?? null,
       nextBooking: nextBookingByClientId.get(client.id) ?? null,
+      totalRevenueCzk: revenueByClientId.get(client.id) ?? 0,
       isTestRecord: isTestClientRecord(client.fullName, client.email),
     }));
 
@@ -636,6 +720,7 @@ export async function getAdminClientsPageData(
         phoneHref: buildClientPhoneHref(phone),
         isActive: client.isActive,
         totalBookings: client._count.bookings,
+        totalRevenueCzk: client.totalRevenueCzk,
         lastVisitLabel: client.lastVisitAt ? formatDateLabel(client.lastVisitAt) : "Bez návštěvy",
         lastServiceName: client.lastServiceName,
         weeksWithoutVisit: getWeeksWithoutVisit(client.lastVisitAt, retentionReference),
