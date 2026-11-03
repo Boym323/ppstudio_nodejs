@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 import { AdminRole } from "@/generated/prisma/browser";
 
-import { type AdminArea, getAdminNavigation } from "@/config/navigation";
+import { type AdminArea, type AdminNavigationItem, getAdminNavigation } from "@/config/navigation";
 import { cn } from "@/lib/utils";
 
 type AdminSidebarNavProps = {
@@ -16,6 +16,22 @@ type AdminSidebarNavProps = {
 
 function getCurrentArea(pathname: string): AdminArea {
   return pathname.startsWith("/admin/provoz") ? "salon" : "owner";
+}
+
+function getNavigationGroup(item: AdminNavigationItem) {
+  if (item.slug === "overview" || item.slug === "statistiky") {
+    return "Přehled";
+  }
+
+  if (["rezervace", "volne-terminy", "vouchery", "klienti"].includes(item.slug)) {
+    return "Každodenní provoz";
+  }
+
+  if (["media", "sluzby", "kategorie-sluzeb"].includes(item.slug)) {
+    return "Nabídka a obsah";
+  }
+
+  return "Systém";
 }
 
 export function AdminSidebarNav({
@@ -42,8 +58,11 @@ export function AdminSidebarNav({
         </p>
       </div>
 
-      <nav className="mt-3 grid gap-1.5">
+      <nav className="mt-4 grid gap-1.5" aria-label="Sekce administrace">
         {navigation.map((item) => {
+          const previousItem = navigation[navigation.indexOf(item) - 1];
+          const navigationGroup = getNavigationGroup(item);
+          const previousGroup = previousItem ? getNavigationGroup(previousItem) : null;
           const isActive =
             pathname === item.href ||
             (item.href !== "/admin" &&
@@ -51,25 +70,29 @@ export function AdminSidebarNav({
               pathname.startsWith(`${item.href}/`));
 
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={isActive ? "page" : undefined}
-              onClick={onNavigate}
-              className={cn(
-                "rounded-xl border px-3 py-3 transition",
-                isActive
-                  ? "border-[var(--color-accent)]/36 bg-[rgba(190,160,120,0.1)] text-white shadow-[0_8px_20px_rgba(0,0,0,0.18)]"
-                  : "border-transparent text-white/54 hover:border-white/6 hover:bg-white/[0.035] hover:text-white/84",
-              )}
-            >
-              <span className="block text-sm font-medium">{item.label}</span>
-              {isActive ? (
-                <span className="mt-1 block text-[11px] leading-4 text-white/60">
-                  {item.description}
-                </span>
+            <div key={item.href}>
+              {navigationGroup !== previousGroup ? (
+                <p className={cn("text-[10px] uppercase tracking-[0.24em] text-white/38", navigation.indexOf(item) > 0 && "mt-3")}>{navigationGroup}</p>
               ) : null}
-            </Link>
+              <Link
+                href={item.href}
+                aria-current={isActive ? "page" : undefined}
+                onClick={onNavigate}
+                className={cn(
+                  "mt-1 block rounded-xl border px-3 py-3 transition",
+                  isActive
+                    ? "border-[var(--color-accent)]/36 bg-[rgba(190,160,120,0.1)] text-white shadow-[0_8px_20px_rgba(0,0,0,0.18)]"
+                    : "border-transparent text-white/54 hover:border-white/6 hover:bg-white/[0.035] hover:text-white/84",
+                )}
+              >
+                <span className="block text-sm font-medium">{item.label}</span>
+                {isActive ? (
+                  <span className="mt-1 block text-[11px] leading-4 text-white/60">
+                    {item.description}
+                  </span>
+                ) : null}
+              </Link>
+            </div>
           );
         })}
       </nav>

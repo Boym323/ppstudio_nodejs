@@ -36,11 +36,24 @@ export function AdminShell({ children, currentRole, userName }: AdminShellProps)
         )}
       >
         <div className="flex items-center justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-[0.28em] text-white/55">PP Studio Admin</p>
             <p className="text-sm font-medium text-white/84">{currentRole === AdminRole.OWNER ? "Owner" : "Provoz salonu"}</p>
           </div>
-          <Sheet.Trigger asChild><button type="button" className="min-h-11 min-w-11 rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-white/84">Menu</button></Sheet.Trigger>
+          <Sheet.Trigger asChild>
+            <button
+              type="button"
+              aria-label="Otevřít hlavní navigaci"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-white/84 shadow-[0_8px_20px_rgba(0,0,0,0.16)]"
+            >
+              <span aria-hidden="true" className="grid size-4 place-content-center gap-1">
+                <span className="block h-px w-4 bg-current" />
+                <span className="block h-px w-4 bg-current" />
+                <span className="block h-px w-4 bg-current" />
+              </span>
+              Menu
+            </button>
+          </Sheet.Trigger>
         </div>
       </header>
 

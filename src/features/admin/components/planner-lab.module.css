@@ -33,6 +33,7 @@
 .lunchEvent > span { overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: .04em; font-size: 9px; font-weight: 700; }
 .calendar { min-width: 0; min-height: 0; height: 100%; overflow: hidden; border: 1px solid rgb(255 255 255 / 9%); border-radius: 1rem; background: #121015; padding: .5rem; box-shadow: inset 0 1px rgb(255 255 255 / 3%); }
 .workWeek { overflow-x: auto; overscroll-behavior-x: contain; }
+.mobileCalendarHint { display: none; }
 .workWeek :global(.fc) { min-width: 36rem; }
 .calendar :global(.fc) { --fc-classic-background: #121015; --fc-classic-faint: #18151c; --fc-classic-muted: #211d27; --fc-classic-strong: #302a38; --fc-classic-foreground: rgb(255 255 255 / 90%); --fc-classic-faint-foreground: rgb(255 255 255 / 38%); --fc-classic-muted-foreground: rgb(255 255 255 / 64%); --fc-classic-border: rgb(255 255 255 / 9%); --fc-classic-strong-border: rgb(255 255 255 / 15%); --fc-border-color: rgb(255 255 255 / 9%); --fc-page-bg-color: #121015; --fc-neutral-bg-color: #18151c; --fc-list-event-hover-bg-color: #28222f; color: rgb(255 255 255 / 85%); font-size: .78rem; }
 .calendar :global(.fc-toolbar) { display: none; }
@@ -93,6 +94,10 @@
   .weekRange { flex-basis: 100%; margin-right: 0; font-size: .8125rem; }
   .status { margin-left: auto; }
   .modeSwitch { order: 4; }
+  .controlButton, .viewButton, .retryButton, .modeButton { min-height: 2.75rem; padding-inline: .7rem; }
+  .lunchControls select { flex: 1 1 8rem; min-width: 8rem; max-width: none; min-height: 2.75rem; }
+  .lunchNote { flex-basis: 100%; }
+  .mobileCalendarHint { display: block; padding: 0 .35rem; color: rgb(255 255 255 / 52%); font-size: .75rem; line-height: 1.35; }
   .calendar { margin-inline: -0.25rem; border-radius: .75rem; padding: .25rem; }
   .workWeek { padding-bottom: .3rem; scroll-snap-type: x proximity; }
   .workWeek :global(.fc) { min-width: 44rem; }
@@ -104,4 +109,7 @@
   .calendar :global(.fc-event), .calendar :global(.fc-bg-event) { border-radius: .35rem !important; }
   .calendar :global(.planner-lab-event--availability), .calendar :global(.planner-lab-event--protected) { left: 4px !important; right: 4px !important; }
   .calendar :global(.fc-event-title) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+@media (max-width: 359px) {
+  .lunchControls > label { flex-basis: 100%; }
 }

@@ -6,6 +6,16 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Změněno
+
+- Admin rozhraní sjednocuje mobilní ergonomii napříč dashboardem, rezervacemi, klientkami, vouchery a službami: hlavičky se na úzkých displejích skládají bez překryvu, navigace je rozdělena do provozních skupin a hlavní ovladače respektují dotykovou výšku 44 px.
+- Mobilní planner má čitelnější ovladače, jasnější nápovědu pro týdenní horizontální pohyb a zachovává denní pohled jako rychlý výchozí režim.
+
+### Opraveno
+
+- Karty klientek na mobilu lze otevřít klepnutím na celou kartu nebo klávesnicí; kontaktní akce zůstávají oddělené.
+- Admin formuláře na iPhonu používají minimálně 16px text, takže při fokusu nevyvolávají nechtěné přiblížení Safari.
+
 ## [3.39.0] - 2026-11-02
 
 ### Opraveno
