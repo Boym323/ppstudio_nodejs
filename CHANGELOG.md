@@ -8,6 +8,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Detail rezervace zvýrazňuje termín, provozní blokaci a stav úhrady, zachovává pevné místo pro stručné poznámky a omezuje duplicitní údaje. Ovladače úpravy ceny a zápisu platby jsou vedle sebe podle šířky displeje, rozbalený formulář využívá celou šířku pod nimi; formulář ceny používá stručný souhrn a náhled až při změně částky. Sjednocuje rozbalovací ovladače a přístupnou zpětnou vazbu formulářů; kombinovaná úhrada navrhuje přímý doplatek po započtení voucheru a ukazuje plánovaný součet.
+
 - Provozní přehled zvýrazňuje časy a klientky, zlepšuje čitelnost služeb a stavů rezervací a ztišuje kontaktní akce; na mobilu jsou rychlé akce dostupné před denním plánem.
 
 - Admin rozhraní sjednocuje mobilní ergonomii napříč dashboardem, rezervacemi, klientkami, vouchery a službami: hlavičky se na úzkých displejích skládají bez překryvu, navigace je rozdělena do provozních skupin a hlavní ovladače respektují dotykovou výšku 44 px.

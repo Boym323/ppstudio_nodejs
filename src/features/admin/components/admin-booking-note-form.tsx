@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useId, useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { updateBookingNoteAction } from "@/features/admin/actions/bookings/update-booking-note";
@@ -18,6 +18,7 @@ export function AdminBookingNoteForm({
   expectedUpdatedAt: string;
   initialValue: string;
 }) {
+  const errorId = useId();
   const [serverState, formAction] = useActionState(
     updateBookingNoteAction,
     initialUpdateBookingNoteActionState,
@@ -30,13 +31,13 @@ export function AdminBookingNoteForm({
       <input type="hidden" name="expectedUpdatedAt" value={expectedUpdatedAt} />
 
       {serverState.status === "success" && serverState.successMessage ? (
-        <div className="rounded-[0.9rem] border border-emerald-300/16 bg-emerald-400/10 px-3 py-2 text-sm leading-5 text-emerald-50">
+        <div role="status" className="rounded-[0.9rem] border border-emerald-300/16 bg-emerald-400/10 px-3 py-2 text-sm leading-5 text-emerald-50">
           {serverState.successMessage}
         </div>
       ) : null}
 
       {serverState.status === "error" && serverState.formError ? (
-        <div className="rounded-[0.9rem] border border-red-300/16 bg-red-400/10 px-3 py-2 text-sm leading-5 text-red-50">
+        <div role="alert" className="rounded-[0.9rem] border border-red-300/16 bg-red-400/10 px-3 py-2 text-sm leading-5 text-red-50">
           {serverState.formError}
           {serverState.conflict ? (
             <button
@@ -54,6 +55,8 @@ export function AdminBookingNoteForm({
         <span className="text-sm font-medium text-white">Interní poznámka</span>
         <textarea
           name="internalNote"
+          aria-invalid={Boolean(serverState.fieldErrors?.internalNote)}
+          aria-describedby={serverState.fieldErrors?.internalNote ? `${errorId}-internalNote` : undefined}
           rows={3}
           maxLength={1000}
           defaultValue={initialValue}
@@ -64,7 +67,7 @@ export function AdminBookingNoteForm({
           Interní poznámka s auditní stopou.
         </span>
         {serverState.fieldErrors?.internalNote ? (
-          <p className="mt-2 text-sm text-red-300">{serverState.fieldErrors.internalNote}</p>
+          <p id={`${errorId}-internalNote`} role="alert" className="mt-2 text-sm text-red-300">{serverState.fieldErrors.internalNote}</p>
         ) : null}
       </label>
 

@@ -126,7 +126,7 @@ export function RescheduleBookingButton({
             }}
             className={
               variant === "inline"
-                ? "rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/76 transition hover:border-white/18 hover:bg-white/6 hover:text-white"
+                ? "min-h-11 rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/76 transition hover:border-white/18 hover:bg-white/6 hover:text-white"
                 : "h-full w-full rounded-[1rem] border border-white/12 bg-white/[0.045] px-3.5 py-3 text-left transition hover:border-white/18 hover:bg-white/[0.065]"
             }
           >

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useId, useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { type AdminArea } from "@/config/navigation";
@@ -39,6 +39,7 @@ export function AdminBookingServiceForm({
     priceFromCzk: number | null;
   }>;
 }) {
+  const errorId = useId();
   const [serverState, formAction] = useActionState(
     updateBookingServiceAction,
     initialUpdateBookingServiceActionState,
@@ -47,13 +48,8 @@ export function AdminBookingServiceForm({
 
   return (
     <details className="group rounded-[0.95rem] border border-white/8 bg-white/[0.03]">
-      <summary className="cursor-pointer list-none px-3.5 py-3 marker:hidden">
-        <span className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/16 bg-transparent px-4 py-2 text-sm font-semibold text-white/82 transition group-open:hidden hover:border-white/28 hover:bg-white/8 hover:text-white">
-          Změnit službu
-        </span>
-        <span className="hidden text-sm font-medium text-white/78 group-open:inline">
-          Přepsat službu v rezervaci
-        </span>
+      <summary className="min-h-11 cursor-pointer px-3 py-3 text-sm font-medium text-white/78">
+        Změnit službu
       </summary>
 
       <form action={formAction} className="space-y-3 border-t border-white/8 px-3.5 py-3">
@@ -62,13 +58,13 @@ export function AdminBookingServiceForm({
         <input type="hidden" name="expectedUpdatedAt" value={expectedUpdatedAt} />
 
         {serverState.status === "success" && serverState.successMessage ? (
-          <div className="rounded-[0.9rem] border border-emerald-300/16 bg-emerald-400/10 px-3 py-2 text-sm leading-5 text-emerald-50">
+          <div role="status" className="rounded-[0.9rem] border border-emerald-300/16 bg-emerald-400/10 px-3 py-2 text-sm leading-5 text-emerald-50">
             {serverState.successMessage}
           </div>
         ) : null}
 
         {serverState.status === "error" && serverState.formError ? (
-          <div className="rounded-[0.9rem] border border-red-300/16 bg-red-400/10 px-3 py-2 text-sm leading-5 text-red-50">
+          <div role="alert" className="rounded-[0.9rem] border border-red-300/16 bg-red-400/10 px-3 py-2 text-sm leading-5 text-red-50">
             {serverState.formError}
           </div>
         ) : null}
@@ -97,6 +93,8 @@ export function AdminBookingServiceForm({
           <span className="text-sm font-medium text-white">Nová služba</span>
           <select
             name="serviceId"
+            aria-invalid={Boolean(serverState.fieldErrors?.serviceId)}
+            aria-describedby={serverState.fieldErrors?.serviceId ? `${errorId}-serviceId` : undefined}
             defaultValue={currentServiceId}
             className="mt-1.5 w-full rounded-[0.85rem] border border-white/8 bg-black/20 px-3.5 py-2.5 text-sm text-white outline-none transition focus:border-[var(--color-accent)]/55"
           >
@@ -110,7 +108,7 @@ export function AdminBookingServiceForm({
             Změna přepočítá délku služby, cleanup blokaci a ceníkový základ rezervace. Individuální finální cena zůstává.
           </span>
           {serverState.fieldErrors?.serviceId ? (
-            <p className="mt-2 text-sm text-red-300">{serverState.fieldErrors.serviceId}</p>
+            <p id={`${errorId}-serviceId`} role="alert" className="mt-2 text-sm text-red-300">{serverState.fieldErrors.serviceId}</p>
           ) : null}
         </label>
 
@@ -119,6 +117,8 @@ export function AdminBookingServiceForm({
           <input
             type="text"
             name="reason"
+            aria-invalid={Boolean(serverState.fieldErrors?.reason)}
+            aria-describedby={serverState.fieldErrors?.reason ? `${errorId}-reason` : undefined}
             maxLength={300}
             placeholder="Např. po konzultaci na místě jsme péči upravili podle stavu pleti."
             className="mt-1.5 w-full rounded-[0.85rem] border border-white/8 bg-black/20 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--color-accent)]/55"
@@ -127,7 +127,7 @@ export function AdminBookingServiceForm({
             Důvod se uloží do historie rezervace jako auditní stopa.
           </span>
           {serverState.fieldErrors?.reason ? (
-            <p className="mt-2 text-sm text-red-300">{serverState.fieldErrors.reason}</p>
+            <p id={`${errorId}-reason`} role="alert" className="mt-2 text-sm text-red-300">{serverState.fieldErrors.reason}</p>
           ) : null}
         </label>
 
