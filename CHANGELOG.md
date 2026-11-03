@@ -8,6 +8,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- KPI přehled odděluje hlavní výsledky od rozbalovacích analýz, zpřesňuje názvy tržeb a výhledu a vynechává samostatnou platební sekci. Průběžný měsíc porovnává se stejnou částí minulého měsíce a do očekávaných návštěv zahrnuje i potvrzené rezervace bez ceny.
+
 - Seznam klientek zobrazuje tržbu jako součet dokončených a plně uhrazených služeb a umožňuje podle ní klientky řadit.
 
 - Seznam klientek ve sloupci Rezervace započítává pouze dokončené návštěvy a aktuálně naplánované rezervace; zrušené, `NO_SHOW` a prošlé nedokončené rezervace se do počtu ani řazení nezahrnou.

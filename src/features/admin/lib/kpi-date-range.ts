@@ -88,6 +88,14 @@ export function getKpiDateRanges(input: unknown, now = new Date()) {
 
   const calendarDays = getPragueCalendarDayCount(current.start, current.end);
   const currentStart = getPragueDateParts(current.start);
+  if (current.period === "this_month") {
+    const previousStart = getPragueMidnight(currentStart.year, currentStart.month - 1, 1);
+    const previousEnd = new Date(Math.min(
+      addPragueCalendarDays(previousStart, calendarDays).getTime(),
+      current.start.getTime(),
+    ));
+    return { current, previous: range(previousStart, previousEnd, "Stejná část minulého měsíce", current.period) };
+  }
   const previousStart = isCompletePragueCalendarMonth(current)
     ? getPragueMidnight(currentStart.year, currentStart.month - 1, 1)
     : addPragueCalendarDays(current.start, -calendarDays);

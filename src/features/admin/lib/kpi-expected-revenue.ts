@@ -27,12 +27,12 @@ export function calculateExpectedRevenue(
       booking.scheduledStartsAt >= range.end
     ) continue;
 
+    bookingCount += 1;
     const value = getExpectedRevenueBookingValue(booking);
     if (value === null) {
       missingPriceCount += 1;
       continue;
     }
-    bookingCount += 1;
     amount += value;
   }
 

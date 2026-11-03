@@ -177,9 +177,7 @@ async function getExpectedRevenueAggregate(start: Date, end: Date) {
       COALESCE(SUM(GREATEST(COALESCE("finalPriceCzk", "servicePriceFromCzk", 0), 0)) FILTER (
         WHERE COALESCE("finalPriceCzk", "servicePriceFromCzk") IS NOT NULL
       ), 0)::double precision AS "amount",
-      COUNT(*) FILTER (
-        WHERE COALESCE("finalPriceCzk", "servicePriceFromCzk") IS NOT NULL
-      )::int AS "bookingCount",
+      COUNT(*)::int AS "bookingCount",
       COUNT(*) FILTER (
         WHERE COALESCE("finalPriceCzk", "servicePriceFromCzk") IS NULL
       )::int AS "missingPriceCount"
@@ -216,6 +214,7 @@ async function getKpiClientVisitAggregates(previous: KpiDateRange, current: KpiD
     previousVisitCount: number;
     previousFirstVisitAt: Date | null;
     historicalFirstVisitAt: Date | null;
+    currentHistoricalFirstVisitAt: Date | null;
   }>>(Prisma.sql`
     SELECT
       booking."clientId" AS "clientId",
@@ -241,7 +240,14 @@ async function getKpiClientVisitAggregates(previous: KpiDateRange, current: KpiD
         WHERE history."clientId" = booking."clientId"
           AND history."status" = ${completed}::"BookingStatus"
           AND history."scheduledStartsAt" < ${previous.start}
-      ) AS "historicalFirstVisitAt"
+      ) AS "historicalFirstVisitAt",
+      (
+        SELECT MIN(history."scheduledStartsAt")
+        FROM "Booking" AS history
+        WHERE history."clientId" = booking."clientId"
+          AND history."status" = ${completed}::"BookingStatus"
+          AND history."scheduledStartsAt" < ${current.start}
+      ) AS "currentHistoricalFirstVisitAt"
     FROM "Booking" AS booking
     WHERE booking."status" = ${completed}::"BookingStatus"
       AND booking."scheduledStartsAt" >= ${previous.start}
@@ -261,6 +267,9 @@ async function getKpiClientVisitAggregates(previous: KpiDateRange, current: KpiD
     current: currentAggregates,
     previous: previousAggregates,
     historical: historicalAggregates,
+    currentHistorical: rows.flatMap((row): KpiClientAggregate[] => row.currentHistoricalFirstVisitAt
+      ? [{ clientId: row.clientId, visitCount: 1, firstVisitAt: row.currentHistoricalFirstVisitAt }]
+      : []),
   };
 }
 
@@ -297,8 +306,8 @@ async function getKpiRetentionAggregates(reference: Date): Promise<KpiRetentionA
 }
 
 export async function getKpiDashboardData(area: "owner" | "salon", searchParams?: Record<string, string | string[] | undefined>): Promise<KpiDashboardData> {
-  const { current, previous } = getKpiDateRanges(searchParams);
   const now = new Date();
+  const { current, previous } = getKpiDateRanges(searchParams, now);
   const nowParts = getPragueDateParts(now);
   const monthRange: KpiDateRange = { start: getPragueMidnight(nowParts.year, nowParts.month, 1), end: getPragueMidnight(nowParts.year, nowParts.month + 1, 1), label: "Tento měsíc", period: "this_month" };
   const dataEnd = current.period === "this_month" ? monthRange.end : current.end;
@@ -314,7 +323,7 @@ export async function getKpiDashboardData(area: "owner" | "salon", searchParams?
     expectedRange ? getExpectedRevenueAggregate(expectedRange.start, expectedRange.end) : Promise.resolve({ amount: 0, bookingCount: 0, missingPriceCount: 0 }),
   ]);
   const extendedRows = periodRows as BookingRow[];
-  const currentClientMetrics = getKpiClientMetricsFromAggregates(clientVisitAggregates.current, clientVisitAggregates.previous, clientVisitAggregates.historical, current);
+  const currentClientMetrics = getKpiClientMetricsFromAggregates(clientVisitAggregates.current, clientVisitAggregates.previous, clientVisitAggregates.currentHistorical, current);
   const previousClientMetrics = getKpiClientMetricsFromAggregates(clientVisitAggregates.previous, [], clientVisitAggregates.historical, previous);
   const currentSummary = summarize(extendedRows, current, currentClientMetrics, periodAggregates.current);
   const previousSummary = summarize(extendedRows, previous, previousClientMetrics, periodAggregates.previous);
