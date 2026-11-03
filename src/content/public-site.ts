@@ -244,7 +244,7 @@ export const homepageContent = {
   eyebrow: 'Kosmetika Zlín',
   title: 'Kosmetika ve Zlíně',
   description:
-    'Lash lifting, laminace obočí a ošetření pleti v příjemném prostředí s individuálním přístupem.',
+    'Dopřejte si chvíli péče, která se přizpůsobí vaší pleti i tomu, co právě potřebujete. Společně vybereme ošetření, ve kterém se budete cítit dobře.',
   benefits: ['Příjemné prostředí', 'Individuální přístup', 'Online rezervace 24/7'],
   ctaNote: 'Rychlé online objednání, nejdřív potvrzení přijetí požadavku e-mailem.',
   logoImage: {

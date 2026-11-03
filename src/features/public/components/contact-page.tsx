@@ -32,7 +32,7 @@ export async function ContactPage() {
     <div className="pb-24 sm:pb-12">
       <ContactHero
         title="Pokud si nejste jistá, napište mi."
-        description="Ráda vám pomohu s výběrem služby i termínu. Najdete mě ve Zlíně a ozvat se můžete telefonicky, e-mailem i přes Instagram."
+        description="Ráda vám pomohu s výběrem služby nebo odpovím na vaše otázky. Napište mi, zavolejte nebo se ozvěte přes Instagram. Najdete mě na Sadové ve Zlíně; návštěvy jsou možné po předchozí rezervaci."
         phone={salonProfile.phone}
         email={salonProfile.email}
         instagramUrl={salonProfile.instagramUrl}

@@ -36,8 +36,8 @@ export function ServicesPage({ services: catalogServices = services }: { service
     <div className="pb-8 sm:pb-12">
       <PublicHero
         eyebrow="Služby"
-        title="Péče rozdělená podle toho, co právě hledáte."
-        description="Kosmetická ošetření pracují se stavem pleti, lash & brow služby s výrazem, masáž s uvolněním a líčení s konkrétní příležitostí."
+        title="Vyberte si péči podle toho, co právě potřebujete"
+        description="Ať chcete dopřát péči pleti, zvýraznit řasy a obočí, nebo si užít chvíli klidu při masáži, podívejte se, co vám bude nejbližší."
         primaryCta={{ href: "/rezervace", label: "Vybrat termín" }}
         secondaryCta={{ href: "/cenik", label: "Zobrazit ceník" }}
       />
@@ -45,7 +45,8 @@ export function ServicesPage({ services: catalogServices = services }: { service
         <Container className="space-y-8 sm:space-y-10">
           <SectionHeading
             eyebrow="Katalog služeb"
-            title="Každá služba shrnuje to podstatné: zaměření péče, délku i cenu."
+            title="Co pro vás můžu udělat"
+            description="U každé služby najdete, pro koho se hodí, co zahrnuje, jak dlouho trvá i kolik stojí."
           />
           <nav aria-label="Kategorie služeb" className="grid grid-cols-2 gap-2 pb-1 md:grid-cols-3 lg:flex lg:flex-wrap">
             {categories.map((category, index) => {

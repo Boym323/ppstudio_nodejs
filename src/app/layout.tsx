@@ -32,7 +32,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     metadataBase: new URL(siteConfig.canonicalUrl),
-    applicationName: brandName,
+    applicationName: siteConfig.name,
     title: {
       default: `${brandName} | ${siteConfig.title}`,
       template: `%s | ${brandName}`,

@@ -17,6 +17,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Skupiny administrační navigace mají čitelnější kontrast a tlačítko mobilního menu používá viditelný text také jako přístupný název.
 - Pushover neposílá texty interních výjimek, správně rozlišuje selhání doručení připomínek a samostatné e-mailové incidenty a po neúspěšném odeslání neblokuje další pokus cooldownem. Vracející se klientku určuje podle předchozí dokončené návštěvy; chyby založení připomínek odkazují na rezervaci. Pro systémové chyby při výpadku DB lze nakonfigurovat nezávislého nouzového příjemce.
 
 - Karty klientek na mobilu lze otevřít klepnutím na celou kartu nebo klávesnicí; kontaktní akce zůstávají oddělené.

@@ -116,8 +116,11 @@ test.describe("dokončení návštěvy s úhradou", () => {
 
     await expect(page.locator("#booking-voucher").getByRole("button", { name: /Zapsat platbu/ })).toHaveCount(0);
 
-    const pricePanel = page.locator("details", { hasText: "Upravit cenu" }).last();
-    await pricePanel.locator("summary").click();
+    const priceTrigger = page.getByRole("button", { name: "Upravit cenu", exact: true });
+    await priceTrigger.click();
+    await expect(priceTrigger).toHaveAttribute("aria-expanded", "true");
+    const pricePanel = page.getByRole("region", { name: "Upravit cenu", exact: true });
+    await expect(pricePanel).toBeVisible();
     const priceInput = pricePanel.locator('input[name="finalPriceCzk"]');
     await priceInput.fill("1000");
     await expect(pricePanel).toContainText("Po změně bude zbývat doplatit 100 Kč.");

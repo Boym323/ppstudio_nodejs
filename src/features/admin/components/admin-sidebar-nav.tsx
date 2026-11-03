@@ -72,7 +72,7 @@ export function AdminSidebarNav({
           return (
             <div key={item.href}>
               {navigationGroup !== previousGroup ? (
-                <p className={cn("text-[10px] uppercase tracking-[0.24em] text-white/38", navigation.indexOf(item) > 0 && "mt-3")}>{navigationGroup}</p>
+                <p className={cn("text-[10px] uppercase tracking-[0.24em] text-white/60", navigation.indexOf(item) > 0 && "mt-3")}>{navigationGroup}</p>
               ) : null}
               <Link
                 href={item.href}

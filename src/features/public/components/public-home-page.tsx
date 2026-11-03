@@ -93,8 +93,8 @@ export async function PublicHomePage({
         <Container className="space-y-8 sm:space-y-10">
           <SectionHeading
             eyebrow="Doporučené služby"
-            title="Služby, se kterými se dobře začíná: pro koho jsou, co přináší a kolik času zaberou."
-            description="Ať řešíte pleť, řasy nebo obočí, cílem je jasná volba bez složitého rozhodování."
+            title="Nevíte, kterou službu vybrat?"
+            description="Prohlédněte si, co jednotlivá ošetření zahrnují, jak dlouho trvají a kolik stojí. Pokud si stále nebudete jistá, ráda vám poradím."
           />
           <div className="grid gap-6 lg:grid-cols-3">
             {homepageServices.map((service) => (
@@ -109,8 +109,8 @@ export async function PublicHomePage({
           <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-8">
             <SectionHeading
               eyebrow="Nejste si jistá výběrem?"
-              title="Zvolte orientačně termín, službu spolu doladíme na místě."
-              description="Pokud váháte mezi variantami, stačí vybrat nejbližší možnost. Před ošetřením vše krátce upřesníme."
+              title="Společně najdeme péči, která vám sedne"
+              description="Pokud váháte mezi variantami, stačí při rezervaci vybrat tu nejbližší. Před ošetřením spolu vše krátce upřesníme."
             />
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               <div className="rounded-[calc(var(--radius-panel)-0.5rem)] bg-[var(--color-surface)] p-5">
