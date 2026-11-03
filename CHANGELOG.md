@@ -19,6 +19,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Poslední návštěva v seznamu klientek zobrazuje pouze datum a službu ve dvou řádcích; redundantní údaj o počtu týdnů se nezobrazuje.
+
+- Seznam klientek už aktivní profily nezatěžuje opakovaným štítkem „Aktivní“; stavový štítek zobrazuje pouze u neaktivních klientek a poznámkový štítek jen tam, kde poznámka skutečně existuje.
+
 - Seznam klientek se na užší desktopové šířce už neořezává vpravo; tabulka využije dostupný prostor a lze ji v případě potřeby vodorovně posunout.
 
 - Skupiny administrační navigace mají čitelnější kontrast a tlačítko mobilního menu používá viditelný text také jako přístupný název.
