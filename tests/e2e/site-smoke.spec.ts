@@ -52,12 +52,12 @@ test.describe("základní pokrytí veřejného webu", () => {
 
     const publicPages: Array<{ path: string; heading: RegExp | string }> = [
       { path: "/", heading: "Kosmetika ve Zlíně" },
-      { path: "/sluzby", heading: "Péče rozdělená podle toho, co právě hledáte." },
-      { path: "/cenik", heading: "Ceny přehledně a bez zbytečného hledání." },
+      { path: "/sluzby", heading: "Vyberte si péči podle toho, co právě potřebujete" },
+      { path: "/cenik", heading: "Kolik stojí chvíle péče pro vás" },
       { path: "/o-mne", heading: "Péče, ve které se můžete cítit dobře" },
       { path: "/studio", heading: "Klidné místo pro vaši péči" },
       { path: "/kontakt", heading: "Pokud si nejste jistá, napište mi." },
-      { path: "/faq", heading: "Odpovědi na otázky, které klientce pomáhají rozhodnout se bez nejistoty." },
+      { path: "/faq", heading: "Co vás zajímá před návštěvou?" },
       { path: "/storno-podminky", heading: /storno/i },
       { path: "/obchodni-podminky", heading: /obchodní podmínky/i },
       { path: "/gdpr", heading: /gdpr|osobních údajů/i },

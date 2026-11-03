@@ -83,7 +83,7 @@ test.describe("mobilní detail rezervace", () => {
     await page.getByRole("button", { name: "Přidat poznámku" }).last().click();
     await expect.poll(async () => (await prisma.booking.findUniqueOrThrow({ where: { id: fixture.bookingId } })).internalNote).toBe(note);
 
-    const paymentTrigger = page.getByRole("button", { name: "Zapsat platbu", exact: true });
+    const paymentTrigger = page.locator('button[aria-controls$="-payment-panel"]');
     await paymentTrigger.click();
     await expect(paymentTrigger).toHaveAttribute("aria-expanded", "true");
     const paymentPanel = page.getByRole("region", { name: "Zapsat platbu", exact: true });
