@@ -65,11 +65,12 @@ test.describe("mobilní a samostatná admin PWA", () => {
 
   test("KPI dashboard nepřetéká vodorovně přes celou stránku", async ({ page }) => {
     await page.goto("/admin/statistiky");
-    await expect(page.getByRole("heading", { name: "KPI a statistiky" })).toBeVisible();
+    const content = page.getByRole("main");
+    await expect(content.getByRole("heading", { name: "KPI a statistiky" })).toBeVisible();
     await expectNoPageOverflow(page);
-    await expect(page.getByRole("table").first()).toBeHidden();
-    await page.getByText("Podrobné analýzy · klientky, storna, služby a zdroje", { exact: true }).click();
-    await expect(page.getByRole("table").first()).toBeVisible();
+    await expect(content.getByRole("table").first()).toBeHidden();
+    await content.getByText("Podrobné analýzy · klientky, storna, služby a zdroje", { exact: true }).click();
+    await expect(content.getByRole("table").first()).toBeVisible();
     await expectNoPageOverflow(page);
   });
 
