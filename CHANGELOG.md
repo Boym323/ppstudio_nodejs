@@ -25,6 +25,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Úvodní stránka při nedostupném katalogu zachová prezentaci studia a odkaz na kontakt bez zobrazování náhradních cen. Chyba načtení fotografie už nevyřadí homepage ani kontakt; veřejná část má chybovou obrazovku s možností opakovat načtení.
+
 - Tržba klientek při chybějící ceně uložené v rezervaci používá ceníkovou cenu služby stejně jako detail rezervace, včetně pokrytí službovým voucherem; zaplacené návštěvy se tak správně započítají i do řazení podle tržby.
 
 - Hlavičky sloupců Rezervace a Tržba v seznamu klientek se na desktopu nepřekrývají ani při užší šířce; tabulka se vejde do dostupného prostoru, hlavičky se mohou zalomit a číselné údaje jsou zarovnané doprava.

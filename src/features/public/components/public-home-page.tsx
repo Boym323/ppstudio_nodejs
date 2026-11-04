@@ -65,13 +65,19 @@ export async function PublicHomePage({
   featuredServices = services.slice(0, 3),
   serviceDurationRange,
 }: {
-  featuredServices?: Service[];
+  featuredServices?: Service[] | null;
   serviceDurationRange: ServiceDurationRange | null;
 }) {
   await connection();
-  const [bookingPolicy, portrait] = await Promise.all([getBookingPolicySettings(), getPrimaryPublicHomePortrait()]);
+  const [bookingPolicy, portrait] = await Promise.all([
+    getBookingPolicySettings(),
+    getPrimaryPublicHomePortrait().catch((error) => {
+      console.error("Failed to load homepage portrait", error);
+      return null;
+    }),
+  ]);
   const trustMetrics = buildTrustMetrics(bookingPolicy.cancellationHours, serviceDurationRange);
-  const homepageServices = featuredServices.length > 0 ? featuredServices : services.slice(0, 3);
+  const homepageServices = featuredServices === null ? [] : featuredServices.length > 0 ? featuredServices : services.slice(0, 3);
   const heroContent = {
     ...homepageContent,
     portraitImage: portrait
@@ -96,11 +102,22 @@ export async function PublicHomePage({
             title="Nevíte, kterou službu vybrat?"
             description="Prohlédněte si, co jednotlivá ošetření zahrnují, jak dlouho trvají a kolik stojí. Pokud si stále nebudete jistá, ráda vám poradím."
           />
-          <div className="grid gap-6 lg:grid-cols-3">
-            {homepageServices.map((service) => (
-              <ServiceCard key={service.slug} service={service} />
-            ))}
-          </div>
+          {featuredServices === null ? (
+            <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)]">
+              <p className="text-base leading-7 text-[var(--color-muted)]">
+                Nabídku služeb se teď nepodařilo načíst. S výběrem péče a domluvou termínu vám ráda pomohu osobně.
+              </p>
+              <Link href="/kontakt" className="mt-4 inline-flex min-h-11 items-center rounded-full border border-black/10 px-5 text-sm font-semibold text-[var(--color-foreground)] hover:bg-[var(--color-surface)]">
+                Kontaktovat studio
+              </Link>
+            </div>
+          ) : (
+            <div className="grid gap-6 lg:grid-cols-3">
+              {homepageServices.map((service) => (
+                <ServiceCard key={service.slug} service={service} />
+              ))}
+            </div>
+          )}
         </Container>
       </section>
 

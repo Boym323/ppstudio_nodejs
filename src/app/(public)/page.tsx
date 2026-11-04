@@ -13,8 +13,14 @@ export const metadata = buildPageMetadata({
 export default async function Page() {
   await connection();
   const [featuredServices, serviceDurationRange] = await Promise.all([
-    getHomepageFeaturedServices(),
-    getPublicServiceDurationRange(),
+    getHomepageFeaturedServices().catch((error) => {
+      console.error("Failed to load homepage services", error);
+      return null;
+    }),
+    getPublicServiceDurationRange().catch((error) => {
+      console.error("Failed to load homepage service duration range", error);
+      return null;
+    }),
   ]);
 
   return (

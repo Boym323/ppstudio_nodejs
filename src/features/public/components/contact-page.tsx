@@ -16,7 +16,10 @@ export async function ContactPage() {
   await connection();
   const [salonProfile, heroPhoto] = await Promise.all([
     getPublicSalonProfile(),
-    getPrimaryPublicContactPhoto(),
+    getPrimaryPublicContactPhoto().catch((error) => {
+      console.error("Failed to load contact photo", error);
+      return null;
+    }),
   ]);
   const contactItems = buildContactItems({
     phone: salonProfile.phone,
