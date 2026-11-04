@@ -23,6 +23,7 @@ import { selectSuggestedSlots } from "@/features/booking/lib/booking-schedule-op
 
 import { BookingConfirmationPanel } from "./booking-confirmation-panel";
 import { StickyCTA } from "./sticky-cta";
+import { clearBookingDraft, readBookingDraft, saveBookingDraft } from "./booking-flow/booking-draft";
 import { BookingContactStep } from "./booking-flow/contact-step";
 import { shouldTrackContactFieldInput } from "./booking-flow/contact-analytics";
 import {
@@ -156,6 +157,55 @@ export function BookingFlow({
   const lastVoucherValidationServiceIdRef = useRef(selectedServiceId);
   const lastRefreshedConflictRef = useRef("");
   const formRevisionRef = useRef(0);
+  const [isRestoringDraft, setIsRestoringDraft] = useState(true);
+  const [draftMessage, setDraftMessage] = useState("");
+  const draftEntryRef = useRef({ catalog, initialSelectedServiceSlug });
+
+  useEffect(() => {
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      const draft = readBookingDraft();
+      if (!draft) {
+        setIsRestoringDraft(false);
+        return;
+      }
+
+      let freshCatalog = draftEntryRef.current.catalog;
+      let availabilityVerified = false;
+      try {
+        freshCatalog = (await refreshPublicBookingCatalogAction()).catalog;
+        availabilityVerified = true;
+      } catch {
+        // Kontakty obnovíme i bez katalogu, starý termín ale nepřevezmeme.
+      }
+      if (cancelled) return;
+
+      const explicitSlug = draftEntryRef.current.initialSelectedServiceSlug;
+      const hasNewServicePrefill = explicitSlug && explicitSlug !== draft.entryServiceSlug;
+      const service = freshCatalog.services.find((item) => hasNewServicePrefill
+        ? item.slug === explicitSlug
+        : item.id === draft.serviceId);
+      setCurrentCatalog(freshCatalog);
+      setFullName(draft.fullName);
+      setEmail(draft.email);
+      setPhone(draft.phone);
+      setSelectedServiceId(service?.id ?? "");
+      setSelectedCategoryKey(getCategoryKey(service?.categoryName ?? freshCatalog.services[0]?.categoryName ?? ""));
+      // Platnost klíče se dále vyhodnotí přes aktuální availableTimeOptions,
+      // včetně obsazenosti, délky služby, úklidu a pravidel obědové pauzy.
+      setSelectedTimeOptionKey(availabilityVerified && service?.id === draft.serviceId ? draft.timeOptionKey : "");
+      setCurrentStep(service ? 2 : 1);
+      setIsServiceCatalogOpen(!service);
+      setDraftMessage(availabilityVerified
+        ? "Rozpracované údaje jsme obnovili. Zkontrolujte prosím službu a termín; pokud už není dostupný, vyberte jiný. Poznámku je potřeba doplnit znovu."
+        : "Kontaktní údaje jsme obnovili, dostupnost původního termínu se ale nepodařilo ověřit. Vyberte prosím termín znovu. Poznámku je potřeba doplnit znovu.");
+      setIsRestoringDraft(false);
+    }, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, []);
 
   const markFormChanged = () => {
     formRevisionRef.current += 1;
@@ -556,6 +606,20 @@ export function BookingFlow({
   const selectedTimeOption = selectedTimeOptionCandidate && !selectedTimeOptionCandidate.isDisabled
     ? selectedTimeOptionCandidate
     : undefined;
+
+  useEffect(() => {
+    if (serverState.status === "success") {
+      clearBookingDraft();
+      return;
+    }
+    if (isRestoringDraft) return;
+    saveBookingDraft({
+      entryServiceSlug: initialSelectedServiceSlug ?? "",
+      serviceId: selectedServiceId,
+      timeOptionKey: selectedTimeOption?.key ?? "",
+      fullName, email, phone,
+    });
+  }, [isRestoringDraft, initialSelectedServiceSlug, selectedServiceId, selectedTimeOption?.key, fullName, email, phone, serverState.status]);
 
   const selectableTimeOptions = useMemo(
     () => availableTimeOptions.filter((option) => !option.isDisabled),
@@ -1052,11 +1116,19 @@ export function BookingFlow({
         </div>
       </div>
 
+      {isRestoringDraft || draftMessage ? (
+        <p role="status" className="rounded-2xl bg-[var(--color-surface)] p-4 text-sm leading-6 text-[var(--color-foreground)]">
+          {isRestoringDraft ? "Připravuji rezervační formulář…" : draftMessage}
+        </p>
+      ) : null}
+
       <form
+        inert={isRestoringDraft}
+        aria-busy={isRestoringDraft}
         action={formAction}
         className="grid gap-5 pb-28 sm:gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:pb-0"
         onSubmitCapture={(event) => {
-          if (isSubmitting || isRefreshingCatalog || isVoucherValidationPending) {
+          if (isRestoringDraft || isSubmitting || isRefreshingCatalog || isVoucherValidationPending) {
             event.preventDefault();
             return;
           }

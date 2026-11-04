@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Přidáno
+
+- Rozpracovaná rezervace po obnovení stránky obnoví službu, dostupný termín a kontaktní údaje z krátkodobého konceptu v dané kartě prohlížeče. Koncept platí 30 minut, neukládá poznámku ani voucher a po úspěšném odeslání se smaže.
+
 ### Změněno
 
 - Filtry rezervací mají sjednocenou výšku a vzhled polí, přehlednější rozbalovací panel a kompaktní akce; počet výsledků je vedle vyhledávání.
