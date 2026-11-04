@@ -336,20 +336,21 @@ function buildBookingStatsCte(
       booking_financials AS (
         SELECT
           booking."id",
-          GREATEST(COALESCE(booking."finalPriceCzk", booking."servicePriceFromCzk", 0), 0) AS "totalPriceCzk",
+          GREATEST(COALESCE(booking."finalPriceCzk", booking."servicePriceFromCzk", service."priceFromCzk", 0), 0) AS "totalPriceCzk",
           GREATEST(
             COALESCE(direct."directPaidCzk", 0)
             + COALESCE(voucher."valueVoucherCzk", 0)
             + CASE
               WHEN voucher."hasMatchingServiceVoucher" THEN LEAST(
-                GREATEST(COALESCE(booking."finalPriceCzk", booking."servicePriceFromCzk", 0), 0),
-                GREATEST(COALESCE(booking."servicePriceFromCzk", 0), 0)
+                GREATEST(COALESCE(booking."finalPriceCzk", booking."servicePriceFromCzk", service."priceFromCzk", 0), 0),
+                GREATEST(COALESCE(booking."servicePriceFromCzk", service."priceFromCzk", 0), 0)
               )
               ELSE 0
             END,
             0
           ) AS "paidCzk"
         FROM "Booking" booking
+        JOIN "Service" service ON service."id" = booking."serviceId"
         LEFT JOIN booking_direct_payments direct ON direct."bookingId" = booking."id"
         LEFT JOIN booking_voucher_redemptions voucher ON voucher."bookingId" = booking."id"
       ),
