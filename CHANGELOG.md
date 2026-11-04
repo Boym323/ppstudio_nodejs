@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Zabezpečení
+
+- E-mailové nástroje, coverage reporter a ESLint používají opravené verze `glob` a `minimatch`; zrušené procházení adresářů už nepokračuje na pozadí a zpracování vzorů neumožňuje jejich zesílení do nepřiměřené spotřeby prostředků.
+
 ### Přidáno
 
 - Rozpracovaná rezervace po obnovení stránky obnoví službu, dostupný termín a kontaktní údaje z krátkodobého konceptu v dané kartě prohlížeče. Koncept platí 30 minut, neukládá poznámku ani voucher a po úspěšném odeslání se smaže.
