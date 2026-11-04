@@ -16,6 +16,7 @@ test("veřejná chybová stránka nabídne kontakt a opakování bez interní ch
 
 test("homepage a kontakt zachovají obsah při výpadku katalogu a fotografií", async (t) => {
   let servicesUnavailable = true;
+  let catalogEmpty = false;
   let durationUnavailable = true;
   const unavailable = async () => { throw new Error("database unavailable"); };
   t.mock.method(console, "error", () => undefined);
@@ -38,7 +39,7 @@ test("homepage a kontakt zachovají obsah při výpadku katalogu a fotografií",
   const { services } = await import("@/content/public-site");
   t.mock.module("@/features/public/lib/public-services", {
     exports: {
-      getHomepageFeaturedServices: async () => servicesUnavailable ? unavailable() : [services[0]],
+      getHomepageFeaturedServices: async () => servicesUnavailable ? unavailable() : catalogEmpty ? [] : [services[0]],
       getPublicServiceDurationRange: async () => durationUnavailable ? unavailable() : { minMinutes: 30, maxMinutes: 90 },
     },
   });
@@ -63,6 +64,17 @@ test("homepage a kontakt zachovají obsah při výpadku katalogu a fotografií",
   assert.doesNotMatch(fallbackHtml, /database unavailable/);
 
   servicesUnavailable = false;
+  catalogEmpty = true;
+  const emptyHtml = await renderHome();
+  assert.match(emptyHtml, /Aktuálně nejsou zveřejněné žádné služby/);
+  assert.match(emptyHtml, /href="\/kontakt"/);
+  assert.doesNotMatch(emptyHtml, /Detail služby/);
+  for (const service of services) {
+    assert.ok(!emptyHtml.includes(service.name));
+    assert.ok(!emptyHtml.includes(`/sluzby/${service.slug}`));
+  }
+
+  catalogEmpty = false;
   const partialHtml = await renderHome();
   assert.match(partialHtml, /Detail služby/);
   assert.doesNotMatch(partialHtml, /Nabídku služeb se teď nepodařilo načíst/);

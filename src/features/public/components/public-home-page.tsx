@@ -4,7 +4,6 @@ import { connection } from "next/server";
 import {
   buildTrustMetrics,
   homepageContent,
-  services,
   type Service,
   type ServiceDurationRange,
   type TrustMetric,
@@ -62,7 +61,7 @@ function ServiceCard({ service }: { service: Service }) {
 }
 
 export async function PublicHomePage({
-  featuredServices = services.slice(0, 3),
+  featuredServices = [],
   serviceDurationRange,
 }: {
   featuredServices?: Service[] | null;
@@ -77,7 +76,7 @@ export async function PublicHomePage({
     }),
   ]);
   const trustMetrics = buildTrustMetrics(bookingPolicy.cancellationHours, serviceDurationRange);
-  const homepageServices = featuredServices === null ? [] : featuredServices.length > 0 ? featuredServices : services.slice(0, 3);
+  const homepageServices = featuredServices ?? [];
   const heroContent = {
     ...homepageContent,
     portraitImage: portrait
@@ -102,10 +101,13 @@ export async function PublicHomePage({
             title="Nevíte, kterou službu vybrat?"
             description="Prohlédněte si, co jednotlivá ošetření zahrnují, jak dlouho trvají a kolik stojí. Pokud si stále nebudete jistá, ráda vám poradím."
           />
-          {featuredServices === null ? (
+          {homepageServices.length === 0 ? (
             <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)]">
               <p className="text-base leading-7 text-[var(--color-muted)]">
-                Nabídku služeb se teď nepodařilo načíst. S výběrem péče a domluvou termínu vám ráda pomohu osobně.
+                {featuredServices === null
+                  ? "Nabídku služeb se teď nepodařilo načíst."
+                  : "Aktuálně nejsou zveřejněné žádné služby."}{" "}
+                S výběrem péče a domluvou termínu vám ráda pomohu osobně.
               </p>
               <Link href="/kontakt" className="mt-4 inline-flex min-h-11 items-center rounded-full border border-black/10 px-5 text-sm font-semibold text-[var(--color-foreground)] hover:bg-[var(--color-surface)]">
                 Kontaktovat studio
