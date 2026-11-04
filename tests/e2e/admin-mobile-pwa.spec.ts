@@ -67,7 +67,10 @@ test.describe("mobilní a samostatná admin PWA", () => {
     await page.goto("/admin/statistiky");
     await expect(page.getByRole("heading", { name: "KPI a statistiky" })).toBeVisible();
     await expectNoPageOverflow(page);
+    await expect(page.getByRole("table").first()).toBeHidden();
+    await page.getByText("Podrobné analýzy · klientky, storna, služby a zdroje", { exact: true }).click();
     await expect(page.getByRole("table").first()).toBeVisible();
+    await expectNoPageOverflow(page);
   });
 
   test("otevře a zavře mobilní dialog", async ({ page }) => {

@@ -13,14 +13,14 @@ const booking = (overrides: Partial<ExpectedRevenueBooking> = {}): ExpectedReven
 });
 const july = { start: new Date("2026-06-30T22:00:00.000Z"), end: new Date("2026-07-31T22:00:00.000Z") };
 
-test("počítá jen potvrzenou budoucí rezervaci uvnitř aktuálního měsíce s historickou cenou", () => {
+test("počítá potvrzené návštěvy i bez ceny, do tržeb zahrne jen známé historické ceny", () => {
   const result = calculateExpectedRevenue([
     booking({ finalPriceCzk: 1350 }),
     booking({ scheduledStartsAt: new Date("2026-08-01T10:00:00.000Z") }),
     booking({ status: "CANCELLED" }),
     booking({ finalPriceCzk: null, servicePriceFromCzk: null }),
   ], july);
-  assert.deepEqual(result, { amount: 1350, bookingCount: 1, missingPriceCount: 1 });
+  assert.deepEqual(result, { amount: 1350, bookingCount: 2, missingPriceCount: 1 });
 });
 
 test("potvrzená rezervace zůstává očekávanou tržbou i po archivaci původního slotu", () => {

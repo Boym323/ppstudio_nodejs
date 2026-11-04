@@ -30,6 +30,7 @@ test.describe("seznam klientek", () => {
       data: {
         fullName: clientName,
         email: `${runId}@example.test`,
+        phone: "+420777123456",
       },
     });
     await loginAdmin(page, admin.email, admin.password);
@@ -57,5 +58,43 @@ test.describe("seznam klientek", () => {
     await expect(page.getByRole("heading", { name: clientName })).toBeVisible();
     await expect(page.getByRole("article", { name: `Otevřít detail klientky ${clientName}` }).getByText("Tržba")).toBeVisible();
     await expectNoPageOverflow(page);
+  });
+
+  test("kontaktní odkazy mobilní karty neotevírají detail klientky", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`/admin/klienti?query=${encodeURIComponent(runId)}`);
+    const listUrl = page.url();
+    const card = page.getByRole("article", { name: `Otevřít detail klientky ${clientName}` });
+    const contacts = card.locator('a[href^="mailto:"], a[href^="tel:"]');
+    await expect(contacts).toHaveCount(4);
+
+    for (const contact of await contacts.all()) {
+      for (const key of ["Enter", " "]) {
+        const allowsDefault = await contact.evaluate((element, key) => element.dispatchEvent(
+          new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }),
+        ), key);
+        expect(allowsDefault).toBe(true);
+      }
+      // Zamezíme spuštění externí pošty/telefonu, událost ale dál probublá ke kartě.
+      await contact.evaluate((element) => element.addEventListener("click", (event) => event.preventDefault(), { once: true }));
+      await contact.click();
+      await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+      await expect(page).toHaveURL(listUrl);
+      await expect(card).toBeVisible();
+    }
+  });
+
+  test("mobilní kartu lze stále otevřít kliknutím i klávesnicí", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const listPath = `/admin/klienti?query=${encodeURIComponent(runId)}`;
+    for (const activation of ["click", "Enter", "Space"]) {
+      await page.goto(listPath);
+      const card = page.getByRole("article", { name: `Otevřít detail klientky ${clientName}` });
+      const detailHref = await card.getByRole("link", { name: "Detail", exact: true }).getAttribute("href");
+      expect(detailHref).toBeTruthy();
+      if (activation === "click") await card.getByRole("heading", { name: clientName }).click();
+      else await card.press(activation);
+      await expect(page).toHaveURL(new URL(detailHref!, page.url()).href);
+    }
   });
 });

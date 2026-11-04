@@ -44,7 +44,7 @@ Formát je inspirovaný Keep a Changelog.
 - Skupiny administrační navigace mají čitelnější kontrast a tlačítko mobilního menu používá viditelný text také jako přístupný název.
 - Pushover neposílá texty interních výjimek, správně rozlišuje selhání doručení připomínek a samostatné e-mailové incidenty a po neúspěšném odeslání neblokuje další pokus cooldownem. Vracející se klientku určuje podle předchozí dokončené návštěvy; chyby založení připomínek odkazují na rezervaci. Pro systémové chyby při výpadku DB lze nakonfigurovat nezávislého nouzového příjemce.
 
-- Karty klientek na mobilu lze otevřít klepnutím na celou kartu nebo klávesnicí; kontaktní akce zůstávají oddělené.
+- Karty klientek na mobilu lze otevřít klepnutím na celou kartu nebo klávesnicí; telefonní a e-mailové odkazy fungují samostatně při kliknutí i ovládání klávesnicí a neotevírají detail klientky.
 - Admin formuláře na iPhonu používají minimálně 16px text, takže při fokusu nevyvolávají nechtěné přiblížení Safari.
 
 ## [3.39.0] - 2026-11-02
