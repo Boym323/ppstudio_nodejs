@@ -127,16 +127,35 @@
     "@prisma/engines@7.10.1": true
   },
   "overrides": {
+    "@eslint/config-array": {
+      "minimatch": "11.0.4"
+    },
+    "@eslint/eslintrc": {
+      "minimatch": "11.0.4"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "11.0.4"
+    },
+    "eslint": {
+      "minimatch": "11.0.4"
+    },
     "eslint-config-next": {
       "eslint-plugin-import": {
-        "minimatch": "10.2.5"
+        "minimatch": "11.0.4"
       },
       "eslint-plugin-jsx-a11y": {
-        "minimatch": "10.2.5"
+        "minimatch": "11.0.4"
       },
       "eslint-plugin-react": {
-        "minimatch": "10.2.5"
+        "minimatch": "11.0.4"
       }
+    },
+    "react-email": {
+      "glob": "14.0.2"
+    },
+    "test-exclude": {
+      "glob": "14.0.2",
+      "minimatch": "11.0.4"
     },
     "postcss": "8.5.23",
     "next": "16.4.3",

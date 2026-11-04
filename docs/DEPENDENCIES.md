@@ -46,6 +46,8 @@ Přímé verze hlavního stacku níže byly opět porovnány s `package.json` dn
 - `@prisma/adapter-pg`: `7.10.1`
 - `@fullcalendar/react`: `^7.0.2` (lockfile: `7.1.3`) – jediný produkční planner dostupnosti s autosave.
 - `react-email`: `6.11.6` a `@react-email/ui`: `6.11.6` – HTML e-maily a vývojové preview.
+- `glob`: npm override na `14.0.2` opravuje GHSA-3g3m-2fjr-6pw4 v tranzitivních závislostech `react-email` a `c8` → `test-exclude`; jejich dosavadní rozsahy `^13.0.6` zatím opravený major neumožňují. Používaná API (`glob`, `glob.sync`, `glob.glob`) zůstávají dostupná.
+- `minimatch`: npm `overrides` na `11.0.4` jsou omezené na větve ESLint, TypeScript-ESLint, `test-exclude` a glob 14. Tyto rodiče připínají starší major verze (`^3` nebo `^10`), přestože oprava GHSA-g3hv-75wg-m249 je dostupná od `11.0.1`; ověřené použití spoléhá jen na funkci `minimatch` a třídu `Minimatch`, které verze 11 zachovává.
 - `@radix-ui/react-dialog`, `@radix-ui/react-alert-dialog`, `@radix-ui/react-dropdown-menu`, `@radix-ui/react-toast` – dialogy, drawery, menu a toast notifikace.
 - `@tanstack/react-table`: `^9.3.1` – administrační tabulky.
 - `recharts`: `^3.10.1` – grafy.
