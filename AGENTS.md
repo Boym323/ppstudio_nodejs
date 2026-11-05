@@ -35,8 +35,8 @@ Automaticky generovaný blok Next.js výše neupravuj ručně. Jeho požadavek n
 - Vývoj, testy, staging a produkce jsou oddělená prostředí. Před příkazem, který může číst či měnit databázi, storage nebo posílat zprávy, ověř cílové připojení a režim. Lokální a CI integrační/E2E testy směřuj výhradně na izolovanou testovací databázi; nikdy na produkční `.env` nebo produkční PostgreSQL.
 - Pro běžný vývoj nepouštěj nad produkcí `prisma migrate dev`, `prisma db push`, reset/seed/cleanup skripty ani zkouškové rezervace nebo hromadné operace. Produkční migrace spouštěj jen v předepsaném release postupu, po kontrole dopadů a na výslovný pokyn k nasazení.
 - Datové migrace, mazání, zpětné doplňování a nevratné akce vyžadují cílený návrh, kontrolu kompatibility se stávajícími daty a jasný plán obnovy. Žádné zkracování bezpečnostních kontrol kvůli rychlejšímu deployi.
-- Nikdy nezapisuj tajné klíče, hesla, tokeny, neveřejné URL ani skutečné osobní údaje klientů do kódu, commitu, testovacích fixture, logu, analytiky, screenshotů nebo popisu PR. Používej syntetická data a redigované výstupy.
-- Při změnách adminu, rezervací, voucherů a veřejných tokenových odkazů zachovej serverové ověření oprávnění, minimalizaci osobních údajů a ochranu proti úniku tokenů v URL, logování, analytice i chybových hláškách. UI kontrola nenahrazuje serverovou autorizaci.
+- Nikdy nevkládej skutečné přístupové údaje, hesla, API klíče, session/akční tokeny ani osobní údaje klientů do repozitáře, testovacích fixture, analytiky, diagnostických výstupů, screenshotů či popisu PR. Pro testy používej syntetické hodnoty; při diagnostice rediguj citlivé údaje. Provozní zacházení s údaji v databázi a autorizované komunikaci tím není zakázáno.
+- Při změnách adminu, rezervací, voucherů a veřejných tokenových odkazů zachovej serverové ověření oprávnění a minimalizaci osobních údajů. Akční tokeny v URL a e-mailech jsou legitimní součástí self-service workflow podle `BOOKING_FLOW.md`; nesmějí však unikat do referrerů, analytiky, logů, chybových hlášek ani jiných neautorizovaných výstupů. UI kontrola nenahrazuje serverovou autorizaci.
 - Neměň chování odesílání reálných e-mailů, notifikací a externích integrací při lokálním testu; používej testovací transport nebo vypnuté doručování podle konfigurace projektu.
 
 ## Documentation Policy
@@ -65,6 +65,7 @@ Dokumentace projektu (vybírej pouze relevantní soubory, nejde o povinný sezna
 - `docs/architecture/media.md` (pravidla knihovny médií)
 - `docs/CLIENT_MERGE.md` (slučování klientů)
 - `docs/REACT_EMAIL_MIGRATION.md` (e-mailové šablony a integrace)
+- `docs/DST_AUDIT.md` (UTC konvence databáze a přechody času)
 
 ## Příprava release verze
 
@@ -95,7 +96,7 @@ Dokumentace projektu (vybírej pouze relevantní soubory, nejde o povinný sezna
 
 ## Regresní ochrana kritických toků
 
-- Změny rezervací posuzuj napříč vytvořením, obnovením formuláře, dostupností termínů, změnou termínu a stornem. Zachovej časové pásmo `Europe/Prague` včetně CET/CEST, délky a blokace slotů, cenové snapshoty, validaci i konzistenci transakcí při souběžných požadavcích.
+- Změny rezervací posuzuj napříč vytvořením, obnovením formuláře, dostupností termínů, změnou termínu a stornem. Lokální obchodní časy vyhodnocuj v `Europe/Prague` včetně CET/CEST, ale databázová spojení a konvenci absolutních timestampů zachovej v UTC podle `docs/DST_AUDIT.md`; historické hodnoty nepřeváděj bez doloženého původu. Ověř délky a blokace slotů, cenové snapshoty, validaci i konzistenci transakcí při souběžných požadavcích.
 - Při zásahu do ukládání rezervací, transakcí nebo admin akcí ověř serverovou autorizaci, atomické změny a ochranu proti duplicitnímu provedení. K reprodukované chybě doplň regresní test přímo na úrovni, kde vznikla (unit, DB integrace nebo prohlížečové E2E); test samotného helperu nenahrazuje E2E, pokud je příčinou interakce UI.
 - Při změnách e-mailového workeru a notifikací ověř stav fronty a doručení, retry, idempotenci a chování při selhání či timeoutu. Testy nesmějí odesílat skutečné klientské zprávy.
 - Lokálně spusť nejmenší relevantní testy a popiš, co nepokrývají. Před sloučením musí projít požadované GitHub CI brány pro výsledný commit, zejména DB integrační testy a relevantní desktop/mobilní Playwright scénáře.
