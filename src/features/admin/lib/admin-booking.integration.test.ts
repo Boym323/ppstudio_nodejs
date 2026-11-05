@@ -2400,7 +2400,12 @@ for (const allowManualOverride of [false, true]) {
         assert.equal(newBooking.status, "rejected");
         if (newBooking.status === "rejected") {
           assert.ok(newBooking.reason instanceof PublicBookingError);
-          assert.equal(newBooking.reason.code, publicBookingErrorCodes.slotUnavailable);
+          // Pořadí serializovaných transakcí rozhoduje, zda odmítne
+          // nedostupná nabídka, nebo kolize s nově prodlouženou rezervací.
+          assert.ok(
+            newBooking.reason.code === publicBookingErrorCodes.slotUnavailable
+            || newBooking.reason.code === publicBookingErrorCodes.bookingConflict,
+          );
         }
       } else {
         assert.equal(serviceChange.value.status, "conflict");
@@ -3039,5 +3044,152 @@ dbTest("oznámení změny služby lze znovu odeslat s novými odkazy i po redakc
     assert.equal(updatedSibling.communicationGeneration, resent.communicationGeneration);
   } finally {
     await fixture.cleanup();
+  }
+});
+
+// Samostatný CI průchod s background; běžný log průchod tuto větev nepouští.
+// Provider se nahrazuje před importem workeru, DB i renderer zůstávají skutečné.
+(process.env.EMAIL_DELIVERY_MODE === "background" ? dbTest : test.skip)("background: oznámení změny služby projde frontou a workerem", async (t) => {
+  const messages: import("@/lib/email/provider").EmailDeliveryMessage[] = [];
+  let failDelivery = false;
+  t.mock.module("@/lib/email/provider", { exports: {
+    sendEmail: async (message: import("@/lib/email/provider").EmailDeliveryMessage) => {
+      messages.push(message);
+      if (failDelivery) throw new Error("fake service-change transport failure");
+      return { provider: "smtp", messageId: "fake-service-change" };
+    },
+  } });
+  // Ani terminální chyba nesmí kontaktovat externí notifikační službu.
+  t.mock.module("@/lib/notifications/pushover-core", { exports: {
+    sendOwnerEmailFailurePushover: async () => undefined,
+  } });
+  const [{ prisma }, { updateAdminBookingService }, { runEmailDeliveryWorkerOnce }, { hashBookingActionToken }, { env }] = await Promise.all([
+    import("@/lib/prisma"), import("./admin-booking"), import("@/lib/email/worker"),
+    import("@/features/booking/lib/booking-action-tokens"), import("@/config/env"),
+  ]);
+  assert.equal(env.EMAIL_DELIVERY_MODE, "background");
+
+  for (const scenario of ["sent", "retry", "terminal-failure", "stale-generation", "stale-price", "stale-term", "stale-status", "stale-service", "stale-name"] as const) {
+    await t.test(scenario, async () => {
+      const fixture = await createAdminServiceChangeFixture(prisma, randomUUID().slice(0, 8));
+      messages.length = 0;
+      failDelivery = scenario === "retry" || scenario === "terminal-failure";
+      try {
+        const result = await updateAdminBookingService({
+          bookingId: fixture.booking.id, serviceId: fixture.replacementService.id,
+          actorUserId: fixture.owner.id, notifyClient: true,
+        });
+        assert.equal(result.status, "success");
+        if (result.status !== "success") assert.fail("Změna služby musí uspět.");
+        assert.equal(result.notificationStatus, "queued");
+        const log = await prisma.emailLog.findFirstOrThrow({ where: { bookingId: fixture.booking.id, templateKey: "booking-service-changed-v1" } });
+        const booking = await prisma.booking.findUniqueOrThrow({ where: { id: fixture.booking.id } });
+        const payload = log.payload as Prisma.JsonObject;
+        assert.equal(log.status, EmailLogStatus.PENDING);
+        assert.equal(log.attemptCount, 0);
+        assert.equal(log.sentAt, null);
+        assert.equal(payload.clientName, booking.clientNameSnapshot);
+        assert.equal(payload.serviceName, booking.serviceNameSnapshot);
+        assert.equal(payload.serviceId, fixture.replacementService.id);
+        assert.equal(payload.priceCzk, 1500);
+        assert.equal(payload.scheduledStartsAt, fixture.startsAt.toISOString());
+        assert.equal(payload.scheduledEndsAt, new Date(fixture.startsAt.getTime() + 90 * 60_000).toISOString());
+        const rawTokens: string[] = [];
+        for (const [field, path, type] of [
+          ["manageReservationUrl", "sprava", BookingActionTokenType.RESCHEDULE],
+          ["cancellationUrl", "storno", BookingActionTokenType.CANCEL],
+        ] as const) {
+          const url = new URL(String(payload[field]));
+          assert.equal(url.origin, new URL(env.NEXT_PUBLIC_APP_URL).origin);
+          assert.equal(url.search, "");
+          assert.equal(url.hash, "");
+          assert.match(url.pathname, new RegExp(`^/rezervace/${path}/[A-Za-z0-9_-]{43}$`));
+          const raw = url.pathname.split("/").at(-1)!;
+          rawTokens.push(raw);
+          const token = await prisma.bookingActionToken.findUniqueOrThrow({ where: { tokenHash: hashBookingActionToken(raw) } });
+          assert.notEqual(token.tokenHash, raw);
+          assert.equal(token.bookingId, fixture.booking.id);
+          assert.equal(token.type, type);
+          assert.equal(token.usedAt, null);
+          assert.equal(token.revokedAt, null);
+          assert.ok(token.expiresAt > new Date());
+          assert.equal(token.expiresAt.getTime(), fixture.startsAt.getTime() + 2 * 60 * 60_000);
+          if (type === BookingActionTokenType.RESCHEDULE) assert.equal(log.actionTokenId, token.id);
+        }
+        assert.notEqual(rawTokens[0], rawTokens[1]);
+
+        if (scenario === "stale-generation") await prisma.booking.update({ where: { id: booking.id }, data: { communicationGeneration: { increment: 1 } } });
+        if (scenario === "stale-price") await prisma.booking.update({ where: { id: booking.id }, data: { finalPriceCzk: 1900 } });
+        if (scenario === "stale-term") await prisma.booking.update({ where: { id: booking.id }, data: { scheduledEndsAt: fixture.bookingEndsAt } });
+        if (scenario === "stale-status") await prisma.booking.update({ where: { id: booking.id }, data: { status: "CANCELLED" } });
+        if (scenario === "stale-service") await prisma.booking.update({ where: { id: booking.id }, data: { serviceId: fixture.originalService.id } });
+        if (scenario === "stale-name") await prisma.booking.update({ where: { id: booking.id }, data: { clientNameSnapshot: "Jiná klientka" } });
+        // Zpřístupníme pouze vlastní zprávu; DB je izolovaná testovacím runnerem.
+        await prisma.emailLog.update({ where: { id: log.id }, data: { nextAttemptAt: new Date(0), attemptCount: scenario === "terminal-failure" ? 4 : 0 } });
+        assert.equal(await runEmailDeliveryWorkerOnce(), 1);
+        let stored = await prisma.emailLog.findUniqueOrThrow({ where: { id: log.id } });
+        assert.equal(stored.processingToken, null);
+        assert.equal(stored.processingStartedAt, null);
+        if (scenario.startsWith("stale-")) {
+          assert.equal(messages.length, 0);
+          assert.equal(stored.status, EmailLogStatus.SENT);
+          assert.equal(stored.provider, "system-skip");
+          assert.equal(stored.providerMessageId, null);
+          assert.ok(stored.errorMessage);
+        } else if (failDelivery) {
+          assert.equal(messages.length, 1);
+          assert.equal(stored.status, scenario === "retry" ? EmailLogStatus.PENDING : EmailLogStatus.FAILED);
+          assert.equal(stored.errorMessage, "fake service-change transport failure");
+          assert.equal(stored.sentAt, null);
+          assert.equal(stored.providerMessageId, null);
+          if (scenario === "retry") {
+            assert.ok(stored.nextAttemptAt && stored.nextAttemptAt > new Date());
+            assert.equal((stored.payload as Prisma.JsonObject).manageReservationUrl, payload.manageReservationUrl);
+            failDelivery = false;
+            await prisma.emailLog.update({ where: { id: log.id }, data: { nextAttemptAt: new Date(0) } });
+            assert.equal(await runEmailDeliveryWorkerOnce(), 1);
+            stored = await prisma.emailLog.findUniqueOrThrow({ where: { id: log.id } });
+            assert.equal(stored.status, EmailLogStatus.SENT);
+            assert.equal(stored.attemptCount, 2);
+            assert.equal(messages[0].idempotencyKey, messages[1].idempotencyKey);
+          }
+        } else {
+          assert.equal(messages.length, 1);
+          assert.equal(stored.status, EmailLogStatus.SENT);
+          assert.equal(stored.provider, "smtp");
+          assert.equal(stored.providerMessageId, "fake-service-change");
+          assert.ok(stored.sentAt);
+          const message = messages[0];
+          assert.equal(message.to, booking.clientEmailSnapshot);
+          assert.match(message.text, new RegExp(String(booking.serviceNameSnapshot)));
+          assert.match(message.text, /1\s500\sKč/);
+          const localTime = (date: Date) => new Intl.DateTimeFormat("cs-CZ", { timeZone: "Europe/Prague", hour: "2-digit", minute: "2-digit" }).format(date);
+          assert.ok(message.text.includes(localTime(booking.scheduledStartsAt)));
+          assert.ok(message.text.includes(localTime(booking.scheduledEndsAt)));
+          for (const field of ["manageReservationUrl", "cancellationUrl"]) {
+            assert.ok(message.text.includes(String(payload[field])));
+            assert.ok(message.html.includes(String(payload[field])));
+          }
+          assert.equal(message.attachments?.length, 1);
+          const attachment = message.attachments![0];
+          assert.equal(attachment.filename, "pp-studio-rezervace.ics");
+          assert.match(attachment.contentType, /^text\/calendar/);
+          const ics = String(attachment.content).replace(/\r?\n /g, "");
+          const icsTime = (date: Date) => `${getPragueLocalDate(date).replaceAll("-", "")}T${localTime(date).replace(":", "")}00`;
+          assert.ok(ics.includes(`DTSTART;TZID=Europe/Prague:${icsTime(booking.scheduledStartsAt)}`));
+          assert.ok(ics.includes(`DTEND;TZID=Europe/Prague:${icsTime(booking.scheduledEndsAt)}`));
+          assert.ok(ics.includes(`SUMMARY:PP Studio – ${booking.serviceNameSnapshot}`));
+          assert.ok(ics.includes(`UID:${booking.id}@`));
+          assert.match(ics, /STATUS:CONFIRMED/);
+          for (const raw of rawTokens) assert.ok(!ics.includes(raw));
+        }
+        if (stored.status !== EmailLogStatus.PENDING) {
+          assert.equal((stored.payload as Prisma.JsonObject).manageReservationUrl, "[REDACTED]");
+          assert.equal((stored.payload as Prisma.JsonObject).cancellationUrl, "[REDACTED]");
+        }
+      } finally {
+        await fixture.cleanup();
+      }
+    });
   }
 });

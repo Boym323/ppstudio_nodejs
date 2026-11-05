@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { BOOKING_DRAFT_TTL_MS, clearBookingDraft, readBookingDraft, saveBookingDraft } from "./booking-draft";
+import { BOOKING_DRAFT_RESTORE_TIMEOUT_MS, BOOKING_DRAFT_TTL_MS, restoreBookingDraftCatalog, clearBookingDraft, readBookingDraft, saveBookingDraft } from "./booking-draft";
 
 test("koncept obnoví pouze povolené údaje, expiruje a lze jej smazat po odeslání", () => {
   const previousWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
@@ -47,3 +47,36 @@ test("koncept obnoví pouze povolené údaje, expiruje a lze jej smazat po odesl
     else Reflect.deleteProperty(globalThis, "window");
   }
 });
+
+const flushPromises = () => new Promise<void>((resolve) => setImmediate(resolve));
+
+for (const outcome of ["success", "timeout", "rejection", "late-success", "late-rejection", "unmount"] as const) {
+  test(`obnova katalogu konceptu: ${outcome}`, async (t) => {
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    let resolve!: (value: { catalog: string }) => void;
+    let reject!: (error: Error) => void;
+    const request = new Promise<{ catalog: string }>((yes, no) => { resolve = yes; reject = no; });
+    const completions: Array<{ catalog: string } | null> = [];
+    const cancel = restoreBookingDraftCatalog(() => request, (result) => completions.push(result));
+    await flushPromises();
+    if (outcome === "success") resolve({ catalog: "fresh" });
+    if (outcome === "rejection") reject(new Error("offline"));
+    if (outcome === "unmount") cancel();
+    await flushPromises();
+    if (outcome === "success") assert.deepEqual(completions, [{ catalog: "fresh" }]);
+    if (outcome === "rejection") assert.deepEqual(completions, [null]);
+    t.mock.timers.tick(BOOKING_DRAFT_RESTORE_TIMEOUT_MS - 1);
+    if (outcome !== "success" && outcome !== "rejection") assert.deepEqual(completions, []);
+    t.mock.timers.tick(1);
+    const expected = outcome === "success" ? [{ catalog: "fresh" }] : outcome === "unmount" ? [] : [null];
+    assert.deepEqual(completions, expected);
+    // Fallback už odblokoval formulář. Pozdější výsledek nesmí spustit
+    // opětovnou obnovu a přepsat nové kontakty, službu nebo termín.
+    if (outcome === "late-success" || outcome === "unmount") resolve({ catalog: "late" });
+    if (outcome === "late-rejection") reject(new Error("late offline"));
+    await flushPromises();
+    t.mock.timers.tick(BOOKING_DRAFT_RESTORE_TIMEOUT_MS);
+    assert.deepEqual(completions, expected);
+    cancel();
+  });
+}

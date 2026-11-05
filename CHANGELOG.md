@@ -37,6 +37,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Obnova rozpracované rezervace po 5 sekundách odblokuje formulář i při neodpovídajícím načítání dostupnosti. Zachová kontakty, vyžádá nový výběr neověřeného termínu a opožděná odpověď už nepřepíše nově zadané údaje.
+
 - Úvodní stránka při nedostupném i prázdném katalogu zachová prezentaci studia a odkaz na kontakt bez zobrazování náhradních služeb a cen. Chyba načtení fotografie už nevyřadí homepage ani kontakt; veřejná část má chybovou obrazovku s možností opakovat načtení.
 
 - Tržba klientek při chybějící ceně uložené v rezervaci používá ceníkovou cenu služby stejně jako detail rezervace, včetně pokrytí službovým voucherem; zaplacené návštěvy se tak správně započítají i do řazení podle tržby.

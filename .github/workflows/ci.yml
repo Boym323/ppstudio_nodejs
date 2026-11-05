@@ -161,6 +161,19 @@ jobs:
       - name: Test unit layer with coverage and DB integrations
         run: npm run test:ci
 
+      - name: Test service-change background delivery with fake transport
+        env:
+          EMAIL_DELIVERY_MODE: background
+          EMAIL_TRANSPORT: smtp
+          SMTP_HOST: smtp.invalid
+          SMTP_PORT: "587"
+          SMTP_USER: fake-user
+          SMTP_PASSWORD: fake-password
+          SMTP_FROM_EMAIL: test@example.com
+          PUSHOVER_ENABLED: "false"
+          RUN_DB_INTEGRATION_TESTS: "1"
+        run: node --experimental-test-module-mocks --import ./src/test/register-server-only.mjs --import tsx --test --test-name-pattern="^background:" src/features/admin/lib/admin-booking.integration.test.ts
+
       - name: Test production security headers
         run: NODE_ENV=production node --import ./src/test/register-server-only.mjs --import tsx --test src/config/security-headers.test.ts
 
