@@ -48,31 +48,6 @@ async function expireOldMetaEvents(now: Date) {
   });
 }
 
-async function cancelUndeliveredEventsWhenDisabled(now: Date) {
-  const staleBefore = new Date(now.getTime() - PROCESSING_LEASE_MS);
-
-  await prisma.metaConversionEvent.updateMany({
-    where: {
-      OR: [
-        { status: MetaConversionEventStatus.PENDING },
-        {
-          status: MetaConversionEventStatus.PROCESSING,
-          processingStartedAt: { lt: staleBefore },
-        },
-      ],
-    },
-    data: {
-      status: MetaConversionEventStatus.FAILED,
-      processingStartedAt: null,
-      processingToken: null,
-      lastErrorCode: "CAPI_DISABLED",
-      userAgent: null,
-      fbp: null,
-      fbc: null,
-    },
-  });
-}
-
 async function claimDueMetaEvents(now: Date): Promise<ClaimedMetaEvent[]> {
   const staleBefore = new Date(now.getTime() - PROCESSING_LEASE_MS);
   const eventMustBeNewerThan = new Date(now.getTime() - MAX_EVENT_AGE_MS);
@@ -175,7 +150,8 @@ export async function runMetaConversionWorkerOnce(
 ) {
   await expireOldMetaEvents(now);
   if (!config) {
-    await cancelUndeliveredEventsWhenDisabled(now);
+    // Temporary feature disable must preserve queued events for a later retry.
+    // Old events are still expired by expireOldMetaEvents above.
     return { attempted: 0, sent: 0, retrying: 0, failed: 0 };
   }
 
