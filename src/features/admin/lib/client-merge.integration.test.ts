@@ -340,6 +340,7 @@ dbTest("volba jména cílového profilu sjednotí aktivní snapshoty a čekajíc
 });
 
 dbTest("sloučení opraví klientské jméno i v GENERIC oznámení změny služby", async (t) => {
+  assert.ok(["localhost", "127.0.0.1", "::1"].includes(new URL(process.env.DATABASE_URL!).hostname), "Test vyžaduje izolovanou lokální databázi.");
   assert.equal(typeof t.mock?.module, "function", "Integrační test vyžaduje --experimental-test-module-mocks.");
   const [{ prisma }, { loadClientMergePreview }, { mergeClientProfiles }] = await Promise.all([
     import("@/lib/prisma"), import("./client-merge-preview"), import("./client-merge"),
