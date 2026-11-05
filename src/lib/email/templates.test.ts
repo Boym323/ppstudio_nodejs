@@ -497,3 +497,57 @@ test("renderEmailTemplate creates reschedule email with updated term and calenda
   assert.ok(email.attachments);
   assert.equal(email.attachments.length, 1);
 });
+
+
+test("oznámení změny služby obsahuje novou službu, individuální cenu a aktualizaci stejné kalendářové události", async () => {
+  const renderer = await loadRenderer();
+  const email = await renderer("booking-service-changed-v1", "Změna vaší rezervace: Age Renew", {
+    bookingId: "booking-service-change", serviceId: "age-renew", serviceName: "Age Renew", previousServiceName: "Exosome Renew",
+    clientName: "Jana Nováková", bookingStatus: "CONFIRMED",
+    scheduledStartsAt: "2026-11-13T13:00:00.000Z", scheduledEndsAt: "2026-11-13T14:40:00.000Z",
+    priceCzk: 1800, priceIsFinal: true,
+    manageReservationUrl: "https://example.com/rezervace/sprava/new-manage", cancellationUrl: "https://example.com/rezervace/storno/new-cancel",
+  });
+  assert.match(email.text, /Služba: Age Renew/);
+  assert.match(email.text, /změnili službu z „Exosome Renew“ na „Age Renew“/);
+  assert.match(email.text, /Čas: 14:00 – 15:40/);
+  assert.match(email.text, /Cena vaší rezervace: 1\s800\sKč/);
+  assert.match(email.html, /Změna vaší rezervace/);
+  assert.match(email.html, /Age Renew/);
+  assert.match(email.html, /Cena vaší rezervace/);
+  assert.match(email.html, /Změnit termín/);
+  assert.doesNotMatch(email.html, /Spravovat rezervaci/);
+  assert.match(email.text, /aktualizujte také původní záznam/);
+  assert.doesNotMatch(email.text + email.html, /Dohodnutá cena|Ceníková cena|Podle domluvy|cleanup|blockedUntil|interní výjimka/);
+  assert.match(email.text, /new-manage/);
+  const ics = String(email.attachments?.[0]?.content).replace(/\r?\n /g, "");
+  assert.match(ics, /UID:booking-service-change@example.com/);
+  assert.match(ics, /SUMMARY:PP Studio – Age Renew/);
+  assert.match(ics, /DTEND;TZID=Europe\/Prague:20261113T154000/);
+  assert.match(ics, /STATUS:CONFIRMED/);
+  assert.doesNotMatch(ics, /161000/);
+  const original = await renderer("booking-approved-v1", "Potvrzení", {
+    bookingId: "booking-service-change", serviceName: "Exosome Renew", clientName: "Jana Nováková",
+    scheduledStartsAt: "2026-11-13T13:00:00.000Z", scheduledEndsAt: "2026-11-13T14:00:00.000Z",
+    includeCalendarAttachment: true,
+  });
+  assert.equal(ics.match(/UID:([^\r\n]+)/)?.[1], String(original.attachments?.[0]?.content).match(/UID:([^\r\n]+)/)?.[1]);
+});
+
+for (const priceCzk of [null, 0, 1500]) {
+  test(`oznámení změny čekající rezervace zachová čekající stav a cenu ${priceCzk}`, async () => {
+    const renderer = await loadRenderer();
+    const email = await renderer("booking-service-changed-v1", "Změna služby", {
+      bookingId: "pending-service-change", serviceId: "new", serviceName: "Nová služba", previousServiceName: "Původní služba",
+      clientName: "Jana", bookingStatus: "PENDING", priceCzk, priceIsFinal: false,
+      scheduledStartsAt: "2026-11-13T13:00:00.000Z", scheduledEndsAt: "2026-11-13T14:00:00.000Z",
+      manageReservationUrl: "https://example.com/manage", cancellationUrl: "https://example.com/cancel",
+    });
+    assert.match(email.text, /Stav rezervace: Čeká na potvrzení studiem/);
+    assert.match(email.html, /Čeká na potvrzení/);
+    assert.match(String(email.attachments?.[0]?.content), /STATUS:TENTATIVE/);
+    if (priceCzk === null) assert.match(email.text, /Cena bude upřesněna/);
+    else if (priceCzk === 0) assert.match(email.text, /Cena vaší rezervace: 0\sKč/);
+    else assert.match(email.text, /Cena vaší rezervace: 1\s500\sKč/);
+  });
+}

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { AnalyticsWidget } from "@/components/admin/AnalyticsWidget";
 import { env } from "@/config/env";
 
-import { BookingTrendChart, ClientMixChart, RevenueTrendChart } from "@/features/admin/components/admin-kpi-charts";
+import { BookingTrendChart, RevenueTrendChart } from "@/features/admin/components/admin-kpi-charts";
 import { AdminPanel, AdminPageShell } from "@/features/admin/components/admin-page-shell";
 import { KpiPeriodFilter } from "@/features/admin/components/kpi-period-filter";
 import { KpiServicesTable } from "@/features/admin/components/kpi-services-table";
@@ -34,7 +34,7 @@ function MetricDefinition({ text, label }: { text: string; label: string }) {
     <p className="mt-2 leading-5">{text}</p>
   </details>;
 }
-function KpiCard({ label, metric, format, href, detail, tooltip, kpiKey, valueOverride, showComparison = true }: { label: string; metric: KpiMetric; format: (value: number) => string; href?: string; detail?: string; tooltip?: string; kpiKey?: keyof typeof kpiComparisonConfig; valueOverride?: string; showComparison?: boolean }) {
+function KpiCard({ label, metric, format, detail, tooltip, kpiKey, valueOverride, showComparison = true }: { label: string; metric: KpiMetric; format: (value: number) => string; detail?: string; tooltip?: string; kpiKey?: keyof typeof kpiComparisonConfig; valueOverride?: string; showComparison?: boolean }) {
   const config = kpiKey ? kpiComparisonConfig[kpiKey] : undefined;
   const neutral = Boolean(config && "neutral" in config && config.neutral);
   const comparison = interpretKpiComparison(metric, { lowerIsBetter: config?.lowerIsBetter, neutral });
@@ -45,7 +45,6 @@ function KpiCard({ label, metric, format, href, detail, tooltip, kpiKey, valueOv
     {detail ? <p className="mt-2 text-xs leading-5 text-white/65">{detail}</p> : null}
     {showComparison ? <p className={`mt-2 text-xs leading-5 ${comparisonColor}`}>{metricDetail(metric, format, config?.lowerIsBetter, Boolean(config && "percentagePoints" in config && config.percentagePoints), neutral)}</p> : null}
     {tooltip ? <MetricDefinition text={tooltip} label={label} /> : null}
-    {href ? <Link href={href} className="mt-3 inline-block rounded-sm py-1 text-xs font-medium text-[var(--color-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]">Zobrazit dokončené rezervace →</Link> : null}
   </article>;
 }
 function CompactKpiCard({ label, value, detail, comparison }: { label: string; value: string; detail: string; comparison?: string }) {
@@ -68,7 +67,6 @@ function ForecastPairCard({ title, actualLabel, actualValue, actualComparison, f
 }
 export function AdminKpiDashboardPage({ data, area }: { data: KpiDashboardData; area: "owner" | "salon"; searchParams?: Record<string, string | string[] | undefined> }) {
   const path = area === "owner" ? "/admin/statistiky" : "/admin/provoz/statistiky";
-  const bookingHref = area === "owner" ? "/admin/rezervace" : "/admin/provoz/rezervace";
   const unavailableComparisons = Object.values(data.metrics).filter((metric) => !metric.previousHasData).length;
   const chartPeriodDescription = usesMonthlyKpiBuckets(data.range)
     ? "Po měsících. První a poslední bod mohou zahrnovat jen vybranou část měsíce."
@@ -90,13 +88,13 @@ export function AdminKpiDashboardPage({ data, area }: { data: KpiDashboardData; 
   return <AdminPageShell eyebrow="Manažerský přehled" title="KPI a statistiky" description={`Výkon salonu za „${data.range.label}“. Přepočet: ${dateTime.format(data.calculatedAt)}.`} compact denseIntro>
     <AdminPanel title="Období" compact denseHeader>
       <KpiPeriodFilter path={path} activePeriod={data.range.period} rangeLabel={formatRange(data.range.start, data.range.end)} initialFrom={formatInputDate(data.range.start)} initialTo={formatInputDate(new Date(data.range.end.getTime() - 1))} />
-      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/65"><p>Srovnání: {formatRange(data.previousRange.start, data.previousRange.end)}.</p><details className="relative text-xs"><summary className="cursor-pointer rounded-sm py-1 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]">Metodika srovnání</summary><p className="absolute z-10 mt-2 w-80 rounded-xl border border-white/10 bg-neutral-950 p-3 leading-5 text-white shadow-xl">Celé měsíce porovnáváme s předchozím kalendářním měsícem; ostatní rozsahy s bezprostředně předcházejícím stejně dlouhým obdobím.</p></details></div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/65"><p>Srovnání: {formatRange(data.previousRange.start, data.previousRange.end)}.</p><details className="relative text-xs"><summary className="cursor-pointer rounded-sm py-1 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]">Metodika srovnání</summary><p className="absolute z-10 mt-2 w-80 rounded-xl border border-white/10 bg-neutral-950 p-3 leading-5 text-white shadow-xl">Tento měsíc porovnáváme se stejnou částí minulého měsíce, nejvýše do jeho konce. Dnešní den ještě není uzavřený. Celé ostatní měsíce porovnáváme s předchozím kalendářním měsícem; ostatní rozsahy s bezprostředně předcházejícím stejně dlouhým obdobím.</p></details></div>
     </AdminPanel>
     {unavailableComparisons >= Math.ceil(Object.values(data.metrics).length / 2) ? <p className="rounded-xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm text-white/68">Porovnání není dostupné, protože pro předchozí období nemáme dostatek historických dat.</p> : null}
     <AdminPanel title="Výsledek a výhled" compact denseHeader>
       <div className="grid min-w-0 gap-3 sm:grid-cols-2">
-        <ForecastPairCard title="Tržby" actualLabel="Dokončeno" actualValue={money.format(data.metrics.revenue.value)} actualComparison={metricDetail(data.metrics.revenue, money.format)} forecastLabel={expectedRevenueLabel} forecastValue={money.format(data.metrics.expectedRevenue.value)} forecastDetail={expectedRevenue.missingPriceCount ? `${number.format(expectedRevenue.missingPriceCount)} budoucích rezervací bez ceny · odhad tržeb je neúplný` : undefined} totalLabel="Odhad celkem" totalValue={money.format(forecastRevenueTotal)} forecastAvailable={expectedRevenueAvailable} tooltip="Dokončené tržby jsou součet cen dokončených návštěv. Očekávané tržby jsou ceny potvrzených budoucích rezervací; nejde o garantované platby." />
-        <ForecastPairCard title="Návštěvy" actualLabel="Dokončeno" actualValue={number.format(data.metrics.completed.value)} actualComparison={metricDetail(data.metrics.completed, number.format)} forecastLabel={expectedVisitsLabel} forecastValue={number.format(expectedRevenue.bookingCount)} totalLabel="Odhad celkem" totalValue={number.format(forecastVisitsTotal)} forecastAvailable={expectedRevenueAvailable} tooltip="Dokončené návštěvy jsou uzavřené návštěvy v období. Očekávané návštěvy jsou potvrzené budoucí rezervace ve stejném výhledu jako očekávané tržby." />
+        <ForecastPairCard title="Tržby" actualLabel="Dokončeno" actualValue={money.format(data.metrics.revenue.value)} actualComparison={metricDetail(data.metrics.revenue, money.format)} forecastLabel={expectedRevenueLabel} forecastValue={money.format(data.metrics.expectedRevenue.value)} forecastDetail={expectedRevenue.missingPriceCount ? `${number.format(expectedRevenue.missingPriceCount)} budoucích rezervací bez ceny · odhad tržeb je neúplný` : undefined} totalLabel="Dokončeno + potvrzené rezervace" totalValue={money.format(forecastRevenueTotal)} forecastAvailable={expectedRevenueAvailable} tooltip="Dokončené tržby jsou součet cen dokončených návštěv. Očekávané tržby jsou ceny potvrzených budoucích rezervací; nejde o garantované platby." />
+        <ForecastPairCard title="Návštěvy" actualLabel="Dokončeno" actualValue={number.format(data.metrics.completed.value)} actualComparison={metricDetail(data.metrics.completed, number.format)} forecastLabel={expectedVisitsLabel} forecastValue={number.format(expectedRevenue.bookingCount)} totalLabel="Dokončeno + potvrzené rezervace" totalValue={number.format(forecastVisitsTotal)} forecastAvailable={expectedRevenueAvailable} tooltip="Dokončené návštěvy jsou uzavřené návštěvy v období. Očekávané návštěvy jsou potvrzené budoucí rezervace ve stejném výhledu jako očekávané tržby." />
       </div>
     </AdminPanel>
     <AdminPanel title="Výkon a kapacita" compact denseHeader>
@@ -108,6 +106,9 @@ export function AdminKpiDashboardPage({ data, area }: { data: KpiDashboardData; 
       <MetricDefinition label="Výkon a kapacita" text="Průměrná útrata je součet tržeb dělený počtem dokončených návštěv. Obsazenost počítá dokončené návštěvy včetně blokace po službě vůči zveřejněné kapacitě po odečtení obědů. Zaplnění celého měsíce zahrnuje potvrzené, dokončené a no-show rezervace za celý měsíc." />
     </AdminPanel>
     <section className="grid gap-4 xl:grid-cols-2"><AdminPanel title="Vývoj tržeb" description={chartPeriodDescription} compact denseHeader><RevenueTrendChart rows={data.revenueSeries} hasData={data.metrics.completed.value > 0} /></AdminPanel><AdminPanel title="Vývoj rezervací" description={`Dokončené, zrušené a nedostavení se. ${chartPeriodDescription}`} compact denseHeader><BookingTrendChart rows={data.bookingSeries} /></AdminPanel></section>
+    <details className="min-w-0 rounded-[var(--radius-panel)] border border-white/10 bg-black/10 p-4">
+      <summary className="min-h-11 cursor-pointer rounded-sm py-2 text-sm font-semibold text-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]">Podrobné analýzy · klientky, storna, služby a zdroje</summary>
+      <div className="mt-4 min-w-0 space-y-4">
     <AdminPanel title="Klientky a opakované návštěvy" description="Rozlišujeme návrat klientky z dřívějšího období a více návštěv uvnitř zvoleného období." compact denseHeader>
       <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard label="Nové klientky" metric={data.metrics.newClients} format={number.format} kpiKey="newClients" tooltip="Klientky, jejichž vůbec první dokončená návštěva nastala ve vybraném období." />
@@ -122,15 +123,14 @@ export function AdminKpiDashboardPage({ data, area }: { data: KpiDashboardData; 
         <KpiCard label="Míra nedostavení se (no-show)" metric={data.metrics.noShowRate} format={(v) => percent.format(v / 100)} kpiKey="noShowRate" valueOverride={data.disruptionBookingCount ? undefined : "—"} showComparison={data.disruptionBookingCount > 0} detail={`${number.format(data.metrics.noShows.value)} no-show z ${number.format(data.disruptionBookingCount)} rezervací · Hodnota ${money.format(data.metrics.noShowValue.value)}`} tooltip="Podíl rezervací v historicky zveřejněných termínech, na které klientka nedorazila. Nižší míra je příznivější." />
       </div>
     </AdminPanel>
-    <AdminPanel title="Platby" description="Zbývající částky u dokončených návštěv." compact denseHeader>
-      <KpiCard label="Neuhrazená částka" metric={data.metrics.outstanding} format={money.format} kpiKey="outstanding" href={`${bookingHref}?status=completed`} detail="U dokončených návštěv v období. Odkaz otevře všechny dokončené rezervace." tooltip="Zbývající částka po neanulovaných platbách a čerpání voucherů u dokončených návštěv." />
-    </AdminPanel>
-    <section className="grid min-w-0 gap-4 xl:grid-cols-2"><AdminPanel title="Nejvýdělečnější služby" description="Cena a skutečně rezervovaný čas dokončených návštěv." className="min-w-0" compact denseHeader><KpiServicesTable services={data.services} /></AdminPanel><AdminPanel title="Nové vs. vracející se klientky" description={`Vracející se klientka měla alespoň jednu dokončenou návštěvu už před vybraným obdobím. Stav k ${new Intl.DateTimeFormat("cs-CZ", { dateStyle: "medium", timeZone: "Europe/Prague" }).format(data.retentionReference)}.`} className="min-w-0" compact denseHeader><ClientMixChart newClients={data.clientMix.newClients} returningClients={data.clientMix.returningClients} /><div className="mt-5"><h3 className="text-sm font-semibold text-white">Klientky podle doby od poslední návštěvy</h3><p className="mt-1 text-xs text-white/60">Kliknutím otevřete odpovídající seznam klientek.</p><div className="mt-3 space-y-2">{data.retention.map((item) => <Link key={item.band} href={item.href} className="flex items-center justify-between rounded-xl border border-white/10 px-3 py-3 text-sm hover:border-[var(--color-accent)]/40"><span>{item.label}</span><span className="font-display text-xl">{number.format(item.count)}</span></Link>)}</div></div></AdminPanel></section>
+    <section className="grid min-w-0 gap-4 xl:grid-cols-2"><AdminPanel title="Služby podle tržeb" description="Tržby a Kč/h dokončených návštěv bez odečtení nákladů." className="min-w-0" compact denseHeader><KpiServicesTable services={data.services} /></AdminPanel><AdminPanel title="Návrat klientek" description={`Doba od poslední dokončené návštěvy ke dni ${new Intl.DateTimeFormat("cs-CZ", { dateStyle: "medium", timeZone: "Europe/Prague" }).format(data.retentionReference)}. Seznam zahrnuje i klientky s další rezervací.`} className="min-w-0" compact denseHeader><div className="mt-5"><h3 className="text-sm font-semibold text-white">Klientky podle doby od poslední návštěvy</h3><p className="mt-1 text-xs text-white/60">Kliknutím otevřete odpovídající seznam klientek.</p><div className="mt-3 space-y-2">{data.retention.map((item) => <Link key={item.band} href={item.href} className="flex items-center justify-between rounded-xl border border-white/10 px-3 py-3 text-sm hover:border-[var(--color-accent)]/40"><span>{item.label}</span><span className="font-display text-xl">{number.format(item.count)}</span></Link>)}</div></div></AdminPanel></section>
     <TablePanel title="Odkud přicházejí rezervace" description="Souhrn podle zdroje a plánovaného data návštěvy. Objednaná hodnota zahrnuje všechny rezervace, tržby pouze dokončené návštěvy." headers={["Zdroj", "Rezervace", "Dokončeno", "Objednaná hodnota", "Tržby z dokončených", "Průměr na rezervaci"]} empty="Pro vybrané období nejsou dostupná data o zdrojích rezervací." rows={data.acquisition.summary.map((row) => [row.source, number.format(row.bookings), number.format(row.completed), money.format(row.bookingValue), money.format(row.revenue), money.format(row.averageValue)])} />
     <details className="min-w-0 rounded-[var(--radius-panel)] border border-white/10 bg-black/10 p-4">
       <summary className="cursor-pointer rounded-sm text-sm font-medium text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]">Podrobnosti zdrojů a kampaní</summary>
       <div className="mt-4">
         <TablePanel title="Podrobnosti zdrojů a kampaní" description="Podrobnější rozpad podle zdroje, typu návštěvnosti a kampaně; rezervace jsou zařazené podle plánovaného data návštěvy." headers={["Zdroj", "Typ návštěvnosti", "Kampaň", "Rezervace", "Dokončeno", "Objednaná hodnota", "Tržby z dokončených", "Průměr na rezervaci"]} empty="Pro vybrané období nejsou dostupná data o zdrojích rezervací." rows={data.acquisition.detail.map((row) => [row.source, row.medium, row.campaign, number.format(row.bookings), number.format(row.completed), money.format(row.bookingValue), money.format(row.revenue), money.format(row.averageValue)])} />
+      </div>
+    </details>
       </div>
     </details>
     <AnalyticsWidget enabled={Boolean(env.MATOMO_URL && env.MATOMO_SITE_ID && env.MATOMO_AUTH_TOKEN)} />

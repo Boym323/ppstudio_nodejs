@@ -22,6 +22,8 @@ export type AdminLogItem = {
   queueState?: string;
   trackingState?: string;
   emailBadge?: { label: string; severity: AdminLogSeverity; detail: string | null };
+  systemResult?: { label: string; severity: AdminLogSeverity };
+  technicalCode?: string | null;
 };
 
 export type AdminLogsData = {

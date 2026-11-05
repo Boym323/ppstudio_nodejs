@@ -527,6 +527,13 @@ async function findIsolatedE2eWindow(durationMinutes: number) {
 }
 
 test.describe("rezervační toky", () => {
+  test.beforeEach(async ({ context, baseURL }) => {
+    await context.addCookies([{
+      name: "ppstudio-tracking-consent-v1",
+      value: "a1m1",
+      url: baseURL ?? "http://127.0.0.1:3100",
+    }]);
+  });
   let fixtures: E2eFixture[] = [];
 
   test.afterEach(async () => {
@@ -534,11 +541,14 @@ test.describe("rezervační toky", () => {
     fixtures = [];
   });
 
-  test("veřejné trackery se načtou bez consent cookie", async ({ page }) => {
+  test("veřejné trackery se načtou až po udělení souhlasu", async ({ page }) => {
     await page.context().clearCookies();
     await page.goto("/");
 
-    await expect(page.getByRole("dialog", { name: "Nastavení cookies" })).toHaveCount(0);
+    await expect(page.getByRole("dialog", { name: "Nastavení cookies" })).toBeVisible();
+    expect(await page.evaluate(() => ({ matomo: "_paq" in window, metaPixel: "fbq" in window })))
+      .toEqual({ matomo: false, metaPixel: false });
+    await page.getByRole("button", { name: "Povolit vše" }).click();
     await expect.poll(() => page.evaluate(() => ({
       matomo: "_paq" in window,
       metaPixel: "fbq" in window,

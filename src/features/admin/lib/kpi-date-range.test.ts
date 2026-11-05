@@ -3,11 +3,26 @@ import test from "node:test";
 
 import { getKpiDateKey, getKpiDateRanges, getKpiPercentChange, getPragueCalendarDayCount, usesMonthlyKpiBuckets } from "./kpi-date-range";
 
-test("KPI období tento měsíc a předchozí interval", () => {
+test("KPI tento měsíc porovnává se stejnou částí minulého měsíce", () => {
   const { current, previous } = getKpiDateRanges({}, new Date("2026-07-16T10:00:00.000Z"));
   assert.equal(current.label, "Tento měsíc");
   assert.equal(current.start.toISOString(), "2026-06-30T22:00:00.000Z");
-  assert.equal(previous.end.getTime(), current.start.getTime());
+  assert.equal(current.end.toISOString(), "2026-07-16T22:00:00.000Z");
+  assert.equal(previous.start.toISOString(), "2026-05-31T22:00:00.000Z");
+  assert.equal(previous.end.toISOString(), "2026-06-16T22:00:00.000Z");
+});
+
+test("srovnání průběžného měsíce nepřekročí konec kratšího minulého měsíce", () => {
+  for (const [now, start, end, days] of [
+    ["2026-03-31T10:00:00Z", "2026-01-31T23:00:00.000Z", "2026-02-28T23:00:00.000Z", 28],
+    ["2028-03-31T10:00:00Z", "2028-01-31T23:00:00.000Z", "2028-02-29T23:00:00.000Z", 29],
+    ["2026-01-02T10:00:00Z", "2025-11-30T23:00:00.000Z", "2025-12-02T23:00:00.000Z", 2],
+  ] as const) {
+    const { previous } = getKpiDateRanges({}, new Date(now));
+    assert.equal(previous.start.toISOString(), start);
+    assert.equal(previous.end.toISOString(), end);
+    assert.equal(getPragueCalendarDayCount(previous.start, previous.end), days);
+  }
 });
 test("vlastní období zahrne oba dny", () => {
   const { current } = getKpiDateRanges({ period: "custom", dateFrom: "2026-07-10", dateTo: "2026-07-19" });

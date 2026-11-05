@@ -1,6 +1,6 @@
 # Architektura PP Studio
 
-Tento dokument shrnuje architekturu aplikace a její hlavní provozní hranice. Při rozporu má přednost aktuální implementace; přesné verze závislostí určují `package.json` a `package-lock.json`. Přehled verzí níže byl ověřen vůči `package.json` dne 1. 11. 2026 (PP Studio `3.38.2`).
+Tento dokument shrnuje architekturu aplikace a její hlavní provozní hranice. Při rozporu má přednost aktuální implementace; přesné verze závislostí určují `package.json` a `package-lock.json`. Přehled hlavních verzí níže byl znovu porovnán s `package.json` na větvi `main` dne 2. 11. 2026 (PP Studio `3.39.0`). Při dalším upgradu má přednost aktuální manifest a lockfile.
 
 ## Přehled systému
 
@@ -169,7 +169,7 @@ Veřejný formulář, jeho stav a validační kontrakt: [docs/BOOKING_FORM.md](d
    - založí `Booking`
    - založí booking tokeny a `EmailLog` záznamy
 5. Podle `EMAIL_DELIVERY_MODE` se e-mail buď jen zaloguje, nebo zpracuje workerem.
-6. Pokud je CAPI nakonfigurované, transakce založí pro novou veřejnou rezervaci `MetaConversionEvent` se stejným náhodným ID jako Pixel.
+6. Pokud je CAPI nakonfigurované a návštěvník udělil marketingový souhlas, transakce založí pro novou veřejnou rezervaci `MetaConversionEvent` se stejným náhodným ID jako Pixel.
 7. Stávající `ppstudio-email-worker` claimuje Meta outbox přes `FOR UPDATE SKIP LOCKED`, odesílá dávky s omezeným retry a po úspěchu maže uložené identifikátory.
 
 Booking doména je navržená tak, aby UI bylo v klientu, ale rozhodující business pravidla byla jen na serveru.
@@ -215,7 +215,7 @@ Implementace:
 
 ## Analytika: Matomo, UTM, Clarity, Meta Pixel, Google Ads
 
-Volitelná měření řídí jejich konfigurační přepínače; při zapnutí se veřejné trackery načítají bez cookie souhlasu. Provozní návod je v [docs/META_CONVERSIONS_API.md](docs/META_CONVERSIONS_API.md).
+Volitelná měření vyžadují konfigurační přepínače i platný opt-in souhlas. Meta Pixel, Google Ads a CAPI používají marketingovou kategorii, Matomo a Clarity analytickou kategorii; prvotní volba i její změna jsou dostupné na veřejném webu. Provozní návod je v [docs/META_CONVERSIONS_API.md](docs/META_CONVERSIONS_API.md).
 
 ### Matomo
 

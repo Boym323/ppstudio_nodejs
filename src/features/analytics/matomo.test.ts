@@ -19,12 +19,23 @@ const originalEnv = {
 };
 
 const originalWindow = globalThis.window;
+const originalDocument = globalThis.document;
+
+function setMockConsent(value: string) {
+  Object.defineProperty(globalThis, "document", { configurable: true, value: { cookie: `ppstudio-tracking-consent-v1=${value}` } });
+}
+
+function restoreDocument() {
+  if (originalDocument === undefined) Reflect.deleteProperty(globalThis, "document");
+  else Object.defineProperty(globalThis, "document", { configurable: true, value: originalDocument });
+}
 const globalWindow = globalThis as typeof globalThis & { window?: Window & typeof globalThis };
 
 function setMatomoConfigured() {
   process.env.NEXT_PUBLIC_MATOMO_ENABLED = "true";
   process.env.NEXT_PUBLIC_MATOMO_URL = "https://matomo.example.com/";
   process.env.NEXT_PUBLIC_MATOMO_SITE_ID = "1";
+  setMockConsent("a1m0");
 }
 
 function restoreEnv() {
@@ -98,10 +109,12 @@ test("claimMatomoPageview keeps a return trackable after consecutive untracked r
 after(() => {
   restoreEnv();
   restoreWindow();
+  restoreDocument();
 });
 
 afterEach(() => {
   restoreWindow();
+  restoreDocument();
 });
 
 test("buildSafeMatomoPath removes sensitive query params and rewrites token routes", () => {
@@ -143,8 +156,9 @@ test("trackMatomoEvent allows safe storno actions but still blocks raw token pat
   ]);
 });
 
-test("Matomo events are sent without a consent cookie", () => {
+test("Matomo events are blocked without analytics consent", () => {
   setMatomoConfigured();
+  setMockConsent("a0m0");
 
   const calls: unknown[][] = [];
   setMockWindow({
@@ -157,7 +171,7 @@ test("Matomo events are sent without a consent cookie", () => {
 
   trackBookingEvent("Vytvořena", "bez-cookie");
 
-  assert.deepEqual(calls, [["trackEvent", "Rezervace", "Vytvořena", "bez-cookie"]]);
+  assert.deepEqual(calls, []);
 });
 
 test("trackBookingEvent uses the stable Czech taxonomy and service slug", () => {

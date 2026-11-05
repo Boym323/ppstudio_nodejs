@@ -7,6 +7,7 @@ import {
 } from "@/generated/prisma/client";
 
 import { env } from "@/config/env";
+import { isMergedClientProfile } from "@/features/clients/lib/client-merge-marker";
 import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
 import { claimEmailLogForImmediateDelivery, deliverEmailLog } from "@/lib/email/delivery";
 import { sendOwnerBookingPushover } from "@/lib/notifications/pushover";
@@ -193,14 +194,15 @@ async function resolveClientForBooking(
       },
       select: {
         id: true,
+        isActive: true,
         internalNote: true,
       },
     });
 
-    if (!selectedClient) {
+    if (!selectedClient || isMergedClientProfile(selectedClient)) {
       throw new PublicBookingError(
         publicBookingErrorCodes.bookingConflict,
-        "Vybraná klientka už v systému není. Obnovte prosím výběr.",
+        "Vybraný profil už není dostupný. Obnovte prosím výběr klientky.",
         3,
       );
     }

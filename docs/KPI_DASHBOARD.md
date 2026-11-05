@@ -10,7 +10,7 @@ Tento dokument je stručný zdroj pravdy pro dashboard `/admin/statistiky` a jeh
 - Rychlé filtry: `this_month`, `last_month`, `next_month`, `last_30_days`, `this_year`; vlastní období: `custom`.
 - URL vlastního období: `?period=custom&dateFrom=YYYY-MM-DD&dateTo=YYYY-MM-DD`.
 - Rychlý filtr se přepočítá ihned. Datumová pole jsou vidět jen u vlastního období a změny se použijí až potvrzením.
-- Předchozí období bezprostředně předchází aktuálnímu a používá pražské kalendářní hranice. U celého kalendářního měsíce jde o předchozí celý měsíc, u ostatních rozsahů o stejný počet pražských kalendářních dní.
+- „Tento měsíc“ se porovnává se stejnou částí předchozího měsíce, oříznutou na jeho konec; dnešní den ještě není uzavřený. Ostatní celé kalendářní měsíce se porovnávají s předchozím celým měsícem, ostatní rozsahy s bezprostředně předcházejícím stejným počtem pražských kalendářních dní. Klientská historie zahrnuje i mezeru mezi srovnávacím a aktuálním obdobím.
 - Retenční odkaz navíc používá `retention=8_11|12_15|16_plus` a referenční čas `retentionAt=<Unix ms>`.
 
 Implementace období: `kpi-date-range.ts`, `kpi-period-filter.tsx`.
@@ -61,7 +61,7 @@ Implementace: `kpi-disruption-metrics.ts`.
 - Interval je průnik vybraného období a času od aktuálního okamžiku.
 - „Tento měsíc“ končí koncem aktuálního měsíce; „Tento rok“ koncem aktuálního roku.
 - Historické období zobrazuje `—` a text „Historické období“, nikoli zavádějící nulu.
-- Karta uvádí počet zahrnutých budoucích rezervací a případný počet rezervací bez ceny.
+- Počet očekávaných návštěv zahrnuje všechny potvrzené budoucí rezervace v intervalu, včetně rezervací bez ceny. Ty nezvyšují očekávané tržby a karta upozorňuje na neúplnou částku.
 - Tooltip: „Potvrzené budoucí rezervace ve vybraném období.“
 
 Implementace: `kpi-expected-revenue.ts`.
@@ -95,7 +95,7 @@ Implementace: `kpi-occupancy.ts`, část obsazenosti v `kpi-dashboard.ts`.
 
 Implementace: `kpi-time-series.ts`, `kpi-date-range.ts`, `admin-kpi-dashboard-page.tsx`, `admin-kpi-charts.tsx`.
 
-## Nejvýdělečnější služby
+## Služby podle tržeb
 
 - Zahrnují pouze `COMPLETED` ve vybraném období.
 - Název, cena a interval pocházejí z rezervace, nikoli z aktuální služby.
@@ -181,7 +181,8 @@ Implementace testu: `kpi-consistency.test.ts`.
 
 ## UI, responzivita a přístupnost
 
-- Dashboard zachovává design administrace.
+- Dashboard zachovává design administrace. Hlavní výsledky, kapacita a časové grafy jsou otevřené; podrobné analýzy klientek, storen, služeb a zdrojů jsou rozbalovací. Součet výhledu je označen „Dokončeno + potvrzené rezervace“, nikoli prognóza dalších objednávek.
+- Platební sekce se na KPI přehledu nezobrazuje.
 - KPI definice používají klávesnicově a dotykově dostupné tooltipy.
 - Srovnání na kartách výslovně uvádí předchozí stejně dlouhé období a slovně hodnotí změnu jako lepší nebo horší; u negativních KPI je pokles příznivý.
 - Klikací KPI obsahuje textové CTA a retenční pásma mají vlastní nadpis, aby nebyla zaměnitelná s legendou grafu.

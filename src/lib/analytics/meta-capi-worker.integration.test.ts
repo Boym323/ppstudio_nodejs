@@ -58,6 +58,14 @@ dbTest("Meta CAPI worker retries the same event id and recovers stale claims wit
   };
 
   try {
+    // Temporarily disabling server-side tracking must not discard a queued event.
+    const disabledRun = await worker.runMetaConversionWorkerOnce(now, null);
+    assert.deepEqual(disabledRun, { attempted: 0, sent: 0, retrying: 0, failed: 0 });
+    const stillQueued = await prisma.metaConversionEvent.findUniqueOrThrow({ where: { id: outbox.id } });
+    assert.equal(stillQueued.status, "PENDING");
+    assert.equal(stillQueued.attemptCount, 0);
+    assert.equal(stillQueued.userAgent, "Integration test browser");
+
     const firstRun = await worker.runMetaConversionWorkerOnce(now);
     assert.deepEqual(firstRun, { attempted: 1, sent: 0, retrying: 1, failed: 0 });
 

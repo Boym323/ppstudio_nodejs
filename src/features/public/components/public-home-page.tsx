@@ -4,7 +4,6 @@ import { connection } from "next/server";
 import {
   buildTrustMetrics,
   homepageContent,
-  services,
   type Service,
   type ServiceDurationRange,
   type TrustMetric,
@@ -62,16 +61,22 @@ function ServiceCard({ service }: { service: Service }) {
 }
 
 export async function PublicHomePage({
-  featuredServices = services.slice(0, 3),
+  featuredServices = [],
   serviceDurationRange,
 }: {
-  featuredServices?: Service[];
+  featuredServices?: Service[] | null;
   serviceDurationRange: ServiceDurationRange | null;
 }) {
   await connection();
-  const [bookingPolicy, portrait] = await Promise.all([getBookingPolicySettings(), getPrimaryPublicHomePortrait()]);
+  const [bookingPolicy, portrait] = await Promise.all([
+    getBookingPolicySettings(),
+    getPrimaryPublicHomePortrait().catch((error) => {
+      console.error("Failed to load homepage portrait", error);
+      return null;
+    }),
+  ]);
   const trustMetrics = buildTrustMetrics(bookingPolicy.cancellationHours, serviceDurationRange);
-  const homepageServices = featuredServices.length > 0 ? featuredServices : services.slice(0, 3);
+  const homepageServices = featuredServices ?? [];
   const heroContent = {
     ...homepageContent,
     portraitImage: portrait
@@ -93,14 +98,28 @@ export async function PublicHomePage({
         <Container className="space-y-8 sm:space-y-10">
           <SectionHeading
             eyebrow="Doporučené služby"
-            title="Služby, se kterými se dobře začíná: pro koho jsou, co přináší a kolik času zaberou."
-            description="Ať řešíte pleť, řasy nebo obočí, cílem je jasná volba bez složitého rozhodování."
+            title="Nevíte, kterou službu vybrat?"
+            description="Prohlédněte si, co jednotlivá ošetření zahrnují, jak dlouho trvají a kolik stojí. Pokud si stále nebudete jistá, ráda vám poradím."
           />
-          <div className="grid gap-6 lg:grid-cols-3">
-            {homepageServices.map((service) => (
-              <ServiceCard key={service.slug} service={service} />
-            ))}
-          </div>
+          {homepageServices.length === 0 ? (
+            <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)]">
+              <p className="text-base leading-7 text-[var(--color-muted)]">
+                {featuredServices === null
+                  ? "Nabídku služeb se teď nepodařilo načíst."
+                  : "Aktuálně nejsou zveřejněné žádné služby."}{" "}
+                S výběrem péče a domluvou termínu vám ráda pomohu osobně.
+              </p>
+              <Link href="/kontakt" className="mt-4 inline-flex min-h-11 items-center rounded-full border border-black/10 px-5 text-sm font-semibold text-[var(--color-foreground)] hover:bg-[var(--color-surface)]">
+                Kontaktovat studio
+              </Link>
+            </div>
+          ) : (
+            <div className="grid gap-6 lg:grid-cols-3">
+              {homepageServices.map((service) => (
+                <ServiceCard key={service.slug} service={service} />
+              ))}
+            </div>
+          )}
         </Container>
       </section>
 
@@ -109,8 +128,8 @@ export async function PublicHomePage({
           <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-8">
             <SectionHeading
               eyebrow="Nejste si jistá výběrem?"
-              title="Zvolte orientačně termín, službu spolu doladíme na místě."
-              description="Pokud váháte mezi variantami, stačí vybrat nejbližší možnost. Před ošetřením vše krátce upřesníme."
+              title="Společně najdeme péči, která vám sedne"
+              description="Pokud váháte mezi variantami, stačí při rezervaci vybrat tu nejbližší. Před ošetřením spolu vše krátce upřesníme."
             />
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               <div className="rounded-[calc(var(--radius-panel)-0.5rem)] bg-[var(--color-surface)] p-5">

@@ -2,7 +2,7 @@
 
 Produkční web kosmetického studia s veřejnou prezentací, rezervačním flow a odděleným admin rozhraním pro role `OWNER` a `SALON`.
 
-Aktuální verze: <!-- current-version -->**3.38.2**. README slouží jako rychlý GitHub rozcestník a onboarding. Detailní provozní a vývojová dokumentace je vedená přímo v repozitáři, ne jako primární GitHub Wiki.
+Aktuální verze: <!-- current-version -->**3.41.0**. README slouží jako rychlý GitHub rozcestník a onboarding. Detailní provozní a vývojová dokumentace je vedená přímo v repozitáři, ne jako primární GitHub Wiki.
 
 Nejdůležitější dokumenty:
 - [MANUAL.md](MANUAL.md) pro provozní souvislosti
@@ -254,7 +254,10 @@ Plný seznam proměnných a detailní vysvětlení je v `docs/ENVIRONMENT.md`.
 - [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md): úplný katalog env proměnných
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): release checklist a nasazení
 - [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md): přehled hlavních závislostí
+- [docs/CLIENT_MERGE.md](docs/CLIENT_MERGE.md): aktuální kontrakt slučování klientů včetně e-mailového outboxu a bezpečného neprodukčního nástroje
 - [docs/INCIDENTS.md](docs/INCIDENTS.md): provozní incidenty a jejich řešení
+- [docs/audits/2026-11-02-documentation-main-reality.md](docs/audits/2026-11-02-documentation-main-reality.md): první cílené porovnání dokumentace s `main`
+- [docs/audits/2026-11-02-documentation-full.md](docs/audits/2026-11-02-documentation-full.md): úplný statický audit Markdown dokumentace, konzistence příkazů, odkazů, verzí a ADR
 - [docs/ADR/README.md](docs/ADR/README.md): architektonická rozhodnutí
 
 ## Nasazení

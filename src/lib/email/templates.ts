@@ -29,6 +29,7 @@ import { BookingCancelledEmail } from "@/lib/email/react-email/BookingCancelledE
 import { BookingConfirmationEmail } from "@/lib/email/react-email/BookingConfirmationEmail";
 import { BookingRejectedEmail } from "@/lib/email/react-email/BookingRejectedEmail";
 import { BookingReminderEmail } from "@/lib/email/react-email/BookingReminderEmail";
+import { BookingServiceChangedEmail } from "@/lib/email/react-email/BookingServiceChangedEmail";
 import { BookingRescheduledEmail } from "@/lib/email/react-email/BookingRescheduledEmail";
 
 const bookingConfirmationPayloadSchema = z.object({
@@ -88,6 +89,15 @@ const bookingRescheduledPayloadSchema = z.object({
   manageReservationUrl: z.url().optional(),
   cancellationUrl: z.url(),
   includeCalendarAttachment: z.boolean().optional(),
+});
+
+const bookingServiceChangedPayloadSchema = bookingConfirmationPayloadSchema.extend({
+  previousServiceName: z.string().min(1),
+  bookingStatus: z.enum(["PENDING", "CONFIRMED"]),
+  priceCzk: z.number().int().min(0).nullable(),
+  priceIsFinal: z.boolean(),
+  manageReservationUrl: z.url(),
+  cancellationUrl: z.url(),
 });
 
 const bookingRejectedPayloadSchema = z.object({
@@ -474,6 +484,43 @@ export async function renderEmailTemplate(
       }));
       return { subject: safeSubject, html: reactHtml, text };
 
+    }
+    case "booking-service-changed-v1": {
+      const data = bookingServiceChangedPayloadSchema.parse(payload);
+      const scheduledStartsAt = new Date(data.scheduledStartsAt);
+      const scheduledEndsAt = new Date(data.scheduledEndsAt);
+      const bookingDate = formatBookingCalendarDate(scheduledStartsAt);
+      const bookingTime = formatBookingTimeRange(scheduledStartsAt, scheduledEndsAt);
+      const priceLabel = "Cena vaší rezervace";
+      const intro = `Ve vaší rezervaci jsme změnili službu z „${data.previousServiceName}“ na „${data.serviceName}“. Aktuální termín a cenu najdete níže.`;
+      const calendarNotice = "V příloze najdete aktualizovanou událost do kalendáře. Pokud už máte návštěvu uloženou, aktualizujte také původní záznam.";
+      const price = data.priceCzk === null ? "Cena bude upřesněna"
+        : new Intl.NumberFormat("cs-CZ", { style: "currency", currency: "CZK", maximumFractionDigits: 0 }).format(data.priceCzk);
+      const statusLabel = data.bookingStatus === "CONFIRMED" ? "Potvrzená" : "Čeká na potvrzení studiem";
+      const calendarAttachment = await buildBookingCalendarIcsFromPayload({
+        bookingId: data.bookingId, serviceName: data.serviceName, scheduledStartsAt, scheduledEndsAt,
+        status: data.bookingStatus === "CONFIRMED" ? "CONFIRMED" : "TENTATIVE",
+        salonProfile: options ? { name: salonContact.name, addressLine: salonContact.address, phone: salonContact.phone, email: salonContact.email } : undefined,
+      });
+      const text = [
+        "Dobrý den,", "", "Změna vaší rezervace", intro, "",
+        `Služba: ${data.serviceName}`,
+        `Datum: ${bookingDate}`, `Čas: ${bookingTime}`, `${priceLabel}: ${price}`, `Stav rezervace: ${statusLabel}`, "",
+        `Místo: ${salonContact.name}, ${salonContact.address}`, `Zobrazit na mapě: ${salonContact.mapUrl}`, "",
+        calendarNotice,
+        "Pokud potřebujete termín upravit nebo rezervaci zrušit, použijte odkazy níže.",
+        ...(data.manageReservationUrl ? [`Potřebujete jiný čas? Rezervaci můžete jednoduše přesunout.`, `Změnit termín: ${data.manageReservationUrl}`] : []),
+        `Zrušit rezervaci: ${data.cancellationUrl}`, "",
+        `Napište nám: ${salonContact.email}`, `Zavolejte: ${salonContact.phone}`,
+      ].join("\n");
+      const html = await render(createElement(BookingServiceChangedEmail, {
+        brandName: brand.name, serviceName: data.serviceName, intro, calendarNotice,
+        bookingDate, bookingTime, priceLabel, price, statusLabel,
+        salonName: salonContact.name, salonAddress: salonContact.address, salonEmail: salonContact.email,
+        salonPhone: salonContact.phone, salonPhoneHref: buildPhoneHref(salonContact.phone), salonMapUrl: salonContact.mapUrl,
+        manageReservationUrl: data.manageReservationUrl, cancellationUrl: data.cancellationUrl,
+      }));
+      return { subject: safeSubject, html, text, attachments: [{ filename: "pp-studio-rezervace.ics", content: calendarAttachment, contentType: "text/calendar; charset=utf-8" }] };
     }
     case "booking-rescheduled-v1": {
       const data = bookingRescheduledPayloadSchema.parse(payload);

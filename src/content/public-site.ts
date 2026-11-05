@@ -244,7 +244,7 @@ export const homepageContent = {
   eyebrow: 'Kosmetika Zlín',
   title: 'Kosmetika ve Zlíně',
   description:
-    'Lash lifting, laminace obočí a ošetření pleti v příjemném prostředí s individuálním přístupem.',
+    'Dopřejte si chvíli péče, která se přizpůsobí vaší pleti i tomu, co právě potřebujete. Společně vybereme ošetření, ve kterém se budete cítit dobře.',
   benefits: ['Příjemné prostředí', 'Individuální přístup', 'Online rezervace 24/7'],
   ctaNote: 'Rychlé online objednání, nejdřív potvrzení přijetí požadavku e-mailem.',
   logoImage: {
@@ -304,7 +304,7 @@ export const aboutContent: AboutContent = {
   },
   story: {
     eyebrow: 'Můj příběh',
-    title: 'Moje cesta v beauty oboru začala v roce 2024',
+    title: 'V kosmetice jsem začala v roce 2024',
     paragraphs: [
       'Po získání potřebných kvalifikací jsem začala budovat PP Studio jako místo, kde má péče jasný smysl, klidný průběh a osobní přístup. Od začátku je pro mě důležité spojit pečlivou techniku s přirozeným výsledkem a prostředím, ve kterém se klientka cítí dobře.',
     ],

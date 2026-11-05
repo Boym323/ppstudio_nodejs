@@ -1,6 +1,6 @@
 # Volné termíny – admin planner a propojení s rezervacemi
 
-> Technický popis aktualizovaný k PP Studio **3.36.1 dne 24. 10. 2026**. Při rozporu platí kód a [Prisma schéma](../prisma/schema.prisma). Výběr a odeslání termínu klientkou popisuje [BOOKING_FORM.md](BOOKING_FORM.md); stavové přechody a e-maily [BOOKING_FLOW.md](../BOOKING_FLOW.md).
+> Hlavní kontrakty plánovače znovu ověřeny proti kódu `main` dne 2. 11. 2026 (PP Studio **3.39.0**). Při rozporu platí kód a [Prisma schéma](../prisma/schema.prisma). Výběr a odeslání termínu klientkou popisuje [BOOKING_FORM.md](BOOKING_FORM.md); stavové přechody a e-maily [BOOKING_FLOW.md](../BOOKING_FLOW.md).
 
 ## Co tato sekce dělá
 
@@ -18,7 +18,7 @@ Obě routy (`src/app/(admin)/admin/volne-terminy/page.tsx` a `src/app/(admin)/ad
 - Jeden **FullCalendar planner**, nikoliv historický draft-first workflow. Módy: **Prohlížení**, **Přidat termín**, **Odebrat termín**. Změna se ukládá **automaticky po jednotlivých interakcích** – není tlačítko pro hromadné publikování rozpracovaného týdne.
 - Mřížka `06:00–20:00`, obvykle po **30 minutách** v `Europe/Prague` (konstanty v [`admin-slots/time.ts`](../src/features/admin/lib/admin-slots/time.ts)). Speciální 15minutová hranice je přípustná například bezprostředně po rezervaci či úklidu; read-only zobrazení umí přesnější bloky než základní grid.
 - UI zobrazuje volnou dostupnost, rezervace `PENDING` a `CONFIRMED`, dokončené návštěvy `COMPLETED`, navazující úklid, omezené či neaktivní intervaly a vypočtený oběd. Kliknutí na událost rezervace může otevřít admin detail. Prezentaci událostí vytváří [`planner-lab-adapter.ts`](../src/features/admin/components/planner-lab-adapter.ts).
-- Na menším displeji se mění pohled mezi dnem, pracovními dny a víkendem; kalendář udržuje kontext při navigaci `week/day`. Serverový read model řídí fakta, vizuální buňky nejsou samostatná datová entita.
+- Výchozí pohled na desktopu je **Po–Pá** (volitelně **Celý týden**), na mobilu **Den** (volitelně **Po–Pá** či **Víkend**). Na mobilu má kalendář výšku `auto`, používá posuv celé stránky do 20:00 bez druhého svislého scrollu a tažení rozsahu podporuje dlouhý dotyk (`450 ms`). Kontext navigace drží URL `week/day`. Serverový read model řídí fakta, vizuální buňky nejsou samostatná datová entita.
 - Historický koncept `ADR 0023` je nahrazen [ADR 0118 – FullCalendar a autosave](ADR/0118-fullcalendar-planner-autosave-v1.md). Nesmí se automaticky obnovit předchozí „Zahodit / Publikovat změny týdne“ z historických MD.
 
 ## Datový model a read
@@ -108,6 +108,12 @@ Hlavní sdílené soubory: [`booking-availability-policy.ts`](../src/features/bo
 ## Ruční rezervace, přesun a časová pravidla
 
 **Ruční rezervace** je separátní workflow: standardně se má vejít do publikované dostupnosti; explicitní `allowManualOverride=true` může založit interní `DRAFT` výjimku a auditovat `Booking.manualOverride`. **Veřejný formulář používá vždy `allowManualOverride=false`.** Public/admin reschedule musí stejně jako vytvoření rezervace ověřit kolize z aktuální DB; při přesunu se může původní `Booking` v nabídce vyloučit přes `excludeBookingId`. Pražské lokální časové údaje a DST je nutné vyhodnocovat přes sdílené pomocné funkce, ne ruční přepočet UTC.
+
+### Prodloužení při změně služby
+
+V detailu čekající nebo potvrzené rezervace formulář **Změnit službu** zobrazuje nový konec služby a blokace v `Europe/Prague`. Po výběru služby se stejnými serverovými pravidly bez zápisu ověří proveditelnost: lze uložit, je potřeba výjimka s vysvětlením chybějící dostupnosti, nebo změně brání konkrétní překážka. Potvrzení se ukazuje jen pro potřebnou výjimku; při načítání, překážce či nepotvrzené výjimce je uložení zakázané. Volba **Potvrzuji prodloužení mimo vypsané termíny jako interní výjimku** umožní při nedostatečné publikované dostupnosti zachovat začátek a uložit delší návštěvu jako interní `DRAFT` výjimku. Původní rezervace včetně vlastního úklidu se při kontrole kolizí vyloučí. U rezervace s archivovaným zdrojovým slotem lze bez nové výjimky využít již držený čas, pokud nová služba včetně zaokrouhleného úklidu nepřekročí současné `blockedUntil` a vyhoví omezení služby. Historický zdrojový slot se při takovém zkrácení nemění a uvolněný čas se automaticky nepublikuje. Jiná aktivní rezervace, chráněná dostupnost, interní blok, omezení služby, voucher ani automatický oběd se tím neobcházejí.
+
+Rychlé přepnutí služby zahodí předchozí výsledek i souhlas; opožděná odpověď nepřepíše aktuální výběr. Uložení všechna pravidla znovu ověří podle aktuální DB. Změna služby, snapshotů, slotu a auditu proběhne v jedné serializované transakci. Původní dostupnost je doložená v auditních metadatech pro následné zkrácení či storno; prodloužení mimo původní nabídku se po stornu nezveřejňuje. Úklid se podle sdílené policy zaokrouhluje nahoru na násobky 15 minut.
 
 ## Testy a scénáře pro změny
 

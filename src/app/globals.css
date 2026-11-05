@@ -92,6 +92,7 @@
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  scroll-padding-top: 5rem;
 }
 
 body {
@@ -133,6 +134,24 @@ h4 {
 
 .font-display {
   font-family: var(--font-display-next), serif;
+}
+
+.admin-app {
+  color-scheme: dark;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.admin-page-shell-actions a,
+.admin-page-shell-actions button {
+  min-height: 2.75rem;
+}
+
+@media (max-width: 639px) {
+  .admin-app input,
+  .admin-app select,
+  .admin-app textarea {
+    font-size: 16px;
+  }
 }
 
 

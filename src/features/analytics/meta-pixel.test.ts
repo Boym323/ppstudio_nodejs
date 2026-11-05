@@ -15,11 +15,22 @@ const originalEnv = {
 };
 
 const originalWindow = globalThis.window;
+const originalDocument = globalThis.document;
+
+function setMockConsent(value: string) {
+  Object.defineProperty(globalThis, "document", { configurable: true, value: { cookie: `ppstudio-tracking-consent-v1=${value}` } });
+}
+
+function restoreDocument() {
+  if (originalDocument === undefined) Reflect.deleteProperty(globalThis, "document");
+  else Object.defineProperty(globalThis, "document", { configurable: true, value: originalDocument });
+}
 const globalWindow = globalThis as typeof globalThis & { window?: Window & typeof globalThis };
 
 function setMetaPixelConfigured() {
   process.env.NEXT_PUBLIC_META_PIXEL_ENABLED = "true";
   process.env.NEXT_PUBLIC_META_PIXEL_ID = "123456789";
+  setMockConsent("a0m1");
 }
 
 function restoreEnv() {
@@ -52,6 +63,7 @@ function setMockWindow(windowMock: Partial<Window>) {
 afterEach(() => {
   restoreEnv();
   restoreWindow();
+  restoreDocument();
 });
 
 test("shouldInitializeMetaPixelTracking disables initialization when disabled flag is true", () => {
@@ -167,4 +179,14 @@ test("Schedule sends the shared event id using Pixel's eventID option", () => {
     { content_type: "service" },
     { eventID: "b0b797be-516d-4d10-bf70-9491e50c14e9" },
   ]]);
+});
+
+
+test("Meta Pixel never emits without marketing consent", () => {
+  setMetaPixelConfigured();
+  setMockConsent("a1m0");
+  const calls: unknown[][] = [];
+  setMockWindow({ fbq: (...args: unknown[]) => { calls.push(args); } });
+  trackMetaPixelStandardEvent("Schedule", { content_type: "service" }, "example-event-id");
+  assert.deepEqual(calls, []);
 });

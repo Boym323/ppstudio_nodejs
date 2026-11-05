@@ -9,6 +9,8 @@ declare global {
 }
 
 type MetaPixelPrimitive = boolean | number | string;
+import { hasTrackingConsent } from "@/lib/analytics/tracking-consent";
+
 export type MetaPixelPayload = Record<
   string,
   MetaPixelPrimitive | MetaPixelPrimitive[] | null | undefined
@@ -131,6 +133,7 @@ function trackMetaPixel(
   if (
     typeof window === "undefined" ||
     !isMetaPixelConfigured() ||
+    !hasTrackingConsent("marketing") ||
     !isSafeMetaPixelStringValue(eventName)
   ) {
     return;

@@ -12,6 +12,7 @@ import {
   DeleteBookingPaymentButton,
   EditBookingPaymentForm,
 } from "./admin-booking-payment-form";
+import { BookingPaymentTools } from "./booking-payment-tools";
 import { AdminBookingPriceForm } from "./admin-booking-price-form";
 import { AdminBookingServiceForm } from "./admin-booking-service-form";
 import { AdminBookingStatusForm } from "./admin-booking-status-form";
@@ -42,12 +43,12 @@ export function AdminBookingDetailPage({ data }: AdminBookingDetailPageProps) {
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1.5fr)_minmax(19rem,0.9fr)] xl:items-start">
         <div className="min-w-0 space-y-3 xl:order-1">
+          <div id="booking-notes" className="scroll-mt-28">
+            <BookingNotesPanel data={data} />
+          </div>
           <BookingActionPanel data={data} statusContext={statusContext} />
           <div id="booking-voucher">
             <BookingVoucherPanel data={data} />
-          </div>
-          <div id="booking-notes">
-            <BookingNotesPanel data={data} />
           </div>
           <div id="booking-history">
             <BookingHistoryTimeline
@@ -57,9 +58,10 @@ export function AdminBookingDetailPage({ data }: AdminBookingDetailPageProps) {
           </div>
         </div>
 
-        <aside className="order-first min-w-0 space-y-3 xl:order-2 xl:sticky xl:top-28">
+        <aside className="min-w-0 space-y-3 xl:order-2 xl:sticky xl:top-28">
           <BookingSummaryCard data={data} />
           <BookingAuditCard data={data} />
+          <BookingEmailsPanel data={data} />
         </aside>
       </div>
     </div>
@@ -139,7 +141,7 @@ function BookingDetailHeader({
                 variant="inline"
               />
             ) : (
-              <QuickHeaderAction href={null} label="Přesunout termín" muted />
+              <span className="text-xs text-white/60">Uzavřenou rezervaci nelze přesunout.</span>
             )}
           </div>
         </div>
@@ -162,9 +164,13 @@ function BookingDetailHeader({
             {data.serviceName}
             <span className="mx-1.5 text-white/38">·</span>
             {serviceDurationLabel}
-            <span className="mx-1.5 text-white/38">·</span>
-            {data.scheduledAtLabel}
           </p>
+          <p className="text-lg font-semibold text-white">{data.scheduledAtLabel}</p>
+          {data.cleanup.cleanupBlockMinutes > 0 ? (
+            <p className="text-sm text-white/68">
+              Úklid: {data.cleanup.cleanupLabel} · Blokováno do {data.cleanup.blockedUntilLabel}
+            </p>
+          ) : null}
           {hasClientNote || hasInternalNote ? (
             <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
               {hasClientNote ? <NotePresenceBadge kind="client" /> : null}
@@ -201,7 +207,7 @@ function BookingDetailHeader({
                 variant="inline"
               />
             ) : (
-              <QuickHeaderAction href={null} label="Přesunout termín" muted />
+              <span className="text-xs text-white/60">Uzavřenou rezervaci nelze přesunout.</span>
             )}
           </div>
         </div>
@@ -224,13 +230,9 @@ function BookingActionPanel({
   return (
     <AdminPanel title="Další krok" compact={data.area === "salon"} denseHeader>
       <div className="space-y-2.5">
-        <div className={getStatusContextClassName(statusContext.tone)}>
-          <div className="max-w-3xl">
-            <p className="text-sm font-medium text-white/84">
-              {statusContext.title}
-            </p>
-          </div>
-        </div>
+        {data.availableActions.length > 0 ? (
+          <p className="text-sm text-white/72">{statusContext.title}</p>
+        ) : null}
 
         <AdminBookingStatusForm
           area={data.area}
@@ -247,28 +249,11 @@ function BookingActionPanel({
           totalPriceCzk={
             data.voucher.paymentSummary.totalPriceCzk ?? data.effectivePriceCzk
           }
+          servicePriceCzk={data.priceAdjustment.basePriceCzk}
           directPaidCzk={data.voucher.paymentSummary.directPaidCzk}
           voucherPaidCzk={data.voucher.paymentSummary.voucherPaidCzk}
           accountingVoucherPaidCzk={data.voucher.paymentSummary.voucherRedemptionCzk}
           overpaidCzk={data.voucher.paymentSummary.overpaidCzk}
-          secondaryActionSlot={
-            data.reschedule.enabled ? (
-              <RescheduleBookingButton
-                area={data.area}
-                bookingId={data.id}
-                serviceId={data.reschedule.serviceId}
-                serviceName={data.serviceName}
-                serviceDurationMinutes={data.reschedule.serviceDurationMinutes}
-                cleanupBlockMinutes={data.reschedule.cleanupBlockMinutes}
-                currentScheduledAtLabel={data.scheduledAtLabel}
-                currentStartsAt={data.reschedule.currentStartsAt}
-                expectedUpdatedAt={data.reschedule.expectedUpdatedAt}
-                rescheduleCount={data.rescheduleCount}
-                slots={data.reschedule.slots}
-                scheduleOptimization={data.reschedule.scheduleOptimization}
-              />
-            ) : null
-          }
         />
 
         {data.reschedule.enabled ? (
@@ -277,6 +262,8 @@ function BookingActionPanel({
             bookingId={data.id}
             expectedUpdatedAt={data.reschedule.expectedUpdatedAt}
             currentServiceId={data.serviceId}
+            scheduledStartsAt={data.reschedule.currentStartsAt}
+            clientEmail={data.clientEmail}
             services={data.availableServices}
           />
         ) : null}
@@ -286,10 +273,7 @@ function BookingActionPanel({
 }
 
 function BookingSummaryCard({ data }: { data: AdminBookingDetailData }) {
-  const clientHref = `${getAdminSectionPath(data.area, "klienti")}/${data.clientId}`;
   const items = [
-    { label: "Stav", value: data.statusLabel, tone: "accent" as const },
-    { label: "Klientka", value: data.clientName, href: clientHref, tone: "strong" as const },
     {
       label: "Telefon",
       value: data.clientPhone,
@@ -301,18 +285,11 @@ function BookingSummaryCard({ data }: { data: AdminBookingDetailData }) {
       value: data.clientEmail || "Bez e-mailu",
       href: data.clientEmail ? `mailto:${data.clientEmail}` : undefined,
     },
-    { label: "Služba", value: data.serviceName, tone: "strong" as const },
-    { label: "Termín", value: data.scheduledAtLabel, tone: "strong" as const },
-    { label: "Kanál rezervace", value: data.sourceLabel },
-    {
-      label: "Přesuny",
-      value: data.rescheduleCount > 0 ? `${data.rescheduleCount}×` : "0×",
-    },
   ];
 
   return (
     <AdminPanel
-      title="Souhrn rezervace"
+      title="Kontakt na klientku"
       compact={data.area === "salon"}
       denseHeader
     >
@@ -325,10 +302,66 @@ function BookingSummaryCard({ data }: { data: AdminBookingDetailData }) {
   );
 }
 
+function BookingEmailsPanel({ data }: { data: AdminBookingDetailData }) {
+  function renderEmail(email: AdminBookingDetailData["emails"][number]) {
+    return (
+      <li key={email.id} className="flex min-w-0 items-start justify-between gap-3 px-3 py-2.5">
+        <div className="min-w-0">
+          {data.area === "owner" ? (
+            <Link
+              href={`/admin/email-logy/${email.id}`}
+              className="inline-flex min-h-11 items-center text-sm font-medium text-white/85 underline-offset-4 hover:text-white hover:underline"
+              aria-label={`Detail e-mailu: ${email.typeLabel}, ${email.sentAtLabel ?? email.createdAtLabel}`}
+            >
+              {email.typeLabel}
+            </Link>
+          ) : (
+            <p className="text-sm font-medium text-white/85">{email.typeLabel}</p>
+          )}
+          <p className="text-xs text-white/50">
+            {email.sentAtLabel ?? `Vytvořeno ${email.createdAtLabel}`}
+          </p>
+        </div>
+        <span className={cn(
+          "max-w-[45%] shrink-0 rounded-lg border px-2 py-1 text-xs",
+          email.needsAttention
+            ? "border-amber-300/25 bg-amber-300/10 text-amber-100"
+            : email.sent
+              ? "border-emerald-300/25 bg-emerald-300/10 text-emerald-100"
+              : "border-white/10 bg-white/5 text-white/65",
+        )}>
+          {email.statusLabel}
+        </span>
+      </li>
+    );
+  }
+
+  return (
+    <AdminPanel title="E-maily k rezervaci" compact={data.area === "salon"} denseHeader>
+      {data.emails.length === 0 ? (
+        <p className="text-sm text-white/64">Zatím bez e-mailů.</p>
+      ) : (
+        <div className="space-y-2">
+          <ul className="divide-y divide-white/6 overflow-hidden rounded-[1rem] border border-white/8">{data.emails.slice(0, 3).map(renderEmail)}</ul>
+          {data.emails.length > 3 ? (
+            <details className="rounded-[1rem] border border-white/8 bg-white/[0.03]">
+              <summary className="min-h-11 cursor-pointer px-3.5 py-3 text-sm font-medium text-white/78">
+                Starší e-maily ({data.emails.length - 3})
+              </summary>
+              <ul className="divide-y divide-white/6 border-t border-white/8">{data.emails.slice(3).map(renderEmail)}</ul>
+            </details>
+          ) : null}
+        </div>
+      )}
+    </AdminPanel>
+  );
+}
+
 function BookingAuditCard({ data }: { data: AdminBookingDetailData }) {
   const items = [
     { label: "Vytvořeno", value: data.createdAtLabel },
     { label: "Naposledy změněno", value: data.updatedAtLabel },
+    { label: "Přesuny", value: `${data.rescheduleCount}×` },
     {
       label: "Poslední přesun",
       value: data.rescheduledAtLabel ?? "Zatím bez přesunu",
@@ -337,18 +370,6 @@ function BookingAuditCard({ data }: { data: AdminBookingDetailData }) {
       label: "Odkud přišla",
       value: data.acquisitionLabel ?? "Neuvedeno",
     },
-    {
-      label: "Úklid po službě",
-      value: data.cleanup.cleanupLabel,
-    },
-    ...(data.cleanup.cleanupBlockMinutes > 0
-      ? [
-          {
-            label: "Interně blokováno do",
-            value: data.cleanup.blockedUntilLabel,
-          },
-        ]
-      : []),
   ];
 
   return (
@@ -358,18 +379,8 @@ function BookingAuditCard({ data }: { data: AdminBookingDetailData }) {
       denseHeader
     >
       <details className="group overflow-hidden rounded-[1rem] border border-white/7 bg-white/[0.025]">
-        <summary className="cursor-pointer list-none px-3.5 py-3 marker:hidden">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-medium text-white/62">
-              Auditní a akviziční údaje
-            </p>
-            <span className="rounded-full border border-white/10 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-white/42 group-open:hidden">
-              Rozbalit
-            </span>
-            <span className="hidden rounded-full border border-white/10 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-white/52 group-open:inline">
-              Sbalit
-            </span>
-          </div>
+        <summary className="min-h-11 cursor-pointer px-3 py-3 text-sm font-medium text-white/72">
+          Auditní a akviziční údaje
         </summary>
         <dl className="divide-y divide-white/6 border-t border-white/7">
           {items.map((item) => (
@@ -387,83 +398,36 @@ function BookingAuditCard({ data }: { data: AdminBookingDetailData }) {
 }
 
 function BookingNotesPanel({ data }: { data: AdminBookingDetailData }) {
-  const hasClientNote = Boolean(data.clientNote?.trim());
-  const hasInternalNote = Boolean(data.internalNote?.trim());
+  const hasNotes = Boolean(data.clientNote?.trim() || data.internalNote?.trim());
 
   return (
-    <AdminPanel title="Poznámky" compact={data.area === "salon"} denseHeader>
-      <div className="space-y-2.5">
-        {hasClientNote || hasInternalNote ? (
-          <div className="rounded-[0.95rem] border border-[var(--color-accent)]/28 bg-[rgba(190,160,120,0.12)] px-3 py-2.5">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-sm font-medium text-white/88">
-                Poznámky vyžadují pozornost:
-              </span>
-              {hasClientNote ? <NotePresenceBadge kind="client" /> : null}
-              {hasInternalNote ? <NotePresenceBadge kind="internal" /> : null}
-            </div>
-          </div>
+    <details className="rounded-[var(--radius-panel)] border border-white/10 bg-white/[0.03]">
+      <summary className="min-h-11 cursor-pointer px-3 py-3 text-sm font-medium text-white/82">
+        Poznámky{!hasNotes ? " · Přidat interní poznámku" : ""}
+        {data.clientNote?.trim() ? (
+          <span className="mt-1 line-clamp-2 break-words text-sm font-normal text-white/72">
+            Klientka: {data.clientNote}
+          </span>
         ) : null}
-        {!hasClientNote && !hasInternalNote ? (
-          <div className="rounded-[0.95rem] border border-white/8 bg-white/[0.03] px-3 py-2.5">
-            <p className="text-sm text-white/62">Klientka: bez poznámky</p>
-            <p className="text-sm text-white/62">Interní: bez poznámky</p>
-          </div>
-        ) : (
-          <CompactNoteBlock
-            label="Poznámka od klientky"
-            value={data.clientNote}
-            emptyLabel="Klientka nic nedopsala."
-            tone="default"
-          />
-        )}
-
-        <div className="rounded-[1rem] border border-[var(--color-accent)]/14 bg-[rgba(190,160,120,0.055)] p-3">
-          <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-[0.68rem] uppercase tracking-[0.2em] text-[var(--color-accent-soft)]/82">
-                Interní poznámka
-              </p>
-              <p className="mt-1 text-sm leading-5 text-white/68">
-                Provozní kontext pro tým, ne klientská komunikace.
-              </p>
-            </div>
-            <span className="w-fit rounded-full border border-white/10 bg-black/16 px-2.5 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-white/48">
-              Týmový nástroj
-            </span>
-          </div>
-
-          {hasInternalNote ? (
-            <div className="rounded-[0.95rem] border border-white/8 bg-black/16 p-3">
-              <CompactNoteBlock
-                label="Aktuální interní poznámka"
-                value={data.internalNote}
-                tone="accent"
-              />
-            </div>
-          ) : null}
-
-          <details className="group mt-2.5 rounded-[0.95rem] border border-white/8 bg-black/14">
-            <summary className="cursor-pointer list-none px-3.5 py-3 marker:hidden">
-              <span className="inline-flex min-h-9 items-center justify-center rounded-full border border-white/18 px-3.5 py-1.5 text-sm font-semibold text-white/78 transition group-open:hidden hover:border-white/28 hover:bg-white/8 hover:text-white">
-                {data.internalNote ? "Upravit poznámku" : "Přidat poznámku"}
-              </span>
-              <span className="hidden text-sm font-medium text-white/78 group-open:inline">
-                Interní poznámka
-              </span>
-            </summary>
-            <div className="border-t border-white/8 px-3.5 py-3">
-              <AdminBookingNoteForm
-                area={data.area}
-                bookingId={data.id}
-                expectedUpdatedAt={data.reschedule.expectedUpdatedAt}
-                initialValue={data.internalNote ?? ""}
-              />
-            </div>
-          </details>
-        </div>
+        {data.internalNote?.trim() ? (
+          <span className="mt-1 line-clamp-2 break-words text-sm font-normal text-white/72">
+            Interní: {data.internalNote}
+          </span>
+        ) : null}
+      </summary>
+      <div className="space-y-3 border-t border-white/8 p-3">
+        {data.clientNote?.trim() ? (
+          <CompactNoteBlock label="Poznámka od klientky" value={data.clientNote} tone="default" />
+        ) : null}
+        <p className="text-xs text-white/68">Interní poznámku vidí pouze tým.</p>
+        <AdminBookingNoteForm
+          area={data.area}
+          bookingId={data.id}
+          expectedUpdatedAt={data.reschedule.expectedUpdatedAt}
+          initialValue={data.internalNote ?? ""}
+        />
       </div>
-    </AdminPanel>
+    </details>
   );
 }
 
@@ -477,92 +441,114 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
       <div className="space-y-2.5">
         <PaymentSummaryBlock paymentSummary={paymentSummary} />
 
-        <DirectPaymentsList
-          area={data.area}
-          bookingId={data.id}
-          payments={data.voucher.payments}
-        />
-
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-white/74">Voucher</p>
-
-          {intendedVoucher ? (
-            <div className="rounded-[0.95rem] border border-[var(--color-accent)]/16 bg-[rgba(190,160,120,0.06)] p-3">
-              <div className="flex flex-wrap items-start justify-between gap-2.5">
-                <div className="min-w-0 space-y-1">
-                  <p className="text-sm font-medium text-white/90">
-                    Klientka uvedla poukaz při rezervaci
-                  </p>
-                  <p className="font-mono text-[1.05rem] font-semibold tracking-[0.14em] text-white">
-                    {intendedVoucher.code}
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="rounded-full border border-white/10 bg-black/18 px-2.5 py-1 text-[0.64rem] font-medium uppercase tracking-[0.14em] text-white/70">
-                    {intendedVoucher.typeLabel}
-                  </span>
-                  <span className="rounded-full border border-white/10 bg-black/18 px-2.5 py-1 text-[0.64rem] font-medium uppercase tracking-[0.14em] text-white/70">
-                    {intendedVoucher.statusLabel}
-                  </span>
-                </div>
-              </div>
-              <dl className="mt-3 grid gap-2 sm:grid-cols-2">
-                <VoucherMiniRow label="Typ" value={intendedVoucher.typeLabel} />
-                <VoucherMiniRow
-                  label="Hodnota / služba"
-                  value={intendedVoucher.valueLabel}
-                />
-                {intendedVoucher.type === VoucherType.VALUE ? (
-                  <VoucherMiniRow
-                    label="Zůstatek"
-                    value={intendedVoucher.remainingLabel}
-                  />
-                ) : null}
-                <VoucherMiniRow
-                  label="Ověřeno"
-                  value={
-                    data.voucher.intendedVoucherValidatedAtLabel ??
-                    "Při rezervaci"
-                  }
-                />
-              </dl>
-              {!hasRedemptions ? (
-                <p className="mt-3 border-t border-white/8 pt-3 text-sm leading-5 text-white/56">
-                  Toto je pouze záměr uvedený při rezervaci. Skutečné čerpání se zapíše až při dokončení návštěvy v sekci „Další krok“.
-                </p>
-              ) : null}
-            </div>
-          ) : data.voucher.intendedVoucherCodeSnapshot ? (
-            <div className="rounded-[0.95rem] border border-white/8 bg-white/[0.035] px-3.5 py-3">
-              <p className="text-sm leading-5 text-white/70">
-                U rezervace je uložený kód voucheru{" "}
-                <span className="font-mono text-white">
-                  {data.voucher.intendedVoucherCodeSnapshot}
-                </span>
-                , ale není napojený na aktivní voucher v evidenci.
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-[0.95rem] border border-white/8 bg-white/[0.03] px-3 py-2.5">
-              <p className="text-sm text-white/64">K rezervaci není uložený záměr použít voucher.</p>
-            </div>
-          )}
-          {hasRedemptions ? (
-            <VoucherRedemptionsList redemptions={data.voucher.redemptions} />
-          ) : null}
-        </div>
-
-        <div className="grid gap-2 md:grid-cols-2">
-          {paymentSummary.remainingCzk > 0 ? (
+        <BookingPaymentTools
+          paymentForm={paymentSummary.remainingCzk > 0 ? (
             <AdminBookingPaymentForm
               area={data.area}
               bookingId={data.id}
               defaultAmountCzk={paymentSummary.remainingCzk}
+              variant="fields"
             />
           ) : null}
-        </div>
+          priceForm={data.priceAdjustment.canUpdate ? <PriceSummaryItem data={data} /> : null}
+        />
 
-        <PriceSummaryItem data={data} />
+        {data.voucher.payments.length > 0 ? (
+          <details className="col-span-full min-w-0 rounded-[0.95rem] border border-white/8">
+            <summary className="min-h-11 cursor-pointer px-3 py-3 text-sm font-medium text-white/78">
+              Podrobnosti plateb ({data.voucher.payments.length})
+            </summary>
+            <div className="border-t border-white/8 p-3">
+              <DirectPaymentsList
+                area={data.area}
+                bookingId={data.id}
+                payments={data.voucher.payments}
+              />
+            </div>
+          </details>
+        ) : null}
+
+        {intendedVoucher || data.voucher.intendedVoucherCodeSnapshot || hasRedemptions ? (
+          <div className="space-y-2">
+            {intendedVoucher ? (
+              <div className="rounded-[0.95rem] border border-[var(--color-accent)]/16 bg-[rgba(190,160,120,0.06)] p-3">
+                <div className="flex flex-wrap items-start justify-between gap-2.5">
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-sm font-medium text-white/90">
+                      Voucher uvedený při rezervaci
+                    </p>
+                    <p className="font-mono text-[1.05rem] font-semibold tracking-[0.14em] text-white">
+                      {intendedVoucher.code}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="rounded-full border border-white/10 bg-black/18 px-2.5 py-1 text-[0.64rem] font-medium uppercase tracking-[0.14em] text-white/70">
+                      {intendedVoucher.typeLabel}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-black/18 px-2.5 py-1 text-[0.64rem] font-medium uppercase tracking-[0.14em] text-white/70">
+                      {intendedVoucher.statusLabel}
+                    </span>
+                  </div>
+                </div>
+                <p className="mt-2 text-sm text-white/72">
+                  {intendedVoucher.type === VoucherType.VALUE
+                    ? `Zůstatek: ${intendedVoucher.remainingLabel}`
+                    : intendedVoucher.valueLabel}
+                </p>
+                <details className="mt-2 border-t border-white/8">
+                  <summary className="min-h-11 cursor-pointer py-3 text-sm text-white/78">
+                    Podrobnosti voucheru
+                  </summary>
+                  <dl className="grid gap-2 sm:grid-cols-2">
+                    <VoucherMiniRow label="Typ" value={intendedVoucher.typeLabel} />
+                    <VoucherMiniRow
+                      label="Hodnota / služba"
+                      value={intendedVoucher.valueLabel}
+                    />
+                    {intendedVoucher.type === VoucherType.VALUE ? (
+                      <VoucherMiniRow
+                        label="Zůstatek"
+                        value={intendedVoucher.remainingLabel}
+                      />
+                    ) : null}
+                    <VoucherMiniRow
+                      label="Ověřeno"
+                      value={
+                        data.voucher.intendedVoucherValidatedAtLabel ??
+                        "Při rezervaci"
+                      }
+                    />
+                  </dl>
+                </details>
+                {!hasRedemptions ? (
+                  <p className="mt-3 border-t border-white/8 pt-3 text-sm leading-5 text-white/56">
+                    Zatím neuplatněný. Čerpání zapiš při dokončení návštěvy.
+                  </p>
+                ) : null}
+              </div>
+            ) : data.voucher.intendedVoucherCodeSnapshot ? (
+              <div className="rounded-[0.95rem] border border-white/8 bg-white/[0.035] px-3.5 py-3">
+                <p className="text-sm leading-5 text-white/70">
+                  U rezervace je uložený kód voucheru{" "}
+                  <span className="font-mono text-white">
+                    {data.voucher.intendedVoucherCodeSnapshot}
+                  </span>
+                  , ale není napojený na aktivní voucher v evidenci.
+                </p>
+              </div>
+            ) : null}
+            {hasRedemptions ? (
+              <details className="rounded-[0.95rem] border border-white/8">
+                <summary className="min-h-11 cursor-pointer px-3 py-3 text-sm text-white/78">
+                  Čerpání voucherů ({data.voucher.redemptions.length})
+                </summary>
+                <div className="border-t border-white/8 p-3">
+                  <VoucherRedemptionsList redemptions={data.voucher.redemptions} />
+                </div>
+              </details>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </AdminPanel>
   );
@@ -571,83 +557,48 @@ function BookingVoucherPanel({ data }: { data: AdminBookingDetailData }) {
 function PriceSummaryItem({ data }: { data: AdminBookingDetailData }) {
   const priceAdjustment = data.priceAdjustment;
   const hasAdjustment = priceAdjustment.finalPriceCzk !== null;
-  const adjustmentLabel = hasAdjustment
-    ? `Upraveno z ${formatCzk(priceAdjustment.basePriceCzk)}`
-    : "Bez úpravy";
   const differenceLabel = getPriceDifferenceLabel(
     priceAdjustment.adjustmentCzk,
   );
 
   if (!priceAdjustment.canUpdate) {
-    return (
-      <div className="rounded-[0.9rem] border border-white/8 bg-black/14 px-3 py-2.5">
-        <p className="text-[0.72rem] leading-4 text-white/52">Cena k úhradě</p>
-        <p className="mt-1 text-sm font-semibold text-white/88">
-          {formatCzk(data.effectivePriceCzk)}
-        </p>
-      </div>
-    );
+    return null;
   }
 
   return (
-    <details className="group rounded-[0.9rem] border border-white/8 bg-black/14">
-      <summary className="cursor-pointer list-none px-3 py-2.5 marker:hidden">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <p className="text-[0.72rem] leading-4 text-white/52">
-              Upravit cenu
+    <div className="space-y-2">
+      <p className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-white/68">
+        <span>Ceníková cena: {formatCzk(priceAdjustment.basePriceCzk)}</span>
+        {hasAdjustment ? <span>{differenceLabel}</span> : null}
+      </p>
+      {hasAdjustment ? (
+        <div className="rounded-[0.85rem] border border-white/7 bg-black/10 px-3 py-2">
+          <p className="text-sm leading-5 text-white/64">
+            <span className="text-white/82">Důvod:</span>{" "}
+            {priceAdjustment.reason}
+          </p>
+          {priceAdjustment.adjustedAtLabel ? (
+            <p className="mt-1 text-xs leading-4 text-white/40">
+              Upraveno {priceAdjustment.adjustedAtLabel}
+              {priceAdjustment.adjustedByUserLabel
+                ? ` · ${priceAdjustment.adjustedByUserLabel}`
+                : ""}
             </p>
-            <p className="mt-1 text-sm font-semibold text-white/88">
-              {formatCzk(data.effectivePriceCzk)}
-            </p>
-          </div>
-          <span className="rounded-full border border-white/10 bg-black/16 px-2 py-0.5 text-[0.6rem] font-medium uppercase tracking-[0.12em] text-white/60">
-            {adjustmentLabel}
-          </span>
+          ) : null}
         </div>
-      </summary>
-
-      <div className="space-y-2 border-t border-white/8 px-3 py-2.5">
-        <dl className="grid gap-2 sm:grid-cols-3">
-          <VoucherMiniRow
-            label="Ceníková cena"
-            value={formatCzk(priceAdjustment.basePriceCzk)}
-          />
-          <VoucherMiniRow
-            label="Cena k úhradě"
-            value={formatCzk(data.effectivePriceCzk)}
-          />
-          <VoucherMiniRow label="Rozdíl" value={differenceLabel} />
-        </dl>
-        {hasAdjustment ? (
-          <div className="rounded-[0.85rem] border border-white/7 bg-black/10 px-3 py-2">
-            <p className="text-sm leading-5 text-white/64">
-              <span className="text-white/82">Důvod:</span>{" "}
-              {priceAdjustment.reason}
-            </p>
-            {priceAdjustment.adjustedAtLabel ? (
-              <p className="mt-1 text-xs leading-4 text-white/40">
-                Upraveno {priceAdjustment.adjustedAtLabel}
-                {priceAdjustment.adjustedByUserLabel
-                  ? ` · ${priceAdjustment.adjustedByUserLabel}`
-                  : ""}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-        <AdminBookingPriceForm
-          area={data.area}
-          bookingId={data.id}
-          expectedUpdatedAt={data.reschedule.expectedUpdatedAt}
-          basePriceCzk={priceAdjustment.basePriceCzk}
-          finalPriceCzk={priceAdjustment.finalPriceCzk}
-          reason={priceAdjustment.reason}
-          directPaidCzk={data.voucher.paymentSummary.directPaidCzk}
-          voucherPaidCzk={data.voucher.paymentSummary.voucherPaidCzk}
-          variant="fields"
-        />
-      </div>
-    </details>
+      ) : null}
+      <AdminBookingPriceForm
+        area={data.area}
+        bookingId={data.id}
+        expectedUpdatedAt={data.reschedule.expectedUpdatedAt}
+        basePriceCzk={priceAdjustment.basePriceCzk}
+        finalPriceCzk={priceAdjustment.finalPriceCzk}
+        reason={priceAdjustment.reason}
+        directPaidCzk={data.voucher.paymentSummary.directPaidCzk}
+        voucherPaidCzk={data.voucher.paymentSummary.voucherPaidCzk}
+        variant="fields"
+      />
+    </div>
   );
 }
 
@@ -656,47 +607,52 @@ function PaymentSummaryBlock({
 }: {
   paymentSummary: AdminBookingDetailData["voucher"]["paymentSummary"];
 }) {
-  const dueLabel = paymentSummary.overpaidCzk > 0 ? "Přeplatek" : "Doplatek";
-  const dueValue = formatCzk(
-    paymentSummary.overpaidCzk > 0
-      ? paymentSummary.overpaidCzk
-      : paymentSummary.remainingCzk,
-  );
+  const hasOverpayment = paymentSummary.overpaidCzk > 0;
+  const isSettled = !hasOverpayment && paymentSummary.remainingCzk === 0;
+  const hasKnownPrice = paymentSummary.totalPriceCzk !== null;
+  const dueLabel = hasOverpayment ? "Přeplatek" : "Zbývá uhradit";
 
   return (
-    <div className="rounded-[0.95rem] border border-[var(--color-accent)]/26 bg-[rgba(190,160,120,0.07)] p-2.5">
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-[0.8rem] border border-[var(--color-accent)]/35 bg-[rgba(190,160,120,0.16)] px-3 py-2">
-          <p className="text-[0.68rem] uppercase tracking-[0.14em] text-[var(--color-accent-soft)]/86">
-            Cena celkem
-          </p>
-          <p className="mt-1 text-[1.2rem] font-semibold leading-tight text-white">
-            {formatCzk(paymentSummary.totalPriceCzk ?? 0)}
-          </p>
-        </div>
-        <div className="rounded-[0.8rem] border border-white/8 bg-black/14 px-3 py-2">
-          <p className="text-[0.68rem] uppercase tracking-[0.14em] text-white/52">
-            Zaplaceno přímo
-          </p>
-          <p className="mt-1 text-sm font-semibold text-white/88">
-            {formatCzk(paymentSummary.directPaidCzk)}
-          </p>
-        </div>
-        <div className="rounded-[0.8rem] border border-white/8 bg-black/14 px-3 py-2">
-          <p className="text-[0.68rem] uppercase tracking-[0.14em] text-white/52">
-            Pokryto voucherem
-          </p>
-          <p className="mt-1 text-sm font-semibold text-white/88">
-            {formatCzk(paymentSummary.voucherPaidCzk)}
-          </p>
-        </div>
-        <div className="rounded-[0.8rem] border border-white/8 bg-black/14 px-3 py-2">
-          <p className="text-[0.68rem] uppercase tracking-[0.14em] text-white/52">
-            {dueLabel}
-          </p>
-          <p className="mt-1 text-sm font-semibold text-white/88">{dueValue}</p>
-        </div>
+    <div className={cn(
+      "rounded-[0.95rem] border px-3 py-2.5",
+      hasOverpayment
+        ? "border-amber-300/25 bg-amber-400/10"
+        : isSettled && hasKnownPrice
+          ? "border-emerald-300/25 bg-emerald-400/10"
+          : "border-[var(--color-accent)]/26 bg-[rgba(190,160,120,0.07)]",
+    )}>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <p className="text-sm font-medium text-white/78">
+          {!hasKnownPrice ? "Cena není stanovena" : isSettled ? "Stav úhrady" : dueLabel}
+        </p>
+        <p className="text-xl font-semibold leading-tight text-white">
+          {!hasKnownPrice
+            ? "Bez částky"
+            : isSettled
+              ? "Uhrazeno"
+              : formatCzk(hasOverpayment ? paymentSummary.overpaidCzk : paymentSummary.remainingCzk)}
+        </p>
       </div>
+      <dl className="mt-2 grid gap-x-4 gap-y-1 border-t border-white/10 pt-2 sm:grid-cols-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-2">
+          <dt className="text-xs text-white/68">Cena celkem</dt>
+          <dd className="text-sm font-medium text-white/88">
+            {formatCzk(paymentSummary.totalPriceCzk)}
+          </dd>
+        </div>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-2">
+          <dt className="text-xs text-white/68">Zaplaceno přímo</dt>
+          <dd className="text-sm font-medium text-white/88">
+            {formatCzk(paymentSummary.directPaidCzk)}
+          </dd>
+        </div>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-2">
+          <dt className="text-xs text-white/68">Pokryto voucherem</dt>
+          <dd className="text-sm font-medium text-white/88">
+            {formatCzk(paymentSummary.voucherPaidCzk)}
+          </dd>
+        </div>
+      </dl>
     </div>
   );
 }
@@ -704,7 +660,7 @@ function PaymentSummaryBlock({
 function VoucherMiniRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[0.8rem] border border-white/8 bg-black/14 px-3 py-2">
-      <dt className="text-[0.72rem] leading-4 text-white/42">{label}</dt>
+      <dt className="text-xs leading-4 text-white/60">{label}</dt>
       <dd className="mt-1 text-sm leading-5 text-white/82">{value}</dd>
     </div>
   );
@@ -724,7 +680,7 @@ function VoucherRedemptionsList({
         >
           <div className="flex flex-wrap items-start justify-between gap-2.5">
             <div className="min-w-0">
-              <p className="text-[0.72rem] leading-4 text-white/42">
+              <p className="text-xs leading-4 text-white/60">
                 {redemption.redeemedAtLabel}
               </p>
               <p className="mt-1 font-mono text-sm font-semibold tracking-[0.1em] text-white">
@@ -780,7 +736,7 @@ function DirectPaymentsList({
           >
             <div className="flex flex-wrap items-start justify-between gap-2.5">
               <div className="min-w-0">
-                <p className="text-[0.72rem] leading-4 text-white/42">
+                <p className="text-xs leading-4 text-white/60">
                   {payment.paidAtLabel}
                 </p>
                 <p className="mt-1 text-sm font-semibold text-white">
@@ -868,12 +824,6 @@ function BookingHistoryTimeline({
   return (
     <AdminPanel title="Historie změn" denseHeader>
       <div className="rounded-[1rem] border border-white/7 bg-white/[0.02] p-2">
-        <div className="mb-2 px-1">
-          <p className="text-sm leading-5 text-white/54">
-            Auditní stopa zůstává dole a ukazuje poslední změny; starší záznamy
-            jsou připravené na rozbalení.
-          </p>
-        </div>
         <div className="space-y-2">
           {previewItems.map((item) => (
             <HistoryItem key={item.id} item={item} />
@@ -881,7 +831,7 @@ function BookingHistoryTimeline({
 
           {remainingItems.length > 0 ? (
             <details className="group rounded-[1rem] border border-white/8 bg-white/[0.03]">
-              <summary className="cursor-pointer list-none px-3.5 py-3 text-sm font-medium text-white/78 marker:hidden">
+              <summary className="min-h-11 cursor-pointer px-3.5 py-3 text-sm font-medium text-white/78">
                 <span className="group-open:hidden">
                   Zobrazit celou historii ({remainingItems.length})
                 </span>
@@ -927,8 +877,8 @@ function SummaryRow({
     <div className="grid gap-1 px-3.5 py-3 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:items-start sm:gap-3">
       <dt
         className={cn(
-          "text-[0.66rem] uppercase tracking-[0.18em]",
-          muted ? "text-white/34" : "text-white/48",
+          "text-xs font-medium",
+          muted ? "text-white/60" : "text-white/68",
         )}
       >
         {label}
@@ -971,10 +921,10 @@ function CompactNoteBlock({
           : "border-white/8 bg-white/[0.04]",
       )}
     >
-      <p className="text-[0.68rem] uppercase tracking-[0.2em] text-white/46">
+      <p className="text-xs font-medium text-white/68">
         {label}
       </p>
-      <p className="mt-1.5 whitespace-pre-wrap text-sm leading-5 text-white/78">
+      <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-5 text-white/78">
         {hasValue ? value : emptyLabel}
       </p>
     </div>
@@ -1041,7 +991,7 @@ function QuickHeaderAction({
   hint?: string;
 }) {
   const className = cn(
-    "inline-flex min-h-9 items-center justify-center rounded-full border px-3 py-1.5 text-sm transition",
+    "inline-flex min-h-11 items-center justify-center rounded-full border px-3 py-1.5 text-sm transition",
     muted
       ? "border-white/8 bg-white/[0.03] text-white/42"
       : "border-white/10 bg-black/16 text-white/76 hover:border-white/18 hover:bg-white/6 hover:text-white",
@@ -1122,21 +1072,6 @@ function getHistoryBadgeClassName(
   }
 
   return getStatusBadgeClassName(status);
-}
-
-function getStatusContextClassName(
-  tone: "pending" | "confirmed" | "closed" | "neutral",
-) {
-  switch (tone) {
-    case "pending":
-      return "rounded-[1rem] border border-amber-300/16 bg-amber-500/7 px-3.5 py-3";
-    case "confirmed":
-      return "rounded-[1rem] border border-emerald-300/16 bg-emerald-500/7 px-3.5 py-3";
-    case "closed":
-      return "rounded-[1rem] border border-white/8 bg-white/[0.035] px-3.5 py-3";
-    default:
-      return "rounded-[1rem] border border-white/8 bg-white/[0.04] px-3.5 py-3";
-  }
 }
 
 function buildPhoneHref(phone: string) {

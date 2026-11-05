@@ -9,8 +9,8 @@ Tento návod popisuje aktuální serverovou integraci události `Schedule`. CAPI
 - Pixel i CAPI dostanou stejné náhodné UUID jako `eventID` / `event_id`. Deduplikaci tvoří dvojice `event_name=Schedule` a UUID. ID neobsahuje osobní údaje ani interní ID rezervace.
 - Čas události je `Booking.createdAt`; CAPI jej posílá v sekundách UTC. URL události je pevná veřejná cesta `/rezervace` bez query parametrů.
 - CAPI posílá povinný user-agent a jen při dostupnosti také `_fbp` a `_fbc`. Neposílá IP adresu, e-mail, telefon ani hashované kontakty.
-- Pixel a ostatní trackery se řídí svými konfiguračními přepínači. UTM/MTM interní atribuce se ukládá do akviziční cookie.
-- Interní akviziční cookie `ppstudio-booking-acq` expiruje po 30 dnech a neukládá `fbclid`; dostupné `_fbp`/`_fbc` se předávají do CAPI outboxu a jeho kopie se odstraní po úspěchu, konečném selhání nebo šesti dnech čekání.
+- Konfigurace trackerů je nutná, ale sama o sobě nestačí: Meta Pixel, Google Ads a Meta CAPI se aktivují pouze po udělení marketingového souhlasu. Matomo a Clarity vyžadují analytický souhlas. Bez souhlasu se trackery nenačtou ani serverová CAPI událost nevytvoří.
+- Interní akviziční cookie `ppstudio-booking-acq` se vytváří pouze při analytickém souhlasu a expiruje po 30 dnech; neukládá `fbclid`. Při odebrání analytického souhlasu se odstraní. Po marketingovém souhlasu se dostupné `_fbp`/`_fbc` předají do CAPI outboxu a jeho kopie se odstraní po úspěchu, konečném selhání nebo šesti dnech čekání.
 - `Purchase` ani CRM konverze se automaticky neposílají.
 
 Meta pro deduplikaci vyžaduje shodu názvu události a ID, Pixel používá `eventID` jako čtvrtý argument `fbq` a CAPI `event_id`. Meta odpovídající doručení deduplikuje, pokud je obdrží v jejím 48hodinovém okně. Viz [Handling Duplicate Pixel and Conversions API Events](https://developers.facebook.com/documentation/ads-commerce/conversions-api/deduplicate-pixel-and-server-events) a [Server Event Parameters](https://developers.facebook.com/documentation/ads-commerce/conversions-api/parameters/server-event).
@@ -36,7 +36,7 @@ V DEV se také výslovně přihlas k marketingovým cookies a vytvoř jednu skut
 1. V **Events Manager → Data Sources → testovací dataset → Test Events** přijde browser i server `Schedule`.
 2. Obě události mají stejný `eventID`/`event_id` a název `Schedule`; v Event Deduplication se jejich překryv sloučí.
 3. `event_time` odpovídá okamžiku vytvoření rezervace, nikoli času retry.
-4. Při odmítnutí marketingových cookies nepřijde Meta Pixel ani CAPI event.
+4. Bez marketingového souhlasu nepřijde Meta Pixel ani CAPI event, i pokud je CAPI aktivní v konfiguraci; po udělení souhlasu dorazí oba zdroje se stejným ID. Ověř také analytický souhlas pro Matomo/Clarity.
 5. Při unit a DB integračních testech se `fetch` mockuje. Testy nikdy nevolají Meta; ani ručně neposílej testovací událost do produkčního datasetu.
 
 ## Získání produkčního tokenu a aktivace
@@ -59,7 +59,7 @@ META_CAPI_API_VERSION=v26.0
 `NEXT_PUBLIC_*` hodnoty se propisují do klientského buildu; serverový token zůstává v runtime env a `src/config/env.ts` při zapnutí CAPI ověří, že Pixel a CAPI mají stejné ID. `META_CAPI_ENABLED` je záměrně defaultně `false`.
 
 5. Ověř, že běží systemd `ppstudio-web` i `ppstudio-email-worker`. `deploy/release.sh` při nasazení aplikuje Prisma migrace před spuštěním obou služeb; tento návod sám nic nenasazuje.
-6. Pro první produkční kontrolu nech aktivaci kampaní beze změny, počkej na běžnou rezervaci a zkontroluj příchod eventu. Neposílej `test_event_code` na produkční dataset.
+6. Pro první produkční kontrolu nech aktivaci kampaní beze změny, počkej na běžnou rezervaci od návštěvníka s marketingovým souhlasem a zkontroluj příchod eventu. Neposílej `test_event_code` na produkční dataset.
 
 Meta doporučuje pro CAPI stejný Pixel ID jako pro browser události. Postup pro token a dostupnost ručního nastavení popisuje [Get Started with the Conversions API](https://developers.facebook.com/documentation/ads-commerce/conversions-api/get-started); request endpoint, verzi API a Test Events popisuje [Using the API](https://developers.facebook.com/documentation/ads-commerce/conversions-api/using-the-api).
 
@@ -81,7 +81,7 @@ GROUP BY "status"
 ORDER BY "status";
 ```
 
-Worker loguje pouze počty zpracovaných, odeslaných, opakovaných a neúspěšných událostí. Nezapisuje access token, user-agent, `_fbp`, `_fbc` ani event payload.
+Worker loguje pouze počty zpracovaných, odeslaných, opakovaných a neúspěšných událostí. Nezapisuje access token, user-agent, `_fbp`, `_fbc` ani event payload. Při dočasném vypnutí CAPI nechává čekající události ve frontě; události starší šesti dní expirují a do Meta se neposílají.
 
 ## Rozdíly proti Matomu
 
@@ -92,3 +92,9 @@ Meta Ads navíc počítá atribuci podle vlastních atribučních oken, modelov�
 ## Další fáze: potvrzená návštěva a tržba
 
 Samostatná navazující fáze může na základě CRM posílat potvrzenou návštěvu nebo skutečně uhrazenou tržbu. Nejprve je potřeba vyhodnotit pravidla pro storno/no-show, případné vratky a přesnou definici hodnoty (platby, voucherové čerpání, úpravy ceny). Teprve poté lze navrhnout idempotentní CRM outbox s vlastním stabilním event ID. V první fázi zůstává `Purchase` vypnutý, aby se optimalizace nezakládala na rezervaci místo skutečné úhrady.
+
+## Souhlasy a změna preferencí
+
+Souhlas je verzovaná first-party cookie `ppstudio-tracking-consent-v1` (180 dní), odděleně pro analytiku a marketing. Výchozí stav je zamítnutí volitelných trackerů do udělení souhlasu. Na veřejném webu je panel s možnostmi `Odmítnout volitelné`, `Uložit volbu` a `Povolit vše`; v patičce je možné nastavení znovu otevřít. Odebrání souhlasu vyvolá reload stránky, aby nemohly pokračovat dříve načtené skripty. Serverová tvorba rezervace kontroluje marketingový souhlas nezávisle na klientském UI.
+
+Tímto nahrazujeme staré rozhodnutí ADR 0120 (trackery bez souhlasové brány); aktuální rozhodnutí je v ADR 0121. Vypnutí celé CAPI integrace na serveru nesmí smazat čekající události, ale události po šesti dnech expirují.

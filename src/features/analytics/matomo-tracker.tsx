@@ -3,6 +3,7 @@
 import Script from "next/script";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useLayoutEffect } from "react";
+import { useTrackingConsent } from "./tracking-consent-provider";
 
 import {
   buildSafeMatomoPath,
@@ -19,10 +20,11 @@ type MatomoTrackerProps = {
 
 export function MatomoTracker({ disabled = false }: MatomoTrackerProps) {
   const pathname = usePathname();
+  const analyticsConsent = useTrackingConsent("analytics");
   const searchParams = useSearchParams();
   const matomoUrl = process.env.NEXT_PUBLIC_MATOMO_URL;
   const siteId = process.env.NEXT_PUBLIC_MATOMO_SITE_ID;
-  const shouldInitialize = isMatomoConfigured() && shouldInitializeMatomoTracking(pathname, { disabled });
+  const shouldInitialize = analyticsConsent && isMatomoConfigured() && shouldInitializeMatomoTracking(pathname, { disabled });
   const shouldTrackPageview = shouldTrackMatomoPath(pathname);
   const safeCurrentPath = buildSafeMatomoPath(pathname, searchParams);
 

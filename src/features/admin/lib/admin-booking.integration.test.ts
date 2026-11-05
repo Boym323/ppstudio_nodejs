@@ -75,8 +75,9 @@ async function findIsolatedAdminWindow(
         const [overlappingSlots, overlappingBookings] = await Promise.all([
           prisma.availabilitySlot.count({
             where: {
-              startsAt: { lt: endsAt },
-              endsAt: { gt: startsAt },
+              // Obnova dostupnosti nesmí sloučit fixture se sousedním reálným slotem.
+              startsAt: { lte: endsAt },
+              endsAt: { gte: startsAt },
             },
           }),
           prisma.booking.count({
@@ -140,9 +141,9 @@ async function disableAutoLunchForAdminFixture(
 async function createAdminServiceChangeFixture(
   prisma: Awaited<typeof import("@/lib/prisma")>["prisma"],
   suffix: string,
-  options: { isolateReminderScan?: boolean } = {},
+  options: { isolateReminderScan?: boolean; windowMinutes?: number } = {},
 ) {
-  const isolatedWindow = await findIsolatedAdminWindow(prisma, suffix, 120, options);
+  const isolatedWindow = await findIsolatedAdminWindow(prisma, suffix, options.windowMinutes ?? 120, options);
   const { startsAt, endsAt } = isolatedWindow;
   const bookingEndsAt = new Date(startsAt.getTime() + 60 * 60 * 1000);
   const owner = await prisma.adminUser.create({
@@ -2153,6 +2154,11 @@ dbTest("updateAdminBookingService authoritativeně chrání automatický oběd",
       assert.equal(result.status, scenario.expectedStatus, `Scénář ${scenario.name} má mít očekávaný výsledek.`);
 
       if (scenario.expectedStatus === "slot-unavailable") {
+        const overrideResult = await updateAdminBookingService({
+          bookingId: fixture.booking.id, serviceId: fixture.replacementService.id,
+          actorUserId: fixture.owner.id, allowManualOverride: true,
+        });
+        assert.equal(overrideResult.status, "slot-unavailable", "Výjimka nesmí obejít automatický oběd.");
         const unchangedBooking = await prisma.booking.findUniqueOrThrow({
           where: { id: fixture.booking.id },
           select: { serviceId: true, scheduledEndsAt: true, blockedUntil: true },
@@ -2344,79 +2350,96 @@ dbTest("updateAdminBookingService odmítne globální kolizi mimo původní slot
   }
 });
 
-dbTest("souběh změny služby a nové rezervace nikdy neuloží překrytí", async () => {
-  const [{ prisma }, { updateAdminBookingService }, { createManualBooking, PublicBookingError, publicBookingErrorCodes }] = await Promise.all([
-    import("@/lib/prisma"),
-    import("./admin-booking"),
-    import("@/features/booking/lib/booking-public"),
-  ]);
-  const fixture = await createAdminServiceChangeFixture(prisma, randomUUID().slice(0, 8));
-
-  try {
-    const [serviceChange, newBooking] = await Promise.allSettled([
-      updateAdminBookingService({
-        bookingId: fixture.booking.id,
-        serviceId: fixture.replacementService.id,
-        actorUserId: fixture.owner.id,
-        expectedUpdatedAt: fixture.booking.updatedAt.toISOString(),
-      }),
-      createManualBooking({
-        serviceId: fixture.originalService.id,
-        slotId: fixture.slot.id,
-        allowManualOverride: false,
-        startsAt: fixture.bookingEndsAt.toISOString(),
-        fullName: `Souběžná klientka ${fixture.booking.id}`,
-        email: `concurrent-service-change-${fixture.booking.id}@example.com`,
-        phone: "+420777123458",
-        source: BookingSource.PHONE,
-        status: BookingStatus.CONFIRMED,
-        actorUserId: fixture.owner.id,
-        sendClientEmail: false,
-        includeCalendarAttachment: false,
-      }),
+for (const allowManualOverride of [false, true]) {
+  dbTest(`souběh změny služby a nové rezervace nikdy neuloží překrytí (výjimka ${allowManualOverride})`, async () => {
+    const [{ prisma }, { updateAdminBookingService }, { createManualBooking, PublicBookingError, publicBookingErrorCodes }] = await Promise.all([
+      import("@/lib/prisma"),
+      import("./admin-booking"),
+      import("@/features/booking/lib/booking-public"),
     ]);
+    const fixture = await createAdminServiceChangeFixture(prisma, randomUUID().slice(0, 8));
 
-    assert.equal(serviceChange.status, "fulfilled");
-    if (serviceChange.status !== "fulfilled") return;
-
-    if (serviceChange.value.status === "success") {
-      assert.equal(newBooking.status, "rejected");
-      if (newBooking.status === "rejected") {
-        assert.ok(newBooking.reason instanceof PublicBookingError);
-        assert.equal(newBooking.reason.code, publicBookingErrorCodes.slotUnavailable);
+    try {
+      let targetSlotId = fixture.slot.id;
+      if (allowManualOverride) {
+        await prisma.availabilitySlot.update({ where: { id: fixture.slot.id }, data: { status: "ARCHIVED", endsAt: fixture.bookingEndsAt } });
+        const targetSlot = await prisma.availabilitySlot.create({ data: {
+          startsAt: fixture.bookingEndsAt, endsAt: fixture.endsAt, capacity: 1,
+          status: "PUBLISHED", serviceRestrictionMode: "ANY", publishedAt: new Date(),
+        } });
+        targetSlotId = targetSlot.id;
       }
-    } else {
-      assert.equal(serviceChange.value.status, "conflict");
-      assert.equal(newBooking.status, "fulfilled");
-    }
+      const [serviceChange, newBooking] = await Promise.allSettled([
+        updateAdminBookingService({
+          allowManualOverride,
+          bookingId: fixture.booking.id,
+          serviceId: fixture.replacementService.id,
+          actorUserId: fixture.owner.id,
+          expectedUpdatedAt: fixture.booking.updatedAt.toISOString(),
+        }),
+        createManualBooking({
+          serviceId: fixture.originalService.id,
+          slotId: targetSlotId,
+          allowManualOverride: false,
+          startsAt: fixture.bookingEndsAt.toISOString(),
+          fullName: `Souběžná klientka ${fixture.booking.id}`,
+          email: `concurrent-service-change-${fixture.booking.id}@example.com`,
+          phone: "+420777123458",
+          source: BookingSource.PHONE,
+          status: BookingStatus.CONFIRMED,
+          actorUserId: fixture.owner.id,
+          sendClientEmail: false,
+          includeCalendarAttachment: false,
+        }),
+      ]);
 
-    const activeBookings = await prisma.booking.findMany({
-      where: {
-        status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
-        scheduledStartsAt: { gte: fixture.startsAt, lt: fixture.endsAt },
-      },
-      select: {
-        id: true,
-        scheduledStartsAt: true,
-        scheduledEndsAt: true,
-        blockedUntil: true,
-      },
-    });
+      assert.equal(serviceChange.status, "fulfilled");
+      if (serviceChange.status !== "fulfilled") return;
 
-    for (const [index, booking] of activeBookings.entries()) {
-      for (const other of activeBookings.slice(index + 1)) {
-        const bookingBlockedUntil = booking.blockedUntil ?? booking.scheduledEndsAt;
-        const otherBlockedUntil = other.blockedUntil ?? other.scheduledEndsAt;
-        assert.ok(
-          booking.scheduledStartsAt >= otherBlockedUntil || other.scheduledStartsAt >= bookingBlockedUntil,
-          `Aktivní bookingy ${booking.id} a ${other.id} se nesmí překrývat.`,
-        );
+      if (serviceChange.value.status === "success") {
+        assert.equal(newBooking.status, "rejected");
+        if (newBooking.status === "rejected") {
+          assert.ok(newBooking.reason instanceof PublicBookingError);
+          // Pořadí serializovaných transakcí rozhoduje, zda odmítne
+          // nedostupná nabídka, nebo kolize s nově prodlouženou rezervací.
+          assert.ok(
+            newBooking.reason.code === publicBookingErrorCodes.slotUnavailable
+            || newBooking.reason.code === publicBookingErrorCodes.bookingConflict,
+          );
+        }
+      } else {
+        assert.equal(serviceChange.value.status, "conflict");
+        assert.equal(newBooking.status, "fulfilled");
       }
+
+      const activeBookings = await prisma.booking.findMany({
+        where: {
+          status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
+          scheduledStartsAt: { gte: fixture.startsAt, lt: fixture.endsAt },
+        },
+        select: {
+          id: true,
+          scheduledStartsAt: true,
+          scheduledEndsAt: true,
+          blockedUntil: true,
+        },
+      });
+
+      for (const [index, booking] of activeBookings.entries()) {
+        for (const other of activeBookings.slice(index + 1)) {
+          const bookingBlockedUntil = booking.blockedUntil ?? booking.scheduledEndsAt;
+          const otherBlockedUntil = other.blockedUntil ?? other.scheduledEndsAt;
+          assert.ok(
+            booking.scheduledStartsAt >= otherBlockedUntil || other.scheduledStartsAt >= bookingBlockedUntil,
+            `Aktivní bookingy ${booking.id} a ${other.id} se nesmí překrývat.`,
+          );
+        }
+      }
+    } finally {
+      await fixture.cleanup();
     }
-  } finally {
-    await fixture.cleanup();
-  }
-});
+  });
+}
 
 dbTest("změna služby zkrátí manual DRAFT a obnoví původní PUBLISHED dostupnost", async () => {
   const [{ prisma }, { updateAdminBookingService, applyAdminBookingStatusChange }] = await Promise.all([
@@ -2655,5 +2678,518 @@ dbTest("reschedule po zkrácení manual override nenechá starý DRAFT ani mezer
     assert.equal(orphanDrafts, 0);
   } finally {
     await fixture.cleanup();
+  }
+});
+
+
+for (const sourceStatus of [AvailabilitySlotStatus.ARCHIVED, AvailabilitySlotStatus.PUBLISHED]) {
+  dbTest(`změna služby s výslovnou výjimkou prodlouží ${sourceStatus} přes vlastní úklid a po stornu obnoví jen původní nabídku`, async () => {
+    const [{ prisma }, { updateAdminBookingService, applyAdminBookingStatusChange }] = await Promise.all([
+      import("@/lib/prisma"), import("./admin-booking"),
+    ]);
+    const fixture = await createAdminServiceChangeFixture(prisma, randomUUID().slice(0, 8), { windowMinutes: 180 });
+    const atMinute = (minutes: number) => new Date(fixture.startsAt.getTime() + minutes * 60_000);
+    try {
+      await prisma.availabilitySlot.update({ where: { id: fixture.slot.id }, data: { status: sourceStatus, endsAt: atMinute(60) } });
+      await prisma.booking.update({ where: { id: fixture.booking.id }, data: {
+        cleanupMinutes: 15, cleanupBlockMinutes: 15, blockedUntil: atMinute(75), originalAvailabilityEndsAt: atMinute(60),
+      } });
+      await prisma.service.update({ where: { id: fixture.replacementService.id }, data: { durationMinutes: 100, cleanupMinutes: 20 } });
+      await prisma.availabilitySlot.create({ data: { startsAt: atMinute(75), endsAt: atMinute(180), status: "PUBLISHED", capacity: 1, serviceRestrictionMode: "ANY", publishedAt: new Date() } });
+      const before = await prisma.booking.findUniqueOrThrow({ where: { id: fixture.booking.id } });
+      const input = { bookingId: fixture.booking.id, serviceId: fixture.replacementService.id, actorUserId: fixture.owner.id, expectedUpdatedAt: before.updatedAt.toISOString() };
+      const rejected = await updateAdminBookingService(input);
+      assert.equal(rejected.status, "slot-too-short");
+      assert.deepEqual(await prisma.booking.findUniqueOrThrow({ where: { id: fixture.booking.id } }), before);
+
+      const changed = await updateAdminBookingService({ ...input, allowManualOverride: true });
+      assert.equal(changed.status, "success");
+      if (changed.status !== "success") assert.fail("Expected successful extension");
+      assert.equal(changed.createdManualOverride, true);
+      const booking = await prisma.booking.findUniqueOrThrow({ where: { id: fixture.booking.id }, include: { slot: true } });
+      assert.equal(booking.scheduledStartsAt.toISOString(), atMinute(0).toISOString());
+      assert.equal(booking.scheduledEndsAt.toISOString(), atMinute(100).toISOString());
+      assert.equal(booking.cleanupBlockMinutes, 30);
+      assert.equal(booking.blockedUntil?.toISOString(), atMinute(130).toISOString());
+      assert.equal(booking.status, BookingStatus.CONFIRMED);
+      assert.equal(booking.manualOverride, true);
+      assert.equal(booking.slot.status, AvailabilitySlotStatus.DRAFT);
+      assert.equal(booking.slot.endsAt.toISOString(), atMinute(130).toISOString());
+      assert.equal(booking.originalAvailabilityEndsAt, null);
+      const history = await prisma.bookingStatusHistory.findFirstOrThrow({ where: { bookingId: booking.id }, orderBy: { createdAt: "desc" } });
+      assert.equal((history.metadata as { createdManualOverride: boolean }).createdManualOverride, true);
+
+      const cancelled = await applyAdminBookingStatusChange({ bookingId: booking.id, targetStatus: BookingStatus.CANCELLED, actorUserId: fixture.owner.id, notifyClient: false });
+      assert.equal(cancelled.status, "success");
+      const publicSlots = await prisma.availabilitySlot.findMany({ where: { startsAt: { gte: atMinute(0), lt: atMinute(180) }, status: AvailabilitySlotStatus.PUBLISHED }, orderBy: { startsAt: "asc" } });
+      assert.deepEqual(publicSlots.map((slot) => [slot.startsAt.toISOString(), slot.endsAt.toISOString()]), [
+        [atMinute(0).toISOString(), atMinute(60).toISOString()],
+        [atMinute(75).toISOString(), atMinute(180).toISOString()],
+      ]);
+    } finally {
+      await fixture.cleanup();
+    }
+  });
+}
+
+for (const blockerKind of ["draft", "protected", "booking"] as const) {
+  dbTest(`změna služby s výslovnou výjimkou odmítne ${blockerKind} v novém úklidu bez částečného zápisu`, async () => {
+    const [{ prisma }, { updateAdminBookingService }] = await Promise.all([
+      import("@/lib/prisma"), import("./admin-booking"),
+    ]);
+    const fixture = await createAdminServiceChangeFixture(prisma, randomUUID().slice(0, 8));
+    const atMinute = (minutes: number) => new Date(fixture.startsAt.getTime() + minutes * 60_000);
+    try {
+      await prisma.availabilitySlot.update({ where: { id: fixture.slot.id }, data: { status: "ARCHIVED", endsAt: atMinute(60) } });
+      await prisma.service.update({ where: { id: fixture.replacementService.id }, data: { cleanupMinutes: 20 } });
+      const blocker = await prisma.availabilitySlot.create({ data: {
+        startsAt: atMinute(105), endsAt: atMinute(120), capacity: 1, serviceRestrictionMode: "ANY",
+        status: blockerKind === "draft" ? "DRAFT" : "PUBLISHED", internalNote: blockerKind === "protected" ? "Chráněný čas" : null,
+      } });
+      if (blockerKind === "booking") {
+        const original = await prisma.booking.findUniqueOrThrow({ where: { id: fixture.booking.id } });
+        await prisma.booking.create({ data: {
+          clientId: fixture.client.id, slotId: blocker.id, serviceId: fixture.originalService.id, status: "CONFIRMED",
+          clientNameSnapshot: "Kolizní návštěva", clientEmailSnapshot: original.clientEmailSnapshot,
+          serviceNameSnapshot: original.serviceNameSnapshot, serviceDurationMinutes: 15,
+          scheduledStartsAt: atMinute(105), scheduledEndsAt: atMinute(120), blockedUntil: null,
+        } });
+      }
+      const before = await prisma.booking.findUniqueOrThrow({ where: { id: fixture.booking.id } });
+      const slotsBefore = await prisma.availabilitySlot.findMany({ where: { startsAt: { gte: atMinute(0), lt: atMinute(120) } }, orderBy: { id: "asc" } });
+      const historyBefore = await prisma.bookingStatusHistory.count({ where: { bookingId: fixture.booking.id } });
+      const changed = await updateAdminBookingService({ bookingId: fixture.booking.id, serviceId: fixture.replacementService.id, actorUserId: fixture.owner.id, allowManualOverride: true });
+      assert.equal(changed.status, "conflict");
+      if (changed.status !== "conflict") assert.fail("Expected conflict");
+      assert.ok(changed.message.includes(blockerKind === "booking" ? "Kolizní návštěva" : blockerKind === "draft" ? "interně blokovaného" : "chráněného"));
+      assert.deepEqual(await prisma.booking.findUniqueOrThrow({ where: { id: fixture.booking.id } }), before);
+      assert.deepEqual(await prisma.availabilitySlot.findMany({ where: { startsAt: { gte: atMinute(0), lt: atMinute(120) } }, orderBy: { id: "asc" } }), slotsBefore);
+      assert.equal(await prisma.bookingStatusHistory.count({ where: { bookingId: fixture.booking.id } }), historyBefore);
+    } finally {
+      await fixture.cleanup();
+    }
+  });
+}
+
+
+for (const nextAction of ["shorten", "reschedule"] as const) {
+  dbTest(`výjimka po změně služby při ${nextAction} neobnoví odebraný čas historického slotu`, async () => {
+    const [{ prisma }, { updateAdminBookingService, applyAdminBookingStatusChange }, { rescheduleBooking }] = await Promise.all([
+      import("@/lib/prisma"), import("./admin-booking"), import("@/features/booking/lib/booking-rescheduling"),
+    ]);
+    const fixture = await createAdminServiceChangeFixture(prisma, randomUUID().slice(0, 8), { windowMinutes: 360 });
+    const atMinute = (minutes: number) => new Date(fixture.startsAt.getTime() + minutes * 60_000);
+    try {
+      // Historický slot je širší než doložený původní čas této rezervace.
+      await prisma.availabilitySlot.update({ where: { id: fixture.slot.id }, data: { status: "ARCHIVED" } });
+      await prisma.booking.update({ where: { id: fixture.booking.id }, data: { originalAvailabilityEndsAt: atMinute(60) } });
+      await prisma.service.update({ where: { id: fixture.replacementService.id }, data: { durationMinutes: 100, cleanupMinutes: 20 } });
+      const changed = await updateAdminBookingService({ bookingId: fixture.booking.id, serviceId: fixture.replacementService.id, actorUserId: fixture.owner.id, allowManualOverride: true });
+      assert.equal(changed.status, "success");
+      if (nextAction === "shorten") {
+        const shortened = await updateAdminBookingService({ bookingId: fixture.booking.id, serviceId: fixture.originalService.id, actorUserId: fixture.owner.id });
+        assert.equal(shortened.status, "success");
+      } else {
+        const moved = await rescheduleBooking({ bookingId: fixture.booking.id, newStartAt: atMinute(180).toISOString(), changedByUserId: fixture.owner.id, allowManualOverride: true, notifyClient: false });
+        assert.equal(moved.manualOverride, true);
+      }
+      const publishedBeforeCancellation = await prisma.availabilitySlot.findMany({ where: { startsAt: { gte: atMinute(0), lt: atMinute(360) }, status: "PUBLISHED" }, orderBy: { startsAt: "asc" } });
+      assert.deepEqual(publishedBeforeCancellation.map((slot) => [slot.startsAt.toISOString(), slot.endsAt.toISOString()]), nextAction === "shorten" ? [] : [[atMinute(0).toISOString(), atMinute(60).toISOString()]]);
+      const cancellation = await applyAdminBookingStatusChange({ bookingId: fixture.booking.id, targetStatus: BookingStatus.CANCELLED, actorUserId: fixture.owner.id, notifyClient: false });
+      assert.equal(cancellation.status, "success");
+      const publishedAfterCancellation = await prisma.availabilitySlot.findMany({ where: { startsAt: { gte: atMinute(0), lt: atMinute(360) }, status: "PUBLISHED" }, orderBy: { startsAt: "asc" } });
+      assert.deepEqual(publishedAfterCancellation.map((slot) => [slot.startsAt.toISOString(), slot.endsAt.toISOString()]), [[atMinute(0).toISOString(), atMinute(60).toISOString()]]);
+    } finally {
+      await fixture.cleanup();
+    }
+  });
+}
+
+
+for (const previewKind of ["ready", "requires-override", "blocked"] as const) {
+  dbTest(`náhled změny služby ${previewKind} používá validační pravidla uložení a nezapisuje data`, async () => {
+    const [{ prisma }, { previewAdminBookingServiceChange, updateAdminBookingService }] = await Promise.all([
+      import("@/lib/prisma"), import("./admin-booking"),
+    ]);
+    const fixture = await createAdminServiceChangeFixture(prisma, randomUUID().slice(0, 8));
+    const atMinute = (minutes: number) => new Date(fixture.startsAt.getTime() + minutes * 60_000);
+    try {
+      await prisma.service.update({ where: { id: fixture.replacementService.id }, data: { cleanupMinutes: 20 } });
+      if (previewKind !== "ready") {
+        await prisma.availabilitySlot.update({ where: { id: fixture.slot.id }, data: { status: "ARCHIVED", endsAt: atMinute(60) } });
+        await prisma.booking.update({ where: { id: fixture.booking.id }, data: { cleanupMinutes: 15, cleanupBlockMinutes: 15, blockedUntil: atMinute(75), originalAvailabilityEndsAt: atMinute(60) } });
+        await prisma.availabilitySlot.create({ data: { startsAt: atMinute(75), endsAt: atMinute(120), status: "PUBLISHED", capacity: 1, serviceRestrictionMode: "ANY", publishedAt: new Date(), internalNote: previewKind === "blocked" ? "Chráněný termín" : null } });
+      }
+      const bookingBefore = await prisma.booking.findUniqueOrThrow({ where: { id: fixture.booking.id } });
+      const slotsBefore = await prisma.availabilitySlot.findMany({ where: { startsAt: { gte: atMinute(0), lt: atMinute(120) } }, orderBy: { id: "asc" } });
+      const historyBefore = await prisma.bookingStatusHistory.findMany({ where: { bookingId: fixture.booking.id } });
+      const emailsBefore = await prisma.emailLog.findMany({ where: { bookingId: fixture.booking.id } });
+      const input = { bookingId: fixture.booking.id, serviceId: fixture.replacementService.id, actorUserId: fixture.owner.id, expectedUpdatedAt: bookingBefore.updatedAt.toISOString() };
+      const preview = await previewAdminBookingServiceChange(input);
+      assert.equal(preview.status, previewKind === "blocked" ? "conflict" : "success");
+      if (preview.status === "success") {
+        assert.equal(preview.createdManualOverride, previewKind === "requires-override");
+        assert.equal(preview.nextScheduledEndsAt.toISOString(), atMinute(90).toISOString());
+        assert.equal(preview.nextBlockedUntil.toISOString(), atMinute(120).toISOString());
+      }
+      assert.deepEqual(await prisma.booking.findUniqueOrThrow({ where: { id: fixture.booking.id } }), bookingBefore);
+      assert.deepEqual(await prisma.availabilitySlot.findMany({ where: { startsAt: { gte: atMinute(0), lt: atMinute(120) } }, orderBy: { id: "asc" } }), slotsBefore);
+      assert.deepEqual(await prisma.bookingStatusHistory.findMany({ where: { bookingId: fixture.booking.id } }), historyBefore);
+      assert.deepEqual(await prisma.emailLog.findMany({ where: { bookingId: fixture.booking.id } }), emailsBefore);
+      if (previewKind === "ready") {
+        const changed = await updateAdminBookingService(input);
+        assert.equal(changed.status, "success");
+      } else if (previewKind === "requires-override") {
+        assert.equal((await updateAdminBookingService(input)).status, "slot-too-short");
+        assert.equal((await updateAdminBookingService({ ...input, allowManualOverride: true })).status, "success");
+      } else {
+        assert.equal((await updateAdminBookingService({ ...input, allowManualOverride: true })).status, preview.status);
+      }
+    } finally {
+      await fixture.cleanup();
+    }
+  });
+}
+
+
+for (const scenario of [
+  { name: "kratší služba", duration: 30, cleanup: 15, blockedMinutes: 45, status: "success", exception: false, restricted: false },
+  { name: "kratší služba u dřívější ruční výjimky", duration: 30, cleanup: 15, blockedMinutes: 45, status: "success", exception: false, restricted: false, manualOverride: true },
+  { name: "stejně dlouhá služba", duration: 60, cleanup: 15, blockedMinutes: 75, status: "success", exception: false, restricted: false },
+  { name: "kratší služba se stejnou celkovou blokací", duration: 45, cleanup: 30, blockedMinutes: 75, status: "success", exception: false, restricted: false },
+  { name: "kratší služba s delší celkovou blokací", duration: 45, cleanup: 45, blockedMinutes: 90, status: "success", exception: true, restricted: false },
+  { name: "kratší nepovolená služba", duration: 30, cleanup: 15, blockedMinutes: 45, status: "slot-too-short", exception: false, restricted: true },
+] as const) {
+  dbTest(`změna služby v již drženém archivovaném termínu: ${scenario.name}`, async () => {
+    const [{ prisma }, { previewAdminBookingServiceChange, updateAdminBookingService }] = await Promise.all([
+      import("@/lib/prisma"), import("./admin-booking"),
+    ]);
+    const fixture = await createAdminServiceChangeFixture(prisma, randomUUID().slice(0, 8));
+    const atMinute = (minutes: number) => new Date(fixture.startsAt.getTime() + minutes * 60_000);
+    try {
+      await prisma.availabilitySlot.update({ where: { id: fixture.slot.id }, data: {
+        status: "ARCHIVED", endsAt: atMinute(60),
+        serviceRestrictionMode: scenario.restricted ? "SELECTED" : "ANY",
+        allowedServices: scenario.restricted ? { create: { serviceId: fixture.originalService.id } } : undefined,
+      } });
+      await prisma.booking.update({ where: { id: fixture.booking.id }, data: {
+        manualOverride: "manualOverride" in scenario ? scenario.manualOverride : false,
+        cleanupMinutes: 15, cleanupBlockMinutes: 15, blockedUntil: atMinute(75), originalAvailabilityEndsAt: atMinute(60),
+      } });
+      await prisma.service.update({ where: { id: fixture.replacementService.id }, data: {
+        durationMinutes: scenario.duration, cleanupMinutes: scenario.cleanup,
+      } });
+      const before = await prisma.booking.findUniqueOrThrow({ where: { id: fixture.booking.id } });
+      const sourceBefore = await prisma.availabilitySlot.findUniqueOrThrow({ where: { id: fixture.slot.id } });
+      const input = { bookingId: fixture.booking.id, serviceId: fixture.replacementService.id, actorUserId: fixture.owner.id, expectedUpdatedAt: before.updatedAt.toISOString() };
+      const preview = await previewAdminBookingServiceChange(input);
+      assert.equal(preview.status, scenario.status);
+      if (preview.status === "success") assert.equal(preview.createdManualOverride, scenario.exception);
+      assert.deepEqual(await prisma.booking.findUniqueOrThrow({ where: { id: fixture.booking.id } }), before);
+      assert.deepEqual(await prisma.availabilitySlot.findUniqueOrThrow({ where: { id: fixture.slot.id } }), sourceBefore);
+
+      const result = await updateAdminBookingService(input);
+      if (scenario.exception || scenario.restricted) {
+        assert.equal(result.status, "slot-too-short");
+        assert.deepEqual(await prisma.booking.findUniqueOrThrow({ where: { id: fixture.booking.id } }), before);
+      } else {
+        assert.equal(result.status, "success");
+        const booking = await prisma.booking.findUniqueOrThrow({ where: { id: fixture.booking.id } });
+        assert.equal(booking.scheduledStartsAt.toISOString(), before.scheduledStartsAt.toISOString());
+        assert.equal(booking.scheduledEndsAt.toISOString(), atMinute(scenario.duration).toISOString());
+        assert.equal(booking.blockedUntil?.toISOString(), atMinute(scenario.blockedMinutes).toISOString());
+        assert.equal(booking.slotId, fixture.slot.id);
+        assert.equal(booking.manualOverride, before.manualOverride);
+        assert.equal(booking.status, before.status);
+        const audit = await prisma.bookingStatusHistory.findFirstOrThrow({ where: { bookingId: booking.id }, orderBy: { createdAt: "desc" } });
+        assert.equal((audit.metadata as { createdManualOverride: boolean }).createdManualOverride, false);
+      }
+      assert.deepEqual(await prisma.availabilitySlot.findUniqueOrThrow({ where: { id: fixture.slot.id } }), sourceBefore);
+      assert.equal(await prisma.availabilitySlot.count({ where: { startsAt: { gte: atMinute(0), lt: atMinute(120) }, status: { in: ["PUBLISHED", "DRAFT"] } } }), 0);
+    } finally {
+      await fixture.cleanup();
+    }
+  });
+}
+
+
+for (const notificationCase of ["with-email", "optout", "missing-email", "pending", "final-price", "unknown-price"] as const) {
+  dbTest(`oznámení změny služby: ${notificationCase}`, async () => {
+    const [{ prisma }, { previewAdminBookingServiceChange, updateAdminBookingService }] = await Promise.all([
+      import("@/lib/prisma"), import("./admin-booking"),
+    ]);
+    const fixture = await createAdminServiceChangeFixture(prisma, randomUUID().slice(0, 8));
+    try {
+      await prisma.booking.update({ where: { id: fixture.booking.id }, data: {
+        clientEmailSnapshot: notificationCase === "missing-email" ? " " : `client-service-change-${fixture.owner.id}@example.com`,
+        status: notificationCase === "pending" ? "PENDING" : "CONFIRMED",
+        finalPriceCzk: notificationCase === "final-price" ? 1700 : null,
+      } });
+      if (notificationCase === "unknown-price") await prisma.service.update({ where: { id: fixture.replacementService.id }, data: { priceFromCzk: null } });
+      const before = await prisma.booking.findUniqueOrThrow({ where: { id: fixture.booking.id } });
+      const input = { bookingId: fixture.booking.id, serviceId: fixture.replacementService.id, actorUserId: fixture.owner.id, expectedUpdatedAt: before.updatedAt.toISOString(), now: new Date(fixture.startsAt.getTime() - 7 * 24 * 60 * 60_000) };
+      const preview = await previewAdminBookingServiceChange(input);
+      assert.equal(preview.status, "success");
+      assert.equal(await prisma.emailLog.count({ where: { bookingId: fixture.booking.id } }), 0);
+      assert.equal(await prisma.bookingActionToken.count({ where: { bookingId: fixture.booking.id } }), 0);
+      const result = await updateAdminBookingService({ ...input, notifyClient: notificationCase !== "optout" });
+      assert.equal(result.status, "success");
+      if (result.status !== "success") assert.fail("Expected successful change");
+      const shouldNotify = notificationCase !== "optout" && notificationCase !== "missing-email";
+      const backgroundDelivery = process.env.EMAIL_DELIVERY_MODE === "background";
+      assert.equal(result.notificationStatus, shouldNotify ? (backgroundDelivery ? "queued" : "logged") : "skipped");
+      const logs = await prisma.emailLog.findMany({ where: { bookingId: fixture.booking.id, templateKey: "booking-service-changed-v1" } });
+      assert.equal(logs.length, shouldNotify ? 1 : 0);
+      assert.equal(await prisma.bookingActionToken.count({ where: { bookingId: fixture.booking.id } }), shouldNotify ? 2 : 0);
+      if (shouldNotify) {
+        const log = logs[0]!;
+        const payload = log.payload as Prisma.JsonObject;
+        assert.equal(log.status, backgroundDelivery ? EmailLogStatus.PENDING : EmailLogStatus.SENT);
+        assert.equal(log.communicationGeneration, before.communicationGeneration + 1);
+        assert.equal(payload.serviceId, fixture.replacementService.id);
+        assert.equal(payload.previousServiceName, before.serviceNameSnapshot);
+        assert.equal(payload.scheduledEndsAt, new Date(fixture.startsAt.getTime() + 90 * 60_000).toISOString());
+        assert.equal(payload.priceCzk, notificationCase === "final-price" ? 1700 : notificationCase === "unknown-price" ? null : 1500);
+        assert.equal(payload.priceIsFinal, notificationCase === "final-price");
+        assert.equal(payload.bookingStatus, before.status);
+        if (backgroundDelivery) {
+          assert.match(String(payload.manageReservationUrl), /\/rezervace\/sprava\//);
+          assert.match(String(payload.cancellationUrl), /\/rezervace\/storno\//);
+          assert.ok(log.nextAttemptAt && log.nextAttemptAt > new Date(), "Testovací zprávu nesmí vyzvednout běžící worker.");
+        } else {
+          assert.equal(payload.manageReservationUrl, "[REDACTED]");
+          assert.equal(payload.cancellationUrl, "[REDACTED]");
+          assert.equal(log.provider, "log");
+          assert.ok(log.sentAt);
+        }
+        assert.ok(log.actionTokenId);
+      }
+      const repeated = await updateAdminBookingService({ ...input, notifyClient: true });
+      assert.equal(repeated.status, "concurrent-modification");
+      assert.equal(await prisma.emailLog.count({ where: { bookingId: fixture.booking.id, templateKey: "booking-service-changed-v1" } }), logs.length);
+    } finally {
+      await fixture.cleanup();
+    }
+  });
+}
+
+dbTest("oznámení změny služby při selhání fronty vrátí rezervaci, sloty, tokeny i audit", async () => {
+  const [{ prisma }, { updateAdminBookingService }] = await Promise.all([import("@/lib/prisma"), import("./admin-booking")]);
+  const fixture = await createAdminServiceChangeFixture(prisma, randomUUID().slice(0, 8));
+  const originalTransaction = prisma.$transaction;
+  try {
+    await prisma.availabilitySlot.update({ where: { id: fixture.slot.id }, data: { status: "ARCHIVED", endsAt: fixture.bookingEndsAt } });
+    const before = await prisma.booking.findUniqueOrThrow({ where: { id: fixture.booking.id } });
+    const slotsBefore = await prisma.availabilitySlot.findMany({ where: { startsAt: { gte: fixture.startsAt, lt: fixture.endsAt } }, orderBy: { id: "asc" } });
+    Object.defineProperty(prisma, "$transaction", { configurable: true, writable: true, value: (...args: unknown[]) => {
+      const operation = args[0] as (tx: Prisma.TransactionClient) => Promise<unknown>;
+      return Reflect.apply(originalTransaction, prisma, [async (tx: Prisma.TransactionClient) => {
+        const emailLog = new Proxy(tx.emailLog, { get(target, key) {
+          if (key === "create") return async () => { throw new Error("forced service notification queue failure"); };
+          return Reflect.get(target, key);
+        } });
+        return operation(new Proxy(tx, { get(target, key) { return key === "emailLog" ? emailLog : Reflect.get(target, key); } }));
+      }, args[1]]);
+    } });
+    await assert.rejects(updateAdminBookingService({ bookingId: fixture.booking.id, serviceId: fixture.replacementService.id, actorUserId: fixture.owner.id, allowManualOverride: true, notifyClient: true }), /forced service notification queue failure/);
+    Object.defineProperty(prisma, "$transaction", { configurable: true, writable: true, value: originalTransaction });
+    assert.deepEqual(await prisma.booking.findUniqueOrThrow({ where: { id: fixture.booking.id } }), before);
+    assert.deepEqual(await prisma.availabilitySlot.findMany({ where: { startsAt: { gte: fixture.startsAt, lt: fixture.endsAt } }, orderBy: { id: "asc" } }), slotsBefore);
+    assert.equal(await prisma.bookingActionToken.count({ where: { bookingId: fixture.booking.id } }), 0);
+    assert.equal(await prisma.emailLog.count({ where: { bookingId: fixture.booking.id } }), 0);
+    assert.equal(await prisma.bookingStatusHistory.count({ where: { bookingId: fixture.booking.id } }), 0);
+  } finally {
+    Object.defineProperty(prisma, "$transaction", { configurable: true, writable: true, value: originalTransaction });
+    await fixture.cleanup();
+  }
+});
+
+
+dbTest("oznámení změny služby lze znovu odeslat s novými odkazy i po redakci a zachová obsah dalších čekajících zpráv", async () => {
+  const [{ prisma }, { updateAdminBookingService }, { createResendEmailLog }, { scrubSensitiveEmailPayload }] = await Promise.all([
+    import("@/lib/prisma"), import("./admin-booking"), import("@/features/admin/actions/email-log-resend"), import("@/lib/email/payload-security"),
+  ]);
+  const fixture = await createAdminServiceChangeFixture(prisma, randomUUID().slice(0, 8));
+  const deferredAt = new Date(fixture.startsAt.getTime() - 7 * 24 * 60 * 60_000);
+  try {
+    const changed = await updateAdminBookingService({ bookingId: fixture.booking.id, serviceId: fixture.replacementService.id, actorUserId: fixture.owner.id, notifyClient: true, now: deferredAt });
+    assert.equal(changed.status, "success");
+    const original = await prisma.emailLog.findFirstOrThrow({ where: { bookingId: fixture.booking.id, templateKey: "booking-service-changed-v1" } });
+    const sibling = await prisma.emailLog.create({ data: {
+      bookingId: fixture.booking.id, clientId: fixture.client.id, type: EmailLogType.GENERIC,
+      audience: EmailAudience.CLIENT, templateKey: original.templateKey, recipientEmail: original.recipientEmail,
+      subject: original.subject, payload: original.payload as Prisma.InputJsonObject,
+      communicationGeneration: original.communicationGeneration, nextAttemptAt: deferredAt,
+    } });
+    await prisma.emailLog.update({ where: { id: original.id }, data: { status: "SENT", provider: "log", sentAt: new Date(), payload: scrubSensitiveEmailPayload(original.payload) } });
+    const source = await prisma.emailLog.findUniqueOrThrow({ where: { id: original.id }, include: { client: { select: { id: true, email: true } }, booking: { select: { id: true, clientEmailSnapshot: true } } } });
+    const resent = await prisma.$transaction(async (tx) => {
+      const result = await createResendEmailLog({ emailLog: source, transaction: tx });
+      await tx.emailLog.updateMany({ where: { bookingId: fixture.booking.id, status: "PENDING" }, data: { nextAttemptAt: deferredAt } });
+      return result;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    assert.ok(resent);
+    const payload = resent.payload as Prisma.JsonObject;
+    assert.equal(payload.priceCzk, 1500);
+    assert.equal(payload.bookingStatus, "CONFIRMED");
+    assert.equal(payload.previousServiceName, (original.payload as Prisma.JsonObject).previousServiceName);
+    assert.match(String(payload.manageReservationUrl), /\/rezervace\/sprava\//);
+    assert.notEqual(payload.manageReservationUrl, (original.payload as Prisma.JsonObject).manageReservationUrl);
+    const updatedSibling = await prisma.emailLog.findUniqueOrThrow({ where: { id: sibling.id } });
+    const siblingPayload = updatedSibling.payload as Prisma.JsonObject;
+    assert.equal(siblingPayload.priceCzk, payload.priceCzk);
+    assert.equal(siblingPayload.previousServiceName, payload.previousServiceName);
+    assert.equal(siblingPayload.bookingStatus, payload.bookingStatus);
+    assert.equal(siblingPayload.manageReservationUrl, payload.manageReservationUrl);
+    assert.equal(updatedSibling.communicationGeneration, resent.communicationGeneration);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+// Samostatný CI průchod s background; běžný log průchod tuto větev nepouští.
+// Provider se nahrazuje před importem workeru, DB i renderer zůstávají skutečné.
+(process.env.EMAIL_DELIVERY_MODE === "background" ? dbTest : test.skip)("background: oznámení změny služby projde frontou a workerem", async (t) => {
+  const messages: import("@/lib/email/provider").EmailDeliveryMessage[] = [];
+  let failDelivery = false;
+  t.mock.module("@/lib/email/provider", { exports: {
+    sendEmail: async (message: import("@/lib/email/provider").EmailDeliveryMessage) => {
+      messages.push(message);
+      if (failDelivery) throw new Error("fake service-change transport failure");
+      return { provider: "smtp", messageId: "fake-service-change" };
+    },
+  } });
+  // Ani terminální chyba nesmí kontaktovat externí notifikační službu.
+  t.mock.module("@/lib/notifications/pushover-core", { exports: {
+    sendOwnerEmailFailurePushover: async () => undefined,
+  } });
+  const [{ prisma }, { updateAdminBookingService }, { runEmailDeliveryWorkerOnce }, { hashBookingActionToken }, { env }] = await Promise.all([
+    import("@/lib/prisma"), import("./admin-booking"), import("@/lib/email/worker"),
+    import("@/features/booking/lib/booking-action-tokens"), import("@/config/env"),
+  ]);
+  assert.equal(env.EMAIL_DELIVERY_MODE, "background");
+
+  for (const scenario of ["sent", "retry", "terminal-failure", "stale-generation", "stale-price", "stale-term", "stale-status", "stale-service", "stale-name"] as const) {
+    await t.test(scenario, async () => {
+      const fixture = await createAdminServiceChangeFixture(prisma, randomUUID().slice(0, 8));
+      messages.length = 0;
+      failDelivery = scenario === "retry" || scenario === "terminal-failure";
+      try {
+        const result = await updateAdminBookingService({
+          bookingId: fixture.booking.id, serviceId: fixture.replacementService.id,
+          actorUserId: fixture.owner.id, notifyClient: true,
+        });
+        assert.equal(result.status, "success");
+        if (result.status !== "success") assert.fail("Změna služby musí uspět.");
+        assert.equal(result.notificationStatus, "queued");
+        const log = await prisma.emailLog.findFirstOrThrow({ where: { bookingId: fixture.booking.id, templateKey: "booking-service-changed-v1" } });
+        const booking = await prisma.booking.findUniqueOrThrow({ where: { id: fixture.booking.id } });
+        const payload = log.payload as Prisma.JsonObject;
+        assert.equal(log.status, EmailLogStatus.PENDING);
+        assert.equal(log.attemptCount, 0);
+        assert.equal(log.sentAt, null);
+        assert.equal(payload.clientName, booking.clientNameSnapshot);
+        assert.equal(payload.serviceName, booking.serviceNameSnapshot);
+        assert.equal(payload.serviceId, fixture.replacementService.id);
+        assert.equal(payload.priceCzk, 1500);
+        assert.equal(payload.scheduledStartsAt, fixture.startsAt.toISOString());
+        assert.equal(payload.scheduledEndsAt, new Date(fixture.startsAt.getTime() + 90 * 60_000).toISOString());
+        const rawTokens: string[] = [];
+        for (const [field, path, type] of [
+          ["manageReservationUrl", "sprava", BookingActionTokenType.RESCHEDULE],
+          ["cancellationUrl", "storno", BookingActionTokenType.CANCEL],
+        ] as const) {
+          const url = new URL(String(payload[field]));
+          assert.equal(url.origin, new URL(env.NEXT_PUBLIC_APP_URL).origin);
+          assert.equal(url.search, "");
+          assert.equal(url.hash, "");
+          assert.match(url.pathname, new RegExp(`^/rezervace/${path}/[A-Za-z0-9_-]{43}$`));
+          const raw = url.pathname.split("/").at(-1)!;
+          rawTokens.push(raw);
+          const token = await prisma.bookingActionToken.findUniqueOrThrow({ where: { tokenHash: hashBookingActionToken(raw) } });
+          assert.notEqual(token.tokenHash, raw);
+          assert.equal(token.bookingId, fixture.booking.id);
+          assert.equal(token.type, type);
+          assert.equal(token.usedAt, null);
+          assert.equal(token.revokedAt, null);
+          assert.ok(token.expiresAt > new Date());
+          assert.equal(token.expiresAt.getTime(), fixture.startsAt.getTime() + 2 * 60 * 60_000);
+          if (type === BookingActionTokenType.RESCHEDULE) assert.equal(log.actionTokenId, token.id);
+        }
+        assert.notEqual(rawTokens[0], rawTokens[1]);
+
+        if (scenario === "stale-generation") await prisma.booking.update({ where: { id: booking.id }, data: { communicationGeneration: { increment: 1 } } });
+        if (scenario === "stale-price") await prisma.booking.update({ where: { id: booking.id }, data: { finalPriceCzk: 1900 } });
+        if (scenario === "stale-term") await prisma.booking.update({ where: { id: booking.id }, data: { scheduledEndsAt: fixture.bookingEndsAt } });
+        if (scenario === "stale-status") await prisma.booking.update({ where: { id: booking.id }, data: { status: "CANCELLED" } });
+        if (scenario === "stale-service") await prisma.booking.update({ where: { id: booking.id }, data: { serviceId: fixture.originalService.id } });
+        if (scenario === "stale-name") await prisma.booking.update({ where: { id: booking.id }, data: { clientNameSnapshot: "Jiná klientka" } });
+        // Zpřístupníme pouze vlastní zprávu; DB je izolovaná testovacím runnerem.
+        await prisma.emailLog.update({ where: { id: log.id }, data: { nextAttemptAt: new Date(0), attemptCount: scenario === "terminal-failure" ? 4 : 0 } });
+        assert.equal(await runEmailDeliveryWorkerOnce(), 1);
+        let stored = await prisma.emailLog.findUniqueOrThrow({ where: { id: log.id } });
+        assert.equal(stored.processingToken, null);
+        assert.equal(stored.processingStartedAt, null);
+        if (scenario.startsWith("stale-")) {
+          assert.equal(messages.length, 0);
+          assert.equal(stored.status, EmailLogStatus.SENT);
+          assert.equal(stored.provider, "system-skip");
+          assert.equal(stored.providerMessageId, null);
+          assert.ok(stored.errorMessage);
+        } else if (failDelivery) {
+          assert.equal(messages.length, 1);
+          assert.equal(stored.status, scenario === "retry" ? EmailLogStatus.PENDING : EmailLogStatus.FAILED);
+          assert.equal(stored.errorMessage, "fake service-change transport failure");
+          assert.equal(stored.sentAt, null);
+          assert.equal(stored.providerMessageId, null);
+          if (scenario === "retry") {
+            assert.ok(stored.nextAttemptAt && stored.nextAttemptAt > new Date());
+            assert.equal((stored.payload as Prisma.JsonObject).manageReservationUrl, payload.manageReservationUrl);
+            failDelivery = false;
+            await prisma.emailLog.update({ where: { id: log.id }, data: { nextAttemptAt: new Date(0) } });
+            assert.equal(await runEmailDeliveryWorkerOnce(), 1);
+            stored = await prisma.emailLog.findUniqueOrThrow({ where: { id: log.id } });
+            assert.equal(stored.status, EmailLogStatus.SENT);
+            assert.equal(stored.attemptCount, 2);
+            assert.equal(messages[0].idempotencyKey, messages[1].idempotencyKey);
+          }
+        } else {
+          assert.equal(messages.length, 1);
+          assert.equal(stored.status, EmailLogStatus.SENT);
+          assert.equal(stored.provider, "smtp");
+          assert.equal(stored.providerMessageId, "fake-service-change");
+          assert.ok(stored.sentAt);
+          const message = messages[0];
+          assert.equal(message.to, booking.clientEmailSnapshot);
+          assert.match(message.text, new RegExp(String(booking.serviceNameSnapshot)));
+          assert.match(message.text, /1\s500\sKč/);
+          const localTime = (date: Date) => new Intl.DateTimeFormat("cs-CZ", { timeZone: "Europe/Prague", hour: "2-digit", minute: "2-digit" }).format(date);
+          assert.ok(message.text.includes(localTime(booking.scheduledStartsAt)));
+          assert.ok(message.text.includes(localTime(booking.scheduledEndsAt)));
+          for (const field of ["manageReservationUrl", "cancellationUrl"]) {
+            assert.ok(message.text.includes(String(payload[field])));
+            assert.ok(message.html.includes(String(payload[field])));
+          }
+          assert.equal(message.attachments?.length, 1);
+          const attachment = message.attachments![0];
+          assert.equal(attachment.filename, "pp-studio-rezervace.ics");
+          assert.match(attachment.contentType, /^text\/calendar/);
+          const ics = String(attachment.content).replace(/\r?\n /g, "");
+          const icsTime = (date: Date) => `${getPragueLocalDate(date).replaceAll("-", "")}T${localTime(date).replace(":", "")}00`;
+          assert.ok(ics.includes(`DTSTART;TZID=Europe/Prague:${icsTime(booking.scheduledStartsAt)}`));
+          assert.ok(ics.includes(`DTEND;TZID=Europe/Prague:${icsTime(booking.scheduledEndsAt)}`));
+          assert.ok(ics.includes(`SUMMARY:PP Studio – ${booking.serviceNameSnapshot}`));
+          assert.ok(ics.includes(`UID:${booking.id}@`));
+          assert.match(ics, /STATUS:CONFIRMED/);
+          for (const raw of rawTokens) assert.ok(!ics.includes(raw));
+        }
+        if (stored.status !== EmailLogStatus.PENDING) {
+          assert.equal((stored.payload as Prisma.JsonObject).manageReservationUrl, "[REDACTED]");
+          assert.equal((stored.payload as Prisma.JsonObject).cancellationUrl, "[REDACTED]");
+        }
+      } finally {
+        await fixture.cleanup();
+      }
+    });
   }
 });

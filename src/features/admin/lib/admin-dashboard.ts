@@ -814,9 +814,9 @@ export async function getAdminDashboardData(area: AdminArea): Promise<AdminDashb
       occupancyLabel: `${weekOccupancy} %`,
       freeSlotsLabel: `${weekFreeSlots} ${formatCountLabel(
         weekFreeSlots,
-        "volný slot",
-        "volné sloty",
-        "volných slotů",
+        "volný termín",
+        "volné termíny",
+        "volných termínů",
       )}`,
       bookingsLabel: `${weekBookingsCount} ${formatCountLabel(
         weekBookingsCount,

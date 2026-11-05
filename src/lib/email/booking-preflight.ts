@@ -7,7 +7,10 @@ import { Prisma } from "@/generated/prisma/client";
 
 export type BookingEmailPreflightBooking = {
   status: BookingStatus;
+  finalPriceCzk?: number | null;
+  servicePriceFromCzk?: number | null;
   serviceId: string;
+  clientNameSnapshot?: string;
   scheduledStartsAt: Date;
   scheduledEndsAt: Date;
 };
@@ -73,6 +76,14 @@ function matchesService(payload: unknown, booking: BookingEmailPreflightBooking)
   return serviceId === null || serviceId === booking.serviceId;
 }
 
+function matchesClientName(payload: unknown, booking: BookingEmailPreflightBooking) {
+  const clientName = readPayloadString(payload, "clientName");
+
+  // Legacy payloads without a name remain deliverable; all newly generated
+  // canonical payloads carry the snapshot and are checked strictly.
+  return clientName === null || booking.clientNameSnapshot === undefined || clientName === booking.clientNameSnapshot;
+}
+
 function isClientBookingTemplate(templateKey: string) {
   return [
     "booking-confirmation-v1",
@@ -81,6 +92,7 @@ function isClientBookingTemplate(templateKey: string) {
     "booking-rejected-v1",
     "booking-cancelled-v1",
     "booking-rescheduled-v1",
+    "booking-service-changed-v1",
   ].includes(templateKey);
 }
 
@@ -104,6 +116,7 @@ function isServicePreflightEmail(type: EmailLogType, templateKey: string) {
     || templateKey === "booking-approved-v1"
     || templateKey === "booking-reminder-24h-v1"
     || templateKey === "booking-rescheduled-v1"
+    || templateKey === "booking-service-changed-v1"
   );
 }
 
@@ -118,12 +131,14 @@ export function evaluateBookingEmailPreflight({
   templateKey,
   payload,
   booking,
+  checkClientName = false,
 }: {
   type: EmailLogType;
   audience: EmailAudience;
   templateKey: string;
   payload: unknown;
   booking: BookingEmailPreflightBooking | null;
+  checkClientName?: boolean;
 }): BookingEmailPreflightResult {
   if (
     audience !== EmailAudience.CLIENT
@@ -143,6 +158,13 @@ export function evaluateBookingEmailPreflight({
     return {
       shouldSend: false,
       reason: "Booking service no longer matches the email.",
+    };
+  }
+
+  if (checkClientName && !matchesClientName(payload, booking)) {
+    return {
+      shouldSend: false,
+      reason: "Booking client name no longer matches the email.",
     };
   }
 
@@ -178,7 +200,18 @@ export function evaluateBookingEmailPreflight({
     }
   }
 
-  if (templateKey === "booking-rescheduled-v1" || type === EmailLogType.BOOKING_RESCHEDULED) {
+  if (templateKey === "booking-service-changed-v1") {
+    if (readPayloadString(payload, "bookingStatus") !== booking.status) {
+      return { shouldSend: false, reason: "Booking status no longer matches the service change email." };
+    }
+    if (booking.finalPriceCzk !== undefined && booking.servicePriceFromCzk !== undefined
+      && payload && typeof payload === "object" && "priceCzk" in payload
+      && payload.priceCzk !== (booking.finalPriceCzk ?? booking.servicePriceFromCzk)) {
+      return { shouldSend: false, reason: "Booking price no longer matches the service change email." };
+    }
+  }
+
+  if (templateKey === "booking-service-changed-v1" || templateKey === "booking-rescheduled-v1" || type === EmailLogType.BOOKING_RESCHEDULED) {
     if (
       booking.status !== BookingStatus.PENDING
       && booking.status !== BookingStatus.CONFIRMED

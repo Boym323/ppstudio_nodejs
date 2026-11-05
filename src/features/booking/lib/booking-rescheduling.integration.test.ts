@@ -28,6 +28,7 @@ type SeedContext = {
   newStartAt: string;
   newEndAt: string;
   clientId: string;
+  clientName: string;
   serviceId: string;
   categoryId: string;
   actorUserId: string;
@@ -295,6 +296,7 @@ async function createSeed(input: { oldSlotPaddingMinutes?: number } = {}) {
     newStartAt: newStartAt.toISOString(),
     newEndAt: newEndAt.toISOString(),
     clientId: client.id,
+    clientName: `Klientka ${suffix}`,
     serviceId: service.id,
     categoryId: category.id,
     actorUserId: actor.id,
@@ -368,7 +370,7 @@ async function createLunchSeed(input: { cleanupMinutes?: number; oldStart?: stri
   return {
     bookingId: booking.id, bookingUpdatedAt: booking.updatedAt.toISOString(), oldSlotId: slot.id, newSlotId: slot.id,
     oldStartAt: at(localDate, oldStart).toISOString(), oldEndAt: at(localDate, oldEnd).toISOString(), newStartAt: at(localDate, "12:30").toISOString(), newEndAt: at(localDate, "14:00").toISOString(),
-    clientId: client.id, serviceId: service.id, categoryId: category.id, actorUserId: actor.id, localDate, cleanupMinutes, blockerClientIds: [],
+    clientId: client.id, clientName: `Lunch klientka ${suffix}`, serviceId: service.id, categoryId: category.id, actorUserId: actor.id, localDate, cleanupMinutes, blockerClientIds: [],
   };
 }
 
@@ -993,7 +995,7 @@ dbTest("provider failure po commitu nechá úspěšný reschedule a outbox retry
         payload: {
           bookingId: seed.bookingId,
           serviceName: `Test service ${seed.bookingId.slice(0, 8)}`,
-          clientName: `Klientka ${seed.bookingId.slice(0, 8)}`,
+          clientName: seed.clientName,
           previousStartsAt: seed.oldStartAt,
           previousEndsAt: seed.oldEndAt,
           scheduledStartsAt: seed.newStartAt,

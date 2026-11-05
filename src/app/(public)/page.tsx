@@ -3,7 +3,7 @@ import { PublicHomePage, buildPageMetadata } from '@/features/public/components/
 import { getHomepageFeaturedServices, getPublicServiceDurationRange } from '@/features/public/lib/public-services';
 
 export const metadata = buildPageMetadata({
-  title: 'PP Studio | Kosmetika Zlín',
+  title: 'Kosmetika ve Zlíně | PP Studio',
   description:
     'PP Studio Pavlíny Pomykalové ve Zlíně nabízí kosmetická ošetření pleti, péči o řasy a obočí, depilaci, líčení a online rezervaci termínu.',
   path: '/',
@@ -13,8 +13,14 @@ export const metadata = buildPageMetadata({
 export default async function Page() {
   await connection();
   const [featuredServices, serviceDurationRange] = await Promise.all([
-    getHomepageFeaturedServices(),
-    getPublicServiceDurationRange(),
+    getHomepageFeaturedServices().catch((error) => {
+      console.error("Failed to load homepage services", error);
+      return null;
+    }),
+    getPublicServiceDurationRange().catch((error) => {
+      console.error("Failed to load homepage service duration range", error);
+      return null;
+    }),
   ]);
 
   return (

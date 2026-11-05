@@ -46,7 +46,7 @@ export function DashboardBookingAction({ area, item }: { area: AdminArea; item: 
       else requestId.current += 1;
     }}>
       <Dialog.Trigger asChild>
-        <button type="button" className="min-h-11 rounded-full border border-[var(--color-accent)]/40 bg-[rgba(190,160,120,0.12)] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[rgba(190,160,120,0.22)]">{label}</button>
+        <button type="button" className="min-h-8 rounded-full border border-[var(--color-accent)]/40 bg-[rgba(190,160,120,0.12)] px-2.5 py-1 text-sm font-semibold text-white transition hover:bg-[rgba(190,160,120,0.22)]">{label}</button>
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay />

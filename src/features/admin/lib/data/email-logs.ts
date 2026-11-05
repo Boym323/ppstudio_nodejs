@@ -456,7 +456,21 @@ export async function getAdminLogsData(input: {
     ...adminUserAudits.map((entry) => ({ id: `admin-user-audit:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "system" as const, severity: "info" as const, title: ({ CREATE: "Admin účet vytvořen", UPDATE_PROFILE: "Admin účet upraven", CHANGE_ROLE: "Role admina změněna", ACTIVATE: "Admin účet aktivován", DEACTIVATE: "Admin účet deaktivován", INVITE_RESEND: "Pozvánka znovu vydána" } as Record<string, string>)[entry.operation] ?? "Admin účet upraven", description: auditChangeDescription(entry.before, entry.after), actorLabel: entry.actorUser.name, entityLabel: entry.targetUser.name, entityHref: "/admin/uzivatele", sourceType: "admin" as const, sourceId: entry.id, primaryAction: "open" as const })),
     ...submissions.map((entry) => {
       const presentation = getBookingSubmissionPresentation(entry);
-      return { id: `submission:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "system" as const, severity: presentation.severity, title: presentation.title, description: entry.failureReason ?? entry.failureCode, actorLabel: "Systém", entityLabel: entry.booking ? `${entry.booking.clientNameSnapshot} • ${entry.booking.serviceNameSnapshot}` : entry.client?.fullName ?? presentation.entityFallback, entityHref: entry.booking ? bookingHref(entry.booking.id) : null, sourceType: "submission" as const, sourceId: entry.id, primaryAction: entry.booking ? "open" as const : null };
+      const voucherCheck = entry.failureCode?.startsWith(publicVoucherSubmissionPrefix);
+      const context = entry.failureCode?.startsWith(`${publicVoucherSubmissionPrefix}PUBLIC_BOOKING_`)
+        ? "Ověření v rezervačním formuláři"
+        : entry.failureCode?.startsWith(`${publicVoucherSubmissionPrefix}PUBLIC_PAGE_`)
+          ? "Veřejná stránka ověření voucheru"
+          : presentation.entityFallback;
+      const description = voucherCheck && entry.failureCode?.endsWith("_NOT_FOUND_OR_INVALID") && (!entry.failureReason || entry.failureReason === "Veřejné ověření voucheru neprošlo.")
+        ? "Voucher nebyl nalezen nebo není platný. Přesný důvod není v záznamu uložen."
+        : entry.failureReason ?? (safeView === "system" ? null : entry.failureCode);
+      const systemResult: NonNullable<AdminLogItem["systemResult"]> = entry.outcome === BookingSubmissionOutcome.SUCCESS
+        ? { label: "Úspěšné", severity: "success" }
+        : entry.outcome === BookingSubmissionOutcome.BLOCKED
+          ? { label: "Zablokováno", severity: "warning" }
+          : { label: "Neúspěšné", severity: presentation.needsAttention ? "error" : "warning" };
+      return { id: `submission:${entry.id}`, occurredAt: entry.createdAt.toISOString(), category: "system" as const, severity: presentation.severity, title: presentation.title, description, actorLabel: safeView === "system" ? null : "Systém", entityLabel: entry.booking ? `${entry.booking.clientNameSnapshot} • ${entry.booking.serviceNameSnapshot}` : entry.client?.fullName ?? context, entityHref: entry.booking ? bookingHref(entry.booking.id) : null, sourceType: "submission" as const, sourceId: entry.id, primaryAction: entry.booking ? "open" as const : null, systemResult, technicalCode: entry.failureCode };
     }),
   ];
   const visible = items.filter((item) => {

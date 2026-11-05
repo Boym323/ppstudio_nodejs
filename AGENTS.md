@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 For Media Library work, read docs/architecture/media.md.
 
-U běžných úprav komponent, stylů, textů nebo existující logiky dokumentaci Next.js automaticky neprocházej.
+Automaticky generovaný blok Next.js výše neupravuj ručně. Jeho požadavek na ověření relevantní dokumentace v `node_modules/next/dist/docs/` platí i pro běžné úpravy kódu; čti pouze konkrétní potřebný oddíl, ne celou dokumentaci. Již ověřený oddíl v rámci stejného úkolu znovu neprocházej bez důvodu.
 
 ## Práce s kontextem a rozsahem
 
@@ -23,11 +23,27 @@ U běžných úprav komponent, stylů, textů nebo existující logiky dokumenta
 - Neměň závislosti, databázové schéma, veřejné API ani architekturu bez jasného důvodu.
 - Zachovej existující styl, strukturu a zavedené vzory projektu. Nevytvářej nové abstrakce pro jednorázové použití.
 
+## Vývojové větve a pull requesty
+
+- Standardní implementační změny připravuj na samostatné větvi založené z aktuálního `main`; do `main` necommituj přímo, pokud to uživatel výslovně nepožaduje. Před zahájením zkontroluj aktuální větev a nezasahuj do rozpracovaných nesouvisejících změn.
+- V pull requestu stručně popiš účel, dotčené části, provedené kontroly, případné netestované scénáře a dopad na databázi, e-maily či nasazení. U produkční změny přidej odpovídající bod `CHANGELOG.md` / `Unreleased`, pokud pravidla níže neurčují výjimku.
+- Před odevzdáním ověř diff (včetně `git diff --check`) a stav CI na přesném commitu PR. Selhání relevantní CI kontroly neopomíjej; oprav příčinu nebo jasně uveď blokující stav. Přechodně zelený či rozpracovaný běh neoznačuj za úspěšný.
+- PR neslučuj a produkci nenasazuj bez výslovného pokynu. Příprava větve, commitu nebo PR není povolením k nasazení.
+
+## Bezpečnost prostředí, dat a oprávnění
+
+- Vývoj, testy, staging a produkce jsou oddělená prostředí. Před příkazem, který může číst či měnit databázi, storage nebo posílat zprávy, ověř cílové připojení a režim. Lokální a CI integrační/E2E testy směřuj výhradně na izolovanou testovací databázi; nikdy na produkční `.env` nebo produkční PostgreSQL.
+- Pro běžný vývoj nepouštěj nad produkcí `prisma migrate dev`, `prisma db push`, reset/seed/cleanup skripty ani zkouškové rezervace nebo hromadné operace. Produkční migrace spouštěj jen v předepsaném release postupu, po kontrole dopadů a na výslovný pokyn k nasazení.
+- Datové migrace, mazání, zpětné doplňování a nevratné akce vyžadují cílený návrh, kontrolu kompatibility se stávajícími daty a jasný plán obnovy. Žádné zkracování bezpečnostních kontrol kvůli rychlejšímu deployi.
+- Nikdy nevkládej skutečné přístupové údaje, hesla, API klíče, session/akční tokeny ani osobní údaje klientů do repozitáře, testovacích fixture, analytiky, diagnostických výstupů, screenshotů či popisu PR. Pro testy používej syntetické hodnoty; při diagnostice rediguj citlivé údaje. Provozní zacházení s údaji v databázi a autorizované komunikaci tím není zakázáno.
+- Při změnách adminu, rezervací, voucherů a veřejných tokenových odkazů zachovej serverové ověření oprávnění a minimalizaci osobních údajů. Akční tokeny v URL a e-mailech jsou legitimní součástí self-service workflow podle `BOOKING_FLOW.md`; nesmějí však unikat do referrerů, analytiky, logů, chybových hlášek ani jiných neautorizovaných výstupů. UI kontrola nenahrazuje serverovou autorizaci.
+- Neměň chování odesílání reálných e-mailů, notifikací a externích integrací při lokálním testu; používej testovací transport nebo vypnuté doručování podle konfigurace projektu.
+
 ## Documentation Policy
 
 Relevantní dokumentaci aktualizuj pouze tehdy, když ji změna přímo ovlivňuje. Nečti ani neupravuj nesouvisející dokumenty. Drobné opravy textu, stylů a lokální implementační detaily nevyžadují automatickou dokumentaci. Nové ADR vytvářej pouze při skutečném architektonickém rozhodnutí.
 
-Dokumentace projektu:
+Dokumentace projektu (vybírej pouze relevantní soubory, nejde o povinný seznam k načtení):
 - `ARCHITECTURE.md`
 - `BOOKING_FLOW.md`
 - `docs/BOOKING_FORM.md` (veřejný formulář, validace, refresh katalogu)
@@ -46,6 +62,10 @@ Dokumentace projektu:
 - `docs/DEPLOYMENT.md`
 - `docs/INCIDENTS.md`
 - `docs/DEPENDENCIES.md`
+- `docs/architecture/media.md` (pravidla knihovny médií)
+- `docs/CLIENT_MERGE.md` (slučování klientů)
+- `docs/REACT_EMAIL_MIGRATION.md` (e-mailové šablony a integrace)
+- `docs/DST_AUDIT.md` (UTC konvence databáze a přechody času)
 
 ## Příprava release verze
 
@@ -73,6 +93,13 @@ Dokumentace projektu:
 - Celý build nebo kompletní testy spusť pouze při široké změně, vysokém riziku nebo na výslovný požadavek.
 - Neopakuj neúspěšný příkaz bez změny, která řeší příčinu chyby.
 - Nespouštěj `npm install`, pokud se nemění závislosti nebo není instalace skutečně nutná.
+
+## Regresní ochrana kritických toků
+
+- Změny rezervací posuzuj napříč vytvořením, obnovením formuláře, dostupností termínů, změnou termínu a stornem. Lokální obchodní časy vyhodnocuj v `Europe/Prague` včetně CET/CEST, ale databázová spojení a konvenci absolutních timestampů zachovej v UTC podle `docs/DST_AUDIT.md`; historické hodnoty nepřeváděj bez doloženého původu. Ověř délky a blokace slotů, cenové snapshoty, validaci i konzistenci transakcí při souběžných požadavcích.
+- Při zásahu do ukládání rezervací, transakcí nebo admin akcí ověř serverovou autorizaci, atomické změny a ochranu proti duplicitnímu provedení. K reprodukované chybě doplň regresní test přímo na úrovni, kde vznikla (unit, DB integrace nebo prohlížečové E2E); test samotného helperu nenahrazuje E2E, pokud je příčinou interakce UI.
+- Při změnách e-mailového workeru a notifikací ověř stav fronty a doručení, retry, idempotenci a chování při selhání či timeoutu. Testy nesmějí odesílat skutečné klientské zprávy.
+- Lokálně spusť nejmenší relevantní testy a popiš, co nepokrývají. Před sloučením musí projít požadované GitHub CI brány pro výsledný commit, zejména DB integrační testy a relevantní desktop/mobilní Playwright scénáře.
 
 ## Pracovní postup
 

@@ -75,7 +75,14 @@ export function AdminPageShell({
           denseIntro ? "px-4 py-3 sm:px-5 sm:py-3.5" : "p-5 sm:p-7",
         )}
       >
-        <div className={cn("flex gap-4", denseIntro ? "items-center justify-between" : "flex-col")}>
+        <div
+          className={cn(
+            "flex gap-4",
+            denseIntro
+              ? "flex-col items-stretch sm:flex-row sm:items-center sm:justify-between"
+              : "flex-col",
+          )}
+        >
           <div className="min-w-0">
             {eyebrow ? (
               <p
@@ -113,7 +120,11 @@ export function AdminPageShell({
             </p>
           </div>
 
-          {headerActions ? <div className="shrink-0">{headerActions}</div> : null}
+          {headerActions ? (
+            <div className="admin-page-shell-actions w-full shrink-0 sm:w-auto">
+              {headerActions}
+            </div>
+          ) : null}
         </div>
       </section>
 

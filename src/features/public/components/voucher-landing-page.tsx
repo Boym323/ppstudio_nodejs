@@ -34,8 +34,8 @@ Děkuji.`);
     <div className="pb-8 sm:pb-12">
       <PublicHero
         eyebrow="Dárkové vouchery"
-        title="Dárek, který nechává prostor vybrat si péči podle aktuální potřeby."
-        description="Voucher vystavím na konkrétní službu nebo na hodnotu podle vašeho přání. Pokud si nejste jistí výběrem, ráda doporučím vhodnou variantu."
+        title="Darujte chvíli, která bude jen její"
+        description="Voucher můžete vybrat na konkrétní službu nebo na částku, kterou si určíte. A pokud si nejste jistí, s výběrem vám ráda pomůžu."
         primaryCta={{ href: voucherMailHref, label: "Chci dárkový voucher" }}
         secondaryCta={{ href: "/vouchery/overeni", label: "Už voucher máte? Ověřit platnost", variant: "text" }}
         aside={(

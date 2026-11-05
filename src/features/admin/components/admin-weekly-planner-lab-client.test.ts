@@ -150,7 +150,7 @@ test("planner řadí lunch controls před FullCalendar a zachová čtyři gridov
   assert.ok(controlsIndex < legendIndex && legendIndex < lunchIndex && lunchIndex < calendarIndex);
   const styles = await readFile(new URL("./planner-lab.module.css", import.meta.url), "utf8");
   assert.match(styles, /grid-template-rows: auto auto auto minmax\(30rem, 1fr\)/);
-  assert.match(styles, /grid-template-rows: auto auto auto minmax\(28rem, 1fr\)/);
+  assert.match(styles, /@media \(max-width: 1023px\) \{[\s\S]*?\.planner \{ grid-template-rows: auto auto auto auto; \}/);
 });
 
 test("denní režim oběda posílá provozní oblast planneru", async () => {

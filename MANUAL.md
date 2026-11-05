@@ -206,6 +206,7 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](docs/API.md).
 - `Dnešní plán` a karta `Další rezervace` na dashboardu nově ukazují i provozní mikroakce `Volat`, `E-mail` a `Nová rezervace`, aby šlo obvolat klientku nebo rovnou navázat dalším termínem bez otevírání detailu bookingu.
 - Sekce `Nejbližší volné termíny` už neslouží jen jako přehled. Každé volné okno má akci `Přidat rezervaci`, která otevře admin drawer s předvyplněným dnem a časem.
 - Týdenní planner `Volné termíny` přidal do `Inspektoru dne` zkratky `Přidat rezervaci do dne` a `Rezervovat vybraný blok`. Otevírají stejný ruční booking drawer s předvyplněným dnem nebo konkrétním blokem, ale server pořád drží běžnou validaci kolizí a délky služby.
+- Detail rezervace obsahuje pod technickými metadaty stručný přehled `E-maily k rezervaci` s typem zprávy, časem a aktuálním stavem včetně čekajících a neúspěšných zpráv. Zobrazuje tři nejnovější zprávy, starší lze rozbalit. Majitelka může přejít na detail e-mailu; provozní účet vidí přehled bez tohoto odkazu.
 - Detail rezervace v adminu nově umí vedle změny stavu, ceny, voucheru a termínu také akci `Změnit službu`. Akce je určená pro situaci, kdy se na místě domluví jiný typ péče, ale rezervace má zůstat stejným bookingem.
 - `Změnit službu` je povolené jen u čekajících a potvrzených rezervací. Server při uložení přepočítá délku služby, cleanup blokaci, ceníkový základ a ověří, že se nová služba stále vejde do rezervovaného času a nepere se se službovým voucherem.
 - Blok `Vyžaduje pozornost` se vykreslí jen když existuje alespoň jeden actionable alert (`emphasis !== ok`); pokud nic nehoří, blok se úplně skryje. Pokud alerty existují, UI zvýrazní jeden primární alert (`emphasis=primary`, případně první dostupný) a ostatní drží jako kompaktní sekundární položky.
@@ -312,8 +313,8 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](docs/API.md).
 - HTML náhledy hlavních booking a admin e-mailů lze vygenerovat příkazem `npm run email:previews`; soubory se zapisují do `tmp/email-previews` a jsou určené jen pro lokální vizuální kontrolu copy/layoutu.
 - Owner může v `/admin/nastaveni` nově zapnout chráněný Apple Calendar subscription feed na `/api/calendar/owner.ics?token=...`; feed je read-only, bere jen potvrzené rezervace a aplikace zůstává jediným source of truth.
 - OWNER muze v `/admin/nastaveni` v bloku `Pushover notifikace` nastavit vlastni Pushover User Key, zapnout/vypnout notifikace a zvolit event typy `Nova rezervace`, `Rezervace ceka na potvrzeni`, `Rezervace potvrzena`, `Rezervace zrusena`, `Termin presunut`, `Selhani emailu`, `Selhani reminderu` a `Systemove chyby`. Blok je owner-only; `SALON` nema route ani navigaci do nastaveni a Pushover sluzba pred odeslanim znovu vybira jen aktivni DB uzivatele s roli `OWNER`.
-- U upozornění `Nova rezervace` je navíc uvedeno `Klientka: Nova klientka` nebo `Klientka: Vracejici se klientka`; rozhoduje, zda má klientka v databázi starší rezervaci.
-- Pushover aplikacni token je server-only env `PUSHOVER_APP_TOKEN`; globalni vypinac je `PUSHOVER_ENABLED=true`. Chyba Pushover API se pouze loguje a nikdy nesmi rozbit booking, email worker ani reminder flow.
+- U upozornění `Nova rezervace` je navíc uvedeno `Klientka: Nova klientka` nebo `Klientka: Vracejici se klientka`; rozhoduje, zda má klientka dokončenou návštěvu, která skončila před začátkem aktuální rezervace.
+- Pushover aplikacni token je server-only env `PUSHOVER_APP_TOKEN`; globalni vypinac je `PUSHOVER_ENABLED=true`. Volitelný `PUSHOVER_EMERGENCY_USER_KEY` určuje nouzového příjemce systémových chyb při selhání načtení příjemců z DB; jeho nastavení spravuje provozovatel serveru nezávisle na přepínačích v administraci. Chyba Pushover API se pouze loguje a nikdy nesmi rozbit booking, email worker ani reminder flow.
 - Pushover kod je rozdeleny na Next.js wrapper `src/lib/notifications/pushover.ts` se `server-only` markerem a worker-safe implementaci `src/lib/notifications/pushover-core.ts`, kterou smi nacitat standalone `email:worker` pres `tsx`.
 - Event `Systemove chyby` uz realne pokryva vic nez jen verejne vytvoreni rezervace: owner alert se posila i pri neocekavane chybe self-service i admin presunu terminu, pri rucnim vytvareni rezervace, pri schema driftu verejneho booking flow, pri selhani planner mutaci volnych terminu, pri kritickych voucher akcich/emailu, pri padu DB health checku, pri failu enqueue navazneho reschedule emailu a kdyz `/api/admin/analytics` nebo owner resend invite API spadne do fallback/error stavu.
 - Admin detail rezervace nově podporuje samostatnou akci `Přesunout termín`; booking zůstává stejným záznamem, ale změna projde backend validací, auditním logem, resetem reminder návaznosti a volitelným klientským e-mailem `Termín byl změněn`.
@@ -359,8 +360,8 @@ Praktický přehled hlavních HTTP endpointů je v [`docs/API.md`](docs/API.md).
   - `SALON` vidí jen provozní sekce a jednodušší copy bez technických pojmů
 - Přesun termínu má pro `OWNER` i `SALON` stejné chování; role mění jen administrativní cestu, ne business logiku reschedule flow.
 - Filtrační lišta sekce `Služby` je na desktopu sticky a zůstává během scrollu po ruce; horní statistiky jsou záměrně menší, aby nepřebíraly roli hlavního obsahu. Scope běžného katalogu se v toolbaru komunikuje jen přes malé pill stavy typu `Běžný katalog` a `Systémové skryté`.
-- Sekce `Volné termíny / Týdenní plán dostupností` drží grid-first provozní workflow: horní hlavička je nízká, datum týdne se ukazuje jen v planner toolbaru a pravý panel je zhuštěný do bloků `Inspektor dne` a `Detail výběru`.
-- V planneru má legenda stavů zůstat sekundární a sbalená u detailu výběru; čitelnost času se zvyšuje spíš kontrastem levé osy, jemným zvýrazněním celých hodin a jasnějším selected stavem než dalšími vysvětlovacími kartami.
+- Sekce `Volné termíny` má jediný produkční FullCalendar pro `OWNER` i `SALON`. Navigace, režimy úprav, stav autosave a legenda jsou přímo nad kalendářem; historický pravý panel `Inspektor dne` ani `Detail výběru` již v aktuálním UI neexistují.
+- Legenda současného planneru je pod horními ovladači, oddělená od výběru rozsahu; při vizuálních úpravách zachovej čitelnost hodin a barevné rozlišení dostupnosti, rezervací a ochranných bloků.
 - `CANCELLED` rezervace už v týdenním planneru nemá působit jako barevná nebo editační překážka. Historie zrušené rezervace se zachová v archivovaném slotu na pozadí, ale samotná mřížka má pro obsluhu ukazovat jen reálně důležitou dostupnost, aktivní rezervace a omezení.
 - Týdenní planner dostupností a veřejná booking service vrstva jsou po stabilizačním refaktoru modulární i v kódu, ale bez změny URL, exportů nebo databázového modelu.
 - Prisma schema v1 už pokrývá:
@@ -702,6 +703,8 @@ npm run db:clear-booking-data -- --confirm
   - testovací profily podle bezpečných signálů (`example.com`, voucher/collision názvy nebo e-maily) se pouze jemně označí badge `test`, nikdy nemažou
   - detail klientky ukazuje kontakty, poslední a budoucí termín, nejčastější službu a posledních 10 rezervací
   - interní poznámka se upravuje přímo v detailu klientky a po uložení se propisuje do obou admin oblastí
+  - vlastník může z detailu duplicitního profilu otevřít `Sloučit duplicitní profil`, zadat e-mail profilu, který má zůstat, a v náhledu porovnat jméno, kontakty a rezervace obou profilů. Formulář výslovně popisuje výsledné jméno na zachovaném profilu a jako výchozí ponechává jeho současné jméno; telefon se vybírá samostatně. Před potvrzením opíše e-mail archivovaného profilu; pokud se údaje mezitím změní, je nutné načíst nový náhled. Sloučení přesune rezervace a historii, zachová audit původních údajů a u dotčených budoucích rezervací připraví nové potvrzení na zachovanou adresu. Archivovaný profil odkazuje na zachovaný a nelze jej použít pro novou rezervaci; automatické vrácení sloučení v administraci není dostupné.
+  - Technický popis, bezpečnostní pravidla, e-mailové dopady a neprodukční DB nástroj jsou v [`docs/CLIENT_MERGE.md`](docs/CLIENT_MERGE.md).
 - Sekce `Přístupy` je nyní vyhrazená jen pro `OWNER` na `/admin/uzivatele`:
   - obrazovka je rozdělená na hlavní blok `Seznam přístupů` a vedlejší read-only blok `Přehled rolí`
   - systém používá pouze dvě role `OWNER` a `SALON`; neexistuje žádná role `ADMIN`
@@ -812,7 +815,7 @@ npm run db:clear-booking-data -- --confirm
   - server-side ochranu proti zásahu do rezervací, omezených slotů a překryvům
 
 ## Stav Sekce Volné Termíny
-- K datu `19. dubna 2026` je sekce `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*` znovu aktivní jako týdenní planner.
+- Historie: k `19. dubnu 2026` byla sekce `/admin/volne-terminy*` a `/admin/provoz/volne-terminy*` znovu aktivována. Dnešní produkční UI je společný FullCalendar s průběžným autosave, popsaný níže a v [`docs/AVAILABILITY_PLANNER.md`](docs/AVAILABILITY_PLANNER.md).
 - Hlavní práce probíhá jen přes týdenní kalendář; samostatný formulář pro běžnou úpravu dostupnosti už není potřeba.
 - Aktuální podoba adminu dává prioritu mřížce týdne; levý sidebar je užší a mobil používá drawer pro navigaci.
 - 30min mřížka slouží jen jako editace v admin UI. Do databáze se ukládají souvislé intervaly `startsAt`-`endsAt`, aby zůstala kompatibilita s veřejným booking flow i delšími službami.
@@ -829,7 +832,7 @@ npm run db:clear-booking-data -- --confirm
 - Akce `CONFIRMED -> COMPLETED` je dostupná až po skončení naplánovaného termínu (`scheduledEndsAt`); budoucí potvrzená rezervace proto nemůže omylem přestat blokovat kapacitu a objevit se v dashboardu jako volné okno.
 - Dnešní dashboard timeline zobrazuje i dokončené dnešní rezervace jako tlumené `Hotovo`; volná okna se počítají jen od aktuálního času dopředu, takže minulý úsek po hotové službě nevypadá jako nově dostupný termín.
 - Sekce `Volné termíny` v denním planneru zobrazuje také dokončené rezervace jako tlumené cyan `Hotovo`, takže historicky obsazený čas zůstává čitelný místo anonymního technického omezení a nesplývá se zelenou dostupností.
-- Inspektor výběru v gridu u hotové rezervace používá historický text a odkazuje obsluhu na detail rezervace místo obecné hlášky o rezervovaném čase.
+- Dokončenou rezervaci planner zobrazuje v kalendáři jako `Hotovo`; kliknutí na událost rezervace otevírá příslušný detail, nikoli historický pravý inspektor.
 - Volba akce v bloku `Změna stavu` je řešená přes klikací karty místo selectu; aktivní karta je barevně zvýrazněná podle typu akce (potvrzení zeleně, zrušení červeně), aby obsluha hned viděla, co je vybrané.
 - Blok `Změna stavu` nově předvybírá nejčastější další krok a pod výběrem ukazuje krátké shrnutí dopadu akce, takže je menší riziko chybného uložení ve spěchu.
 - Každá změna stavu z detailu zapisuje položku do `BookingStatusHistory` včetně admin aktéra, důvodu a poznámky.
@@ -996,7 +999,7 @@ npm run db:clear-booking-data -- --confirm
 - Veřejné stránky staví metadata přes `buildPageMetadata(...)` a každá musí předat vlastní `path`; canonical a OpenGraph URL nesmí zůstávat na homepage pro všechny podstránky.
 - Smoke E2E kontroluje, že veřejné canonical/OG URL používají stejnou URL pro danou stránku a že `robots.txt` se `sitemap.xml` nepouští historickou `http://ppstudio.cz` variantu; zároveň vyžaduje sitemap `<loc>` pro indexovatelnou route `/studio`. Produkční canonical origin má zůstat `https://ppstudio.cz`.
 - Veřejný layout vkládá JSON-LD `BeautySalon`/`WebSite` přes `buildLocalBusinessJsonLd(...)`, homepage vlastní `WebPage`, stránka `O mně` přidává `Person` pro Pavlínu Pomykalovou a detail služby přidává `Service` přes `buildServiceJsonLd(...)` i samostatný `BreadcrumbList` přes `buildBreadcrumbListJsonLd(...)`. `BeautySalon` obsahuje i `geo` souřadnice studia a `Service.offers` se vkládá jen při jasně číselné ceně.
-- JSON-LD serializer čistí `undefined`, `null` a prázdné hodnoty, escapuje `<` pro bezpečné vložení do script tagu a ponechává českou diakritiku. Délka služby v JSON-LD používá ISO 8601 helper `durationMinutesToIsoDuration(...)`.
+- JSON-LD serializer čistí `undefined`, `null` a prázdné hodnoty, escapuje `<` pro bezpečné vložení do script tagu a ponechává českou diakritiku. Délka služby zůstává ve veřejném HTML, ale `Service.duration` se do JSON-LD nevkládá (Schema.org ji pro `Service` nedefinuje). `Service.priceFromCzk` je přes historický název pevná ceníková cena podle administrace; u skutečné ceny „od“ se nesmí generovat zavádějící pevná `Offer.price`.
 - `public/llms.txt` je záměrně krátký veřejný rozcestník pro AI crawlery: uvádí kanonickou URL, hlavní veřejné landing pages a autoritativní kontakt. Nesmí odkazovat na admin routy ani tokenové self-service URL.
 - Web Vitals měří samostatná klientská komponenta `WebVitalsReporter` v public/booking `SiteShell`. Pokud `NEXT_PUBLIC_WEB_VITALS_ENABLED` není `true`, komponenta se nespustí. Pokud je flag zapnutý, ale Matomo je vypnuté nebo chybí konfigurace, reporting zůstává no-op; při zapnutém Matomu odchází jen anonymní event `Web Vitals / <metric>` s ratingem a číselnou hodnotou.
 - `sitemap.ts` nepoužívá jednotné „teď“ (`new Date()`) pro všechny URL: detail služby má `lastModified` z `Service.updatedAt`, statické stránky mají stabilní datum poslední obsahové revize.
@@ -1019,18 +1022,14 @@ npm run db:clear-booking-data -- --confirm
 - Pro Docker Compose provoz použij [`deploy/docker-compose.email-worker.yml`](deploy/docker-compose.email-worker.yml).
 
 ## Týdenní Planner Dostupností
-- Desktop používá klasický týdenní grid se 7 dny a 30min řádky v rozsahu `06:00-20:00`.
-- Mobil drží týdenní režim přes přehled sedmi dnů a jeden editační panel vybraného dne.
-- Základní význam barev:
-  - zelená = běžná dostupnost
-  - růžová = rezervace
-  - písková = omezený interval, který nejde měnit přímo z planneru
-  - šedá = neaktivní slot
-  - tmavší podklad = minulý čas
-- Kliknutí nebo tažení přes prázdné buňky dostupnost přidá.
-- Kliknutí nebo tažení přes zelené buňky dostupnost odebere nebo zkrátí.
-- Při ukládání se sousední půlhodiny automaticky sloučí do co nejmenšího počtu souvislých intervalů.
-- Planner nikdy nepřepisuje rezervace ani technicky složitější sloty; pokud by změna zasáhla do chráněného úseku, vrátí srozumitelnou chybu.
+- Současný plánovač je společný **FullCalendar** pro role `OWNER` a `SALON`. Na desktopu je výchozí **Po–Pá** (volitelně **Celý týden**), na mobilu **Den** (volitelně **Po–Pá** a **Víkend**). Starý sedmidenní grid s pravým inspektorem se už nepoužívá.
+- Časové okno je `06:00–20:00` v `Europe/Prague`. Základní mřížka má 30minutové řádky a výběr se může zarovnat po 15 minutách. Mobil posouvá **celou stránku** bez druhého vnitřního svislého scrollu; rozsah se dá vybrat dlouhým dotykem.
+- Před úpravou přepni režim **Prohlížení**, **Přidat termín** nebo **Odebrat termín**. V Prohlížení se nezapisuje. Kliknutí či tažení přes volný rozsah v editačním režimu provede příslušnou změnu.
+- Změny se průběžně ukládají přes FIFO frontu s idempotentním `operationId`; po chybě lze zvolit **Zkusit znovu** nebo **Obnovit uložený stav**, krátce po úspěšné akci **Vrátit změnu**. Optimistické zobrazení ještě neznamená uložení na serveru.
+- Už **neexistuje** ruční publikování konceptu týdne, kopírování dne/týdne ani pravý inspektor. Postupy v historických ADR a changelogu neobnovuj jako současný návod.
+- Legenda rozlišuje volnou dostupnost, čekající/potvrzené/dokončené rezervace, úklid, chráněné intervaly, automatický oběd, svátky, školní prázdniny a stav ukládání.
+- Editace může spojovat jednoduché sousední `PUBLISHED` intervaly do souvislých slotů. Server chrání rezervace, úklid, omezení služeb i historické vazby; změna dostupnosti nevytváří ani neruší rezervaci.
+- Přesný kontrakt, omezení a testy jsou v [`docs/AVAILABILITY_PLANNER.md`](docs/AVAILABILITY_PLANNER.md) a [ADR 0118](docs/ADR/0118-fullcalendar-planner-autosave-v1.md).
 
 ## Automatická Obědová Přestávka
 - Automatický oběd trvá přesně 45 minut a počítá se v lokální zóně `Europe/Prague`. Systém hledá kandidátní začátky po 15 minutách mezi `11:00` a `13:00`.
@@ -1041,7 +1040,7 @@ npm run db:clear-booking-data -- --confirm
 - Úplný technický popis politiky, feasibility, recommendation rankingu a authoritative ochrany je v [`docs/SCHEDULE_OPTIMIZATION_MIGRATION.md`](docs/SCHEDULE_OPTIMIZATION_MIGRATION.md).
 
 ## Kontrola Letního A Zimního Času
-- Salonové časy se berou jako `Europe/Prague`; v UI, e-mailech a ICS má termín 09:00-10:00 zůstat 09:00-10:00 v zimě i v létě.
-- Při kopírování dne nebo týdne v planneru se přenáší lokální půlhodinové buňky, ne pevný počet milisekund.
-- Ruční QA po změně časové logiky: vytvoř slot 09:00-10:00 v lednu a červenci, zkontroluj veřejný booking, potvrzovací e-mail i `.ics` přílohu.
-- Ruční QA kolem DST: zkopíruj den přes poslední březnovou neděli a poslední říjnovou neděli a ověř, že zůstaly stejné lokální hodiny.
+- Salonové časy jsou vždy v `Europe/Prague`; 09:00–10:00 musí zůstat stejné v zimě i v létě. Údaje ukládané v DB představují absolutní okamžiky; přepočet pevnou UTC odchylkou nebo +24 hodin není bezpečný.
+- V současném FullCalendar planneru **neexistuje kopírování dne ani týdne**. Historické copy-day/copy-week scénáře nejsou součástí aktuálního QA.
+- Po změně časové logiky samostatně vytvoř v režimu **Přidat termín** zkušební dostupnost 09:00–10:00 v lednu a červenci. Ověř planner, veřejnou rezervaci, potvrzovací e-mail i `.ics` přílohu a bezpečně ukliď testovací data.
+- Přes poslední březnovou a říjnovou neděli otestuj navigaci `week/day`, časové zobrazení a rezervační tok bez posunu o hodinu. Viz [ADR 0089](docs/ADR/0089-prague-time-dst-booking-v1.md).

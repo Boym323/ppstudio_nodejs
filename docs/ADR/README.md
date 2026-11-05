@@ -5,7 +5,7 @@ Sem patří krátké záznamy architektonických rozhodnutí.
 ## Pravidla
 - Jeden soubor = jedno rozhodnutí.
 - Název: `NNNN-kratky-nazev.md` (např. existující `0002-project-foundation.md`).
-- Každé ADR má stav: `navrženo`, `schváleno`, `nahrazeno`.
+- Každé **nové** ADR musí mít výslovný stav: `navrženo`, `schváleno` nebo `nahrazeno` (případně anglický historický ekvivalent). U starších záznamů bez původního statusu se nesmí zpětně vymýšlet schválení: po auditu jsou označeny `neuvedeno v původním záznamu`; tento výjimečný stav nelze používat pro nová ADR.
 
 ## Struktura ADR
 1. Kontext
@@ -136,7 +136,11 @@ Tento seznam zahrnuje i dříve schválená a později nahrazená rozhodnutí. A
 - `0117-release-quality-gates.md` — samostatný typecheck v release preflightu a testovací/E2E gate v CI.
 - `0118-fullcalendar-planner-autosave-v1.md` — jediný produkční planner s autosave.
 - `0119-meta-capi-schedule-outbox-v1.md` — měření `Schedule` přes Pixel a transakční PostgreSQL outbox (historické rozhodnutí, nahrazeno ADR 0120).
-- `0120-public-tracking-without-consent-gate.md` — veřejné trackery se řídí konfigurací bez cookie souhlasové brány.
+- `0120-public-tracking-without-consent-gate.md` — historické rozhodnutí (nahrazeno ADR 0121).
+- `0121-consent-gated-public-tracking.md` — oddělený opt-in souhlas pro analytiku, marketing a CAPI.
 
 Poznámka:
-- Historicky existují duplicitní indexy (`0026`, `0090`). Ber to jako legacy stav, čísla zpětně nepřejmenovávat.
+- Historicky existují duplicitní indexy (`0026`, `0090`). Jde o **vědomě zachovaný legacy stav**, nikoli o dvě nová ADR čekající na přečíslování. Soubory zpětně nepřejmenovávej (mohlo by to rozbít historii a odkazy); v odkazech a auditech používej **celou cestu/název** ADR. Nová rozhodnutí dostanou dosud nepoužité číslo.
+- Některá stará ADR popisují již odstraněné workflow (např. copy-day/copy-week v ADR 0089). Pro současné provozní návody platí aktuální kód, [AVAILABILITY_PLANNER.md](../AVAILABILITY_PLANNER.md) a novější ADR 0118. Historické ADR nemaž a nepovažuj je bez kontextu za popis současného UI.
+
+- Výsledky úplné statické kontroly 119 číslovaných ADR, včetně standardizace historicky chybějících stavů, jsou v [auditu dokumentace 2026-11-02](../audits/2026-11-02-documentation-full.md).

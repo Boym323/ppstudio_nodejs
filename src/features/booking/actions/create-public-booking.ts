@@ -14,6 +14,7 @@ import {
   parseBookingAcquisitionCookie,
 } from "@/features/booking/lib/booking-acquisition";
 import { getMetaCapiConfig } from "@/lib/analytics/meta-capi-config";
+import { TRACKING_CONSENT_COOKIE, parseTrackingConsent } from "@/lib/analytics/tracking-consent";
 import {
   CLIENT_PHONE_FORMAT_MESSAGE,
   createPublicBooking,
@@ -159,8 +160,9 @@ export async function createPublicBookingAction(
 ): Promise<PublicBookingActionState> {
   const requestHeaders = await headers();
   const cookieStore = await cookies();
+  const trackingConsent = parseTrackingConsent(cookieStore.get(TRACKING_CONSENT_COOKIE)?.value);
   const acquisitionData = parseBookingAcquisitionCookie(
-    cookieStore.get(BOOKING_ACQUISITION_COOKIE)?.value,
+    trackingConsent?.analytics ? cookieStore.get(BOOKING_ACQUISITION_COOKIE)?.value : undefined,
   );
   const submissionMetadata = getSubmissionMetadata(requestHeaders);
   const parsed = publicBookingSchema.safeParse({
@@ -280,7 +282,7 @@ export async function createPublicBookingAction(
     const userAgent = rawUserAgent
       ? rawUserAgent.replace(/[\u0000-\u001f\u007f]/g, " ").slice(0, 500)
       : "";
-    const metaCapi = metaCapiConfig && userAgent
+    const metaCapi = trackingConsent?.marketing && metaCapiConfig && userAgent
       ? {
           eventSourceUrl: new URL("/rezervace", env.NEXT_PUBLIC_SITE_URL ?? env.NEXT_PUBLIC_APP_URL).toString(),
           userAgent,

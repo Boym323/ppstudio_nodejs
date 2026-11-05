@@ -12,12 +12,13 @@ import { type AdminArea } from "@/config/navigation";
 
 
 
-import { type UpdateBookingServiceActionState } from "@/features/admin/actions/update-booking-service-action-state";
+import { type BookingServiceChangePreview, type UpdateBookingServiceActionState } from "@/features/admin/actions/update-booking-service-action-state";
 
 import {
 
 
   updateAdminBookingService,
+  previewAdminBookingServiceChange,
 
 } from "@/features/admin/lib/admin-booking";
 import { getBookingStatusLabel } from "@/features/booking/lib/booking-status-presentation";
@@ -66,6 +67,8 @@ import {
 } from "./shared";
 
 const updateBookingServiceSchema = z.object({
+  allowManualOverride: z.boolean(),
+  notifyClient: z.boolean().default(false),
   area: z.enum(["owner", "salon"]),
   bookingId: z.string().trim().min(1).max(64),
   serviceId: z.string().trim().min(1, "Vyberte novou službu.").max(64),
@@ -79,6 +82,8 @@ export async function updateBookingServiceAction(
   formData: FormData,
 ): Promise<UpdateBookingServiceActionState> {
   const parsed = updateBookingServiceSchema.safeParse({
+    allowManualOverride: readFormString(formData, "allowManualOverride") === "1",
+    notifyClient: readFormString(formData, "notifyClient") === "1",
     area: readFormString(formData, "area"),
     bookingId: readFormString(formData, "bookingId"),
     serviceId: readFormString(formData, "serviceId"),
@@ -101,14 +106,51 @@ export async function updateBookingServiceAction(
 
   const area = parsed.data.area as AdminArea;
   const actorUserId = await resolveBookingActorUserId(area);
-  const result = await updateAdminBookingService({
-    bookingId: parsed.data.bookingId,
-    serviceId: parsed.data.serviceId,
-    actorUserId,
-    expectedUpdatedAt: parsed.data.expectedUpdatedAt,
-    reason: parsed.data.reason || null,
-  });
+  let result: Awaited<ReturnType<typeof updateAdminBookingService>>;
+  try {
+    result = await updateAdminBookingService({
+      allowManualOverride: parsed.data.allowManualOverride,
+      notifyClient: parsed.data.notifyClient,
+      bookingId: parsed.data.bookingId,
+      serviceId: parsed.data.serviceId,
+      actorUserId,
+      expectedUpdatedAt: parsed.data.expectedUpdatedAt,
+      reason: parsed.data.reason || null,
+    });
+  } catch {
+    console.error("Uložení změny služby nebo příprava oznámení selhala.", { bookingId: parsed.data.bookingId });
+    return { status: "error", formError: "Změnu služby se nepodařilo uložit. Rezervace zůstala beze změny; zkuste to prosím znovu." };
+  }
 
+  if (result.status !== "success") return getBookingServiceChangeError(result);
+
+  revalidateBookingAdminPaths(parsed.data.bookingId);
+  revalidatePath(`/admin/klienti/${result.clientId}`);
+  revalidatePath(`/admin/provoz/klienti/${result.clientId}`);
+
+  const durationChanged = result.previousScheduledEndsAt.getTime() !== result.nextScheduledEndsAt.getTime();
+  const cleanupChanged = result.previousCleanupBlockMinutes !== result.nextCleanupBlockMinutes;
+  const keptPriceNotice = result.keptFinalPriceCzk !== null
+    ? " Individuální finální cena rezervace zůstala beze změny."
+    : "";
+
+  return {
+    status: "success",
+    successMessage:
+      `Služba byla změněná z „${result.previousServiceName}“ na „${result.nextServiceName}“.`
+      + `${durationChanged || cleanupChanged ? " Termín rezervace byl přepočítaný podle nové délky služby." : ""}`
+      + `${result.createdManualOverride ? " Prodloužení bylo uložené jako interní výjimka mimo vypsané termíny." : ""}`
+      + keptPriceNotice
+      + (result.notificationStatus === "queued" ? " Oznámení klientce včetně kalendáře bylo zařazené k odeslání."
+        : result.notificationStatus === "logged" ? " Oznámení klientce bylo zaznamenané v testovacím režimu bez odeslání."
+        : parsed.data.notifyClient ? " Oznámení nebylo odeslané, protože u rezervace chybí e-mail klientky." : ""),
+  };
+}
+
+
+function getBookingServiceChangeError(
+  result: Exclude<Awaited<ReturnType<typeof updateAdminBookingService>>, { status: "success" }>,
+): UpdateBookingServiceActionState {
   if (result.status === "not-found") {
     return {
       status: "error",
@@ -160,7 +202,7 @@ export async function updateBookingServiceAction(
   if (result.status === "slot-too-short") {
     return {
       status: "error",
-      formError: "Nová služba se do stávajícího termínu nevejde nebo pro ni slot není povolený. Nejprve upravte termín rezervace.",
+      formError: result.message,
       fieldErrors: {
         serviceId: "Vybraná služba vyžaduje jiný termín nebo jiný povolený slot.",
       },
@@ -180,28 +222,51 @@ export async function updateBookingServiceAction(
   if (result.status === "conflict") {
     return {
       status: "error",
-      formError: "Po změně služby by termín kolidoval s jinou aktivní rezervací.",
+      formError: result.message,
       fieldErrors: {
         serviceId: "Vybraná služba se v tomto čase nevejde kvůli kolizi.",
       },
     };
   }
 
-  revalidateBookingAdminPaths(parsed.data.bookingId);
-  revalidatePath(`/admin/klienti/${result.clientId}`);
-  revalidatePath(`/admin/provoz/klienti/${result.clientId}`);
+  throw new Error("Neznámý výsledek změny služby.");
+}
 
-  const durationChanged = result.previousScheduledEndsAt.getTime() !== result.nextScheduledEndsAt.getTime();
-  const cleanupChanged = result.previousCleanupBlockMinutes !== result.nextCleanupBlockMinutes;
-  const keptPriceNotice = result.keptFinalPriceCzk !== null
-    ? " Individuální finální cena rezervace zůstala beze změny."
-    : "";
+export async function previewBookingServiceChangeAction(input: {
+  area: AdminArea;
+  bookingId: string;
+  serviceId: string;
+  expectedUpdatedAt: string;
+}): Promise<BookingServiceChangePreview> {
+  const parsed = updateBookingServiceSchema.safeParse({ ...input, allowManualOverride: true });
+  if (!parsed.success) return { status: "blocked", message: "Vyberte platnou službu nebo obnovte detail rezervace." };
+
+  const actorUserId = await resolveBookingActorUserId(parsed.data.area);
+  const result = await previewAdminBookingServiceChange({
+    bookingId: parsed.data.bookingId,
+    serviceId: parsed.data.serviceId,
+    expectedUpdatedAt: parsed.data.expectedUpdatedAt,
+    actorUserId,
+  });
+  if (result.status === "slot-too-short") {
+    return {
+      status: "blocked",
+      message: result.reason === "service-restriction"
+        ? result.message
+        : "Pro tuto službu chybí platná dostupnost a změnu nelze povolit jako prodloužení. Upravte termín rezervace.",
+    };
+  }
+  if (result.status !== "success") {
+    return { status: "blocked", message: getBookingServiceChangeError(result).formError ?? "Změnu služby nelze provést." };
+  }
 
   return {
-    status: "success",
-    successMessage:
-      `Služba byla změněná z „${result.previousServiceName}“ na „${result.nextServiceName}“.`
-      + `${durationChanged || cleanupChanged ? " Termín rezervace byl přepočítaný podle nové délky služby." : ""}`
-      + keptPriceNotice,
+    status: result.createdManualOverride ? "requires-override" : "ready",
+    message: result.createdManualOverride
+      ? "Pro delší návštěvu není souvisle vypsaná dostupnost. Potvrzením povolíte prodloužení jako interní výjimku pouze pro tuto rezervaci."
+      : "Změnu lze uložit bez potvrzování další výjimky.",
+    serviceEndsAt: result.nextScheduledEndsAt.toISOString(),
+    blockedUntil: result.nextBlockedUntil.toISOString(),
+    cleanupBlockMinutes: result.nextCleanupBlockMinutes,
   };
 }

@@ -95,6 +95,7 @@ function usesClientBookingDeliveryFence(emailLog: {
 type ClientBookingDeliveryBooking = {
   status: BookingStatus;
   clientEmailSnapshot: string;
+  clientNameSnapshot: string;
   communicationGeneration: number;
   clientDeliveryLeaseToken: string | null;
   clientDeliveryLeaseExpiresAt: Date | null;
@@ -102,6 +103,8 @@ type ClientBookingDeliveryBooking = {
   scheduledStartsAt: Date;
   scheduledEndsAt: Date;
   serviceId: string;
+  finalPriceCzk?: number | null;
+  servicePriceFromCzk?: number | null;
 };
 
 type ClientBookingDeliveryAuthorization =
@@ -127,6 +130,7 @@ function evaluateClientBookingDelivery(
     templateKey: emailLog.templateKey,
     payload: emailLog.payload,
     booking,
+    checkClientName: true,
   });
 
   if (!bookingEmailPreflight.shouldSend) {
@@ -201,6 +205,7 @@ async function authorizeClientBookingDelivery(
       select: {
         status: true,
         clientEmailSnapshot: true,
+        clientNameSnapshot: true,
         communicationGeneration: true,
         clientDeliveryLeaseToken: true,
         clientDeliveryLeaseExpiresAt: true,
@@ -208,6 +213,8 @@ async function authorizeClientBookingDelivery(
         scheduledStartsAt: true,
         scheduledEndsAt: true,
         serviceId: true,
+        finalPriceCzk: true,
+        servicePriceFromCzk: true,
       },
     });
     const currentEmailLog = await tx.$queryRaw<Array<{
@@ -418,11 +425,14 @@ export async function deliverEmailLog(
       select: {
         status: true,
         clientEmailSnapshot: true,
+        clientNameSnapshot: true,
         communicationGeneration: true,
         clientDeliveryLeaseToken: true,
         clientDeliveryLeaseExpiresAt: true,
         reminder24hSentAt: true,
         serviceId: true,
+        finalPriceCzk: true,
+        servicePriceFromCzk: true,
         scheduledStartsAt: true,
         scheduledEndsAt: true,
       },
@@ -535,6 +545,7 @@ export async function deliverEmailLog(
           select: {
             status: true,
             clientEmailSnapshot: true,
+            clientNameSnapshot: true,
             communicationGeneration: true,
             clientDeliveryLeaseToken: true,
             clientDeliveryLeaseExpiresAt: true,
@@ -542,6 +553,8 @@ export async function deliverEmailLog(
             scheduledStartsAt: true,
             scheduledEndsAt: true,
             serviceId: true,
+            finalPriceCzk: true,
+            servicePriceFromCzk: true,
           },
           }),
           tx.emailLog.findUnique({

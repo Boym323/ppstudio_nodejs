@@ -29,4 +29,4 @@ Veřejný booking flow už po úspěšné serverové akci posílal Meta Pixel `S
 
 ## Stav
 
-schváleno; měření bez souhlasové kontroly je popsáno v ADR 0120
+schváleno pro architekturu outboxu; souhlasový model se řídí nejnovějším ADR 0121 (nahrazuje ADR 0120)

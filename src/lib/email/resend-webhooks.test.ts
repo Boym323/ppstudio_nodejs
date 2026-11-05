@@ -150,6 +150,7 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
   const originalTransaction = prisma.$transaction;
   const originalWebhookCreateMany = prisma.emailProviderWebhookEvent.createMany;
   const originalWebhookUpdateMany = prisma.emailProviderWebhookEvent.updateMany;
+  const originalHistoryFindMany = prisma.bookingStatusHistory.findMany;
   const originalExecuteRaw = prisma.$executeRaw;
   const originalFetch = globalThis.fetch;
   const updates: unknown[] = [];
@@ -160,6 +161,7 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
   prisma.emailLog.findFirst = (async () => ({
     id: "email-log-bounce",
     bookingId: "booking-bounce",
+    type: "BOOKING_CONFIRMATION",
     trackingLastEventAt: null,
     trackingDeliveredAt: null,
     trackingOpenedAt: null,
@@ -168,7 +170,7 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
     trackingComplainedAt: null,
     trackingFailedAt: null,
     trackingSuppressedAt: null,
-  })) as typeof prisma.emailLog.findFirst;
+  })) as unknown as typeof prisma.emailLog.findFirst;
   prisma.emailLog.update = (async (args) => {
     updates.push(args);
     return {};
@@ -178,6 +180,7 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
     return { count: 1 };
   }) as typeof prisma.emailProviderWebhookEvent.createMany;
   prisma.emailProviderWebhookEvent.updateMany = (async () => ({ count: 1 })) as typeof prisma.emailProviderWebhookEvent.updateMany;
+  prisma.bookingStatusHistory.findMany = (async () => []) as typeof prisma.bookingStatusHistory.findMany;
   prisma.$executeRaw = (async () => 1) as typeof prisma.$executeRaw;
   prisma.$transaction = (async (callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma)) as unknown as typeof prisma.$transaction;
   globalThis.fetch = (async () => {
@@ -195,7 +198,7 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
       },
     });
 
-    assert.deepEqual(result, { matched: true, ignored: false, outcome: "MATCHED", deliveryIssue: { emailLogId: "email-log-bounce", bookingId: "booking-bounce", eventType: "email.bounced" }, duplicate: false });
+    assert.deepEqual(result, { matched: true, ignored: false, outcome: "MATCHED", deliveryIssue: { emailLogId: "email-log-bounce", bookingId: "booking-bounce", eventType: "email.bounced", isReminder: false }, duplicate: false });
     assert.deepEqual(updates, [{
       where: { id: "email-log-bounce" },
       data: {
@@ -222,8 +225,20 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
       emailLogId: "email-log-bounce",
       bookingId: "booking-bounce",
       eventType: "email.bounced",
+      isReminder: false,
       emailType: "email.bounced",
     }]);
+
+    prisma.emailLog.findFirst = (async () => ({
+      id: "reminder-log", bookingId: null, type: "BOOKING_REMINDER",
+    })) as unknown as typeof prisma.emailLog.findFirst;
+    let reminderIssue: boolean | undefined;
+    await applyResendWebhookEvent({
+      providerEventId: "msg_unit_reminder_bounce",
+      event: { type: "email.bounced", created_at: "2026-08-16T10:00:00.000Z", data: { email_id: "reminder-provider" } },
+      notifyDeliveryIssue: async (issue) => { reminderIssue = issue.isReminder; },
+    });
+    assert.equal(reminderIssue, true);
 
     const { buildOwnerEmailFailurePushover } = await import("@/lib/notifications/pushover-core");
     const payload = buildOwnerEmailFailurePushover({
@@ -240,6 +255,7 @@ test("applyResendWebhookEvent records email.bounced as a provider delivery issue
     prisma.emailLog.update = originalUpdate;
     prisma.emailProviderWebhookEvent.createMany = originalWebhookCreateMany;
     prisma.emailProviderWebhookEvent.updateMany = originalWebhookUpdateMany;
+    prisma.bookingStatusHistory.findMany = originalHistoryFindMany;
     prisma.$executeRaw = originalExecuteRaw;
     prisma.$transaction = originalTransaction;
     globalThis.fetch = originalFetch;

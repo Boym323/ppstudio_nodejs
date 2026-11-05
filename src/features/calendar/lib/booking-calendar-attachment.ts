@@ -30,6 +30,7 @@ function buildBookingCalendarDescription(input: {
 }
 
 export async function buildBookingCalendarIcsFromPayload(input: {
+  status?: "CONFIRMED" | "TENTATIVE";
   bookingId: string;
   serviceName: string;
   scheduledStartsAt: Date;
@@ -72,7 +73,7 @@ export async function buildBookingCalendarIcsFromPayload(input: {
           email: salonProfile.email,
         }),
         location,
-        status: "CONFIRMED",
+        status: input.status ?? "CONFIRMED",
         startsAt: input.scheduledStartsAt,
         endsAt: input.scheduledEndsAt,
         dtStamp: new Date(),

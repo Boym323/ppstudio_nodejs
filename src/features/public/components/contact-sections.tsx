@@ -412,7 +412,7 @@ type QuickContactCardProps = {
   instagramUrl: string | null;
   operatorName: string;
   operatorId: string;
-  openingHours: string;
+  visitInfo: string;
 };
 
 export function QuickContactCard({
@@ -421,7 +421,7 @@ export function QuickContactCard({
   instagramUrl,
   operatorName,
   operatorId,
-  openingHours,
+  visitInfo,
 }: QuickContactCardProps) {
   const instagramValue = instagramUrl?.replace(/^https?:\/\/(www\.)?/i, '') ?? 'instagram.com';
 
@@ -436,8 +436,8 @@ export function QuickContactCard({
             <p className="mt-1 text-sm leading-6 text-[var(--color-muted)]">{operatorId}</p>
           </div>
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">Otevírací doba</p>
-            <p className="mt-1 text-sm leading-6 text-[var(--color-muted)]">{openingHours}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">Návštěvy</p>
+            <p className="mt-1 text-sm leading-6 text-[var(--color-muted)]">{visitInfo}</p>
           </div>
         </div>
       </div>

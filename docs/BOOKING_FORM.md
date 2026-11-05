@@ -1,6 +1,6 @@
 # Rezervační formulář – současná implementace PP Studio
 
-> Aktualizováno proti zdrojovému kódu k verzi **3.36.1** dne 24. 10. 2026. Při rozporu má přednost implementace a `prisma/schema.prisma`. Tento dokument popisuje veřejný formulář; správa a publikování termínů jsou v [AVAILABILITY_PLANNER.md](AVAILABILITY_PLANNER.md), celý životní cyklus rezervace a e-mailů v [BOOKING_FLOW.md](../BOOKING_FLOW.md).
+> Hlavní kontrakty formuláře (vstup, kroky, serverový submit, validace a obnovování dostupnosti) znovu zkontrolovány proti `main` ve verzi **3.39.0** dne 2. 11. 2026. Při rozporu má přednost implementace a `prisma/schema.prisma`. Tento dokument popisuje veřejný formulář; správa a publikování termínů jsou v [AVAILABILITY_PLANNER.md](AVAILABILITY_PLANNER.md), celý životní cyklus rezervace a e-mailů v [BOOKING_FLOW.md](../BOOKING_FLOW.md).
 
 ## Cesty a vstupní data
 
@@ -10,13 +10,19 @@
 
 ## Struktura formuláře a komponenty
 
+### Obnova rozpracované rezervace
+
+- Formulář průběžně ukládá službu, klíč termínu, jméno, e-mail a telefon do `sessionStorage` dané karty prohlížeče. Koncept je platný 30 minut od posledního uložení; prošlý nebo poškozený záznam se při načtení smaže. Poznámka a kód voucheru se neukládají.
+- Před obnovou termínu se znovu načte katalog. Původní termín lze použít pouze mezi aktuálně dostupnými možnostmi včetně omezení služby, úklidu a obědové pauzy. Obnova čeká na katalog nejvýše 5 sekund. Při chybě nebo timeoutu se obnoví kontakty, termín se nevybere a formulář se odblokuje s oznámením, že je potřeba vybrat termín znovu. Pozdní odpověď už stav formuláře nemění; odpojení komponenty zruší časovač i aplikaci výsledku. Obnova vrací návštěvníka ke kontrole služby nebo termínu.
+- Nový výběr služby v URL má přednost před uloženou službou; při obnovení stejného vstupního odkazu zůstává zachována i služba změněná ve formuláři. Voucher z URL se nadále ověřuje obvyklým způsobem. Úspěšné odeslání koncept smaže. Zakázané nebo plné úložiště neblokuje ruční vyplnění formuláře.
+
 Čtyři fáze vyplývají z [`stepLabels`](../src/features/booking/components/booking-flow/helpers.ts): **Služba → Termín → Kontakt → Souhrn**. Kategorie je součást výběru služby, ne samostatný krok. Vše řídí [`booking-flow.tsx`](../src/features/booking/components/booking-flow.tsx) jako klientský wizard s `useActionState(createPublicBookingAction)`:
 
 | Část | Implementace | Co zajišťuje |
 | --- | --- | --- |
 | Služba | [`service-step.tsx`](../src/features/booking/components/booking-flow/service-step.tsx), [`category-select.tsx`](../src/features/booking/components/category-select.tsx) | Kategorie, nabídka služby, délka a orientační cena, změna služby či předvýběr ze slugu |
 | Termín | [`term-step.tsx`](../src/features/booking/components/booking-flow/term-step.tsx) | Doporučené časy, kalendář dostupných dní, hodinové skupiny, fallback při nulové nabídce pro službu |
-| Doporučení | [`suggested-slots.tsx`](../src/features/booking/components/suggested-slots.tsx) | Výběr a zobrazení podmnožiny vhodných časů (nejvýše šest), nikoliv celá dostupnost |
+| Doporučení | [`suggested-slots.tsx`](../src/features/booking/components/suggested-slots.tsx) | Výběr a zobrazení podmnožiny vhodných časů (nejvýše čtyři na mobilu, šest na desktopu), nikoliv celá dostupnost |
 | Kontakt | [`contact-step.tsx`](../src/features/booking/components/booking-flow/contact-step.tsx) | Jméno, e-mail, nepovinný telefon, poznámka, voucher; inline chyby, `aria-describedby`, focus |
 | Souhrn / mobil | [`summary-sidebar.tsx`](../src/features/booking/components/booking-flow/summary-sidebar.tsx), [`sticky-cta.tsx`](../src/features/booking/components/sticky-cta.tsx) | Revize výběru, návrat k editaci, finální CTA „Odeslat rezervaci“ |
 | Výsledek | [`booking-confirmation-panel.tsx`](../src/features/booking/components/booking-confirmation-panel.tsx) | Výsledek založení požadavku, kontakt a odkazy pro správu rezervace |

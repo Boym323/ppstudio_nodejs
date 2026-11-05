@@ -45,6 +45,7 @@ export async function validatePublicBookingVoucherAction(input: {
 
     await writeVoucherPublicVerificationAttemptLog({
       auditOutcome: result.ok ? "SUCCESS" : "NOT_FOUND_OR_INVALID",
+      validationReason: result.ok ? undefined : result.reason,
       source,
       ...requestMetadata,
       metadata: { ipAttempts, source },

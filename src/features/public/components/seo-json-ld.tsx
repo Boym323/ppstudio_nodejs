@@ -35,6 +35,7 @@ type PersonProfile = Pick<
 const SEO_BASE_URL = siteConfig.canonicalUrl;
 const BUSINESS_ID = `${SEO_BASE_URL}/#business`;
 const WEBSITE_ID = `${SEO_BASE_URL}/#website`;
+const PERSON_ID = `${SEO_BASE_URL}/o-mne#person`;
 const LOGO_URL = `${SEO_BASE_URL}/brand/ppstudio-og-logo.png`;
 const BUSINESS_PROFILE_URLS = [
   "https://www.facebook.com/ppstudio.cz",
@@ -104,7 +105,7 @@ export function buildPersonJsonLd(profile: PersonProfile) {
   return {
     "@context": "https://schema.org",
     "@type": "Person",
-    "@id": `${SEO_BASE_URL}/o-mne#person`,
+    "@id": PERSON_ID,
     name: profile.operatorName,
     jobTitle: "Kosmetická specialistka",
     worksFor: {
@@ -116,7 +117,6 @@ export function buildPersonJsonLd(profile: PersonProfile) {
       name: profile.city,
     },
     url: `${SEO_BASE_URL}/o-mne`,
-    sameAs: buildSameAs(profile.instagramUrl),
   };
 }
 
@@ -157,7 +157,6 @@ export function buildBreadcrumbListJsonLd(items: BreadcrumbJsonLdItem[]) {
 export function buildServiceJsonLd(service: Service, profile: BusinessProfile) {
   const pageUrl = `${SEO_BASE_URL}/sluzby/${service.slug}`;
   const price = parseCzkPrice(service.priceFrom);
-  const durationMinutes = service.durationMinutes ?? parseDurationMinutes(service.duration);
   const offer =
     price === undefined
       ? undefined
@@ -166,7 +165,6 @@ export function buildServiceJsonLd(service: Service, profile: BusinessProfile) {
           url: pageUrl,
           priceCurrency: "CZK",
           price,
-          availability: "https://schema.org/InStock",
         };
 
   return {
@@ -186,18 +184,9 @@ export function buildServiceJsonLd(service: Service, profile: BusinessProfile) {
           name: profile.city,
         },
         offers: offer,
-        duration: durationMinutesToIsoDuration(durationMinutes),
       },
     ],
   };
-}
-
-export function durationMinutesToIsoDuration(minutes: number | undefined) {
-  if (!minutes || !Number.isFinite(minutes) || minutes <= 0) {
-    return undefined;
-  }
-
-  return `PT${Math.round(minutes)}M`;
 }
 
 function buildLocalBusinessNode(profile: BusinessProfile) {
@@ -229,16 +218,8 @@ function buildLocalBusinessNode(profile: BusinessProfile) {
       "@type": "City",
       name: profile.city,
     },
-    openingHoursSpecification: {
-      "@type": "OpeningHoursSpecification",
-      dayOfWeek: [
-        "https://schema.org/Monday",
-        "https://schema.org/Tuesday",
-        "https://schema.org/Wednesday",
-        "https://schema.org/Thursday",
-        "https://schema.org/Friday",
-      ],
-      description: "Návštěvy probíhají pouze po předchozí rezervaci.",
+    owner: {
+      "@id": PERSON_ID,
     },
     sameAs: buildSameAs(profile.instagramUrl),
     potentialAction: {
@@ -259,19 +240,14 @@ function buildSameAs(instagramUrl: string | null | undefined) {
 function parseCzkPrice(value: string) {
   const normalizedValue = value.normalize("NFKC").toLowerCase();
 
-  if (/(zdarma|dle konzultace|individuálně|individualne|na dotaz)/i.test(normalizedValue)) {
+  if (/(zdarma|dle konzultace|individuálně|individualne|na dotaz|od\s*\d)/i.test(normalizedValue)) {
     return undefined;
   }
 
-  const amount = normalizedValue.match(/\d+(?:[\s.]\d{3})*/)?.[0].replace(/[^\d]/g, "");
+  const exactPublishedPrice = normalizedValue.match(/^\s*(\d+(?:[\s.\u00a0\u202f]\d{3})*)\s*(?:kč|czk)?\s*$/i);
+  const amount = exactPublishedPrice?.[1].replace(/[^\d]/g, "");
 
   return amount && Number(amount) > 0 ? amount : undefined;
-}
-
-function parseDurationMinutes(value: string) {
-  const minutes = value.normalize("NFKC").match(/\d+/)?.[0];
-
-  return minutes ? Number(minutes) : undefined;
 }
 
 function buildAbsoluteSiteUrl(href: string) {

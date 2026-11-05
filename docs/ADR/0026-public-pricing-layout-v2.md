@@ -1,5 +1,8 @@
 # ADR 0026: Veřejný ceník jako samostatný layout modul s prezentační vrstvou
 
+## Stav
+Neuvedeno v původním záznamu (historické ADR; aktuální stav rozhodnutí je nutné ověřit proti implementaci a novějším ADR).
+
 ## Kontext
 
 Stránka `/cenik` už četla reálné služby z databáze, ale její layout byl stále součástí obecného souboru `public-site.tsx` a vizuálně byl jednodušší než cílový design. Potřebovali jsme výrazně přesnější kompozici:

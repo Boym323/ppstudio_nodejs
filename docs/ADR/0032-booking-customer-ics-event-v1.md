@@ -1,5 +1,8 @@
 # ADR 0032: Customer Booking ICS Event V1
 
+## Stav
+Neuvedeno v původním záznamu (historické ADR; aktuální stav rozhodnutí je nutné ověřit proti implementaci a novějším ADR).
+
 ## Kontext
 
 Po potvrzení rezervace potřebuje zákaznice jednoduchou možnost uložit si jeden konkrétní termín do osobního kalendáře na iPhonu, v Apple Kalendáři nebo v jiném klientu podporujícím `.ics`.

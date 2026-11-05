@@ -14,9 +14,91 @@ Formát je inspirovaný Keep a Changelog.
 
 - Interní akvizice rezervací podporuje také `mtm_content` a `mtm_placement` a zahazuje `fbclid` i zjevné kontaktní údaje z kampaní.
 
-### Odstraněno
+### Opraveno
 
-- Cookie panel i souhlasové kontroly trackerů; měření se nyní řídí pouze konfigurací jednotlivých služeb.
+- Obnoven samostatný opt-in souhlas pro analytické a marketingové trackery, včetně serverového CAPI. Dočasně vypnutá CAPI konfigurace již nezahazuje čekající události.
+
+## [3.41.0] - 2026-11-05
+
+### Přidáno
+
+- Detail rezervace pod technickými metadaty stručně zobrazuje související e-maily s typem zprávy, časem a stavem odeslání či doručení včetně čekajících a neúspěšných zpráv. Majitelka může otevřít detail jednotlivého e-mailu.
+
+### Změněno
+
+- Technické události zobrazují popis a kód přímo v řádku bez rozbalování, rozlišují úspěšné, neúspěšné a zablokované operace a u ověření voucherů uvádějí, zda proběhlo na veřejné stránce nebo v rezervaci. Nová ověření ukládají a zobrazují konkrétní důvod odmítnutí, například vypršelou platnost, vyčerpaný voucher nebo nesoulad služby. Přehled neopakuje obecné štítky systému a na desktopu věnuje více místa podrobnostem.
+
+## [3.40.0] - 2026-11-05
+
+### Zabezpečení
+
+- E-mailové nástroje, coverage reporter a ESLint používají opravené verze `glob` a `minimatch`; zrušené procházení adresářů už nepokračuje na pozadí a zpracování vzorů neumožňuje jejich zesílení do nepřiměřené spotřeby prostředků.
+
+### Přidáno
+
+- Změna služby rezervace ve výchozím nastavení připraví klientce oznámení s novou službou, cenou, časem návštěvy a aktualizovanou kalendářovou přílohou. Odeslání lze vypnout; chybějící e-mail je viditelný ve formuláři a zastaralé zprávy se neodesílají. Sloučení klientských profilů aktualizuje jméno i v čekajícím oznámení, aby změna jména nezabránila doručení.
+
+- Změna služby rezervace po výběru služby ověří proveditelnost, zobrazí nový konec návštěvy a úklidu, vysvětlí případnou překážku nebo potřebu potvrzení výjimky a umožňuje výslovně povolit prodloužení mimo vypsanou dostupnost jako interní výjimku při zachování začátku. Kratší nebo stejně dlouhá celková blokace nevyžaduje novou výjimku ani u archivovaného zdrojového termínu. Kontroluje jiné rezervace, interní bloky i automatický oběd a při stornu obnovuje jen původní dostupnost.
+
+- Rozpracovaná rezervace po obnovení stránky obnoví službu, dostupný termín a kontaktní údaje z krátkodobého konceptu v dané kartě prohlížeče. Koncept platí 30 minut, neukládá poznámku ani voucher a po úspěšném odeslání se smaže.
+
+### Změněno
+
+- Filtry rezervací mají sjednocenou výšku a vzhled polí, přehlednější rozbalovací panel a kompaktní akce; počet výsledků je vedle vyhledávání.
+
+- KPI přehled odděluje hlavní výsledky od rozbalovacích analýz, zpřesňuje názvy tržeb a výhledu a vynechává samostatnou platební sekci. Průběžný měsíc porovnává se stejnou částí minulého měsíce a do očekávaných návštěv zahrnuje i potvrzené rezervace bez ceny.
+
+- Seznam klientek zobrazuje tržbu jako součet dokončených a plně uhrazených služeb a umožňuje podle ní klientky řadit.
+
+- Seznam klientek ve sloupci Rezervace započítává pouze dokončené návštěvy a aktuálně naplánované rezervace; zrušené, `NO_SHOW` a prošlé nedokončené rezervace se do počtu ani řazení nezahrnou.
+
+- Detail rezervace zvýrazňuje termín, provozní blokaci a stav úhrady, zachovává pevné místo pro stručné poznámky a omezuje duplicitní údaje. Ovladače úpravy ceny a zápisu platby jsou vedle sebe podle šířky displeje, rozbalený formulář využívá celou šířku pod nimi; formulář ceny používá stručný souhrn a náhled až při změně částky. Sjednocuje rozbalovací ovladače a přístupnou zpětnou vazbu formulářů; kombinovaná úhrada navrhuje přímý doplatek po započtení voucheru a ukazuje plánovaný součet.
+
+- Provozní přehled zvýrazňuje časy a klientky, zlepšuje čitelnost služeb a stavů rezervací a ztišuje kontaktní akce; na mobilu jsou rychlé akce dostupné před denním plánem.
+
+- Admin rozhraní sjednocuje mobilní ergonomii napříč dashboardem, rezervacemi, klientkami, vouchery a službami: hlavičky se na úzkých displejích skládají bez překryvu, navigace je rozdělena do provozních skupin a hlavní ovladače respektují dotykovou výšku 44 px.
+- Mobilní planner má čitelnější ovladače, jasnější nápovědu pro týdenní horizontální pohyb a zachovává denní pohled jako rychlý výchozí režim.
+
+### Opraveno
+
+- Obnova rozpracované rezervace po 5 sekundách odblokuje formulář i při neodpovídajícím načítání dostupnosti. Zachová kontakty, vyžádá nový výběr neověřeného termínu a opožděná odpověď už nepřepíše nově zadané údaje.
+
+- Úvodní stránka při nedostupném i prázdném katalogu zachová prezentaci studia a odkaz na kontakt bez zobrazování náhradních služeb a cen. Chyba načtení fotografie už nevyřadí homepage ani kontakt; veřejná část má chybovou obrazovku s možností opakovat načtení.
+
+- Tržba klientek při chybějící ceně uložené v rezervaci používá ceníkovou cenu služby stejně jako detail rezervace, včetně pokrytí službovým voucherem; zaplacené návštěvy se tak správně započítají i do řazení podle tržby.
+
+- Hlavičky sloupců Rezervace a Tržba v seznamu klientek se na desktopu nepřekrývají ani při užší šířce; tabulka se vejde do dostupného prostoru, hlavičky se mohou zalomit a číselné údaje jsou zarovnané doprava.
+
+- Poslední návštěva v seznamu klientek zobrazuje pouze datum a službu ve dvou řádcích; redundantní údaj o počtu týdnů se nezobrazuje.
+
+- Seznam klientek už aktivní profily nezatěžuje opakovaným štítkem „Aktivní“; stavový štítek zobrazuje pouze u neaktivních klientek a poznámkový štítek jen tam, kde poznámka skutečně existuje.
+
+- Seznam klientek se na užší desktopové šířce už neořezává vpravo; tabulka využije dostupný prostor a lze ji v případě potřeby vodorovně posunout.
+
+- Skupiny administrační navigace mají čitelnější kontrast a tlačítko mobilního menu používá viditelný text také jako přístupný název.
+- Pushover neposílá texty interních výjimek, správně rozlišuje selhání doručení připomínek a samostatné e-mailové incidenty a po neúspěšném odeslání neblokuje další pokus cooldownem. Vracející se klientku určuje podle předchozí dokončené návštěvy; chyby založení připomínek odkazují na rezervaci. Pro systémové chyby při výpadku DB lze nakonfigurovat nezávislého nouzového příjemce.
+
+- Karty klientek na mobilu lze otevřít klepnutím na celou kartu nebo klávesnicí; telefonní a e-mailové odkazy fungují samostatně při kliknutí i ovládání klávesnicí a neotevírají detail klientky.
+- Admin formuláře na iPhonu používají minimálně 16px text, takže při fokusu nevyvolávají nechtěné přiblížení Safari.
+
+## [3.39.0] - 2026-11-02
+
+### Opraveno
+
+- Sloučení klientských profilů nyní sjednotí jméno v aktivních budoucích rezervacích a čekajících potvrzeních, zachová původní snapshoty v auditu a po uzavření merge incidentu už neposílá duplicitní upozornění na opožděné failure webhooky. Při zpracování klientského e-mailu dotčené rezervace sloučení dočasně zablokuje, aby změna jména nezpůsobila přeskočení čekající zprávy.
+- DB integrační testy slučování klientů se spouštějí s požadovanou podporou Node.js module mocks; chybějící testovací API už nemůže kritický test tiše přeskočit.
+
+### Změněno
+
+- Vlastník může sloučit duplicitní klientské profily po porovnání obou profilů a výběru jména a telefonu. Formulář jasně uvádí, jaké jméno bude po sloučení na zachovaném profilu, a předvolí ponechání jeho současného jména. Systém ověřuje aktuálnost náhledu, zachovává audit a historii komunikace, obnoví odkazy dotčených rezervací a chrání archivovaný profil před opětovným použitím. Doručené náhradní potvrzení včetně jeho opakovaného odeslání uzavírá související incidenty původních zpráv, i když jejich selhání dorazí dodatečně.
+
+## [3.38.3] - 2026-11-01
+
+### Opraveno
+
+- Veřejný kontakt i JSON-LD salonu už nevydávají vypsané termíny za pravidelnou otevírací dobu ani kosmetické služby za skladovou dostupnost; pevnou cenu publikují jen při jednoznačné částce a Pavlínu propojují se salonem bez přisuzování firemních profilů její osobě.
+- JSON-LD detailů služeb už nepoužívá nepodporované `Service.duration`; délka ošetření zůstává dostupná v HTML. Sjednocena dokumentace, že `priceFromCzk` aktuálně představuje pevnou ceníkovou cenu, a doplněny regresní testy strukturovaných dat.
+- Mobilní plánovač zpřístupňuje celý časový rozsah až do 20:00 jediným posuvem stránky bez vnitřních svislých scrollovacích kontejnerů a umožňuje vybírat termíny dlouhým dotykem.
 
 ## [3.38.2] - 2026-10-30
 

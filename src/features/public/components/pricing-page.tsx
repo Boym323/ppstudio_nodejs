@@ -33,10 +33,10 @@ export function PricingHero() {
           <div className="space-y-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[var(--color-accent-contrast)]">CENÍK</p>
             <h1 className="max-w-2xl font-display text-[2.55rem] leading-[0.97] tracking-[-0.04em] text-[var(--color-foreground)] sm:text-5xl lg:text-[4.1rem]">
-              Ceny přehledně a bez zbytečného hledání.
+              Kolik stojí chvíle péče pro vás
             </h1>
             <p className="max-w-xl text-[15px] leading-7 text-[var(--color-muted)] sm:text-lg sm:leading-8">
-              Najdete tu služby rozdělené do kategorií, abyste si mohla rychle udělat jasnější představu.
+              Projděte si ceny i délku jednotlivých ošetření. Až najdete to pravé, můžete si rovnou vybrat termín.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

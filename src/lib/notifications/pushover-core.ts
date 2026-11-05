@@ -1,4 +1,4 @@
-import { AdminRole } from "@/generated/prisma/browser";
+import { AdminRole, BookingStatus } from "@/generated/prisma/browser";
 
 import { env } from "@/config/env";
 import { formatBookingCalendarDate, formatBookingTimeRange } from "@/features/booking/lib/booking-format";
@@ -59,6 +59,7 @@ const RATE_LIMIT_WINDOW_MS = 30 * 1000;
 // Sekundární ochrana proti krátkým duplicitám v jednom procesu. Idempotence
 // provider webhooků je perzistentně v databázi, takže tato mapa není autorita.
 const recentEvents = new Map<string, number>();
+const pendingEvents = new Set<string>();
 
 function isPushoverBlockedInTestRuntime() {
   return process.env.NODE_ENV === "test"
@@ -89,30 +90,21 @@ function getContextId(context?: OwnerPushoverInput["context"]) {
   return null;
 }
 
-function isRateLimited(input: OwnerPushoverInput) {
+async function dispatchOnce(recipientId: string, userKey: string, input: OwnerPushoverInput) {
   const contextId = getContextId(input.context);
-
-  if (!contextId) {
-    return false;
-  }
-
-  const key = `${input.type}:${contextId}`;
+  const key = contextId ? `${recipientId}:${input.type}:${contextId}` : null;
   const now = Date.now();
-  const previousSentAt = recentEvents.get(key);
-
-  for (const [eventKey, sentAt] of recentEvents.entries()) {
-    if (now - sentAt > RATE_LIMIT_WINDOW_MS) {
-      recentEvents.delete(eventKey);
-    }
+  for (const [eventKey, sentAt] of recentEvents) {
+    if (now - sentAt >= RATE_LIMIT_WINDOW_MS) recentEvents.delete(eventKey);
   }
-
-  if (previousSentAt && now - previousSentAt < RATE_LIMIT_WINDOW_MS) {
-    return true;
+  if (key && (pendingEvents.has(key) || recentEvents.has(key))) return;
+  if (key) pendingEvents.add(key);
+  try {
+    await postPushoverMessage({ userKey, input });
+    if (key) recentEvents.set(key, Date.now());
+  } finally {
+    if (key) pendingEvents.delete(key);
   }
-
-  recentEvents.set(key, now);
-
-  return false;
 }
 
 function isEventEnabled(
@@ -186,7 +178,7 @@ async function postPushoverMessage({
 
 export async function sendOwnerPushover(input: OwnerPushoverInput): Promise<void> {
   try {
-    if (!isPushoverGloballyEnabled() || !hasPushoverAppToken() || isRateLimited(input)) {
+    if (!isPushoverGloballyEnabled() || !hasPushoverAppToken()) {
       return;
     }
 
@@ -216,6 +208,13 @@ export async function sendOwnerPushover(input: OwnerPushoverInput): Promise<void
           },
         },
       },
+    }).catch(async (error: unknown) => {
+      if (input.type === "SYSTEM_ERROR" && env.PUSHOVER_EMERGENCY_USER_KEY?.trim()) {
+        console.error("Pushover recipient lookup failed; using emergency recipient", { error });
+        await dispatchOnce("emergency", env.PUSHOVER_EMERGENCY_USER_KEY.trim(), input);
+        return [];
+      }
+      throw error;
     });
 
     await Promise.allSettled(
@@ -226,10 +225,7 @@ export async function sendOwnerPushover(input: OwnerPushoverInput): Promise<void
           return;
         }
 
-        await postPushoverMessage({
-          userKey: settings.pushoverUserKey.trim(),
-          input,
-        });
+        await dispatchOnce(owner.id, settings.pushoverUserKey.trim(), input);
       }),
     ).then((results) => {
       results.forEach((result) => {
@@ -313,33 +309,14 @@ function buildAdminBookingUrl(bookingId: string) {
   return `${env.NEXT_PUBLIC_APP_URL}/admin/rezervace/${bookingId}`;
 }
 
-function getErrorSummary(error: unknown) {
-  if (error instanceof Error) {
-    const name = error.name?.trim();
-    const message = error.message?.trim();
-
-    if (name && message) {
-      return `${name}: ${message}`.slice(0, 220);
-    }
-
-    return (message || name || "Unknown error").slice(0, 220);
-  }
-
-  if (typeof error === "string") {
-    return error.trim().slice(0, 220);
-  }
-
-  return null;
-}
-
 export async function sendOwnerSystemErrorPushover(input: OwnerSystemErrorPushoverInput) {
-  const errorSummary = getErrorSummary(input.error);
-  const message = errorSummary ? `${input.message}\nChyba: ${errorSummary}` : input.message;
-
+  if (input.error !== undefined) {
+    console.error("Owner system error diagnostic", { context: input.context, error: input.error });
+  }
   await sendOwnerPushover({
     type: "SYSTEM_ERROR",
     title: input.title,
-    message,
+    message: input.message,
     url: input.url,
     priority: input.priority ?? 1,
     context: input.context,
@@ -478,6 +455,8 @@ export async function sendOwnerBookingPushover(input: {
           await prisma.booking.count({
             where: {
               clientId: booking.clientId,
+              status: BookingStatus.COMPLETED,
+              scheduledEndsAt: { lt: booking.scheduledStartsAt },
               id: {
                 not: booking.id,
               },
@@ -556,7 +535,7 @@ export function buildOwnerEmailFailurePushover(input: OwnerEmailFailurePushoverI
     url: input.bookingId ? buildAdminBookingUrl(input.bookingId) : `${env.NEXT_PUBLIC_APP_URL}/admin/email-logy/${input.emailLogId}`,
     priority: 1,
     context: {
-      contextId: input.bookingId ?? input.emailLogId,
+      contextId: `${input.emailLogId}:${input.failureKind}:${input.emailType}`,
       emailLogId: input.emailLogId,
     },
   };

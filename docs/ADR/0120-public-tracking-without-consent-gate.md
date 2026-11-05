@@ -21,3 +21,7 @@ Cookie panel a souhlasové kontroly byly přidány společně s integrací Meta 
 ## Stav
 
 schváleno
+
+## Nahrazení
+
+Od 5. 11. 2026 je tato historická volba nahrazena ADR 0121: marketingové a analytické nástroje musí respektovat opt-in souhlas, včetně serverové události `Schedule`. Toto ADR ponecháváme pouze jako auditní záznam.

@@ -286,6 +286,111 @@ test.describe("produkční plánovač FullCalendaru", () => {
     await expect(page).toHaveURL(/week=2027-03-29&day=2027-03-29/);
   });
 
+  test("mobilní dlouhý dotyk vybere a uloží rozsah dostupnosti", async ({ page }) => {
+    test.skip(test.info().project.name !== "mobile-chrome", "Dotykové tažení ověřuje Chromium emulaci Pixelu.");
+    test.setTimeout(120_000);
+
+    const runId = buildRunId();
+    runIds.push(runId);
+    const owner = await createOwner(runId);
+    await createAvailability(owner.id, 4, 28);
+    await loginAdmin(page, owner.email, owner.password);
+    await page.goto(`/admin/volne-terminy?week=${plannerDate}&day=${plannerDate}`);
+    await expectStyledPlanner(page);
+    await page.getByRole("button", { name: "Přidat termín" }).click();
+    const planner = page.getByTestId("fullcalendar-planner");
+    await planner.evaluate((root) => {
+      window.scrollTo({ top: window.scrollY + root.getBoundingClientRect().top - 100, behavior: "instant" });
+    });
+    const plannerBox = await planner.boundingBox();
+    expect(plannerBox).not.toBeNull();
+    const cdp = await page.context().newCDPSession(page);
+    const swipeX = plannerBox!.x + plannerBox!.width / 2;
+    const swipeY = Math.min(plannerBox!.y + plannerBox!.height - 20, page.viewportSize()!.height - 20);
+    const initialPageY = await page.evaluate(() => window.scrollY);
+    const swipe = async () => {
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: swipeX, y: swipeY, id: 1 }] });
+      for (let step = 1; step <= 8; step++) {
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: swipeX, y: swipeY - step * 10, id: 1 }] });
+        await page.waitForTimeout(20);
+      }
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      await page.waitForTimeout(300);
+    };
+    await swipe();
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(initialPageY);
+    for (let attempt = 0; attempt < 8; attempt++) {
+      if (await page.evaluate(() => document.documentElement.scrollHeight - innerHeight - scrollY < 1)) break;
+      await swipe();
+    }
+    const lastSlotBox = await page.locator('[data-time="19:30:00"]').last().boundingBox();
+    expect(lastSlotBox).not.toBeNull();
+    expect(lastSlotBox!.y + lastSlotBox!.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+    expect(await prisma.availabilitySlot.count({ where: { createdByUserId: owner.id } })).toBe(1);
+    await planner.evaluate((root) => {
+      window.scrollTo({ top: window.scrollY + root.getBoundingClientRect().top - 100, behavior: "instant" });
+    });
+
+    const day = planner.locator(`[data-date="${plannerDate}"]`).first();
+    const startSlot = page.locator('[data-time="06:00:00"]').first();
+    const endSlot = page.locator('[data-time="07:00:00"]').first();
+    const [dayBox, startBox, endBox] = await Promise.all([day.boundingBox(), startSlot.boundingBox(), endSlot.boundingBox()]);
+    expect(dayBox).not.toBeNull();
+    expect(startBox).not.toBeNull();
+    expect(endBox).not.toBeNull();
+
+    const x = dayBox!.x + dayBox!.width / 2;
+    const startY = startBox!.y + startBox!.height / 2;
+    const endY = endBox!.y + endBox!.height / 2;
+    const pageY = await page.evaluate(() => window.scrollY);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y: startY, id: 1 }] });
+    await page.waitForTimeout(550);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x, y: endY, id: 1 }] });
+    await page.waitForTimeout(100);
+    expect(await page.evaluate(() => window.scrollY)).toBe(pageY);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await cdp.detach();
+
+    await expect(page.getByRole("status")).toHaveText("Uloženo", { timeout: 60_000 });
+    await expect.poll(() => prisma.availabilitySlot.count({ where: { createdByUserId: owner.id } })).toBe(2);
+    const saved = await prisma.availabilitySlot.findFirstOrThrow({ where: { createdByUserId: owner.id }, orderBy: { startsAt: "asc" } });
+    expect(saved.endsAt.getTime() - saved.startsAt.getTime()).toBeGreaterThan(30 * 60_000);
+    expect(await prisma.availabilityAuditEvent.count({ where: { actorUserId: owner.id } })).toBe(1);
+  });
+
+  for (const { label, width, height } of [{ label: "telefon", width: 402, height: 681 }, { label: "tablet", width: 834, height: 1194 }]) {
+    test(`${label}: poslední půlhodinu dne lze zobrazit a uložit dotykem`, async ({ page }) => {
+      test.skip(!["mobile-chrome", "mobile-safari"].includes(test.info().project.name) || (label === "tablet" && test.info().project.name !== "mobile-safari"), "Scénář ověřuje dotykové rozměry telefonu a tabletu.");
+      test.setTimeout(120_000);
+      await page.setViewportSize({ width, height });
+      const runId = buildRunId();
+      runIds.push(runId);
+      const owner = await createOwner(runId);
+      await loginAdmin(page, owner.email, owner.password);
+      await page.goto(`/admin/volne-terminy?week=${plannerDate}&day=${plannerDate}`);
+      const planner = page.getByTestId("fullcalendar-planner");
+      await expectStyledPlanner(page);
+      await page.getByRole("button", { name: "Přidat termín" }).tap();
+      const nestedScrollers = await planner.evaluate((root) => [...root.querySelectorAll<HTMLElement>("*")].filter((element) => ["auto", "scroll"].includes(getComputedStyle(element).overflowY)).length);
+      expect(nestedScrollers).toBe(0);
+      await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }));
+      const slot = page.locator('[data-time="19:30:00"]').last();
+      const [dayBox, slotBox] = await Promise.all([planner.locator(`[data-date="${plannerDate}"]`).first().boundingBox(), slot.boundingBox()]);
+      expect(dayBox).not.toBeNull();
+      expect(slotBox).not.toBeNull();
+      const x = dayBox!.x + dayBox!.width / 2;
+      const y = slotBox!.y + slotBox!.height / 4;
+      expect(y).toBeGreaterThan(0);
+      expect(y).toBeLessThan(height);
+      expect(await planner.evaluate((root, point) => root.contains(document.elementFromPoint(point.x, point.y)), { x, y })).toBe(true);
+      await page.touchscreen.tap(x, y);
+      await expect(page.getByRole("status")).toHaveText("Uloženo", { timeout: 60_000 });
+      expect(await planner.evaluate((root) => [...root.querySelectorAll<HTMLElement>("*")].filter((element) => ["auto", "scroll"].includes(getComputedStyle(element).overflowY)).length)).toBe(0);
+      const range = getCellRangeBounds(plannerDate, 27, 28);
+      await expect.poll(() => prisma.availabilitySlot.count({ where: { createdByUserId: owner.id, startsAt: range.startsAt, endsAt: range.endsAt } })).toBe(1);
+    });
+  }
+
   test("prohlížení nemění dostupnost a přidávací režim ji uloží s undo", async ({ page }) => {
     test.skip(test.info().project.name !== "chromium", "Kliknutí do časové mřížky je pokryté desktopovým workflow.");
 

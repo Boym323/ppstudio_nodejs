@@ -83,13 +83,11 @@ test.describe("mobilní detail rezervace", () => {
     await page.getByRole("button", { name: "Přidat poznámku" }).last().click();
     await expect.poll(async () => (await prisma.booking.findUniqueOrThrow({ where: { id: fixture.bookingId } })).internalNote).toBe(note);
 
-    const paymentPanel = page.locator("details", { hasText: "Zapsat platbu" });
-    const paymentSummary = paymentPanel.locator("summary");
-    await paymentSummary.click();
-    if (await paymentPanel.getAttribute("open") === null) {
-      await paymentSummary.press("Enter");
-    }
-    await expect(paymentPanel).toHaveAttribute("open", "");
+    const paymentTrigger = page.locator('button[aria-controls$="-payment-panel"]');
+    await paymentTrigger.click();
+    await expect(paymentTrigger).toHaveAttribute("aria-expanded", "true");
+    const paymentPanel = page.getByRole("region", { name: "Zapsat platbu", exact: true });
+    await expect(paymentPanel).toBeVisible();
     await paymentPanel.getByLabel("Částka").fill("100");
     await paymentPanel.getByLabel("Poznámka").fill(`Mobilní platba ${fixture.runId}`);
     await paymentPanel.getByRole("button", { name: "Zapsat platbu" }).click();

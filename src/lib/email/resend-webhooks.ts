@@ -1,3 +1,5 @@
+import { EmailLogType } from "@/generated/prisma/browser";
+
 import { prisma } from "@/lib/prisma";
 import { getUnresolvedEmailDeliveryIncidentRootWhere } from "@/lib/email/incidents";
 
@@ -22,11 +24,12 @@ type ResendWebhookApplyInput = {
     emailLogId: string;
     bookingId: string | null;
     emailType: string;
+    isReminder: boolean;
   }) => Promise<void>;
 };
 
-type DeliveryIssue = { emailLogId: string; bookingId: string | null; eventType: string };
-type WebhookTransaction = Pick<typeof prisma, "emailLog" | "emailProviderWebhookEvent" | "$executeRaw">;
+type DeliveryIssue = { emailLogId: string; bookingId: string | null; eventType: string; isReminder: boolean };
+type WebhookTransaction = Pick<typeof prisma, "emailLog" | "emailProviderWebhookEvent" | "bookingStatusHistory" | "$executeRaw">;
 
 const EMAIL_EVENT_TYPES = new Set([
   "email.sent",
@@ -43,6 +46,63 @@ const EMAIL_EVENT_TYPES = new Set([
 async function lockResendMessage(tx: WebhookTransaction, providerMessageId: string | null) {
   if (!providerMessageId) return;
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${providerMessageId}, 0))`;
+}
+
+/** Doručené potvrzení po sloučení nahrazuje pouze výslovně uvedené původní zprávy téže rezervace. */
+async function resolveMergedBookingIncidents(
+  tx: WebhookTransaction,
+  bookingId: string,
+  eventLogId: string,
+  eventRootId: string,
+  eventType: string,
+) {
+  const history = await tx.bookingStatusHistory.findMany({
+    where: { bookingId, metadata: { path: ["source"], equals: "admin-client-merge-v1" } },
+    select: { metadata: true },
+  });
+  let resolved = 0;
+  let closed = 0;
+  for (const item of history) {
+    const metadata = item.metadata;
+    if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) continue;
+    const replacementId = metadata.mergeReplacementEmailId;
+    const roots = metadata.mergeSupersededRootIds;
+    if (typeof replacementId !== "string" || !Array.isArray(roots)) continue;
+    const rootIds = roots.filter((id): id is string => typeof id === "string");
+    if (eventType === "email.delivered" ? replacementId !== eventRootId : !rootIds.includes(eventRootId)) continue;
+    // U doručení ověřujeme konkrétní zprávu; u pozdního selhání původní
+    // zprávy hledáme úspěšné doručení v řetězci náhradního potvrzení.
+    const replacement = await tx.emailLog.findFirst({
+      where: {
+        bookingId,
+        OR: [{ id: replacementId }, { resendRootId: replacementId }],
+        ...(eventType === "email.delivered" ? { id: eventLogId } : {}),
+        trackingDeliveredAt: { not: null },
+        trackingBouncedAt: null,
+        trackingFailedAt: null,
+        trackingSuppressedAt: null,
+      },
+      select: { id: true },
+      orderBy: [{ trackingDeliveredAt: "desc" }, { id: "desc" }],
+    });
+    if (!replacement) continue;
+    // Náhradní potvrzení mohlo incident uzavřít už před příchodem tohoto
+    // opožděného webhooku. V takovém případě je třeba potlačit pouze nové
+    // upozornění, nikoli znovu měnit auditní stav.
+    closed += 1;
+    const matchingRoots = eventType === "email.delivered" ? rootIds : [eventRootId];
+    if (matchingRoots.length === 0) continue;
+    const updated = await tx.emailLog.updateMany({
+      where: { AND: [{ id: { in: matchingRoots }, bookingId }, getUnresolvedEmailDeliveryIncidentRootWhere()] },
+      data: {
+        incidentResolvedAt: new Date(),
+        incidentResolvedByEmailLogId: replacement.id,
+        incidentResolutionKind: "DELIVERED_RESEND",
+      },
+    });
+    resolved += updated.count;
+  }
+  return { resolved, closed };
 }
 
 export async function verifyResendWebhookPayload(input: {
@@ -165,7 +225,7 @@ async function applyStoredResendWebhookEvent(tx: WebhookTransaction, input: {
   const emailLog = await tx.emailLog.findFirst({
     where: { providerMessageId: emailId },
     select: {
-      id: true, bookingId: true, resendRootId: true, trackingLastEventAt: true,
+      id: true, type: true, bookingId: true, resendRootId: true, trackingLastEventAt: true,
       trackingDeliveredAt: true, trackingOpenedAt: true, trackingClickedAt: true,
       trackingBouncedAt: true, trackingComplainedAt: true, trackingFailedAt: true,
       trackingSuppressedAt: true,
@@ -174,6 +234,11 @@ async function applyStoredResendWebhookEvent(tx: WebhookTransaction, input: {
 
   if (!emailLog) {
     return { matched: false, ignored: false, outcome: "UNMATCHED", deliveryIssue: null };
+  }
+
+  const relevantMergeEvent = ["email.delivered", "email.bounced", "email.failed", "email.suppressed"].includes(eventType);
+  if (emailLog.bookingId && relevantMergeEvent) {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`client-merge-booking:${emailLog.bookingId}`}, 0))`;
   }
 
   const update: Parameters<typeof tx.emailLog.update>[0]["data"] = {};
@@ -207,12 +272,17 @@ async function applyStoredResendWebhookEvent(tx: WebhookTransaction, input: {
     });
   }
 
+  if (emailLog.bookingId && relevantMergeEvent) {
+    const mergeResolution = await resolveMergedBookingIncidents(tx, emailLog.bookingId, emailLog.id, emailLog.resendRootId ?? emailLog.id, eventType);
+    if (mergeResolution.closed > 0 && eventType !== "email.delivered") shouldNotifyDeliveryIssue = false;
+  }
+
   return {
     matched: true,
     ignored: false,
     outcome: "MATCHED",
     deliveryIssue: shouldNotifyDeliveryIssue
-      ? { emailLogId: emailLog.id, bookingId: emailLog.bookingId, eventType }
+      ? { emailLogId: emailLog.id, bookingId: emailLog.bookingId, eventType, isReminder: emailLog.type === EmailLogType.BOOKING_REMINDER }
       : null,
   };
 }
@@ -226,7 +296,7 @@ async function notifyDeliveryIssues(issues: DeliveryIssue[], notifyDeliveryIssue
         const { sendOwnerEmailFailurePushover } = await import("@/lib/notifications/pushover-core");
         await sendOwnerEmailFailurePushover({
           emailLogId: issue.emailLogId, bookingId: issue.bookingId, emailType: issue.eventType,
-          isReminder: false, failureKind: "provider-delivery",
+          isReminder: issue.isReminder, failureKind: "provider-delivery",
         });
       }
     } catch (error) {

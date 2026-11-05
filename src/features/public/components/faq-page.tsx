@@ -119,7 +119,7 @@ export async function FaqPage() {
     <div className="pb-8 sm:pb-12">
       <PublicHero
         eyebrow="FAQ"
-        title="Odpovědi na otázky, které klientce pomáhají rozhodnout se bez nejistoty."
+        title="Co vás zajímá před návštěvou?"
         description="Pokud si nejste jistá výběrem služby nebo průběhem návštěvy, zde najdete odpovědi na nejčastější otázky."
         primaryCta={{ href: "/rezervace", label: "Najít volný termín" }}
         secondaryCta={{ href: "/kontakt", label: "Napsat do studia" }}

@@ -1,5 +1,8 @@
 # 0103: Public Google Ads Tag v1
 
+## Stav
+Neuvedeno v původním záznamu (historické ADR; aktuální stav rozhodnutí je nutné ověřit proti implementaci a novějším ADR).
+
 ## Kontext
 
 PP Studio potřebuje na veřejném webu volitelně nasadit Google tag (`gtag.js`) pro Google Ads měření nad ID typu `AW-*`. Zároveň chceme zachovat stejné privacy guardy jako u Matomo, Clarity a Meta Pixelu: žádné měření adminu, žádné tokenové self-service URL a bezpečný default `off`.

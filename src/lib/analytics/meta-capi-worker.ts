@@ -169,10 +169,11 @@ async function markMetaEventFailedOrRetry(event: ClaimedMetaEvent, error: unknow
   });
 }
 
-export async function runMetaConversionWorkerOnce(now = new Date()) {
+export async function runMetaConversionWorkerOnce(
+  now = new Date(),
+  config: ReturnType<typeof getMetaCapiConfig> = getMetaCapiConfig(),
+) {
   await expireOldMetaEvents(now);
-
-  const config = getMetaCapiConfig();
   if (!config) {
     await cancelUndeliveredEventsWhenDisabled(now);
     return { attempted: 0, sent: 0, retrying: 0, failed: 0 };

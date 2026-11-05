@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const clientListSortValues = ["recent", "bookings", "name", "created"] as const;
+export const clientListSortValues = ["recent", "bookings", "revenue", "name", "created"] as const;
 export const clientListStatusValues = ["all", "active", "inactive"] as const;
 export const clientListViewValues = ["all", "upcoming", "outreach", "new", "no_contact", "inactive"] as const;
 export const clientListQuickFilterValues = [

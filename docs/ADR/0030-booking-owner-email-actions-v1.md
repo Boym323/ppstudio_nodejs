@@ -1,5 +1,8 @@
 # ADR 0030: Booking Owner Email Actions V1
 
+## Stav
+Neuvedeno v původním záznamu (historické ADR; aktuální stav rozhodnutí je nutné ověřit proti implementaci a novějším ADR).
+
 ## Kontext
 
 Veřejná rezervace už existovala ve stavu `PENDING` a klientce i provozu chodily e-maily, ale provoz musel rezervaci vždy dokončit až po otevření adminu. To zbytečně prodlužovalo běžné schvalování termínů.

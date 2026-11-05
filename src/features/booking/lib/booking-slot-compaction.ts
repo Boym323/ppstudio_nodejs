@@ -414,6 +414,7 @@ export async function preparePublishedAvailabilityForManualOverride(
   requestedStartsAt: Date,
   requestedEndsAt: Date,
   ignoredBookingId?: string,
+  validateOnly = false,
 ) {
   const candidateSlots = slots
     .filter((slot, index, collection) => collection.findIndex((candidate) => candidate.id === slot.id) === index)
@@ -478,6 +479,10 @@ export async function preparePublishedAvailabilityForManualOverride(
     };
   }
 
+  if (validateOnly) {
+    return { archivedSlotIds: candidateSlots.map((slot) => slot.id), protectedSlotIds: [] as string[] };
+  }
+
   for (const slot of candidateSlots) {
     const leftInterval = slot.startsAt < requestedStartsAt
       ? { startsAt: slot.startsAt, endsAt: requestedStartsAt }
@@ -532,6 +537,24 @@ export async function preparePublishedAvailabilityForManualOverride(
   };
 }
 
+// Nové výjimky po změně služby mají přesně doložené zdroje dostupnosti.
+// Historické ruční výjimky zachovávají dosavadní způsob obnovy.
+async function getServiceChangeOverrideSourceIds(tx: Prisma.TransactionClient, slotId: string) {
+  const history = await tx.bookingStatusHistory.findMany({
+    where: { metadata: { path: ["manualOverrideSlotId"], equals: slotId } },
+    select: { metadata: true },
+  });
+  const metadata = history.flatMap(({ metadata }) => (
+    metadata && typeof metadata === "object" && !Array.isArray(metadata) ? [metadata] : []
+  ));
+  if (!metadata.some((entry) => entry.createdManualOverride === true)) return undefined;
+  return [...new Set(metadata.flatMap((entry) => (
+    Array.isArray(entry.manualOverrideArchivedSlotIds)
+      ? entry.manualOverrideArchivedSlotIds.filter((id): id is string => typeof id === "string")
+      : []
+  )))];
+}
+
 /**
  * Restores only the ordinary archived availability released by shortening a
  * manual override. The actual restoration and compaction stay delegated to
@@ -547,10 +570,12 @@ export async function restoreArchivedAvailabilityAfterManualOverrideShortening(
     return [] as string[];
   }
 
+  const sourceIds = await getServiceChangeOverrideSourceIds(tx, manualOverrideSlotId);
   const archivedSlots = await tx.availabilitySlot.findMany({
     where: {
       id: {
         not: manualOverrideSlotId,
+        in: sourceIds,
       },
       status: AvailabilitySlotStatus.ARCHIVED,
       startsAt: {
@@ -672,10 +697,12 @@ export async function archiveOrphanedManualOverrideSlotAfterCancellation(
     },
   });
 
+  const sourceIds = await getServiceChangeOverrideSourceIds(tx, slot.id);
   const archivedSlots = await tx.availabilitySlot.findMany({
     where: {
       id: {
         not: slot.id,
+        in: sourceIds,
       },
       ...restorableCancelledSlotWhere,
       status: AvailabilitySlotStatus.ARCHIVED,

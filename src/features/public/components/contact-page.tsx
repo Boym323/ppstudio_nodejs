@@ -16,7 +16,10 @@ export async function ContactPage() {
   await connection();
   const [salonProfile, heroPhoto] = await Promise.all([
     getPublicSalonProfile(),
-    getPrimaryPublicContactPhoto(),
+    getPrimaryPublicContactPhoto().catch((error) => {
+      console.error("Failed to load contact photo", error);
+      return null;
+    }),
   ]);
   const contactItems = buildContactItems({
     phone: salonProfile.phone,
@@ -32,7 +35,7 @@ export async function ContactPage() {
     <div className="pb-24 sm:pb-12">
       <ContactHero
         title="Pokud si nejste jistá, napište mi."
-        description="Ráda vám pomohu s výběrem služby i termínu. Najdete mě ve Zlíně a ozvat se můžete telefonicky, e-mailem i přes Instagram."
+        description="Ráda vám pomohu s výběrem služby nebo odpovím na vaše otázky. Napište mi, zavolejte nebo se ozvěte přes Instagram. Najdete mě na Sadové ve Zlíně; návštěvy jsou možné po předchozí rezervaci."
         phone={salonProfile.phone}
         email={salonProfile.email}
         instagramUrl={salonProfile.instagramUrl}
@@ -58,7 +61,7 @@ export async function ContactPage() {
               instagramUrl={salonProfile.instagramUrl}
               operatorName={salonProfile.operatorName}
               operatorId={salonProfile.businessId}
-              openingHours="Po–Pá: pouze po předchozí rezervaci"
+              visitInfo="Návštěvy pouze po předchozí rezervaci"
             />
           </div>
           <ContactParkingInfoCard parkingRateHref={parkingRateHref} congressParkingHref={congressParkingHref} />

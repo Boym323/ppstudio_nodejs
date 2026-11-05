@@ -56,7 +56,7 @@ test("chybějící jmenovatel nezobrazuje nulovou obsazenost, útratu ani míru 
     assert.match(content, />—</);
     assert.doesNotMatch(content, /Oproti předchozímu období/);
   }
-  assert.match(html, /Srovnání: 29\. 9\. 2026–30\. 9\. 2026/);
+  assert.match(html, /Srovnání: 1\. 9\. 2026–2\. 9\. 2026/);
 });
 
 test("obsazenost ukazuje hodiny a desetinné procentní body bez hodnocení lepší či horší", () => {
@@ -70,7 +70,6 @@ test("obsazenost ukazuje hodiny a desetinné procentní body bez hodnocení lep�
   assert.match(content, /\+0,4 p\. b\./);
   assert.doesNotMatch(content, /lepší|horší/);
   assert.match(card(html, "Zaplnění celého měsíce"), /7 h rezervováno z 10 h dostupných/);
-  assert.match(html, /href="\/admin\/provoz\/rezervace\?status=completed"/);
 });
 
 test("přesah kapacity je viditelný a storna se hodnotí podle míry i při růstu počtu", () => {
@@ -96,10 +95,10 @@ test("výsledek a výhled spojí tržby i návštěvy do stejného období", () 
   const html = renderToStaticMarkup(<AdminKpiDashboardPage data={data} area="owner" />);
   assert.match(card(html, "Tržby"), /Dokončeno.*1\s*000\s*Kč/);
   assert.match(card(html, "Tržby"), /Očekáváno do konce měsíce.*2\s*200\s*Kč/);
-  assert.match(card(html, "Tržby"), /Odhad celkem.*3\s*200\s*Kč/);
+  assert.match(card(html, "Tržby"), /Dokončeno \+ potvrzené rezervace:.*3\s*200\s*Kč/);
   assert.match(card(html, "Návštěvy"), /Dokončeno.*2/);
   assert.match(card(html, "Návštěvy"), /Očekáváno do konce měsíce.*4/);
-  assert.match(card(html, "Návštěvy"), /Odhad celkem.*6/);
+  assert.match(card(html, "Návštěvy"), /Dokončeno \+ potvrzené rezervace:.*6/);
   assert.match(card(html, "Tržby"), /Oproti předchozímu období/);
   assert.match(card(html, "Návštěvy"), /Oproti předchozímu období/);
 });
@@ -115,6 +114,6 @@ test("neúplný odhad tržeb ukáže chybějící ceny a historický výhled nev
     const content = card(html, label);
     assert.match(content, />—</);
     assert.match(content, /Historický výhled není dostupný/);
-    assert.doesNotMatch(content, /Odhad celkem|odhad tržeb je neúplný/);
+    assert.doesNotMatch(content, /Dokončeno \+ potvrzené rezervace:|odhad tržeb je neúplný/);
   }
 });
