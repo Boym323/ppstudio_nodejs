@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Request } from "@playwright/test";
 
 import { cleanupE2eData, createPublicBookingFixture, prisma, type E2eFixture } from "./helpers/fixtures";
 
@@ -69,7 +69,7 @@ test.describe("obnova rozpracované rezervace v prohlížeči", () => {
     let intercepted = 0;
     let releaseAction!: () => void;
     const release = new Promise<void>((resolve) => { releaseAction = resolve; });
-    const isBookingAction = (request: ReturnType<Page["request"]> extends never ? never : { method(): string; url(): string; headers(): Record<string, string> }) =>
+    const isBookingAction = (request: Request) =>
       request.method() === "POST"
       && new URL(request.url()).pathname === "/rezervace"
       && Boolean(request.headers()["next-action"]);
