@@ -5,6 +5,7 @@ import { env } from "@/config/env";
 import { getTrustedClientIp } from "@/lib/http/trusted-client-ip";
 import { prisma } from "@/lib/prisma";
 import { consumeAtomicRateLimit, releaseAtomicRateLimitReservation } from "@/lib/security/atomic-rate-limit";
+import type { VoucherValidationReasonCode } from "./voucher-validation";
 
 const VOUCHER_VERIFICATION_ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const VOUCHER_VERIFICATION_MAX_ATTEMPTS_PER_IP = 10;
@@ -52,6 +53,19 @@ const outcomeToLogMapping: Record<
     failureCode: "UNKNOWN_ERROR",
     failureReason: "Veřejné ověření voucheru selhalo interní chybou.",
   },
+};
+
+const validationReasonDescriptions: Record<VoucherValidationReasonCode, string> = {
+  INVALID_INPUT: "Kód voucheru má neplatný formát nebo je prázdný.",
+  NOT_FOUND: "Voucher se zadaným kódem nebyl nalezen.",
+  DRAFT: "Voucher zatím není aktivní.",
+  CANCELLED: "Voucher byl zrušen.",
+  REDEEMED: "Voucher už byl plně uplatněn.",
+  EXPIRED: "Platnost voucheru vypršela.",
+  NO_REMAINING_VALUE: "Voucher nemá dostupný zůstatek.",
+  SERVICE_MISMATCH: "Voucher nelze použít na vybranou službu.",
+  NOT_ACTIVATED: "Voucher zatím nebyl aktivován.",
+  STOCK_VOID: "Předtištěný voucher byl zneplatněn.",
 };
 
 function hashVoucherVerificationFingerprint(value: string) {
@@ -119,12 +133,14 @@ export async function writeVoucherPublicVerificationAttemptLog({
   ipHash,
   userAgent,
   metadata,
+  validationReason,
 }: {
   auditOutcome: PublicVoucherVerificationAuditOutcome;
   source: PublicVoucherVerificationSource;
   ipHash?: string;
   userAgent?: string;
   metadata?: Prisma.InputJsonValue;
+  validationReason?: VoucherValidationReasonCode;
 }) {
   const mapping = outcomeToLogMapping[auditOutcome];
 
@@ -133,7 +149,9 @@ export async function writeVoucherPublicVerificationAttemptLog({
       data: {
         outcome: mapping.outcome,
         failureCode: getVoucherPublicVerificationFailureCode(source, auditOutcome),
-        failureReason: mapping.failureReason,
+        failureReason: auditOutcome === "NOT_FOUND_OR_INVALID" && validationReason
+          ? validationReasonDescriptions[validationReason]
+          : mapping.failureReason,
         ipHash,
         userAgent,
         metadata,

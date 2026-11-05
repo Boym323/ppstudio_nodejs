@@ -1,10 +1,42 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { VoucherValidationReasonCode } from "./voucher-validation";
 
 process.env.NEXT_PUBLIC_APP_URL ??= "https://example.com";
 process.env.DATABASE_URL ??= "postgresql://postgres:postgres@localhost:5432/ppstudio?schema=public";
 process.env.ADMIN_SESSION_SECRET ??= "test-secret-value-with-at-least-32-chars";
 process.env.ADMIN_OWNER_EMAIL ??= "owner@example.com";
+
+test("audit uchová přesný důvod odmítnutí pro oba zdroje a zachová kód pro rate limit", async (t) => {
+  const writes: Array<{ data: { failureReason: string; failureCode: string } }> = [];
+  t.mock.module("@/lib/prisma", { exports: { prisma: { bookingSubmissionLog: {
+    create: async (args: typeof writes[number]) => { writes.push(args); return {}; },
+  } } } });
+  const { writeVoucherPublicVerificationAttemptLog, publicVoucherVerificationSources } = await import("./voucher-public-verification-rate-limit");
+  const cases: Array<[VoucherValidationReasonCode, string]> = [
+    ["INVALID_INPUT", "Kód voucheru má neplatný formát nebo je prázdný."],
+    ["NOT_FOUND", "Voucher se zadaným kódem nebyl nalezen."],
+    ["DRAFT", "Voucher zatím není aktivní."],
+    ["CANCELLED", "Voucher byl zrušen."],
+    ["REDEEMED", "Voucher už byl plně uplatněn."],
+    ["EXPIRED", "Platnost voucheru vypršela."],
+    ["NO_REMAINING_VALUE", "Voucher nemá dostupný zůstatek."],
+    ["SERVICE_MISMATCH", "Voucher nelze použít na vybranou službu."],
+    ["NOT_ACTIVATED", "Voucher zatím nebyl aktivován."],
+    ["STOCK_VOID", "Předtištěný voucher byl zneplatněn."],
+  ];
+  for (const source of Object.values(publicVoucherVerificationSources)) {
+    for (const [validationReason, description] of cases) {
+      await writeVoucherPublicVerificationAttemptLog({ source, auditOutcome: "NOT_FOUND_OR_INVALID", validationReason });
+      assert.equal(writes.at(-1)?.data.failureReason, description);
+      assert.equal(writes.at(-1)?.data.failureCode, `PUBLIC_VOUCHER_VERIFY_${source}_NOT_FOUND_OR_INVALID`);
+    }
+    await writeVoucherPublicVerificationAttemptLog({ source, auditOutcome: "NOT_FOUND_OR_INVALID" });
+    assert.equal(writes.at(-1)?.data.failureReason, "Veřejné ověření voucheru neprošlo.");
+    await writeVoucherPublicVerificationAttemptLog({ source, auditOutcome: "SUCCESS", validationReason: "EXPIRED" });
+    assert.equal(writes.at(-1)?.data.failureReason, "Veřejné ověření voucheru proběhlo úspěšně.");
+  }
+});
 
 test("veřejné ověření voucheru se zablokuje od desátého neplatného pokusu v okně", async () => {
   const { isVoucherPublicVerificationRateLimited } = await import("./voucher-public-verification-rate-limit");

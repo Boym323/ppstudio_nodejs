@@ -201,6 +201,9 @@ function AttentionSummary({ data }: { data: AdminLogsData }) {
 }
 
 function LogStatus({ item, view }: { item: AdminLogItem; view: AdminLogView }) {
+  if (view === "system" && item.systemResult) {
+    return <span className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${severityClasses[item.systemResult.severity]}`}><span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${severityDotClasses[item.systemResult.severity]}`} />{item.systemResult.label}</span>;
+  }
   if (view === "emails" && item.emailBadge) {
     return (
       <div className="flex flex-col items-start gap-1">
@@ -220,7 +223,16 @@ function LogDescription({ item, view }: { item: AdminLogItem; view: AdminLogView
   if (!item.description) return null;
   if (view === "events") return <p className="mt-1 whitespace-pre-wrap break-words text-xs leading-5 text-white/70">{item.description}</p>;
   if (view === "attention" || view === "emails") return <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-5 text-white/70">{item.description}</p>;
-  return <details className="mt-1 text-sm text-white/65"><summary className="cursor-pointer py-1">Podrobnosti změny</summary><p className="whitespace-pre-wrap break-words py-1">{item.description}</p></details>;
+  return <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-5 text-white/75">{item.description}</p>;
+}
+
+function TechnicalLogDetails({ item }: { item: AdminLogItem }) {
+  return <>
+    {item.entityLabel ? <div className="text-xs text-white/55"><EntityLink item={item} /></div> : null}
+    <LogDescription item={item} view="system" />
+    {item.actorLabel ? <p className="mt-1 break-words text-xs text-white/60">Provedl: {item.actorLabel}</p> : null}
+    {item.technicalCode ? <p className="mt-2 text-xs leading-5 text-white/50">Kód události: <code className="[overflow-wrap:anywhere] text-white/65">{item.technicalCode}</code></p> : null}
+  </>;
 }
 
 function EntityLink({ item }: { item: AdminLogItem }) {
@@ -233,17 +245,16 @@ function LogCard({ item, view }: { item: AdminLogItem; view: AdminLogView }) {
     <article className={`min-w-0 px-3 ${isHistory ? "py-2.5 sm:px-3" : "py-3 sm:px-4"} ${isHistory ? "rounded-xl border border-white/10 bg-white/[.035] transition-colors hover:border-white/20 hover:bg-white/[.055]" : "border-b border-white/8 last:border-b-0"} ${view === "attention" && item.severity === "error" ? "border-l-2 border-l-rose-400 bg-rose-400/[.035]" : ""}`}>
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1.5">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          {(isHistory || view === "system") ? <SourceLabel source={item.sourceType} /> : null}
+          {isHistory ? <SourceLabel source={item.sourceType} /> : null}
           <h3 className="min-w-0 break-words text-[15px] font-semibold leading-5 text-white">{item.title}</h3>
         </div>
         <time dateTime={item.occurredAt} className="shrink-0 text-xs font-medium tabular-nums text-white/55">{formatLogTime(item.occurredAt, isHistory)}</time>
       </div>
-      <EntityLink item={item} />
-      <LogDescription item={item} view={view} />
+      {view === "system" ? <TechnicalLogDetails item={item} /> : <><EntityLink item={item} /><LogDescription item={item} view={view} /></>}
       <div className={`${isHistory ? "mt-1" : "mt-2"} flex flex-wrap items-center justify-between gap-x-3 gap-y-1`}>
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <LogStatus item={item} view={view} />
-          {item.actorLabel ? <span className="break-words text-xs text-white/55">Autor: {item.actorLabel}</span> : null}
+          {view !== "system" && item.actorLabel ? <span className="break-words text-xs text-white/55">Autor: {item.actorLabel}</span> : null}
         </div>
         <Action item={item} />
       </div>
@@ -298,13 +309,14 @@ function HistoryList({ items }: { items: AdminLogItem[] }) {
 
 function LogTable({ data }: { data: AdminLogsData }) {
   const emails = data.view === "emails";
-  return <><div className="hidden overflow-x-auto rounded-xl border border-white/8 md:block"><table className="w-full min-w-[680px] table-fixed text-left text-sm"><colgroup><col /><col className="w-[12rem]" /><col className="w-[10rem]" /><col className="w-[9rem]" /></colgroup>
-    <thead className="border-b border-white/10 text-xs text-white/60"><tr><th scope="col" className="px-3 py-2 font-medium">{emails ? "Zpráva a příjemce" : "Událost"}</th><th scope="col" className="px-3 py-2 font-medium">{emails ? "Doručování" : "Stav"}</th><th scope="col" className="px-3 py-2 font-medium">Čas</th><th scope="col" className="px-3 py-2"><span className="sr-only">Akce</span></th></tr></thead>
+  const system = data.view === "system";
+  return <><div className="hidden overflow-x-auto rounded-xl border border-white/8 md:block"><table className="w-full min-w-[680px] table-fixed text-left text-sm"><colgroup><col /><col className={system ? "w-[9rem]" : "w-[12rem]"} /><col className="w-[10rem]" />{!system ? <col className="w-[9rem]" /> : null}</colgroup>
+    <thead className="border-b border-white/10 text-xs text-white/60"><tr><th scope="col" className="px-3 py-2 font-medium">{emails ? "Zpráva a příjemce" : "Událost a podrobnosti"}</th><th scope="col" className="px-3 py-2 font-medium">{emails ? "Doručování" : "Výsledek"}</th><th scope="col" className="px-3 py-2 font-medium">Čas</th>{!system ? <th scope="col" className="px-3 py-2"><span className="sr-only">Akce</span></th> : null}</tr></thead>
     <tbody>{data.items.map((item) => <tr key={item.id} className="border-b border-white/8 last:border-0 hover:bg-white/[.025]">
-      <td className="px-3 py-2 align-top">{data.view === "system" ? <SourceLabel source={item.sourceType} /> : null}<p className="break-words font-medium text-white">{item.title}</p><EntityLink item={item} /><LogDescription item={item} view={data.view} />{item.actorLabel ? <p className="mt-1 text-xs text-white/55">{item.actorLabel}</p> : null}</td>
+      <td className={`px-3 align-top ${system ? "py-3" : "py-2"}`}><p className="break-words font-medium text-white">{item.title}</p>{system ? <><TechnicalLogDetails item={item} />{!(item.entityHref && item.entityLabel) ? <Action item={item} /> : null}</> : <><EntityLink item={item} /><LogDescription item={item} view={data.view} />{item.actorLabel ? <p className="mt-1 text-xs text-white/55">{item.actorLabel}</p> : null}</>}</td>
       <td className="px-3 py-2 align-top"><LogStatus item={item} view={data.view} /></td>
       <td className="whitespace-nowrap px-3 py-2 align-top text-xs text-white/55"><time dateTime={item.occurredAt}>{formatLogTime(item.occurredAt)}</time></td>
-      <td className="px-3 py-2 align-top"><Action item={item} /></td>
+      {!system ? <td className="px-3 py-2 align-top"><Action item={item} /></td> : null}
     </tr>)}</tbody>
   </table></div><div className="rounded-xl border border-white/8 md:hidden">{data.items.map((item) => <LogCard key={item.id} item={item} view={data.view} />)}</div></>;
 }

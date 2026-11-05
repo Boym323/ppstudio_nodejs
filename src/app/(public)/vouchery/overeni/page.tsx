@@ -323,6 +323,7 @@ async function loadVerificationResult(code: string, requestHeaders: Headers): Pr
     await writeVoucherPublicVerificationAttemptLog({
       auditOutcome:
         verificationResult.ok ? "SUCCESS" : "NOT_FOUND_OR_INVALID",
+      validationReason: verificationResult.ok ? undefined : verificationResult.reason,
       source,
       ipHash: requestMetadata.ipHash,
       userAgent: requestMetadata.userAgent,

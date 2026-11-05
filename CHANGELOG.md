@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Změněno
+
+- Technické události zobrazují popis a kód přímo v řádku bez rozbalování, rozlišují úspěšné, neúspěšné a zablokované operace a u ověření voucherů uvádějí, zda proběhlo na veřejné stránce nebo v rezervaci. Nová ověření ukládají a zobrazují konkrétní důvod odmítnutí, například vypršelou platnost, vyčerpaný voucher nebo nesoulad služby. Přehled neopakuje obecné štítky systému a na desktopu věnuje více místa podrobnostem.
+
 ## [3.40.0] - 2026-11-05
 
 ### Zabezpečení
