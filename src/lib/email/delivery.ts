@@ -103,6 +103,8 @@ type ClientBookingDeliveryBooking = {
   scheduledStartsAt: Date;
   scheduledEndsAt: Date;
   serviceId: string;
+  finalPriceCzk?: number | null;
+  servicePriceFromCzk?: number | null;
 };
 
 type ClientBookingDeliveryAuthorization =
@@ -211,6 +213,8 @@ async function authorizeClientBookingDelivery(
         scheduledStartsAt: true,
         scheduledEndsAt: true,
         serviceId: true,
+        finalPriceCzk: true,
+        servicePriceFromCzk: true,
       },
     });
     const currentEmailLog = await tx.$queryRaw<Array<{
@@ -427,6 +431,8 @@ export async function deliverEmailLog(
         clientDeliveryLeaseExpiresAt: true,
         reminder24hSentAt: true,
         serviceId: true,
+        finalPriceCzk: true,
+        servicePriceFromCzk: true,
         scheduledStartsAt: true,
         scheduledEndsAt: true,
       },
@@ -547,6 +553,8 @@ export async function deliverEmailLog(
             scheduledStartsAt: true,
             scheduledEndsAt: true,
             serviceId: true,
+            finalPriceCzk: true,
+            servicePriceFromCzk: true,
           },
           }),
           tx.emailLog.findUnique({

@@ -82,6 +82,7 @@ type ApplyAdminBookingStatusChangeInput = {
 };
 
 type UpdateAdminBookingServiceInput = {
+  notifyClient?: boolean;
   allowManualOverride?: boolean;
   bookingId: string;
   serviceId: string;
@@ -546,11 +547,12 @@ export async function updateAdminBookingService(input: UpdateAdminBookingService
   return resolveAdminBookingServiceChange(input, false);
 }
 
-export async function previewAdminBookingServiceChange(input: Omit<UpdateAdminBookingServiceInput, "allowManualOverride" | "reason">) {
+export async function previewAdminBookingServiceChange(input: Omit<UpdateAdminBookingServiceInput, "allowManualOverride" | "reason" | "notifyClient">) {
   return resolveAdminBookingServiceChange({ ...input, allowManualOverride: true }, true);
 }
 
 async function resolveAdminBookingServiceChange({
+  notifyClient = false,
   allowManualOverride = false,
   bookingId,
   serviceId,
@@ -926,6 +928,9 @@ async function resolveAdminBookingServiceChange({
       nextCleanupBlockMinutes: nextTiming.cleanupBlockMinutes,
       keptFinalPriceCzk: booking.finalPriceCzk,
       createdManualOverride: createsManualOverride,
+      notificationStatus: !previewOnly && notifyClient && booking.clientEmailSnapshot.trim()
+        ? env.EMAIL_DELIVERY_MODE === "background" ? "queued" as const : "logged" as const
+        : "skipped" as const,
     };
 
     if (previewOnly) return success;
@@ -1010,6 +1015,50 @@ async function resolveAdminBookingServiceChange({
       },
     });
 
+    if (success.notificationStatus !== "skipped") {
+      const manageToken = buildBookingActionToken();
+      const cancellationToken = buildBookingActionToken();
+      const actionToken = await tx.bookingActionToken.create({
+        data: {
+          bookingId: booking.id, type: BookingActionTokenType.RESCHEDULE,
+          tokenHash: manageToken.tokenHash,
+          expiresAt: buildBookingSelfServiceActionExpiry(booking.scheduledStartsAt), lastSentAt: now,
+        },
+        select: { id: true },
+      });
+      await tx.bookingActionToken.create({
+        data: {
+          bookingId: booking.id, type: BookingActionTokenType.CANCEL,
+          tokenHash: cancellationToken.tokenHash,
+          expiresAt: buildBookingSelfServiceActionExpiry(booking.scheduledStartsAt), lastSentAt: now,
+        },
+      });
+      const payload = {
+        bookingId: booking.id, serviceId: nextService.id, serviceName: nextService.name,
+        previousServiceName: booking.serviceNameSnapshot, clientName: booking.clientNameSnapshot,
+        bookingStatus: booking.status,
+        scheduledStartsAt: booking.scheduledStartsAt.toISOString(), scheduledEndsAt: nextScheduledEndsAt.toISOString(),
+        priceCzk: booking.finalPriceCzk ?? nextService.priceFromCzk,
+        priceIsFinal: booking.finalPriceCzk !== null,
+        manageReservationUrl: buildBookingManagementUrl(manageToken.rawToken),
+        cancellationUrl: buildBookingCancellationUrl(cancellationToken.rawToken),
+      };
+      const queued = success.notificationStatus === "queued";
+      await tx.emailLog.create({
+        data: {
+          bookingId: booking.id, clientId: booking.clientId, actionTokenId: actionToken.id,
+          type: EmailLogType.GENERIC, audience: EmailAudience.CLIENT,
+          communicationGeneration: booking.communicationGeneration + 1,
+          recipientEmail: booking.clientEmailSnapshot.trim(),
+          subject: `Změna vaší rezervace: ${nextService.name}`, templateKey: "booking-service-changed-v1",
+          payload: queued ? payload : scrubSensitiveEmailPayload(payload),
+          status: queued ? EmailLogStatus.PENDING : EmailLogStatus.SENT,
+          attemptCount: queued ? 0 : 1, nextAttemptAt: queued ? now : undefined,
+          provider: queued ? undefined : "log", sentAt: queued ? undefined : now,
+        },
+      });
+    }
+
     if (shouldEnqueueReplacementReminder) {
       await enqueueBookingReminder24hForBooking(tx, {
         id: booking.id,
@@ -1032,6 +1081,8 @@ async function resolveAdminBookingServiceChange({
       manualOverrideArchivedSlotIds,
       createdManualOverride: createsManualOverride,
       allowManualOverride,
+      notifyClient,
+      notificationStatus: success.notificationStatus,
       previousBlockedUntil: oldBlockedUntil.toISOString(),
       nextBlockedUntil: nextBlockedUntil.toISOString(),
       previousSlotId: slot.id,

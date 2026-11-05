@@ -186,7 +186,12 @@ Používá tokeny:
 
 ## ICS pro klientku
 
-Potvrzovací e-mail po stavu `CONFIRMED` a e-mail po změně termínu přikládají jeden `.ics` soubor. Veřejný ICS endpoint ani token typu `CALENDAR` se nepoužívají.
+Potvrzovací e-mail po stavu `CONFIRMED`, e-mail po změně termínu a oznámení změny služby přikládají jeden `.ics` soubor. Veřejný ICS endpoint ani token typu `CALENDAR` se nepoužívají.
+
+Při změně služby v administraci je výchozí volba **Informovat klientku e-mailem**. Změna a oznámení se uloží atomicky; worker poté doručí šablonu `booking-service-changed-v1` s novou službou, aktuální cenou a časem návštěvy. Individuální cena zůstává zachovaná. Klientka dostane funkční odkazy pro správu a storno; příloha zachová UID rezervace a obsahuje nový konec služby bez úklidu. U čekající rezervace zůstane stav čekající a kalendářová událost je `TENTATIVE`.
+
+Bez e-mailu klientky nebo při vypnutí oznámení se změna uloží bez zprávy. Náhled nezakládá e-maily ani tokeny. Odesílání a opakované odeslání kontrolují aktuálnost služby, času, stavu, ceny a generace komunikace. Podrobnosti viz [ADR 0100](docs/ADR/0100-admin-booking-service-change-v1.md).
+
 
 ## Audit a observability
 

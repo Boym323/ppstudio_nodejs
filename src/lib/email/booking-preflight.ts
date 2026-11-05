@@ -7,6 +7,8 @@ import { Prisma } from "@/generated/prisma/client";
 
 export type BookingEmailPreflightBooking = {
   status: BookingStatus;
+  finalPriceCzk?: number | null;
+  servicePriceFromCzk?: number | null;
   serviceId: string;
   clientNameSnapshot?: string;
   scheduledStartsAt: Date;
@@ -90,6 +92,7 @@ function isClientBookingTemplate(templateKey: string) {
     "booking-rejected-v1",
     "booking-cancelled-v1",
     "booking-rescheduled-v1",
+    "booking-service-changed-v1",
   ].includes(templateKey);
 }
 
@@ -113,6 +116,7 @@ function isServicePreflightEmail(type: EmailLogType, templateKey: string) {
     || templateKey === "booking-approved-v1"
     || templateKey === "booking-reminder-24h-v1"
     || templateKey === "booking-rescheduled-v1"
+    || templateKey === "booking-service-changed-v1"
   );
 }
 
@@ -196,7 +200,18 @@ export function evaluateBookingEmailPreflight({
     }
   }
 
-  if (templateKey === "booking-rescheduled-v1" || type === EmailLogType.BOOKING_RESCHEDULED) {
+  if (templateKey === "booking-service-changed-v1") {
+    if (readPayloadString(payload, "bookingStatus") !== booking.status) {
+      return { shouldSend: false, reason: "Booking status no longer matches the service change email." };
+    }
+    if (booking.finalPriceCzk !== undefined && booking.servicePriceFromCzk !== undefined
+      && payload && typeof payload === "object" && "priceCzk" in payload
+      && payload.priceCzk !== (booking.finalPriceCzk ?? booking.servicePriceFromCzk)) {
+      return { shouldSend: false, reason: "Booking price no longer matches the service change email." };
+    }
+  }
+
+  if (templateKey === "booking-service-changed-v1" || templateKey === "booking-rescheduled-v1" || type === EmailLogType.BOOKING_RESCHEDULED) {
     if (
       booking.status !== BookingStatus.PENDING
       && booking.status !== BookingStatus.CONFIRMED

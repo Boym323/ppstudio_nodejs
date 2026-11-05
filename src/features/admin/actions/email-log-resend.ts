@@ -31,6 +31,7 @@ const CLIENT_TOKEN_EMAIL_TEMPLATES = new Set([
   "booking-approved-v1",
   "booking-reminder-24h-v1",
   "booking-rescheduled-v1",
+  "booking-service-changed-v1",
 ]);
 
 type ResendTokenPayload = {
@@ -56,6 +57,8 @@ type CurrentResendBooking = Prisma.BookingGetPayload<{
     clientEmailSnapshot: true;
     status: true;
     serviceId: true;
+    finalPriceCzk: true;
+    servicePriceFromCzk: true;
     serviceNameSnapshot: true;
     clientNameSnapshot: true;
     intendedVoucherCodeSnapshot: true;
@@ -112,6 +115,8 @@ async function loadCurrentResendBooking(
       clientEmailSnapshot: true,
       status: true,
       serviceId: true,
+      finalPriceCzk: true,
+      servicePriceFromCzk: true,
       serviceNameSnapshot: true,
       clientNameSnapshot: true,
       intendedVoucherCodeSnapshot: true,
@@ -271,7 +276,9 @@ async function reconcilePendingClientTokenEmailLogs(
           recipientEmail: booking.clientEmailSnapshot.trim(),
           communicationGeneration: booking.communicationGeneration,
           actionTokenId,
-          payload: preservesManualReminderResend
+          payload: emailLog.templateKey === "booking-service-changed-v1"
+            ? { ...(emailLog.payload as Prisma.JsonObject), ...canonicalPayload }
+            : preservesManualReminderResend
             ? { ...canonicalPayload, manualReminderResend: true }
             : canonicalPayload,
           // Přepsání na novou komunikační generaci zároveň ruší případný

@@ -68,6 +68,7 @@ import {
 
 const updateBookingServiceSchema = z.object({
   allowManualOverride: z.boolean(),
+  notifyClient: z.boolean().default(false),
   area: z.enum(["owner", "salon"]),
   bookingId: z.string().trim().min(1).max(64),
   serviceId: z.string().trim().min(1, "Vyberte novou službu.").max(64),
@@ -82,6 +83,7 @@ export async function updateBookingServiceAction(
 ): Promise<UpdateBookingServiceActionState> {
   const parsed = updateBookingServiceSchema.safeParse({
     allowManualOverride: readFormString(formData, "allowManualOverride") === "1",
+    notifyClient: readFormString(formData, "notifyClient") === "1",
     area: readFormString(formData, "area"),
     bookingId: readFormString(formData, "bookingId"),
     serviceId: readFormString(formData, "serviceId"),
@@ -104,14 +106,21 @@ export async function updateBookingServiceAction(
 
   const area = parsed.data.area as AdminArea;
   const actorUserId = await resolveBookingActorUserId(area);
-  const result = await updateAdminBookingService({
-    allowManualOverride: parsed.data.allowManualOverride,
-    bookingId: parsed.data.bookingId,
-    serviceId: parsed.data.serviceId,
-    actorUserId,
-    expectedUpdatedAt: parsed.data.expectedUpdatedAt,
-    reason: parsed.data.reason || null,
-  });
+  let result: Awaited<ReturnType<typeof updateAdminBookingService>>;
+  try {
+    result = await updateAdminBookingService({
+      allowManualOverride: parsed.data.allowManualOverride,
+      notifyClient: parsed.data.notifyClient,
+      bookingId: parsed.data.bookingId,
+      serviceId: parsed.data.serviceId,
+      actorUserId,
+      expectedUpdatedAt: parsed.data.expectedUpdatedAt,
+      reason: parsed.data.reason || null,
+    });
+  } catch {
+    console.error("Uložení změny služby nebo příprava oznámení selhala.", { bookingId: parsed.data.bookingId });
+    return { status: "error", formError: "Změnu služby se nepodařilo uložit. Rezervace zůstala beze změny; zkuste to prosím znovu." };
+  }
 
   if (result.status !== "success") return getBookingServiceChangeError(result);
 
@@ -131,7 +140,10 @@ export async function updateBookingServiceAction(
       `Služba byla změněná z „${result.previousServiceName}“ na „${result.nextServiceName}“.`
       + `${durationChanged || cleanupChanged ? " Termín rezervace byl přepočítaný podle nové délky služby." : ""}`
       + `${result.createdManualOverride ? " Prodloužení bylo uložené jako interní výjimka mimo vypsané termíny." : ""}`
-      + keptPriceNotice,
+      + keptPriceNotice
+      + (result.notificationStatus === "queued" ? " Oznámení klientce včetně kalendáře bylo zařazené k odeslání."
+        : result.notificationStatus === "logged" ? " Oznámení klientce bylo zaznamenané v testovacím režimu bez odeslání."
+        : parsed.data.notifyClient ? " Oznámení nebylo odeslané, protože u rezervace chybí e-mail klientky." : ""),
   };
 }
 

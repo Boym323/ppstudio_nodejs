@@ -191,6 +191,7 @@ export function getErrorSummary(errorMessage: string | null) {
 }
 
 export function emailTypeLabel(type: EmailLogType, templateKey: string): string {
+  if (templateKey === "booking-service-changed-v1") return "Změna služby rezervace";
   if (templateKey === "booking-confirmation-v1") {
     return "Přijetí rezervace";
   }

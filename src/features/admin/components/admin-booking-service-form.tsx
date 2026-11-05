@@ -24,6 +24,7 @@ function formatPrice(priceFromCzk: number | null) {
 export function AdminBookingServiceForm({
   area,
   bookingId,
+  clientEmail,
   expectedUpdatedAt,
   currentServiceId,
   scheduledStartsAt,
@@ -31,6 +32,7 @@ export function AdminBookingServiceForm({
 }: {
   area: AdminArea;
   bookingId: string;
+  clientEmail: string;
   expectedUpdatedAt: string;
   currentServiceId: string;
   scheduledStartsAt: string;
@@ -217,6 +219,18 @@ export function AdminBookingServiceForm({
           {feedback.fieldErrors?.reason ? (
             <p id={`${errorId}-reason`} role="alert" className="mt-2 text-sm text-red-300">{feedback.fieldErrors.reason}</p>
           ) : null}
+        </label>
+
+        <label className="flex min-h-11 items-start gap-3 text-sm leading-5 text-white/75">
+          <input type="checkbox" name="notifyClient" value="1" defaultChecked={Boolean(clientEmail)} disabled={!clientEmail} className="mt-1" />
+          <span>
+            Informovat klientku e-mailem
+            <span className="mt-1 block text-xs text-white/45">
+              {clientEmail
+                ? `Na ${clientEmail} odešleme novou službu, cenu a čas návštěvy s aktualizovanou událostí do kalendáře.`
+                : "U rezervace chybí e-mail klientky. Změnu můžete uložit, oznámení nebude odeslané."}
+            </span>
+          </span>
         </label>
 
         <SubmitServiceButton disabled={!serviceChanged || !preview || preview.status === "blocked" || (preview.status === "requires-override" && !overrideConfirmed)} />

@@ -53,7 +53,10 @@ export async function refreshPendingClientBookingEmailNames(
       bookingId: { in: input.bookingIds },
       audience: EmailAudience.CLIENT,
       status: EmailLogStatus.PENDING,
-      type: { in: [...CLIENT_BOOKING_EMAIL_TYPES] },
+      OR: [
+        { type: { in: [...CLIENT_BOOKING_EMAIL_TYPES] } },
+        { templateKey: "booking-service-changed-v1" },
+      ],
     },
     select: { id: true, payload: true },
   });

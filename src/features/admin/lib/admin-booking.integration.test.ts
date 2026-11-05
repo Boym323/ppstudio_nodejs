@@ -2906,3 +2906,130 @@ for (const scenario of [
     }
   });
 }
+
+
+for (const notificationCase of ["queued", "optout", "missing-email", "pending", "final-price", "unknown-price"] as const) {
+  dbTest(`oznámení změny služby: ${notificationCase}`, async () => {
+    const [{ prisma }, { previewAdminBookingServiceChange, updateAdminBookingService }] = await Promise.all([
+      import("@/lib/prisma"), import("./admin-booking"),
+    ]);
+    const fixture = await createAdminServiceChangeFixture(prisma, randomUUID().slice(0, 8));
+    try {
+      await prisma.booking.update({ where: { id: fixture.booking.id }, data: {
+        clientEmailSnapshot: notificationCase === "missing-email" ? " " : `client-service-change-${fixture.owner.id}@example.com`,
+        status: notificationCase === "pending" ? "PENDING" : "CONFIRMED",
+        finalPriceCzk: notificationCase === "final-price" ? 1700 : null,
+      } });
+      if (notificationCase === "unknown-price") await prisma.service.update({ where: { id: fixture.replacementService.id }, data: { priceFromCzk: null } });
+      const before = await prisma.booking.findUniqueOrThrow({ where: { id: fixture.booking.id } });
+      const input = { bookingId: fixture.booking.id, serviceId: fixture.replacementService.id, actorUserId: fixture.owner.id, expectedUpdatedAt: before.updatedAt.toISOString(), now: new Date(fixture.startsAt.getTime() - 7 * 24 * 60 * 60_000) };
+      const preview = await previewAdminBookingServiceChange(input);
+      assert.equal(preview.status, "success");
+      assert.equal(await prisma.emailLog.count({ where: { bookingId: fixture.booking.id } }), 0);
+      assert.equal(await prisma.bookingActionToken.count({ where: { bookingId: fixture.booking.id } }), 0);
+      const result = await updateAdminBookingService({ ...input, notifyClient: notificationCase !== "optout" });
+      assert.equal(result.status, "success");
+      if (result.status !== "success") assert.fail("Expected successful change");
+      const shouldNotify = notificationCase !== "optout" && notificationCase !== "missing-email";
+      assert.equal(result.notificationStatus, shouldNotify ? "queued" : "skipped");
+      const logs = await prisma.emailLog.findMany({ where: { bookingId: fixture.booking.id, templateKey: "booking-service-changed-v1" } });
+      assert.equal(logs.length, shouldNotify ? 1 : 0);
+      assert.equal(await prisma.bookingActionToken.count({ where: { bookingId: fixture.booking.id } }), shouldNotify ? 2 : 0);
+      if (shouldNotify) {
+        const log = logs[0]!;
+        const payload = log.payload as Prisma.JsonObject;
+        assert.equal(log.status, EmailLogStatus.PENDING);
+        assert.equal(log.communicationGeneration, before.communicationGeneration + 1);
+        assert.equal(payload.serviceId, fixture.replacementService.id);
+        assert.equal(payload.previousServiceName, before.serviceNameSnapshot);
+        assert.equal(payload.scheduledEndsAt, new Date(fixture.startsAt.getTime() + 90 * 60_000).toISOString());
+        assert.equal(payload.priceCzk, notificationCase === "final-price" ? 1700 : notificationCase === "unknown-price" ? null : 1500);
+        assert.equal(payload.priceIsFinal, notificationCase === "final-price");
+        assert.equal(payload.bookingStatus, before.status);
+        assert.match(String(payload.manageReservationUrl), /\/rezervace\/sprava\//);
+        assert.match(String(payload.cancellationUrl), /\/rezervace\/storno\//);
+        assert.ok(log.actionTokenId);
+        assert.ok(log.nextAttemptAt && log.nextAttemptAt > new Date(), "Testovací zprávu nesmí vyzvednout běžící worker.");
+      }
+      const repeated = await updateAdminBookingService({ ...input, notifyClient: true });
+      assert.equal(repeated.status, "concurrent-modification");
+      assert.equal(await prisma.emailLog.count({ where: { bookingId: fixture.booking.id, templateKey: "booking-service-changed-v1" } }), logs.length);
+    } finally {
+      await fixture.cleanup();
+    }
+  });
+}
+
+dbTest("oznámení změny služby při selhání fronty vrátí rezervaci, sloty, tokeny i audit", async () => {
+  const [{ prisma }, { updateAdminBookingService }] = await Promise.all([import("@/lib/prisma"), import("./admin-booking")]);
+  const fixture = await createAdminServiceChangeFixture(prisma, randomUUID().slice(0, 8));
+  const originalTransaction = prisma.$transaction;
+  try {
+    await prisma.availabilitySlot.update({ where: { id: fixture.slot.id }, data: { status: "ARCHIVED", endsAt: fixture.bookingEndsAt } });
+    const before = await prisma.booking.findUniqueOrThrow({ where: { id: fixture.booking.id } });
+    const slotsBefore = await prisma.availabilitySlot.findMany({ where: { startsAt: { gte: fixture.startsAt, lt: fixture.endsAt } }, orderBy: { id: "asc" } });
+    Object.defineProperty(prisma, "$transaction", { configurable: true, writable: true, value: (...args: unknown[]) => {
+      const operation = args[0] as (tx: Prisma.TransactionClient) => Promise<unknown>;
+      return Reflect.apply(originalTransaction, prisma, [async (tx: Prisma.TransactionClient) => {
+        const emailLog = new Proxy(tx.emailLog, { get(target, key) {
+          if (key === "create") return async () => { throw new Error("forced service notification queue failure"); };
+          return Reflect.get(target, key);
+        } });
+        return operation(new Proxy(tx, { get(target, key) { return key === "emailLog" ? emailLog : Reflect.get(target, key); } }));
+      }, args[1]]);
+    } });
+    await assert.rejects(updateAdminBookingService({ bookingId: fixture.booking.id, serviceId: fixture.replacementService.id, actorUserId: fixture.owner.id, allowManualOverride: true, notifyClient: true }), /forced service notification queue failure/);
+    Object.defineProperty(prisma, "$transaction", { configurable: true, writable: true, value: originalTransaction });
+    assert.deepEqual(await prisma.booking.findUniqueOrThrow({ where: { id: fixture.booking.id } }), before);
+    assert.deepEqual(await prisma.availabilitySlot.findMany({ where: { startsAt: { gte: fixture.startsAt, lt: fixture.endsAt } }, orderBy: { id: "asc" } }), slotsBefore);
+    assert.equal(await prisma.bookingActionToken.count({ where: { bookingId: fixture.booking.id } }), 0);
+    assert.equal(await prisma.emailLog.count({ where: { bookingId: fixture.booking.id } }), 0);
+    assert.equal(await prisma.bookingStatusHistory.count({ where: { bookingId: fixture.booking.id } }), 0);
+  } finally {
+    Object.defineProperty(prisma, "$transaction", { configurable: true, writable: true, value: originalTransaction });
+    await fixture.cleanup();
+  }
+});
+
+
+dbTest("oznámení změny služby lze znovu odeslat s novými odkazy i po redakci a zachová obsah dalších čekajících zpráv", async () => {
+  const [{ prisma }, { updateAdminBookingService }, { createResendEmailLog }, { scrubSensitiveEmailPayload }] = await Promise.all([
+    import("@/lib/prisma"), import("./admin-booking"), import("@/features/admin/actions/email-log-resend"), import("@/lib/email/payload-security"),
+  ]);
+  const fixture = await createAdminServiceChangeFixture(prisma, randomUUID().slice(0, 8));
+  const deferredAt = new Date(fixture.startsAt.getTime() - 7 * 24 * 60 * 60_000);
+  try {
+    const changed = await updateAdminBookingService({ bookingId: fixture.booking.id, serviceId: fixture.replacementService.id, actorUserId: fixture.owner.id, notifyClient: true, now: deferredAt });
+    assert.equal(changed.status, "success");
+    const original = await prisma.emailLog.findFirstOrThrow({ where: { bookingId: fixture.booking.id, templateKey: "booking-service-changed-v1" } });
+    const sibling = await prisma.emailLog.create({ data: {
+      bookingId: fixture.booking.id, clientId: fixture.client.id, type: EmailLogType.GENERIC,
+      audience: EmailAudience.CLIENT, templateKey: original.templateKey, recipientEmail: original.recipientEmail,
+      subject: original.subject, payload: original.payload as Prisma.InputJsonObject,
+      communicationGeneration: original.communicationGeneration, nextAttemptAt: deferredAt,
+    } });
+    await prisma.emailLog.update({ where: { id: original.id }, data: { status: "SENT", provider: "log", sentAt: new Date(), payload: scrubSensitiveEmailPayload(original.payload) } });
+    const source = await prisma.emailLog.findUniqueOrThrow({ where: { id: original.id }, include: { client: { select: { id: true, email: true } }, booking: { select: { id: true, clientEmailSnapshot: true } } } });
+    const resent = await prisma.$transaction(async (tx) => {
+      const result = await createResendEmailLog({ emailLog: source, transaction: tx });
+      await tx.emailLog.updateMany({ where: { bookingId: fixture.booking.id, status: "PENDING" }, data: { nextAttemptAt: deferredAt } });
+      return result;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    assert.ok(resent);
+    const payload = resent.payload as Prisma.JsonObject;
+    assert.equal(payload.priceCzk, 1500);
+    assert.equal(payload.bookingStatus, "CONFIRMED");
+    assert.equal(payload.previousServiceName, (original.payload as Prisma.JsonObject).previousServiceName);
+    assert.match(String(payload.manageReservationUrl), /\/rezervace\/sprava\//);
+    assert.notEqual(payload.manageReservationUrl, (original.payload as Prisma.JsonObject).manageReservationUrl);
+    const updatedSibling = await prisma.emailLog.findUniqueOrThrow({ where: { id: sibling.id } });
+    const siblingPayload = updatedSibling.payload as Prisma.JsonObject;
+    assert.equal(siblingPayload.priceCzk, payload.priceCzk);
+    assert.equal(siblingPayload.previousServiceName, payload.previousServiceName);
+    assert.equal(siblingPayload.bookingStatus, payload.bookingStatus);
+    assert.equal(siblingPayload.manageReservationUrl, payload.manageReservationUrl);
+    assert.equal(updatedSibling.communicationGeneration, resent.communicationGeneration);
+  } finally {
+    await fixture.cleanup();
+  }
+});

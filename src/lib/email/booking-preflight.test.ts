@@ -175,3 +175,19 @@ test("client booking email rejects a stale client name snapshot", () => {
   assert.equal(result.shouldSend, false);
   assert.match(result.reason ?? "", /client name/i);
 });
+
+
+test("oznámení změny služby se odešle jen pro aktuální službu, čas, stav a cenu", () => {
+  const current = { ...booking, finalPriceCzk: null, servicePriceFromCzk: 1500 };
+  const currentPayload = payload({ bookingStatus: "CONFIRMED", priceCzk: 1500 });
+  const check = (nextBooking: Omit<typeof current, "status"> & { status: BookingStatus }) => evaluateBookingEmailPreflight({
+    type: EmailLogType.GENERIC, audience: EmailAudience.CLIENT, templateKey: "booking-service-changed-v1",
+    payload: currentPayload, booking: nextBooking,
+  });
+  assert.equal(check(current).shouldSend, true);
+  assert.equal(check({ ...current, serviceId: "another-service" }).shouldSend, false);
+  assert.equal(check({ ...current, status: BookingStatus.CANCELLED }).shouldSend, false);
+  assert.equal(check({ ...current, status: BookingStatus.PENDING }).shouldSend, false);
+  assert.equal(check({ ...current, scheduledEndsAt: new Date(scheduledEndsAt.getTime() + 30 * 60_000) }).shouldSend, false);
+  assert.equal(check({ ...current, servicePriceFromCzk: 1800 }).shouldSend, false);
+});
