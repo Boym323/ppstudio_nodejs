@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.40.0] - 2026-11-05
+
 ### Zabezpečení
 
 - E-mailové nástroje, coverage reporter a ESLint používají opravené verze `glob` a `minimatch`; zrušené procházení adresářů už nepokračuje na pozadí a zpracování vzorů neumožňuje jejich zesílení do nepřiměřené spotřeby prostředků.
