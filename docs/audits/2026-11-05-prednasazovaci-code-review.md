@@ -11,7 +11,7 @@
 ## 1. Obnova rozpracované veřejné rezervace – opraveno
 
 - Soubor: `src/features/booking/components/booking-flow.tsx`.
-- Při existujícím konceptu `isRestoringDraft=true` a formulář používá `inert` do dokončení `refreshPublicBookingCatalogAction()`. Chybí vlastní timeout/fallback pro požadavek, který se nikdy nevyřeší.
+- Původní nález: při existujícím konceptu `isRestoringDraft=true` a formulář používá `inert` do dokončení `refreshPublicBookingCatalogAction()`. Chybí vlastní timeout/fallback pro požadavek, který se nikdy nevyřeší.
 - Riziko: při dlouho neodpovídajícím požadavku může formulář zůstat neinteraktivní.
 - Navržená minimální oprava: časově omezená obnova (cílově např. 5 sekund), bezpečně obnovit jen kontaktní pole, neověřený termín neobnovovat, odblokovat formulář, zachovat standardní serverové ověření při odeslání.
 - Implementováno: obnova čeká nejvýše 5 sekund, poté obnoví kontakty bez neověřeného termínu a odblokuje formulář s oznámením. Dokončení proběhne právě jednou; pozdní odpověď se ignoruje a unmount zruší časovače i aplikaci výsledku. Serverová validace, voucher i analytika zůstávají zachované.
@@ -26,8 +26,8 @@
 ## 3. Integrační ověření e-mailů v režimu background – doplněno
 
 - Soubory: `.github/workflows/ci.yml`, `src/features/admin/lib/admin-booking.integration.test.ts`, `src/lib/email/booking-preflight.test.ts`.
-- CI nastavuje `EMAIL_DELIVERY_MODE=log`; testy oznámení `booking-service-changed-v1` zahrnují větvení pro `background`, ale CI standardně neprochází reálné doručení tímto režimem včetně workeru.
-- Doplnit izolovaný DB integrační scénář v `background`: fronta `PENDING` → worker, aktuální payload/identita klientky, platnost tokenů, ICS příloha a korektní dokončení/selhání.
+- Původní nález: CI nastavovalo `EMAIL_DELIVERY_MODE=log`; testy oznámení `booking-service-changed-v1` zahrnují větvení pro `background`, ale CI standardně neprochází reálné doručení tímto režimem včetně workeru.
+- Požadované ověření: izolovaný DB integrační scénář v `background`: fronta `PENDING` → worker, aktuální payload/identita klientky, platnost tokenů, ICS příloha a korektní dokončení/selhání.
 - Doplněn samostatný CI krok s `EMAIL_DELIVERY_MODE=background` a filtrem `^background:` v `admin-booking.integration.test.ts`. Používá skutečnou testovací DB, frontu, worker a renderer; provider a chybová externí notifikace jsou nahrazeny fake implementací. SMTP údaje jsou výslovně testovací.
 - Devět scénářů ověřuje `PENDING` → worker → `SENT`, identitu klientky v payloadu, službu, cenu a čas, oba odkazy a jejich hashované, platné tokeny, aktualizovanou ICS přílohu bez bearer tokenů, retry a terminální chybu s redakcí odkazů. Zastaralá generace, cena, termín, stav, služba i jméno nesmějí dosáhnout provideru (`system-skip`).
 - **Stav: integrační průchod prošel; produkční e-mailová chyba nebyla potvrzena a e-mailová logika se neměnila.**
@@ -46,4 +46,6 @@
 
 ## Rozhodnutí
 
-Body **1 a 3** jsou implementované a cíleně ověřené; před sloučením je nutné ověřit CI výsledného PR. Bod **2 je uzavřený**; **4a a 4b** nepovažovat za release blocker. Při navazující implementaci opravit stavové řádky a přidat odkazy na konkrétní PR a testy. Dokumentace sama o sobě není opravou kódu.
+Body **1 a 3** jsou implementované a cíleně ověřené; před sloučením je nutné ověřit CI výsledného PR. Bod **2 je uzavřený**; **4a a 4b** nepovažovat za release blocker. Implementace a CI: [PR #105](https://github.com/Boym323/ppstudio_nodejs/pull/105).
+
+Lokální ověření na izolované databázi `ppstudio_audit_test`: 50 cílených unit testů, 88 integračních testů admin rezervací a workeru a 9 samostatných background scénářů prošlo. Prošly také TypeScript 7, ESLint dotčených souborů a `changelog:check -- --base origin/main`. Existující test souběhu nyní přijímá oba platné konfliktní kódy (`SLOT_UNAVAILABLE` i `BOOKING_CONFLICT`) při zachování kontroly zákazu překrytí; produkční logiku tato úprava nemění.
