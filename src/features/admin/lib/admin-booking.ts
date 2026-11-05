@@ -8,7 +8,10 @@ import {
   Prisma,
   VoucherType,
   AvailabilitySlotStatus,
+  AvailabilitySlotServiceRestrictionMode,
 } from "@/generated/prisma/client";
+
+import { formatAdminBookingDateLabel } from "@/features/admin/lib/booking/booking-display";
 
 import { env } from "@/config/env";
 import {
@@ -79,6 +82,7 @@ type ApplyAdminBookingStatusChangeInput = {
 };
 
 type UpdateAdminBookingServiceInput = {
+  allowManualOverride?: boolean;
   bookingId: string;
   serviceId: string;
   actorUserId: string | null;
@@ -538,14 +542,23 @@ export async function updateAdminBookingPrice(input: UpdateAdminBookingPriceInpu
   });
 }
 
-export async function updateAdminBookingService({
+export async function updateAdminBookingService(input: UpdateAdminBookingServiceInput) {
+  return resolveAdminBookingServiceChange(input, false);
+}
+
+export async function previewAdminBookingServiceChange(input: Omit<UpdateAdminBookingServiceInput, "allowManualOverride" | "reason">) {
+  return resolveAdminBookingServiceChange({ ...input, allowManualOverride: true }, true);
+}
+
+async function resolveAdminBookingServiceChange({
+  allowManualOverride = false,
   bookingId,
   serviceId,
   actorUserId,
   expectedUpdatedAt,
   reason,
   now: inputNow,
-}: UpdateAdminBookingServiceInput) {
+}: UpdateAdminBookingServiceInput, previewOnly: boolean) {
   return runSerializableTransaction(async (tx) => {
     await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
       SELECT "id"
@@ -573,6 +586,7 @@ export async function updateAdminBookingService({
         scheduledEndsAt: true,
         blockedUntil: true,
         manualOverride: true,
+        originalAvailabilityEndsAt: true,
         finalPriceCzk: true,
         intendedVoucherId: true,
         reminder24hSentAt: true,
@@ -743,7 +757,7 @@ export async function updateAdminBookingService({
           not: booking.slotId,
         },
         startsAt: {
-          lt: nextScheduledEndsAt,
+          lt: lifecycleRangeEnd,
         },
         endsAt: {
           gt: booking.scheduledStartsAt,
@@ -770,47 +784,7 @@ export async function updateAdminBookingService({
       orderBy: [{ startsAt: "asc" }],
     });
 
-    const manualOverrideResizeSlots = booking.manualOverride
-      ? await tx.availabilitySlot.findMany({
-          where: {
-            id: {
-              not: booking.slotId,
-            },
-            startsAt: {
-              lt: lifecycleRangeEnd,
-            },
-            endsAt: {
-              gt: booking.scheduledStartsAt,
-            },
-            status: {
-              in: [
-                AvailabilitySlotStatus.DRAFT,
-                AvailabilitySlotStatus.PUBLISHED,
-                AvailabilitySlotStatus.ARCHIVED,
-              ],
-            },
-          },
-          select: {
-            id: true,
-            startsAt: true,
-            endsAt: true,
-            capacity: true,
-            status: true,
-            publicNote: true,
-            internalNote: true,
-            serviceRestrictionMode: true,
-            publishedAt: true,
-            cancelledAt: true,
-            createdByUserId: true,
-            allowedServices: {
-              select: {
-                serviceId: true,
-              },
-            },
-          },
-          orderBy: [{ startsAt: "asc" }],
-        })
-      : [];
+    const manualOverrideResizeSlots = overlappingSlots;
 
     const publishedCoverage = resolvePublishedSlotCoverage(
       [slot, ...overlappingSlots],
@@ -838,13 +812,33 @@ export async function updateAdminBookingService({
       && slotAllowsNewService
       && (currentSlotCoversNewTiming || isManualOverrideDraftResize);
 
-    if (!publishedCoverage && !canStayOnManualOverrideSlot) {
+    // Archivace zdrojové dostupnosti neruší čas držený aktivní rezervací.
+    // Změna uvnitř její současné blokace nepotřebuje nově publikovaný slot.
+    const canReuseExistingBookingBlock = slot.status === AvailabilitySlotStatus.ARCHIVED
+      && slotAllowsNewService
+      && booking.scheduledStartsAt >= slot.startsAt
+      && booking.scheduledStartsAt < slot.endsAt
+      && nextBlockedUntil <= oldBlockedUntil;
+
+    const createsManualOverride = !publishedCoverage
+      && !canReuseExistingBookingBlock
+      && !canStayOnManualOverrideSlot
+      && allowManualOverride
+      && slotAllowsNewService
+      && nextBlockedUntil > oldBlockedUntil
+      && (slot.status === AvailabilitySlotStatus.ARCHIVED || slot.status === AvailabilitySlotStatus.PUBLISHED);
+
+    if (!publishedCoverage && !canReuseExistingBookingBlock && !canStayOnManualOverrideSlot && !createsManualOverride) {
       return {
         status: "slot-too-short" as const,
+        reason: slotAllowsNewService ? "coverage" as const : "service-restriction" as const,
+        message: slotAllowsNewService
+          ? "Nová služba se do vypsané dostupnosti nevejde. Pro prodloužení můžete povolit interní výjimku; jinak upravte termín rezervace."
+          : "Vybraná služba není pro tento termín povolená. Vyberte jiný termín rezervace.",
       };
     }
 
-    const activeBookingCount = await tx.booking.count({
+    const conflictingBooking = await tx.booking.findFirst({
       where: {
         id: {
           not: booking.id,
@@ -855,14 +849,19 @@ export async function updateAdminBookingService({
         scheduledStartsAt: {
           lt: nextBlockedUntil,
         },
-        blockedUntil: {
-          gt: booking.scheduledStartsAt,
-        },
+        OR: [
+          { blockedUntil: { gt: booking.scheduledStartsAt } },
+          { blockedUntil: null, scheduledEndsAt: { gt: booking.scheduledStartsAt } },
+        ],
       },
+      select: { clientNameSnapshot: true, scheduledStartsAt: true, scheduledEndsAt: true },
     });
 
-    if (activeBookingCount > 0) {
-      return { status: "conflict" as const };
+    if (conflictingBooking) {
+      return {
+        status: "conflict" as const,
+        message: `Nová délka služby nebo úklidu koliduje s rezervací: ${conflictingBooking.clientNameSnapshot}, ${formatAdminBookingDateLabel(conflictingBooking.scheduledStartsAt, conflictingBooking.scheduledEndsAt)}.`,
+      };
     }
 
     const preservesAutoLunch = await canPreserveAutoLunchForBooking(tx, {
@@ -880,34 +879,97 @@ export async function updateAdminBookingService({
     const isManualOverrideExtension = isManualOverrideDraftResize
       && nextBlockedUntil.getTime() > oldBlockedUntil.getTime();
 
+    let nextSlotId = slot.id;
     let manualOverrideArchivedSlotIds: string[] = [];
-    if (isManualOverrideExtension) {
-      const protectedDraftOverlap = manualOverrideResizeSlots.some((candidate) => (
+    if (isManualOverrideExtension || createsManualOverride) {
+      const protectedDraftOverlap = manualOverrideResizeSlots.find((candidate) => (
         candidate.status === AvailabilitySlotStatus.DRAFT
         && candidate.startsAt < nextBlockedUntil
-        && candidate.endsAt > oldBlockedUntil
+        && candidate.endsAt > (createsManualOverride ? booking.scheduledStartsAt : oldBlockedUntil)
       ));
 
       if (protectedDraftOverlap) {
-        return { status: "conflict" as const };
+        return { status: "conflict" as const, message: `Nová délka služby nebo úklidu zasahuje do interně blokovaného času: ${formatAdminBookingDateLabel(protectedDraftOverlap.startsAt, protectedDraftOverlap.endsAt)}.` };
       }
 
       const manualOverridePreparation = await preparePublishedAvailabilityForManualOverride(
         tx,
-        manualOverrideResizeSlots.filter((candidate) => candidate.status === AvailabilitySlotStatus.PUBLISHED),
-        oldBlockedUntil,
+        [slot, ...manualOverrideResizeSlots],
+        createsManualOverride ? booking.scheduledStartsAt : oldBlockedUntil,
         nextBlockedUntil,
         booking.id,
+        previewOnly,
       );
 
       manualOverrideArchivedSlotIds = manualOverridePreparation.archivedSlotIds;
 
       if (manualOverridePreparation.protectedSlotIds.length > 0) {
-        return { status: "conflict" as const };
+        const protectedSlot = [slot, ...manualOverrideResizeSlots].find((candidate) => (
+          manualOverridePreparation.protectedSlotIds.includes(candidate.id)
+        ));
+        return {
+          status: "conflict" as const,
+          message: `Nová délka služby nebo úklidu zasahuje do chráněného nebo omezeného termínu${protectedSlot ? `: ${formatAdminBookingDateLabel(protectedSlot.startsAt, protectedSlot.endsAt)}` : ""}.`,
+        };
       }
     }
 
-    if (slot.status !== "PUBLISHED") {
+    const success = {
+      status: "success" as const,
+      clientId: booking.clientId,
+      previousServiceName: booking.serviceNameSnapshot,
+      nextServiceName: nextService.name,
+      previousScheduledEndsAt: booking.scheduledEndsAt,
+      nextScheduledEndsAt,
+      nextBlockedUntil,
+      previousCleanupBlockMinutes: booking.cleanupBlockMinutes,
+      nextCleanupBlockMinutes: nextTiming.cleanupBlockMinutes,
+      keptFinalPriceCzk: booking.finalPriceCzk,
+      createdManualOverride: createsManualOverride,
+    };
+
+    if (previewOnly) return success;
+
+    if (createsManualOverride) {
+      // Uchováme jen doložený původní čas návštěvy a publikovanou část úklidu.
+      // Prodloužení výjimky se po stornu nesmí stát veřejnou dostupností.
+      if (slot.status === AvailabilitySlotStatus.ARCHIVED && slot.publishedAt) {
+        const source = await tx.availabilitySlot.create({
+          data: {
+            startsAt: booking.scheduledStartsAt,
+            endsAt: new Date(Math.max(
+              booking.scheduledEndsAt.getTime(),
+              Math.min(oldBlockedUntil.getTime(), booking.originalAvailabilityEndsAt?.getTime() ?? booking.scheduledEndsAt.getTime()),
+            )),
+            capacity: slot.capacity,
+            status: AvailabilitySlotStatus.ARCHIVED,
+            serviceRestrictionMode: slot.serviceRestrictionMode,
+            publicNote: slot.publicNote,
+            internalNote: slot.internalNote,
+            publishedAt: slot.publishedAt,
+            createdByUserId: slot.createdByUserId,
+            allowedServices: slot.allowedServices.length > 0
+              ? { createMany: { data: slot.allowedServices.map(({ serviceId }) => ({ serviceId })) } }
+              : undefined,
+          },
+          select: { id: true },
+        });
+        manualOverrideArchivedSlotIds.push(source.id);
+      }
+      const overrideSlot = await tx.availabilitySlot.create({
+        data: {
+          startsAt: booking.scheduledStartsAt,
+          endsAt: nextBlockedUntil,
+          capacity: 1,
+          status: AvailabilitySlotStatus.DRAFT,
+          serviceRestrictionMode: AvailabilitySlotServiceRestrictionMode.ANY,
+          internalNote: "Interní výjimka po změně služby rezervace.",
+          createdByUserId: actorUserId,
+        },
+        select: { id: true },
+      });
+      nextSlotId = overrideSlot.id;
+    } else if (slot.status !== "PUBLISHED" && !canReuseExistingBookingBlock) {
       await tx.availabilitySlot.update({
         where: {
           id: slot.id,
@@ -932,6 +994,9 @@ export async function updateAdminBookingService({
         id: booking.id,
       },
       data: {
+        slotId: nextSlotId,
+        manualOverride: createsManualOverride ? true : undefined,
+        originalAvailabilityEndsAt: createsManualOverride ? null : undefined,
         serviceId: nextService.id,
         serviceNameSnapshot: nextService.name,
         serviceDurationMinutes: nextTiming.serviceDurationMinutes,
@@ -963,8 +1028,13 @@ export async function updateAdminBookingService({
     const normalizedReason = reason?.trim() ? reason.trim() : null;
     const metadata = {
       source: "admin-booking-service-change-v1",
-      manualOverrideSlotId: slot.id,
+      manualOverrideSlotId: nextSlotId,
       manualOverrideArchivedSlotIds,
+      createdManualOverride: createsManualOverride,
+      allowManualOverride,
+      previousBlockedUntil: oldBlockedUntil.toISOString(),
+      nextBlockedUntil: nextBlockedUntil.toISOString(),
+      previousSlotId: slot.id,
       previousServiceId: booking.serviceId,
       previousServiceName: booking.serviceNameSnapshot,
       previousDurationMinutes: booking.serviceDurationMinutes,
@@ -992,16 +1062,6 @@ export async function updateAdminBookingService({
       },
     });
 
-    return {
-      status: "success" as const,
-      clientId: booking.clientId,
-      previousServiceName: booking.serviceNameSnapshot,
-      nextServiceName: nextService.name,
-      previousScheduledEndsAt: booking.scheduledEndsAt,
-      nextScheduledEndsAt,
-      previousCleanupBlockMinutes: booking.cleanupBlockMinutes,
-      nextCleanupBlockMinutes: nextTiming.cleanupBlockMinutes,
-      keptFinalPriceCzk: booking.finalPriceCzk,
-    };
+    return success;
   });
 }

@@ -12,6 +12,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Přidáno
 
+- Změna služby rezervace po výběru služby ověří proveditelnost, zobrazí nový konec návštěvy a úklidu, vysvětlí případnou překážku nebo potřebu potvrzení výjimky a umožňuje výslovně povolit prodloužení mimo vypsanou dostupnost jako interní výjimku při zachování začátku. Kratší nebo stejně dlouhá celková blokace nevyžaduje novou výjimku ani u archivovaného zdrojového termínu. Kontroluje jiné rezervace, interní bloky i automatický oběd a při stornu obnovuje jen původní dostupnost.
+
 - Rozpracovaná rezervace po obnovení stránky obnoví službu, dostupný termín a kontaktní údaje z krátkodobého konceptu v dané kartě prohlížeče. Koncept platí 30 minut, neukládá poznámku ani voucher a po úspěšném odeslání se smaže.
 
 ### Změněno

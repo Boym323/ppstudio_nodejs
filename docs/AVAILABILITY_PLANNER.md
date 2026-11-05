@@ -109,6 +109,12 @@ Hlavní sdílené soubory: [`booking-availability-policy.ts`](../src/features/bo
 
 **Ruční rezervace** je separátní workflow: standardně se má vejít do publikované dostupnosti; explicitní `allowManualOverride=true` může založit interní `DRAFT` výjimku a auditovat `Booking.manualOverride`. **Veřejný formulář používá vždy `allowManualOverride=false`.** Public/admin reschedule musí stejně jako vytvoření rezervace ověřit kolize z aktuální DB; při přesunu se může původní `Booking` v nabídce vyloučit přes `excludeBookingId`. Pražské lokální časové údaje a DST je nutné vyhodnocovat přes sdílené pomocné funkce, ne ruční přepočet UTC.
 
+### Prodloužení při změně služby
+
+V detailu čekající nebo potvrzené rezervace formulář **Změnit službu** zobrazuje nový konec služby a blokace v `Europe/Prague`. Po výběru služby se stejnými serverovými pravidly bez zápisu ověří proveditelnost: lze uložit, je potřeba výjimka s vysvětlením chybějící dostupnosti, nebo změně brání konkrétní překážka. Potvrzení se ukazuje jen pro potřebnou výjimku; při načítání, překážce či nepotvrzené výjimce je uložení zakázané. Volba **Potvrzuji prodloužení mimo vypsané termíny jako interní výjimku** umožní při nedostatečné publikované dostupnosti zachovat začátek a uložit delší návštěvu jako interní `DRAFT` výjimku. Původní rezervace včetně vlastního úklidu se při kontrole kolizí vyloučí. U rezervace s archivovaným zdrojovým slotem lze bez nové výjimky využít již držený čas, pokud nová služba včetně zaokrouhleného úklidu nepřekročí současné `blockedUntil` a vyhoví omezení služby. Historický zdrojový slot se při takovém zkrácení nemění a uvolněný čas se automaticky nepublikuje. Jiná aktivní rezervace, chráněná dostupnost, interní blok, omezení služby, voucher ani automatický oběd se tím neobcházejí.
+
+Rychlé přepnutí služby zahodí předchozí výsledek i souhlas; opožděná odpověď nepřepíše aktuální výběr. Uložení všechna pravidla znovu ověří podle aktuální DB. Změna služby, snapshotů, slotu a auditu proběhne v jedné serializované transakci. Původní dostupnost je doložená v auditních metadatech pro následné zkrácení či storno; prodloužení mimo původní nabídku se po stornu nezveřejňuje. Úklid se podle sdílené policy zaokrouhluje nahoru na násobky 15 minut.
+
 ## Testy a scénáře pro změny
 
 | Změna/scénář | Povinný efekt |

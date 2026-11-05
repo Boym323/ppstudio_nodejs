@@ -261,6 +261,7 @@ function BookingActionPanel({
             bookingId={data.id}
             expectedUpdatedAt={data.reschedule.expectedUpdatedAt}
             currentServiceId={data.serviceId}
+            scheduledStartsAt={data.reschedule.currentStartsAt}
             services={data.availableServices}
           />
         ) : null}

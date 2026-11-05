@@ -8,3 +8,14 @@ export type UpdateBookingServiceActionState = {
 export const initialUpdateBookingServiceActionState: UpdateBookingServiceActionState = {
   status: "idle",
 };
+
+
+export type BookingServiceChangePreview =
+  | { status: "blocked"; message: string }
+  | {
+      status: "ready" | "requires-override";
+      message: string;
+      serviceEndsAt: string;
+      blockedUntil: string;
+      cleanupBlockMinutes: number;
+    };
