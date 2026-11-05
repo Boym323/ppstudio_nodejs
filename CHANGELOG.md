@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.41.0] - 2026-11-05
+
 ### Přidáno
 
 - Detail rezervace pod technickými metadaty stručně zobrazuje související e-maily s typem zprávy, časem a stavem odeslání či doručení včetně čekajících a neúspěšných zpráv. Majitelka může otevřít detail jednotlivého e-mailu.
