@@ -36,6 +36,8 @@ import {
   getEffectiveVoucherStatus,
 } from "@/features/vouchers/lib/voucher-format";
 import { prisma } from "@/lib/prisma";
+import { deriveTrackingState } from "@/lib/email/resend-webhooks";
+import { emailTypeLabel, getEmailDetailFinalStatus } from "../data/email-log-presentations";
 
 export type AdminBookingDetailData = {
   id: string;
@@ -83,6 +85,17 @@ export type AdminBookingDetailData = {
     blockedUntilLabel: string;
   };
   availableActions: AdminBookingActionOption[];
+  emails: Array<{
+    id: string;
+    typeLabel: string;
+    subject: string;
+    recipientEmail: string;
+    sentAtLabel: string | null;
+    createdAtLabel: string;
+    statusLabel: string;
+    needsAttention: boolean;
+    sent: boolean;
+  }>;
   historyItems: Array<{
     id: string;
     kind: "status" | "reschedule";
@@ -300,6 +313,31 @@ export async function getAdminBookingDetailData(
     prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
+        emailLogs: {
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          select: {
+            id: true,
+            type: true,
+            templateKey: true,
+            subject: true,
+            recipientEmail: true,
+            status: true,
+            sentAt: true,
+            createdAt: true,
+            updatedAt: true,
+            attemptCount: true,
+            nextAttemptAt: true,
+            processingStartedAt: true,
+            trackingLastEvent: true,
+            trackingDeliveredAt: true,
+            trackingOpenedAt: true,
+            trackingClickedAt: true,
+            trackingBouncedAt: true,
+            trackingComplainedAt: true,
+            trackingFailedAt: true,
+            trackingSuppressedAt: true,
+          },
+        },
         client: {
           select: {
             fullName: true,
@@ -521,6 +559,22 @@ export async function getAdminBookingDetailData(
     availableActions: getAdminBookingActionOptions(booking.status, {
       scheduledStartsAt: booking.scheduledStartsAt,
       scheduledEndsAt: booking.scheduledEndsAt,
+    }),
+    emails: booking.emailLogs.map((email) => {
+      const status = getEmailDetailFinalStatus(email);
+      const tracking = deriveTrackingState(email);
+
+      return {
+        id: email.id,
+        typeLabel: emailTypeLabel(email.type, email.templateKey),
+        subject: email.subject,
+        recipientEmail: email.recipientEmail,
+        sentAtLabel: email.sentAt ? formatDateTimeLabel(email.sentAt) : null,
+        createdAtLabel: formatDateTimeLabel(email.createdAt),
+        statusLabel: status.value === "sent" && tracking.value !== "pending" ? tracking.label : status.label,
+        needsAttention: status.needsAttention,
+        sent: status.value === "sent",
+      };
     }),
     historyItems: historyItems.map((item) => ({
       id: item.id,

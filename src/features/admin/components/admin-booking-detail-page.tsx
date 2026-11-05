@@ -61,6 +61,7 @@ export function AdminBookingDetailPage({ data }: AdminBookingDetailPageProps) {
         <aside className="min-w-0 space-y-3 xl:order-2 xl:sticky xl:top-28">
           <BookingSummaryCard data={data} />
           <BookingAuditCard data={data} />
+          <BookingEmailsPanel data={data} />
         </aside>
       </div>
     </div>
@@ -297,6 +298,61 @@ function BookingSummaryCard({ data }: { data: AdminBookingDetailData }) {
           <SummaryRow key={item.label} {...item} />
         ))}
       </dl>
+    </AdminPanel>
+  );
+}
+
+function BookingEmailsPanel({ data }: { data: AdminBookingDetailData }) {
+  function renderEmail(email: AdminBookingDetailData["emails"][number]) {
+    return (
+      <li key={email.id} className="flex min-w-0 items-start justify-between gap-3 px-3 py-2.5">
+        <div className="min-w-0">
+          {data.area === "owner" ? (
+            <Link
+              href={`/admin/email-logy/${email.id}`}
+              className="inline-flex min-h-11 items-center text-sm font-medium text-white/85 underline-offset-4 hover:text-white hover:underline"
+              aria-label={`Detail e-mailu: ${email.typeLabel}, ${email.sentAtLabel ?? email.createdAtLabel}`}
+            >
+              {email.typeLabel}
+            </Link>
+          ) : (
+            <p className="text-sm font-medium text-white/85">{email.typeLabel}</p>
+          )}
+          <p className="text-xs text-white/50">
+            {email.sentAtLabel ?? `Vytvořeno ${email.createdAtLabel}`}
+          </p>
+        </div>
+        <span className={cn(
+          "max-w-[45%] shrink-0 rounded-lg border px-2 py-1 text-xs",
+          email.needsAttention
+            ? "border-amber-300/25 bg-amber-300/10 text-amber-100"
+            : email.sent
+              ? "border-emerald-300/25 bg-emerald-300/10 text-emerald-100"
+              : "border-white/10 bg-white/5 text-white/65",
+        )}>
+          {email.statusLabel}
+        </span>
+      </li>
+    );
+  }
+
+  return (
+    <AdminPanel title="E-maily k rezervaci" compact={data.area === "salon"} denseHeader>
+      {data.emails.length === 0 ? (
+        <p className="text-sm text-white/64">Zatím bez e-mailů.</p>
+      ) : (
+        <div className="space-y-2">
+          <ul className="divide-y divide-white/6 overflow-hidden rounded-[1rem] border border-white/8">{data.emails.slice(0, 3).map(renderEmail)}</ul>
+          {data.emails.length > 3 ? (
+            <details className="rounded-[1rem] border border-white/8 bg-white/[0.03]">
+              <summary className="min-h-11 cursor-pointer px-3.5 py-3 text-sm font-medium text-white/78">
+                Starší e-maily ({data.emails.length - 3})
+              </summary>
+              <ul className="divide-y divide-white/6 border-t border-white/8">{data.emails.slice(3).map(renderEmail)}</ul>
+            </details>
+          ) : null}
+        </div>
+      )}
     </AdminPanel>
   );
 }
