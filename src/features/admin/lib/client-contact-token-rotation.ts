@@ -55,7 +55,7 @@ export async function refreshPendingClientBookingEmailNames(
       status: EmailLogStatus.PENDING,
       OR: [
         { type: { in: [...CLIENT_BOOKING_EMAIL_TYPES] } },
-        { templateKey: "booking-service-changed-v1" },
+        { type: EmailLogType.GENERIC, templateKey: "booking-service-changed-v1" },
       ],
     },
     select: { id: true, payload: true },

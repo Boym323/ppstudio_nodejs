@@ -2908,7 +2908,7 @@ for (const scenario of [
 }
 
 
-for (const notificationCase of ["queued", "optout", "missing-email", "pending", "final-price", "unknown-price"] as const) {
+for (const notificationCase of ["with-email", "optout", "missing-email", "pending", "final-price", "unknown-price"] as const) {
   dbTest(`oznámení změny služby: ${notificationCase}`, async () => {
     const [{ prisma }, { previewAdminBookingServiceChange, updateAdminBookingService }] = await Promise.all([
       import("@/lib/prisma"), import("./admin-booking"),
@@ -2931,14 +2931,15 @@ for (const notificationCase of ["queued", "optout", "missing-email", "pending", 
       assert.equal(result.status, "success");
       if (result.status !== "success") assert.fail("Expected successful change");
       const shouldNotify = notificationCase !== "optout" && notificationCase !== "missing-email";
-      assert.equal(result.notificationStatus, shouldNotify ? "queued" : "skipped");
+      const backgroundDelivery = process.env.EMAIL_DELIVERY_MODE === "background";
+      assert.equal(result.notificationStatus, shouldNotify ? (backgroundDelivery ? "queued" : "logged") : "skipped");
       const logs = await prisma.emailLog.findMany({ where: { bookingId: fixture.booking.id, templateKey: "booking-service-changed-v1" } });
       assert.equal(logs.length, shouldNotify ? 1 : 0);
       assert.equal(await prisma.bookingActionToken.count({ where: { bookingId: fixture.booking.id } }), shouldNotify ? 2 : 0);
       if (shouldNotify) {
         const log = logs[0]!;
         const payload = log.payload as Prisma.JsonObject;
-        assert.equal(log.status, EmailLogStatus.PENDING);
+        assert.equal(log.status, backgroundDelivery ? EmailLogStatus.PENDING : EmailLogStatus.SENT);
         assert.equal(log.communicationGeneration, before.communicationGeneration + 1);
         assert.equal(payload.serviceId, fixture.replacementService.id);
         assert.equal(payload.previousServiceName, before.serviceNameSnapshot);
@@ -2946,10 +2947,17 @@ for (const notificationCase of ["queued", "optout", "missing-email", "pending", 
         assert.equal(payload.priceCzk, notificationCase === "final-price" ? 1700 : notificationCase === "unknown-price" ? null : 1500);
         assert.equal(payload.priceIsFinal, notificationCase === "final-price");
         assert.equal(payload.bookingStatus, before.status);
-        assert.match(String(payload.manageReservationUrl), /\/rezervace\/sprava\//);
-        assert.match(String(payload.cancellationUrl), /\/rezervace\/storno\//);
+        if (backgroundDelivery) {
+          assert.match(String(payload.manageReservationUrl), /\/rezervace\/sprava\//);
+          assert.match(String(payload.cancellationUrl), /\/rezervace\/storno\//);
+          assert.ok(log.nextAttemptAt && log.nextAttemptAt > new Date(), "Testovací zprávu nesmí vyzvednout běžící worker.");
+        } else {
+          assert.equal(payload.manageReservationUrl, "[REDACTED]");
+          assert.equal(payload.cancellationUrl, "[REDACTED]");
+          assert.equal(log.provider, "log");
+          assert.ok(log.sentAt);
+        }
         assert.ok(log.actionTokenId);
-        assert.ok(log.nextAttemptAt && log.nextAttemptAt > new Date(), "Testovací zprávu nesmí vyzvednout běžící worker.");
       }
       const repeated = await updateAdminBookingService({ ...input, notifyClient: true });
       assert.equal(repeated.status, "concurrent-modification");
