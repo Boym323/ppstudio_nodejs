@@ -22,8 +22,8 @@ test.describe("obnova rozpracované rezervace v prohlížeči", () => {
     const firstSlot = page.getByRole("button", { name: /^Vybrat termín / }).first();
     await expect(firstSlot).toBeEnabled();
     await firstSlot.click();
+    await expect(page.locator('input[name="slotId"]')).not.toHaveValue("");
     const originalSlotId = await page.locator('input[name="slotId"]').inputValue();
-    expect(originalSlotId).not.toBe("");
 
     await page.getByLabel("Jméno a příjmení").fill(fixture.clientName);
     await page.getByRole("textbox", { name: "E-mail" }).fill(fixture.clientEmail);
