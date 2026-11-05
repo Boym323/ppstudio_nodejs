@@ -65,3 +65,25 @@ export function saveBookingDraft(draft: BookingDraft, now = Date.now()) {
     // Ukládání konceptu je nepovinné, formulář musí fungovat i bez něj.
   }
 }
+
+export const BOOKING_DRAFT_RESTORE_TIMEOUT_MS = 5_000;
+
+/** Dokončí obnovu právě jednou; po timeoutu či unmountu ignoruje pozdní výsledek. */
+export function restoreBookingDraftCatalog<T>(
+  refresh: () => Promise<T>,
+  complete: (catalog: T | null) => void,
+) {
+  let settled = false;
+  const finish = (catalog: T | null) => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(timeout);
+    complete(catalog);
+  };
+  const timeout = setTimeout(() => finish(null), BOOKING_DRAFT_RESTORE_TIMEOUT_MS);
+  void Promise.resolve().then(refresh).then(finish, () => finish(null));
+  return () => {
+    settled = true;
+    clearTimeout(timeout);
+  };
+}

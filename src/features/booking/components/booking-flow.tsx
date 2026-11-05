@@ -23,7 +23,7 @@ import { selectSuggestedSlots } from "@/features/booking/lib/booking-schedule-op
 
 import { BookingConfirmationPanel } from "./booking-confirmation-panel";
 import { StickyCTA } from "./sticky-cta";
-import { clearBookingDraft, readBookingDraft, saveBookingDraft } from "./booking-flow/booking-draft";
+import { clearBookingDraft, readBookingDraft, restoreBookingDraftCatalog, saveBookingDraft } from "./booking-flow/booking-draft";
 import { BookingContactStep } from "./booking-flow/contact-step";
 import { shouldTrackContactFieldInput } from "./booking-flow/contact-analytics";
 import {
@@ -162,47 +162,42 @@ export function BookingFlow({
   const draftEntryRef = useRef({ catalog, initialSelectedServiceSlug });
 
   useEffect(() => {
-    let cancelled = false;
-    const timer = window.setTimeout(async () => {
+    let cancelRestore: (() => void) | undefined;
+    const timer = window.setTimeout(() => {
       const draft = readBookingDraft();
       if (!draft) {
         setIsRestoringDraft(false);
         return;
       }
 
-      let freshCatalog = draftEntryRef.current.catalog;
-      let availabilityVerified = false;
-      try {
-        freshCatalog = (await refreshPublicBookingCatalogAction()).catalog;
-        availabilityVerified = true;
-      } catch {
-        // Kontakty obnovíme i bez katalogu, starý termín ale nepřevezmeme.
-      }
-      if (cancelled) return;
+      cancelRestore = restoreBookingDraftCatalog(refreshPublicBookingCatalogAction, (result) => {
+        const freshCatalog = result?.catalog ?? draftEntryRef.current.catalog;
+        const availabilityVerified = result !== null;
 
-      const explicitSlug = draftEntryRef.current.initialSelectedServiceSlug;
-      const hasNewServicePrefill = explicitSlug && explicitSlug !== draft.entryServiceSlug;
-      const service = freshCatalog.services.find((item) => hasNewServicePrefill
-        ? item.slug === explicitSlug
-        : item.id === draft.serviceId);
-      setCurrentCatalog(freshCatalog);
-      setFullName(draft.fullName);
-      setEmail(draft.email);
-      setPhone(draft.phone);
-      setSelectedServiceId(service?.id ?? "");
-      setSelectedCategoryKey(getCategoryKey(service?.categoryName ?? freshCatalog.services[0]?.categoryName ?? ""));
-      // Platnost klíče se dále vyhodnotí přes aktuální availableTimeOptions,
-      // včetně obsazenosti, délky služby, úklidu a pravidel obědové pauzy.
-      setSelectedTimeOptionKey(availabilityVerified && service?.id === draft.serviceId ? draft.timeOptionKey : "");
-      setCurrentStep(service ? 2 : 1);
-      setIsServiceCatalogOpen(!service);
-      setDraftMessage(availabilityVerified
-        ? "Rozpracované údaje jsme obnovili. Zkontrolujte prosím službu a termín; pokud už není dostupný, vyberte jiný. Poznámku je potřeba doplnit znovu."
-        : "Kontaktní údaje jsme obnovili, dostupnost původního termínu se ale nepodařilo ověřit. Vyberte prosím termín znovu. Poznámku je potřeba doplnit znovu.");
-      setIsRestoringDraft(false);
+        const explicitSlug = draftEntryRef.current.initialSelectedServiceSlug;
+        const hasNewServicePrefill = explicitSlug && explicitSlug !== draft.entryServiceSlug;
+        const service = freshCatalog.services.find((item) => hasNewServicePrefill
+          ? item.slug === explicitSlug
+          : item.id === draft.serviceId);
+        setCurrentCatalog(freshCatalog);
+        setFullName(draft.fullName);
+        setEmail(draft.email);
+        setPhone(draft.phone);
+        setSelectedServiceId(service?.id ?? "");
+        setSelectedCategoryKey(getCategoryKey(service?.categoryName ?? freshCatalog.services[0]?.categoryName ?? ""));
+        // Platnost klíče se dále vyhodnotí přes aktuální availableTimeOptions,
+        // včetně obsazenosti, délky služby, úklidu a pravidel obědové pauzy.
+        setSelectedTimeOptionKey(availabilityVerified && service?.id === draft.serviceId ? draft.timeOptionKey : "");
+        setCurrentStep(service ? 2 : 1);
+        setIsServiceCatalogOpen(!service);
+        setDraftMessage(availabilityVerified
+          ? "Rozpracované údaje jsme obnovili. Zkontrolujte prosím službu a termín; pokud už není dostupný, vyberte jiný. Poznámku je potřeba doplnit znovu."
+          : "Kontaktní údaje jsme obnovili, dostupnost původního termínu se ale nepodařilo ověřit. Vyberte prosím termín znovu. Poznámku je potřeba doplnit znovu.");
+        setIsRestoringDraft(false);
+      });
     }, 0);
     return () => {
-      cancelled = true;
+      cancelRestore?.();
       window.clearTimeout(timer);
     };
   }, []);

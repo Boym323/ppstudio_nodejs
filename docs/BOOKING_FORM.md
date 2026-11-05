@@ -13,7 +13,7 @@
 ### Obnova rozpracované rezervace
 
 - Formulář průběžně ukládá službu, klíč termínu, jméno, e-mail a telefon do `sessionStorage` dané karty prohlížeče. Koncept je platný 30 minut od posledního uložení; prošlý nebo poškozený záznam se při načtení smaže. Poznámka a kód voucheru se neukládají.
-- Před obnovou termínu se znovu načte katalog. Původní termín lze použít pouze mezi aktuálně dostupnými možnostmi včetně omezení služby, úklidu a obědové pauzy. Při chybě načtení se obnoví kontakty, termín se nevybere. Obnova vrací návštěvníka ke kontrole služby nebo termínu.
+- Před obnovou termínu se znovu načte katalog. Původní termín lze použít pouze mezi aktuálně dostupnými možnostmi včetně omezení služby, úklidu a obědové pauzy. Obnova čeká na katalog nejvýše 5 sekund. Při chybě nebo timeoutu se obnoví kontakty, termín se nevybere a formulář se odblokuje s oznámením, že je potřeba vybrat termín znovu. Pozdní odpověď už stav formuláře nemění; odpojení komponenty zruší časovač i aplikaci výsledku. Obnova vrací návštěvníka ke kontrole služby nebo termínu.
 - Nový výběr služby v URL má přednost před uloženou službou; při obnovení stejného vstupního odkazu zůstává zachována i služba změněná ve formuláři. Voucher z URL se nadále ověřuje obvyklým způsobem. Úspěšné odeslání koncept smaže. Zakázané nebo plné úložiště neblokuje ruční vyplnění formuláře.
 
 Čtyři fáze vyplývají z [`stepLabels`](../src/features/booking/components/booking-flow/helpers.ts): **Služba → Termín → Kontakt → Souhrn**. Kategorie je součást výběru služby, ne samostatný krok. Vše řídí [`booking-flow.tsx`](../src/features/booking/components/booking-flow.tsx) jako klientský wizard s `useActionState(createPublicBookingAction)`:
