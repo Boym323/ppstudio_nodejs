@@ -3,6 +3,7 @@
 import Script from "next/script";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { useTrackingConsent } from "./tracking-consent-provider";
 
 import {
   isMetaPixelConfigured,
@@ -17,8 +18,9 @@ type MetaPixelTrackerProps = {
 
 export function MetaPixelTracker({ disabled = false }: MetaPixelTrackerProps) {
   const pathname = usePathname();
+  const marketingConsent = useTrackingConsent("marketing");
   const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID;
-  const shouldInitialize = isMetaPixelConfigured() && shouldInitializeMetaPixelTracking(pathname, { disabled });
+  const shouldInitialize = marketingConsent && isMetaPixelConfigured() && shouldInitializeMetaPixelTracking(pathname, { disabled });
   const previousPathname = useRef(pathname);
 
   useEffect(() => {

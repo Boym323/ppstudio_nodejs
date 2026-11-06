@@ -43,6 +43,13 @@ enum BookingStatus {
   NO_SHOW
 }
 
+enum MetaConversionEventStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+}
+
 enum BookingSource {
   WEB
   PHONE
@@ -571,6 +578,8 @@ model Booking {
   acquisitionUtmSource        String?
   acquisitionUtmMedium        String?
   acquisitionUtmCampaign      String?
+  acquisitionMtmContent        String?
+  acquisitionMtmPlacement      String?
   isManual                    Boolean                   @default(false)
   manualOverride              Boolean                   @default(false)
   status                      BookingStatus             @default(PENDING)
@@ -624,6 +633,7 @@ model Booking {
   submissionLogs              BookingSubmissionLog[]
   voucherRedemptions          VoucherRedemption[]
   payments                    BookingPayment[]
+  metaConversionEvent         MetaConversionEvent?
 
   @@index([slotId, status])
   @@index([clientId, createdAt])
@@ -639,6 +649,34 @@ model Booking {
   @@index([intendedVoucherId])
   @@index([clientDeliveryLeaseExpiresAt])
   @@index([rescheduledAt])
+}
+
+/// Transakční outbox pouze pro veřejnou událost Schedule.
+/// Identifikátory Meta se po doručení nebo konečném selhání mažou.
+model MetaConversionEvent {
+  id                    String                     @id @default(cuid())
+  bookingId             String?                    @unique
+  eventId               String                     @unique
+  eventTime             DateTime
+  eventSourceUrl        String
+  userAgent             String?
+  fbp                   String?
+  fbc                   String?
+  status                MetaConversionEventStatus @default(PENDING)
+  attemptCount          Int                        @default(0)
+  nextAttemptAt         DateTime                   @default(now())
+  lastAttemptAt         DateTime?
+  sentAt                DateTime?
+  processingStartedAt   DateTime?
+  processingToken       String?
+  lastErrorCode         String?
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+  booking               Booking?                   @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  @@index([status, nextAttemptAt, createdAt])
+  @@index([status, processingStartedAt])
+  @@index([eventTime])
 }
 
 model BookingPayment {

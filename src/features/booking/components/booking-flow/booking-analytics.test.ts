@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  claimBookingScheduleEvent,
   formatBookingMatomoSlotName,
   formatSuggestedSlotSelectionMatomoName,
   formatSuggestedSlotsDisplayedMatomoName,
@@ -14,6 +15,15 @@ import {
   shouldTrackBookingServiceSelectedForPrefill,
   shouldTrackBookingTimeSelection,
 } from "./booking-analytics";
+
+test("Schedule event can be claimed only once for a re-rendered booking confirmation", () => {
+  const confirmedBookingIds = new Set<string>();
+
+  assert.equal(claimBookingScheduleEvent(confirmedBookingIds, "booking-1"), true);
+  assert.equal(claimBookingScheduleEvent(confirmedBookingIds, "booking-1"), false);
+  assert.equal(claimBookingScheduleEvent(confirmedBookingIds, "booking-2"), true);
+  assert.equal(claimBookingScheduleEvent(confirmedBookingIds, ""), false);
+});
 
 test("isBookingTermConflictErrorCode recognizes booking conflict style submit failures", () => {
   assert.equal(isBookingTermConflictErrorCode("BOOKING_CONFLICT", 2), true);

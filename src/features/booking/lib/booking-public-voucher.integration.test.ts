@@ -29,6 +29,13 @@ process.env.ADMIN_STAFF_EMAIL ??= "staff@example.com";
 process.env.ADMIN_STAFF_PASSWORD ??= "change-me-staff";
 process.env.EMAIL_DELIVERY_MODE ??= "log";
 process.env.PUSHOVER_ENABLED ??= "false";
+process.env.NEXT_PUBLIC_META_PIXEL_ENABLED = "true";
+process.env.NEXT_PUBLIC_META_PIXEL_ID = "123456789012345";
+process.env.META_CAPI_ENABLED = "true";
+process.env.META_CAPI_DATASET_ID = "123456789012345";
+process.env.META_CAPI_ACCESS_TOKEN = "test-only-meta-access-token";
+process.env.META_CAPI_API_VERSION = "v26.0";
+process.env.META_CAPI_TEST_EVENT_CODE = "TEST_ONLY";
 
 const dbTest = process.env.RUN_DB_INTEGRATION_TESTS === "1" ? test : test.skip;
 
@@ -333,6 +340,83 @@ async function createVoucher(
 }
 
 describe("public booking intended voucher", () => {
+  dbTest("successful public booking atomically creates one Schedule outbox event with the booking time", async () => {
+    await withSeed(async (seed) => {
+      const { prisma, createPublicBooking } = await loadModules();
+      const slot = await createSlot(seed);
+      const input = buildBookingInput(seed, slot);
+      const metaEventId = randomUUID();
+
+      const result = await createPublicBooking({
+        ...input,
+        metaEventId,
+        metaCapi: {
+          eventSourceUrl: "https://ppstudio.test/rezervace",
+          userAgent: "Integration test browser",
+          fbp: "fb.1.1793528132000.1234567890",
+          fbc: "fb.1.1793528132000.AbCdEf12345",
+        },
+      });
+      seed.createdBookingIds.push(result.bookingId);
+
+      try {
+        const booking = await prisma.booking.findUniqueOrThrow({
+          where: { id: result.bookingId },
+          select: { createdAt: true },
+        });
+        const outboxEvents = await prisma.metaConversionEvent.findMany({
+          where: { bookingId: result.bookingId },
+        });
+
+        assert.equal(result.metaEventId, metaEventId);
+        assert.equal(outboxEvents.length, 1);
+        assert.equal(outboxEvents[0]?.eventId, metaEventId);
+        assert.equal(outboxEvents[0]?.eventTime.toISOString(), booking.createdAt.toISOString());
+        assert.equal(outboxEvents[0]?.eventSourceUrl, "https://ppstudio.test/rezervace");
+        assert.equal(outboxEvents[0]?.userAgent, "Integration test browser");
+        assert.equal(outboxEvents[0]?.fbp, "fb.1.1793528132000.1234567890");
+        assert.equal(outboxEvents[0]?.fbc, "fb.1.1793528132000.AbCdEf12345");
+        assert.notEqual(outboxEvents[0]?.eventId, result.bookingId);
+
+        await assert.rejects(
+          createPublicBooking({
+            ...input,
+            metaEventId: randomUUID(),
+            metaCapi: {
+              eventSourceUrl: "https://ppstudio.test/rezervace",
+              userAgent: "Integration test browser",
+              fbp: null,
+              fbc: null,
+            },
+          }),
+        );
+
+        assert.equal(
+          await prisma.metaConversionEvent.count({ where: { eventId: metaEventId } }),
+          1,
+        );
+
+        const failedEventId = randomUUID();
+        await assert.rejects(
+          createPublicBooking({
+            ...input,
+            serviceId: "missing-service",
+            metaEventId: failedEventId,
+            metaCapi: {
+              eventSourceUrl: "https://ppstudio.test/rezervace",
+              userAgent: "Integration test browser",
+              fbp: null,
+              fbc: null,
+            },
+          }),
+        );
+        assert.equal(await prisma.metaConversionEvent.count({ where: { eventId: failedEventId } }), 0);
+      } finally {
+        await prisma.metaConversionEvent.deleteMany({ where: { eventId: metaEventId } });
+      }
+    });
+  });
+
   dbTest("creates public booking without voucher", async () => {
     await withSeed(async (seed) => {
       const { prisma, createPublicBooking } = await loadModules();

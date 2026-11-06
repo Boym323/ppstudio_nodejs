@@ -12,6 +12,11 @@ const serverEnvSchema = z
     NEXT_PUBLIC_MATOMO_ENABLED: z.enum(["true", "false"]).optional().default("false"),
     NEXT_PUBLIC_CLARITY_ENABLED: z.enum(["true", "false"]).optional().default("false"),
     NEXT_PUBLIC_META_PIXEL_ENABLED: z.enum(["true", "false"]).optional().default("false"),
+    META_CAPI_ENABLED: z.enum(["true", "false"]).optional().default("false"),
+    META_CAPI_DATASET_ID: z.string().trim().regex(/^\d{5,30}$/).optional(),
+    META_CAPI_ACCESS_TOKEN: z.string().trim().optional(),
+    META_CAPI_API_VERSION: z.string().trim().regex(/^v\d+\.0$/).optional().default("v26.0"),
+    META_CAPI_TEST_EVENT_CODE: z.string().trim().optional(),
     NEXT_PUBLIC_GOOGLE_ADS_ENABLED: z.enum(["true", "false"]).optional().default("false"),
     NEXT_PUBLIC_WEB_VITALS_ENABLED: z.enum(["true", "false"]).optional().default("true"),
     NEXT_PUBLIC_CLARITY_PROJECT_ID: z.string().trim().optional(),
@@ -44,29 +49,78 @@ const serverEnvSchema = z
     SITE_SETTINGS_SNAPSHOT_PATH: z.string().trim().optional(),
   })
   .superRefine((env, context) => {
-    if (env.EMAIL_DELIVERY_MODE !== "background") {
-      return;
+    if (env.EMAIL_DELIVERY_MODE === "background") {
+      const requiredFields =
+        env.EMAIL_TRANSPORT === "smtp"
+          ? ([
+              ["SMTP_HOST", env.SMTP_HOST],
+              ["SMTP_PORT", env.SMTP_PORT],
+              ["SMTP_USER", env.SMTP_USER],
+              ["SMTP_PASSWORD", env.SMTP_PASSWORD],
+              ["SMTP_FROM_EMAIL", env.SMTP_FROM_EMAIL],
+            ] as const)
+          : ([["RESEND_API_KEY", env.RESEND_API_KEY]] as const);
+
+      for (const [field, value] of requiredFields) {
+        if (value === undefined || value === "") {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [field],
+            message: `${field} je povinné, když EMAIL_DELIVERY_MODE=background.`,
+          });
+        }
+      }
     }
 
-    const requiredFields =
-      env.EMAIL_TRANSPORT === "smtp"
-        ? ([
-            ["SMTP_HOST", env.SMTP_HOST],
-            ["SMTP_PORT", env.SMTP_PORT],
-            ["SMTP_USER", env.SMTP_USER],
-            ["SMTP_PASSWORD", env.SMTP_PASSWORD],
-            ["SMTP_FROM_EMAIL", env.SMTP_FROM_EMAIL],
-          ] as const)
-        : ([["RESEND_API_KEY", env.RESEND_API_KEY]] as const);
+    if (env.META_CAPI_ENABLED === "true") {
+      for (const [field, value] of [
+        ["META_CAPI_DATASET_ID", env.META_CAPI_DATASET_ID],
+        ["META_CAPI_ACCESS_TOKEN", env.META_CAPI_ACCESS_TOKEN],
+      ] as const) {
+        if (!value) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [field],
+            message: `${field} je povinné, když META_CAPI_ENABLED=true.`,
+          });
+        }
+      }
 
-    for (const [field, value] of requiredFields) {
-      if (value === undefined || value === "") {
+      if (env.NEXT_PUBLIC_META_PIXEL_ENABLED !== "true") {
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          path: [field],
-          message: `${field} je povinné, když EMAIL_DELIVERY_MODE=background.`,
+          path: ["NEXT_PUBLIC_META_PIXEL_ENABLED"],
+          message: "Meta Pixel musí být zapnutý, aby se browser a server události mohly deduplikovat.",
         });
       }
+
+      if (!env.NEXT_PUBLIC_META_PIXEL_ID) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["NEXT_PUBLIC_META_PIXEL_ID"],
+          message: "NEXT_PUBLIC_META_PIXEL_ID je povinné, když je zapnuté Meta CAPI.",
+        });
+      }
+
+      if (
+        env.META_CAPI_DATASET_ID &&
+        env.NEXT_PUBLIC_META_PIXEL_ID &&
+        env.META_CAPI_DATASET_ID !== env.NEXT_PUBLIC_META_PIXEL_ID
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["META_CAPI_DATASET_ID"],
+          message: "META_CAPI_DATASET_ID musí odpovídat NEXT_PUBLIC_META_PIXEL_ID.",
+        });
+      }
+    }
+
+    if (env.NODE_ENV === "production" && env.META_CAPI_TEST_EVENT_CODE) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["META_CAPI_TEST_EVENT_CODE"],
+        message: "Testovací Meta události nelze posílat z produkčního runtime.",
+      });
     }
   });
 

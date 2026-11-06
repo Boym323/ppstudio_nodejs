@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 
 import { buildSafeMatomoPath } from "./matomo";
 import { isGoogleAdsConfigured, shouldInitializeGoogleAdsTracking } from "./google-ads";
+import { useTrackingConsent } from "./tracking-consent-provider";
 
 declare global {
   interface Window {
@@ -20,9 +21,10 @@ type GoogleAdsTrackerProps = {
 
 export function GoogleAdsTracker({ disabled = false }: GoogleAdsTrackerProps) {
   const pathname = usePathname();
+  const marketingConsent = useTrackingConsent("marketing");
   const searchParams = useSearchParams();
   const tagId = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID;
-  const shouldInitialize = isGoogleAdsConfigured() && shouldInitializeGoogleAdsTracking(pathname, { disabled });
+  const shouldInitialize = marketingConsent && isGoogleAdsConfigured() && shouldInitializeGoogleAdsTracking(pathname, { disabled });
   const trackedPathRef = useRef(buildSafeMatomoPath(pathname, searchParams));
 
   useEffect(() => {

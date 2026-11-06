@@ -9,7 +9,7 @@ const image = Buffer.from(
   "base64",
 );
 
-test("certifikát vrací focus na stejný trigger, který dialog otevřel", async ({ page }) => {
+test("certifikát vrací focus na stejný trigger, který dialog otevřel", async ({ page, baseURL }) => {
   const token = `e2e-certificate-${Date.now()}`;
   const collection = await prisma.mediaCollection.upsert({
     where: { type: MediaCollectionType.CERTIFICATES },
@@ -29,6 +29,13 @@ test("certifikát vrací focus na stejný trigger, který dialog otevřel", asyn
       data: assets.map((asset, index) => ({ collectionId: collection.id, mediaAssetId: asset.id, sortOrder: (last._max.sortOrder ?? -1) + index + 1 })),
     });
 
+    // Tento scénář testuje focus certifikátu, nikoli souhlasový panel.
+    // Bez volby cookies by stránka obsahovala druhý, nezávislý dialog.
+    await page.context().addCookies([{
+      name: "ppstudio-tracking-consent-v1",
+      value: "a0m0",
+      url: baseURL ?? "http://127.0.0.1:3100",
+    }]);
     await page.goto("/o-mne");
     for (const [index, asset] of assets.entries()) {
       const trigger = page.getByRole("button", { name: new RegExp(asset.title ?? `${token} certifikát ${index === 0 ? "A" : "B"}`) });

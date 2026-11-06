@@ -13,6 +13,8 @@ import {
   BOOKING_ACQUISITION_COOKIE,
   parseBookingAcquisitionCookie,
 } from "@/features/booking/lib/booking-acquisition";
+import { getMetaCapiConfig } from "@/lib/analytics/meta-capi-config";
+import { TRACKING_CONSENT_COOKIE, parseTrackingConsent } from "@/lib/analytics/tracking-consent";
 import {
   CLIENT_PHONE_FORMAT_MESSAGE,
   createPublicBooking,
@@ -130,6 +132,11 @@ function getSubmissionMetadata(requestHeaders: Headers) {
   };
 }
 
+function readMetaBrowserCookie(value: string | undefined) {
+  if (!value || value.length > 255) return null;
+  return /^fb\.1\.\d{10,13}\.[A-Za-z0-9._-]{1,200}$/.test(value) ? value : null;
+}
+
 async function writeSubmissionLog(
   data: Prisma.BookingSubmissionLogUncheckedCreateInput & {
     outcome: BookingSubmissionOutcome;
@@ -153,8 +160,9 @@ export async function createPublicBookingAction(
 ): Promise<PublicBookingActionState> {
   const requestHeaders = await headers();
   const cookieStore = await cookies();
+  const trackingConsent = parseTrackingConsent(cookieStore.get(TRACKING_CONSENT_COOKIE)?.value);
   const acquisitionData = parseBookingAcquisitionCookie(
-    cookieStore.get(BOOKING_ACQUISITION_COOKIE)?.value,
+    trackingConsent?.analytics ? cookieStore.get(BOOKING_ACQUISITION_COOKIE)?.value : undefined,
   );
   const submissionMetadata = getSubmissionMetadata(requestHeaders);
   const parsed = publicBookingSchema.safeParse({
@@ -268,6 +276,21 @@ export async function createPublicBookingAction(
   }
 
   try {
+    const metaEventId = randomUUID();
+    const metaCapiConfig = getMetaCapiConfig();
+    const rawUserAgent = metaCapiConfig ? requestHeaders.get("user-agent")?.trim() : undefined;
+    const userAgent = rawUserAgent
+      ? rawUserAgent.replace(/[\u0000-\u001f\u007f]/g, " ").slice(0, 500)
+      : "";
+    const metaCapi = trackingConsent?.marketing && metaCapiConfig && userAgent
+      ? {
+          eventSourceUrl: new URL("/rezervace", env.NEXT_PUBLIC_SITE_URL ?? env.NEXT_PUBLIC_APP_URL).toString(),
+          userAgent,
+          fbp: readMetaBrowserCookie(cookieStore.get("_fbp")?.value) ?? null,
+          fbc: readMetaBrowserCookie(cookieStore.get("_fbc")?.value) ?? null,
+        }
+      : undefined;
+
     const result = await createPublicBooking({
       serviceId: parsed.data.serviceId,
       slotId: parsed.data.slotId,
@@ -278,6 +301,8 @@ export async function createPublicBookingAction(
       clientNote: parsed.data.clientNote || undefined,
       voucherCode: parsed.data.voucherCode || undefined,
       acquisition: acquisitionData,
+      metaEventId,
+      metaCapi,
     });
 
     await writeSubmissionLog({

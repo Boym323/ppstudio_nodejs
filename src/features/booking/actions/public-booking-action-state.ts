@@ -8,6 +8,7 @@ export type PublicBookingActionState = {
   fieldErrors?: Partial<Record<"serviceId" | "slotId" | "startsAt" | "fullName" | "email" | "phone" | "clientNote" | "voucherCode", string>>;
   confirmation?: {
     bookingId: string;
+    metaEventId?: string;
     serviceName: string;
     scheduledStartsAt: string;
     scheduledEndsAt: string;

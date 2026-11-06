@@ -4,6 +4,7 @@ import Script from "next/script";
 import { usePathname } from "next/navigation";
 
 import { isClarityConfigured, shouldInitializeClarityTracking } from "./clarity";
+import { useTrackingConsent } from "./tracking-consent-provider";
 
 type ClarityTrackerProps = {
   disabled?: boolean;
@@ -11,8 +12,9 @@ type ClarityTrackerProps = {
 
 export function ClarityTracker({ disabled = false }: ClarityTrackerProps) {
   const pathname = usePathname();
+  const analyticsConsent = useTrackingConsent("analytics");
   const projectId = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID;
-  const shouldInitialize = isClarityConfigured() && shouldInitializeClarityTracking(pathname, { disabled });
+  const shouldInitialize = analyticsConsent && isClarityConfigured() && shouldInitializeClarityTracking(pathname, { disabled });
 
   if (!shouldInitialize || !projectId) {
     return null;

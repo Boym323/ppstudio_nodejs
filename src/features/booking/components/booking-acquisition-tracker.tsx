@@ -8,6 +8,7 @@ import {
   buildBookingAcquisitionCookieHeader,
   buildBookingAcquisitionCookieValue,
 } from "@/features/booking/lib/booking-acquisition";
+import { hasTrackingConsent } from "@/lib/analytics/tracking-consent";
 
 function readCookieValue(name: string) {
   if (typeof document === "undefined") {
@@ -33,11 +34,13 @@ export function BookingAcquisitionTracker() {
   const searchParamsKey = searchParams.toString();
 
   useEffect(() => {
-    if (pathname.startsWith("/admin")) {
-      return;
-    }
+    function updateAcquisitionCookie() {
+      if (pathname.startsWith("/admin") || !hasTrackingConsent("analytics")) {
+        document.cookie = `${BOOKING_ACQUISITION_COOKIE}=; Max-Age=0; Path=/; SameSite=Lax`;
+        return;
+      }
 
-    const existingValue = readCookieValue(BOOKING_ACQUISITION_COOKIE);
+      const existingValue = readCookieValue(BOOKING_ACQUISITION_COOKIE);
     const cookieValue = buildBookingAcquisitionCookieValue({
       pathname,
       search: searchParamsKey.length > 0 ? `?${searchParamsKey}` : "",
@@ -50,7 +53,12 @@ export function BookingAcquisitionTracker() {
       return;
     }
 
-    document.cookie = buildBookingAcquisitionCookieHeader(cookieValue);
+      document.cookie = buildBookingAcquisitionCookieHeader(cookieValue);
+    }
+
+    updateAcquisitionCookie();
+    window.addEventListener("ppstudio:tracking-consent-changed", updateAcquisitionCookie);
+    return () => window.removeEventListener("ppstudio:tracking-consent-changed", updateAcquisitionCookie);
   }, [pathname, searchParamsKey]);
 
   return null;
