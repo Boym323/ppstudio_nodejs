@@ -745,7 +745,7 @@ test.describe("rezervační toky", () => {
     expect(events.filter((call) => call[2] === "Doporučený termín vybrán")).toHaveLength(0);
   });
 
-  test("obnovení po konfliktu znovu ověří voucher před možností odeslat nový termín", async ({ browser }) => {
+  test("obnovení po konfliktu znovu ověří voucher před možností odeslat nový termín", async ({ browser, baseURL }) => {
     // Dvě nezávislé relace zde záměrně provádějí několik serverových akcí
     // včetně předepsaného zpoždění pro reprodukci konfliktu.
     test.setTimeout(90_000);
@@ -756,6 +756,13 @@ test.describe("rezervační toky", () => {
 
     const firstContext = await browser.newContext();
     const secondContext = await browser.newContext();
+    // beforeEach nastavuje souhlas jen na výchozím Playwright kontextu.
+    // Tyto dvě nezávislé relace musí mít stejné testovací nastavení.
+    await Promise.all([firstContext, secondContext].map((context) => context.addCookies([{
+      name: "ppstudio-tracking-consent-v1",
+      value: "a1m1",
+      url: baseURL ?? "http://127.0.0.1:3100",
+    }])));
     const firstPage = await firstContext.newPage();
     const secondPage = await secondContext.newPage();
     const bookingPath = `/rezervace?service=${fixture.serviceSlug}`;
