@@ -94,7 +94,7 @@
     "recharts": "^3.10.1",
     "server-only": "^0.0.1",
     "sharp": "^0.35.3",
-    "svix": "^2.9.0",
+    "svix": "^2.9.1",
     "tailwind-merge": "^3.6.0",
     "temporal-polyfill": "^1.0.3",
     "zod": "^4.6.6"
