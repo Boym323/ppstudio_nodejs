@@ -21,6 +21,7 @@ const analyticsFallback = {
     submitted: 0,
     created: 0,
   },
+  funnelTrackingActive: false,
   contactStepQuality: {
     started: 0,
     fieldFocus: 0,
