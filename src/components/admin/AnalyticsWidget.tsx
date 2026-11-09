@@ -25,6 +25,7 @@ export type AnalyticsDashboardData = {
     submitted: number;
     created: number;
   };
+  funnelTrackingActive: boolean;
   contactStepQuality: {
     started: number;
     fieldFocus: number;
@@ -89,6 +90,7 @@ export function isAnalyticsDashboardData(value: unknown): value is AnalyticsDash
         Number.isFinite((source as Record<string, unknown>).visits) &&
         Number.isFinite((source as Record<string, unknown>).conversions),
     ) &&
+    typeof candidate.funnelTrackingActive === "boolean" &&
     Number.isFinite(funnelCandidate.viewed) &&
     Number.isFinite(funnelCandidate.service) &&
     Number.isFinite(funnelCandidate.term) &&
@@ -116,15 +118,21 @@ function formatPercent(value: number) {
 function FunnelStep({
   label,
   value,
+  previous,
 }: {
   label: string;
   value: number;
+  previous?: number;
 }) {
+  const lost = previous && value <= previous ? Math.round(((previous - value) / previous) * 100) : null;
   return (
     <div className="rounded-lg border border-white/8 bg-black/18 px-3 py-2">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs font-medium text-white/50">{label}</p>
-        <p className="text-sm font-semibold tracking-tight text-white">{formatNumber(value)}</p>
+        <div className="text-right">
+          <p className="text-sm font-semibold tracking-tight text-white">{formatNumber(value)}</p>
+          {lost !== null ? <p className="text-[10px] text-white/45">odpad {lost} %</p> : null}
+        </div>
       </div>
     </div>
   );
@@ -277,13 +285,28 @@ export function AnalyticsWidget({
 
                 <SourcesList sources={state.data.sources} />
 
-                <div className="grid gap-2">
-                  <FunnelStep label="Zobrazení" value={state.data.funnel.viewed} />
-                  <FunnelStep label="Služba" value={state.data.funnel.service} />
-                  <FunnelStep label="Termín" value={state.data.funnel.term} />
-                  <FunnelStep label="Kontakt" value={state.data.funnel.contact} />
-                  <FunnelStep label="Odesláno" value={state.data.funnel.submitted} />
-                  <FunnelStep label="Rezervace" value={state.data.funnel.created} />
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-white">Průchod rezervací podle návštěv</p>
+                  {state.data.funnelTrackingActive ? (
+                    <>
+                      <div className="grid gap-2">
+                        <FunnelStep label="Otevření" value={state.data.funnel.viewed} />
+                        <FunnelStep label="Služba" value={state.data.funnel.service} previous={state.data.funnel.viewed} />
+                        <FunnelStep label="Termín" value={state.data.funnel.term} previous={state.data.funnel.service} />
+                        <FunnelStep label="Kontakt" value={state.data.funnel.contact} previous={state.data.funnel.term} />
+                        <FunnelStep label="Odesláno" value={state.data.funnel.submitted} previous={state.data.funnel.contact} />
+                        <FunnelStep label="Vytvořeno" value={state.data.funnel.created} previous={state.data.funnel.submitted} />
+                      </div>
+                      <p className="text-xs leading-5 text-white/48">
+                        Unikátní návštěvy Matomo pro každý krok, ne počty kliknutí. Odpad se počítá vůči předchozímu kroku.
+                      </p>
+                    </>
+                  ) : (
+                    <p className="rounded-lg border border-dashed border-white/12 bg-black/18 p-3 text-xs leading-5 text-white/60">
+                      Zatím chybí data z nového měření. Po nasazení se zobrazí s prvními návštěvami.
+                      Starší události nelze spolehlivě zpětně převést na návštěvy jednotlivých kroků.
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2 rounded-lg border border-white/8 bg-black/18 p-3">
