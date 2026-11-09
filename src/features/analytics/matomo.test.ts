@@ -6,6 +6,7 @@ import {
   claimMatomoPageview,
   ensureMatomoTrackingPath,
   trackBookingEvent,
+  trackBookingFunnelEvent,
   trackMatomoEvent,
   shouldInitializeMatomo,
   shouldInitializeMatomoTracking,
@@ -221,5 +222,26 @@ test("ensureMatomoTrackingPath bootstraps safe token route without pageview", ()
     ["enableHeartBeatTimer", 15],
     ["enableLinkTracking"],
     ["setCustomUrl", "/rezervace/storno/[token]"],
+  ]);
+});
+
+test("trackBookingFunnelEvent uses one fixed anonymous event per ordered booking stage", () => {
+  setMatomoConfigured();
+
+  const calls: unknown[][] = [];
+  setMockWindow({
+    _paq: {
+      push(payload: unknown[]) {
+        calls.push(payload);
+      },
+    } as unknown as Array<unknown[]>,
+  });
+
+   trackBookingFunnelEvent("service");
+  trackBookingFunnelEvent("contact");
+
+  assert.deepEqual(calls, [
+    ["trackEvent", "Rezervační průchod", "02 Vybraná služba"],
+    ["trackEvent", "Rezervační průchod", "04 Kontaktní krok"],
   ]);
 });
