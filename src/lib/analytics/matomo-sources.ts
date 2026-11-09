@@ -10,7 +10,7 @@ export type DashboardSourceRow = {
   conversions: number;
 };
 
-function mapReferrerTypeLabel(label: string) {
+export function mapReferrerTypeLabel(label: string) {
   const type = label.trim().toLowerCase();
 
   if (type.includes("campaign")) return "Kampaně – neurčeno";
