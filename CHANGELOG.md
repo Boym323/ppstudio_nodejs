@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Přidáno
+
+- Administrace zobrazuje rezervační průchod podle unikátních návštěv jednotlivých kroků místo součtu opakovaných kliknutí, včetně procent odchodu mezi kroky. Nové neosobní měření správně zahrnuje také předvybranou službu a obnovený koncept, rozlišuje nedostupné termíny a do příchodu nových dat nezobrazuje staré hodnoty jako spolehlivý funnel.
+
 ### Opraveno
 
 - Analytika v administraci nyní odděluje skutečné vyhledávače a sociální sítě, správně rozpoznává jednoznačně označené kampaně Skliku, Google Ads a Meta Ads a neznámé kampaně nepřipisuje chybně konkrétní platformě. Při neúplných údajích Matomo zachovává ověřené souhrny návštěv a konverzí bez dvojího započtení.
