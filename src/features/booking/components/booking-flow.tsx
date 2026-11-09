@@ -7,7 +7,8 @@ import { createPublicBookingAction } from "@/features/booking/actions/create-pub
 import { refreshPublicBookingCatalogAction } from "@/features/booking/actions/refresh-public-booking-catalog";
 import { validatePublicBookingVoucherAction } from "@/features/booking/actions/validate-public-booking-voucher";
 import { initialPublicBookingActionState } from "@/features/booking/actions/public-booking-action-state";
-import { trackBookingEvent } from "@/features/analytics/matomo";
+import { getBookingFunnelStagesSince, type BookingFunnelStage } from "@/features/analytics/booking-funnel";
+import { trackBookingEvent, trackBookingFunnelEvent } from "@/features/analytics/matomo";
 import {
   trackMetaPixelCustomEvent,
   trackMetaPixelStandardEvent,
@@ -141,6 +142,8 @@ export function BookingFlow({
   const contactStepFocusTimeoutRef = useRef<number | null>(null);
   const confirmedBookingIdsRef = useRef<Set<string>>(new Set());
   const bookingStartedTrackedRef = useRef(false);
+  const lastBookingFunnelStageIndexRef = useRef(-1);
+  const noAvailableTermsTrackedRef = useRef<Set<string>>(new Set());
   const serviceSelectedTrackedRef = useRef(false);
   const bookingReviewedTrackedRef = useRef(false);
   const successViewportResetRef = useRef(false);
@@ -205,6 +208,14 @@ export function BookingFlow({
   const markFormChanged = () => {
     formRevisionRef.current += 1;
   };
+
+  const advanceBookingFunnel = useCallback((step: BookingFunnelStage) => {
+    const stages = getBookingFunnelStagesSince(lastBookingFunnelStageIndexRef.current, step);
+    for (const stage of stages) {
+      trackBookingFunnelEvent(stage);
+    }
+    lastBookingFunnelStageIndexRef.current += stages.length;
+  }, []);
 
   const trackSelectedServiceMetaEvent = (service?: {
     categoryName: string;
@@ -603,6 +614,20 @@ export function BookingFlow({
     : undefined;
 
   useEffect(() => {
+    // Návrat k předchozímu kroku už funnel nenavýší; obnovený koncept má přednost.
+    if (isRestoringDraft || serverState.status === "success") return;
+
+    advanceBookingFunnel("viewed");
+    if (!selectedService) return;
+
+    advanceBookingFunnel("service");
+    if (!selectedTimeOption) return;
+
+    advanceBookingFunnel("term");
+    if (currentStep >= 3) advanceBookingFunnel("contact");
+  }, [advanceBookingFunnel, currentStep, isRestoringDraft, selectedService, selectedTimeOption, serverState.status]);
+
+  useEffect(() => {
     if (serverState.status === "success") {
       clearBookingDraft();
       return;
@@ -620,6 +645,14 @@ export function BookingFlow({
     () => availableTimeOptions.filter((option) => !option.isDisabled),
     [availableTimeOptions],
   );
+
+  useEffect(() => {
+    if (isRestoringDraft || isRefreshingCatalog || !selectedService || selectableTimeOptions.length > 0) return;
+    if (noAvailableTermsTrackedRef.current.has(selectedService.slug)) return;
+
+    noAvailableTermsTrackedRef.current.add(selectedService.slug);
+    trackBookingEvent("Termíny nenalezeny", selectedService.slug);
+  }, [isRestoringDraft, isRefreshingCatalog, selectedService, selectableTimeOptions.length]);
 
   const suggestedSlots = useMemo(
     () => {
@@ -1042,6 +1075,7 @@ export function BookingFlow({
     if (confirmedBookingIdsRef.current.has(bookingId)) return;
 
     confirmedBookingIdsRef.current.add(bookingId);
+    advanceBookingFunnel("created");
     trackBookingEvent("Vytvořena", selectedService?.slug ?? "unknown_service");
     trackMetaPixelStandardEvent("Schedule", {
       content_type: "service",
@@ -1051,6 +1085,7 @@ export function BookingFlow({
       duration_minutes: selectedService?.durationMinutes,
     });
   }, [
+    advanceBookingFunnel,
     selectedService,
     selectedService?.categoryName,
     selectedService?.durationMinutes,
@@ -1133,6 +1168,7 @@ export function BookingFlow({
           }
 
           lastFailedBookingKeyRef.current = null;
+          advanceBookingFunnel("submitted");
           if (selectedService) trackBookingEvent("Odeslána rezervace", selectedService.slug);
         }}
       >

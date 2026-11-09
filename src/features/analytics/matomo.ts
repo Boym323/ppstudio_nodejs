@@ -1,5 +1,7 @@
 "use client";
 
+import { BOOKING_FUNNEL_ACTIONS, type BookingFunnelStage } from "./booking-funnel";
+
 export type MatomoEventValue = number | undefined;
 
 export type BookingEventAction =
@@ -14,6 +16,7 @@ export type BookingEventAction =
   | "Souhrn zobrazen"
   | "Odeslána rezervace"
   | "Vytvořena"
+  | "Termíny nenalezeny"
   | "Neúspěšná rezervace"
   | "Služba změněna"
   | "Čas změněn";
@@ -246,6 +249,11 @@ export function trackBookingEvent(
   name?: string,
 ) {
   trackMatomoEvent("Rezervace", action, name);
+}
+
+/** Jedinečná neosobní akce pro postup rezervací, oddělená od diagnostických eventů. */
+export function trackBookingFunnelEvent(stage: BookingFunnelStage) {
+  trackMatomoEvent("Rezervační průchod", BOOKING_FUNNEL_ACTIONS[stage]);
 }
 
 export function trackContactCtaClick(type: "phone" | "email" | "instagram" | "contact form" | "map", location: string) {

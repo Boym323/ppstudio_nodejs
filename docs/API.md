@@ -201,6 +201,7 @@ Odpověď:
     "submitted": 0,
     "created": 0
   },
+  "funnelTrackingActive": false,
   "contactStepQuality": {
     "started": 0,
     "fieldFocus": 0,
@@ -226,12 +227,12 @@ Vysvětlení polí:
 - `conversionRate`: konverzní poměr Matomo Goal `idGoal=1`; při chybějící zpracované metrice se dopočítá z návštěv a konverzí cíle.
 - `topSource`: hlavní zdroj návštěv v business-friendly názvu.
 - `sources`: detailnější rozpad návštěv a skutečných konverzí Goal `idGoal=1` podle zdrojů; nejde o poměrový odhad.
-- `funnel.viewed`: počet pageview zobrazení veřejného booking flow `/rezervace`; backend ho skládá z Matomo page URL reportu, ne z custom eventu.
-- `funnel.service`: počet průchodů krokem výběru služby.
-- `funnel.term`: počet průchodů krokem skutečně vybraného termínu; interně vychází z eventu `Rezervace / Čas vybrán`.
-- `funnel.contact`: počet vstupů do kontaktního kroku; interně vychází z eventu `Rezervace / Kontakt zahájen`.
-- `funnel.submitted`: počet submit pokusů veřejné rezervace před server action zpracováním.
-- `funnel.created`: počet klientských eventů `Rezervace / Vytvořena`; slouží jako technický konec funnelu a nemusí se rovnat `conversions` z Matomo Goal.
+- `funnelTrackingActive`: zda už Matomo vrací nové postupové události s metrikou `nb_visits`; dokud nejsou dostupné, widget nezobrazuje zavádějící nuly jako skutečný průchod.
+- `funnel.viewed/service/term/contact/submitted/created`: počty **unikátních návštěv Matomo** pro navazující anonymní kroky `Rezervační průchod / 01–06` (`Events.getAction.nb_visits`), nikoliv počty kliknutí nebo pageview. Klient posílá předchozí chybějící kroky v pořadí i při předvýběru služby a obnově konceptu.
+- `funnel.contact` znamená dosažení kontaktního kroku po výběru času; ne nutně začátek psaní. `submitted` je platný klientský pokus o odeslání, `created` potvrzené dokončení server action.
+- Procentuální odpad se vypočítává vůči bezprostředně předchozímu kroku. Jde o návštěvy (Matomo může jednu klientku započítat znovu při nové návštěvě), nikoli identifikované osoby ani počet jedinečných rezervačních pokusů.
+- Nová taxonomie platí pouze od jejího nasazení; historické diagnostické události `Rezervace` zůstávají dostupné, ale nelze je použít jako zpětně přepočtený návštěvový funnel.
+- Událost `Rezervace / Termíny nenalezeny` se zaznamenává pro službu bez dostupného termínu; stávající neúspěšná odeslání a chyby kontaktů zůstávají samostatnými diagnostickými událostmi. Osobní údaje se do eventů nepředávají.
 - `contactStepQuality.started`: kolikrát uživatelka vstoupila do kontaktního kroku.
 - `contactStepQuality.fieldFocus`: kolikrát dostalo fokus první relevantní kontaktní pole.
 - `contactStepQuality.fieldInputStarted`: kolikrát uživatelka skutečně začala psát do kontaktního pole.

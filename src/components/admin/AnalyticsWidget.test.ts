@@ -12,6 +12,7 @@ test("isAnalyticsDashboardData přijme payload s contactStepQuality", () => {
     conversionRate: 20,
     topSource: "Přímý vstup",
     sources: [{ label: "Přímý vstup", visits: 10, conversions: 2 }],
+    funnelTrackingActive: true,
     funnel: {
       viewed: 10,
       service: 8,
@@ -43,6 +44,7 @@ test("isAnalyticsDashboardData odmítne payload bez contactStepQuality", () => {
     conversionRate: 20,
     topSource: "Přímý vstup",
     sources: [{ label: "Přímý vstup", visits: 10, conversions: 2 }],
+    funnelTrackingActive: true,
     funnel: {
       viewed: 10,
       service: 8,
