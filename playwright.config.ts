@@ -30,6 +30,8 @@ export default defineConfig({
       ...process.env,
       NODE_ENV: "production",
       PUSHOVER_ENABLED: "false",
+      META_CAPI_ENABLED: "false",
+      NEXT_PUBLIC_GOOGLE_ADS_ENABLED: "false",
       NEXT_PUBLIC_APP_URL: baseURL,
       NEXT_PUBLIC_SITE_URL: baseURL,
       NEXT_PUBLIC_MATOMO_ENABLED: "true",

@@ -4,6 +4,7 @@ import { connection } from 'next/server';
 import { footerNavigation, mainNavigation } from '@/config/navigation';
 import { ObfuscatedEmailLink } from '@/components/ui/obfuscated-email-link';
 import { getPublicSalonProfile } from '@/lib/site-settings';
+import { TrackingConsentSettingsButton } from '@/features/analytics/tracking-consent-provider';
 
 import { Container } from '../ui/container';
 
@@ -93,7 +94,10 @@ export async function SiteFooter({ compact = false }: SiteFooterProps) {
         </div>
 
         <div className={compact ? "pt-3 text-xs tracking-[0.12em] text-[var(--color-muted)]" : "pt-4 text-xs tracking-[0.12em] text-[var(--color-muted)]"}>
-          © {new Date().getFullYear()} {salonProfile.name}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>© {new Date().getFullYear()} {salonProfile.name}</span>
+            <TrackingConsentSettingsButton />
+          </div>
         </div>
       </Container>
     </footer>

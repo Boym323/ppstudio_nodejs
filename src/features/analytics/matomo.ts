@@ -1,5 +1,7 @@
 "use client";
 
+import { hasTrackingConsent } from "@/lib/analytics/tracking-consent";
+
 export type MatomoEventValue = number | undefined;
 
 export type BookingEventAction =
@@ -165,7 +167,7 @@ function isSafeEventLabel(value: string) {
 }
 
 export function ensureMatomoTrackingPath(path: string, options?: { trackPageView?: boolean }) {
-  if (typeof window === "undefined" || !isMatomoConfigured()) {
+  if (typeof window === "undefined" || !isMatomoConfigured() || !hasTrackingConsent("analytics")) {
     return;
   }
 
@@ -207,7 +209,12 @@ export function trackMatomoEvent(
   name?: string,
   value?: MatomoEventValue,
 ) {
-  if (typeof window === "undefined" || !isMatomoConfigured() || !window._paq) {
+  if (
+    typeof window === "undefined" ||
+    !isMatomoConfigured() ||
+    !hasTrackingConsent("analytics") ||
+    !window._paq
+  ) {
     return;
   }
 

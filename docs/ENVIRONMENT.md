@@ -24,6 +24,11 @@ Stručný runtime přehled prostředí a vazeb na infrastrukturu je v kořenové
 - `NEXT_PUBLIC_MATOMO_ENABLED`: zapnutí veřejného Matomo trackingu; tracking běží pouze při přesné hodnotě `true`.
 - `NEXT_PUBLIC_CLARITY_ENABLED`: zapnutí veřejného Microsoft Clarity trackingu; tracking běží pouze při přesné hodnotě `true`.
 - `NEXT_PUBLIC_META_PIXEL_ENABLED`: zapnutí veřejného Meta Pixel trackingu; tracking běží pouze při přesné hodnotě `true`.
+- `META_CAPI_ENABLED`: server-only zapínač přímého Meta Conversions API; výchozí hodnota je `false`.
+- `META_CAPI_DATASET_ID`: serverové ID datasetu pro CAPI; musí být stejné jako `NEXT_PUBLIC_META_PIXEL_ID`.
+- `META_CAPI_ACCESS_TOKEN`: tajný serverový Meta access token; nikdy jej nedávej do `NEXT_PUBLIC_*`, klientských komponent ani logů.
+- `META_CAPI_API_VERSION`: připnutá Graph API verze; aktuální výchozí hodnota je `v26.0`.
+- `META_CAPI_TEST_EVENT_CODE`: volitelný kód Test Events; aplikace jej odmítá v produkci a vývojový runtime navíc odmítne známý produkční dataset `1002460135763604`.
 - `NEXT_PUBLIC_GOOGLE_ADS_ENABLED`: zapnutí veřejného Google Ads tagu (`gtag.js`); tracking běží pouze při přesné hodnotě `true`.
 - `NEXT_PUBLIC_WEB_VITALS_ENABLED`: zapnutí klientského sběru Web Vitals; měření běží pouze při přesné hodnotě `true`.
 - `NEXT_PUBLIC_CLARITY_PROJECT_ID`: veřejné Clarity Project ID z Clarity dashboardu.
@@ -92,7 +97,12 @@ NEXT_PUBLIC_META_PIXEL_ENABLED=false
 NEXT_PUBLIC_GOOGLE_ADS_ENABLED=false
 NEXT_PUBLIC_WEB_VITALS_ENABLED=true
 NEXT_PUBLIC_CLARITY_PROJECT_ID=
-NEXT_PUBLIC_META_PIXEL_ID=
+NEXT_PUBLIC_META_PIXEL_ID=1002460135763604
+META_CAPI_ENABLED=false
+META_CAPI_DATASET_ID=1002460135763604
+META_CAPI_ACCESS_TOKEN=
+META_CAPI_API_VERSION=v26.0
+META_CAPI_TEST_EVENT_CODE=
 NEXT_PUBLIC_GOOGLE_ADS_ID=AW-18174837654
 NEXT_PUBLIC_MATOMO_URL=https://matomo.example.cz/
 NEXT_PUBLIC_MATOMO_SITE_ID=1
@@ -160,6 +170,12 @@ Lokální doporučení:
 - Matomo konfigurace je volitelná: pokud `NEXT_PUBLIC_MATOMO_ENABLED` není přesně `true`, nebo chybí URL či site ID, tracking zůstane vypnutý. Protože jde o `NEXT_PUBLIC_*` proměnné, hodnoty se promítají do klientského bundle při buildu.
 - Clarity konfigurace je volitelná: pokud `NEXT_PUBLIC_CLARITY_ENABLED` není přesně `true`, nebo chybí `NEXT_PUBLIC_CLARITY_PROJECT_ID`, tracking zůstane vypnutý.
 - Meta Pixel konfigurace je volitelná: pokud `NEXT_PUBLIC_META_PIXEL_ENABLED` není přesně `true`, nebo chybí `NEXT_PUBLIC_META_PIXEL_ID`, tracking zůstane vypnutý.
+- Veřejné trackery se řídí svými konfiguračními přepínači a při zapnutí nevyžadují cookie souhlas.
+- Interní `ppstudio-booking-acq` cookie má 30denní retenci, ukládá očištěné UTM/MTM hodnoty a referrer host, nikoli `fbclid`; zjevné e-maily a telefonní čísla v hodnotách kampaně se zahazují. Dostupné `_fbp`/`_fbc` může použít Meta Pixel/CAPI.
+- CAPI queue ukládá pouze náhodné `event_id`, čas rezervace, bezpečnou URL `/rezervace`, user-agent a volitelné `_fbp`/`_fbc`. Neposílá IP adresu, e-mail, telefon, interní ID rezervace ani hashované kontakty.
+- User-agent a Meta browser identifikátory jsou v outboxu jen po dobu čekání. Po úspěchu nebo konečném selhání se smažou; čekající události starší než šest dní se zahodí. Outbox zpracovává stávající `ppstudio-email-worker` a při restartu obnoví expirovaný claim.
+- V DEV nikdy nenastavuj CAPI Test Events na produkční dataset `1002460135763604`. Pro skutečné ověření použij oddělený Meta testovací dataset, jeho vlastní Pixel ID a testovací token; lokální unit/DB testy používají falešný dataset a mock `fetch`.
+- Produkční aktivace vyžaduje současně `NEXT_PUBLIC_META_PIXEL_ENABLED=true`, odpovídající veřejné Pixel ID, `META_CAPI_ENABLED=true`, stejný `META_CAPI_DATASET_ID` a tajný `META_CAPI_ACCESS_TOKEN`. Detailní postup a kontrola deduplikace jsou v [Meta Conversions API](META_CONVERSIONS_API.md).
 - Google Ads konfigurace je volitelná: pokud `NEXT_PUBLIC_GOOGLE_ADS_ENABLED` není přesně `true`, nebo chybí `NEXT_PUBLIC_GOOGLE_ADS_ID`, tracking zůstane vypnutý.
 - Při zapnuté konfiguraci Meta Pixel aktuálně posílá nejen `PageView`, ale i neosobní funnel eventy `ViewContent`, `InitiateCheckout` (až po výběru termínu nebo při přechodu do kontaktního kroku), `AddToCart`, `BookingDateSelected`, `BookingTimeSelected`, `BookingContactStarted` a `Lead`.
 - Vyloučení přihlášeného admina z veřejného Matomo trackingu je řešené aplikačně přes admin session cookie `ppstudio-admin-session`; nepřidává se kvůli tomu žádná nová env proměnná.

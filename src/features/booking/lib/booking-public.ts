@@ -118,11 +118,15 @@ export async function createPublicBooking(
       acquisitionUtmSource: input.acquisition.utmSource,
       acquisitionUtmMedium: input.acquisition.utmMedium,
       acquisitionUtmCampaign: input.acquisition.utmCampaign,
+      acquisitionMtmContent: input.acquisition.mtmContent ?? null,
+      acquisitionMtmPlacement: input.acquisition.mtmPlacement ?? null,
     },
     sendClientEmail: true,
     includeCalendarAttachment: false,
     sendAdminNotification: true,
     acquisition: input.acquisition,
+    metaEventId: input.metaEventId,
+    metaCapi: input.metaCapi,
     intendedVoucher: intendedVoucher?.ok
       ? {
           id: intendedVoucher.voucherId,
@@ -134,6 +138,7 @@ export async function createPublicBooking(
 
   return {
     bookingId: result.bookingId,
+    metaEventId: result.metaEventId,
     serviceName: result.serviceName,
     scheduledStartsAt: result.scheduledStartsAt,
     scheduledEndsAt: result.scheduledEndsAt,

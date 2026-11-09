@@ -57,12 +57,22 @@ export type CreatePublicBookingInput = {
     utmSource: string | null;
     utmMedium: string | null;
     utmCampaign: string | null;
+    mtmContent?: string | null;
+    mtmPlacement?: string | null;
     referrerHost: string | null;
+  };
+  metaEventId?: string;
+  metaCapi?: {
+    eventSourceUrl: string;
+    userAgent: string;
+    fbp: string | null;
+    fbc: string | null;
   };
 };
 
 export type CreatePublicBookingResult = {
   bookingId: string;
+  metaEventId?: string;
   serviceName: string;
   scheduledStartsAt: string;
   scheduledEndsAt: string;
@@ -304,7 +314,16 @@ export type SharedCreateBookingInput = {
     utmSource: string | null;
     utmMedium: string | null;
     utmCampaign: string | null;
+    mtmContent?: string | null;
+    mtmPlacement?: string | null;
     referrerHost: string | null;
+  };
+  metaEventId?: string;
+  metaCapi?: {
+    eventSourceUrl: string;
+    userAgent: string;
+    fbp: string | null;
+    fbc: string | null;
   };
   intendedVoucher?: {
     id: string;
@@ -315,6 +334,7 @@ export type SharedCreateBookingInput = {
 
 export type SharedCreateBookingResult = {
   bookingId: string;
+  metaEventId?: string;
   serviceName: string;
   scheduledStartsAt: string;
   scheduledEndsAt: string;

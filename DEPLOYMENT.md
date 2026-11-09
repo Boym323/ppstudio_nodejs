@@ -47,6 +47,8 @@ Soubory:
 - načítá stabilní `/var/www/ppstudio/.env` i release-local `.release-env`
 - startuje `npm run email:worker`
 
+Meta Conversions API `Schedule` zpracovává tento stejný worker z PostgreSQL outboxu. Produkční CAPI env konfiguraci, migraci a ověření popisuje [docs/META_CONVERSIONS_API.md](docs/META_CONVERSIONS_API.md); CAPI zůstává vypnuté, dokud nejsou nastavené odpovídající Pixel/dataset ID a serverový token. Testovací dataset nikdy nesmí být produkční `1002460135763604`.
+
 ## Doporučený release postup
 
 Script:

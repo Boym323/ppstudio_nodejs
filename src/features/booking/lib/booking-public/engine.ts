@@ -12,6 +12,7 @@ import { formatBookingDateLabel } from "@/features/booking/lib/booking-format";
 import { claimEmailLogForImmediateDelivery, deliverEmailLog } from "@/lib/email/delivery";
 import { sendOwnerBookingPushover } from "@/lib/notifications/pushover";
 import { prisma } from "@/lib/prisma";
+import { getMetaCapiConfig } from "@/lib/analytics/meta-capi-config";
 import {
   getBookingPolicySettings,
   getEmailBrandingSettings,
@@ -758,6 +759,8 @@ export async function createBookingWithEngine(
               acquisitionUtmSource: input.acquisition?.utmSource ?? null,
               acquisitionUtmMedium: input.acquisition?.utmMedium ?? null,
               acquisitionUtmCampaign: input.acquisition?.utmCampaign ?? null,
+              acquisitionMtmContent: input.acquisition?.mtmContent ?? null,
+              acquisitionMtmPlacement: input.acquisition?.mtmPlacement ?? null,
               isManual: input.isManual,
               manualOverride,
               status: input.status,
@@ -787,8 +790,23 @@ export async function createBookingWithEngine(
               id: true,
               scheduledStartsAt: true,
               scheduledEndsAt: true,
+              createdAt: true,
             },
           });
+
+          if (input.metaEventId && input.metaCapi && getMetaCapiConfig()) {
+            await tx.metaConversionEvent.create({
+              data: {
+                bookingId: booking.id,
+                eventId: input.metaEventId,
+                eventTime: booking.createdAt,
+                eventSourceUrl: input.metaCapi.eventSourceUrl,
+                userAgent: input.metaCapi.userAgent,
+                fbp: input.metaCapi.fbp,
+                fbc: input.metaCapi.fbc,
+              },
+            });
+          }
 
           if (resolvedSlot.status === AvailabilitySlotStatus.PUBLISHED) {
             await splitCoverageSlotsForEditing(
@@ -821,6 +839,8 @@ export async function createBookingWithEngine(
                 acquisitionUtmSource: input.acquisition?.utmSource ?? null,
                 acquisitionUtmMedium: input.acquisition?.utmMedium ?? null,
                 acquisitionUtmCampaign: input.acquisition?.utmCampaign ?? null,
+                acquisitionMtmContent: input.acquisition?.mtmContent ?? null,
+                acquisitionMtmPlacement: input.acquisition?.mtmPlacement ?? null,
               },
             },
           });
@@ -863,6 +883,7 @@ export async function createBookingWithEngine(
 
           return {
             bookingId: booking.id,
+            metaEventId: input.metaEventId,
             serviceName: service.name,
             scheduledStartsAt: booking.scheduledStartsAt.toISOString(),
             scheduledEndsAt: booking.scheduledEndsAt.toISOString(),
