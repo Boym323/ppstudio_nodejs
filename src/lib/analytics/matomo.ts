@@ -1,10 +1,11 @@
 import "server-only";
 
 import { env } from "@/config/env";
+import { BOOKING_FUNNEL_ACTIONS } from "@/features/analytics/booking-funnel";
 import { buildSourceRows, mapReferrerTypeLabel } from "./matomo-sources";
 
 export type MatomoVisits = { nb_visits: number };
-export type MatomoEvent = { label: string; nb_events: number };
+export type MatomoEvent = { label: string; nb_events: number; nb_visits: number | null };
 export type MatomoReferrer = { label: string; nb_visits: number; nb_conversions: number };
 export type MatomoCampaign = { label: string; nb_visits: number; nb_conversions: number };
 export type MatomoPageUrl = { label: string; nb_hits: number };
@@ -38,6 +39,7 @@ export type DashboardAnalytics = {
     submitted: number;
     created: number;
   };
+  funnelTrackingActive: boolean;
   contactStepQuality: {
     started: number;
     fieldFocus: number;
@@ -68,6 +70,7 @@ const DEFAULT_DASHBOARD_ANALYTICS: DashboardAnalytics = {
     submitted: 0,
     created: 0,
   },
+  funnelTrackingActive: false,
   contactStepQuality: {
     started: 0,
     fieldFocus: 0,
@@ -78,24 +81,6 @@ const DEFAULT_DASHBOARD_ANALYTICS: DashboardAnalytics = {
     errorRate: 0,
   },
 };
-
-const bookingFunnelLabels = {
-  started: "Rezervace / Rezervace zahájena",
-  service: "Rezervace / Služba vybrána",
-  term: "Rezervace / Čas vybrán",
-  contact: "Rezervace / Kontakt zahájen",
-  submitted: "Rezervace / Odeslána rezervace",
-  created: "Rezervace / Vytvořena",
-} as const;
-
-const bookingFunnelLegacyAliases = {
-  started: [],
-  service: ["Rezervace / Služba předvyplněna"],
-  term: [],
-  contact: [],
-  submitted: [],
-  created: [],
-} as const;
 
 const bookingContactQualityLabels = {
   started: "Rezervace / Kontakt zahájen",
@@ -281,13 +266,21 @@ async function fetchMatomoJson(
   return payload;
 }
 
-function getEventCount(events: MatomoEvent[], fullLabel: string, legacyFullLabels: readonly string[] = []) {
-  const candidateLabels = [fullLabel, ...legacyFullLabels];
-  const candidateActionLabels = candidateLabels.map((label) => label.split(" / ")[1] ?? label);
+function getEventCount(events: MatomoEvent[], fullLabel: string) {
+  const actionLabel = fullLabel.split(" / ")[1] ?? fullLabel;
 
   return events
-    .filter((event) => candidateLabels.includes(event.label) || candidateActionLabels.includes(event.label))
+    .filter((event) => event.label === fullLabel || event.label === actionLabel)
     .reduce((sum, event) => sum + event.nb_events, 0);
+}
+
+/** Jednotlivá návštěva s opakovanou volbou termínu se počítá právě jednou. */
+function getFunnelVisitCount(events: MatomoEvent[], action: string) {
+  return events.reduce((max, event) => (
+    event.label === action || event.label === `Rezervační průchod / ${action}`
+      ? Math.max(max, event.nb_visits ?? 0)
+      : max
+  ), 0);
 }
 
 export async function fetchVisits(): Promise<MatomoVisits> {
@@ -295,9 +288,10 @@ export async function fetchVisits(): Promise<MatomoVisits> {
 }
 
 export async function fetchEvents(): Promise<MatomoEvent[]> {
-  return normalizeRows(await fetchMatomoJson("Events.getAction"), (row) => ({
+  return normalizeRows(await fetchMatomoJson("Events.getAction", { filter_limit: "-1" }), (row) => ({
     label: String(row.label ?? ""),
     nb_events: toFiniteNumber(row.nb_events),
+    nb_visits: row.nb_visits === undefined ? null : toFiniteNumber(row.nb_visits),
   }));
 }
 
@@ -359,33 +353,6 @@ export async function fetchSocials(): Promise<MatomoReferrer[]> {
   );
 }
 
-function getBookingFlowPageviewCount(pageUrls: MatomoPageUrl[]) {
-  return pageUrls.reduce((sum, row) => {
-    const rawLabel = row.label.trim();
-
-    if (!rawLabel) {
-      return sum;
-    }
-
-    let normalizedPath = rawLabel;
-
-    try {
-      if (rawLabel.startsWith("http://") || rawLabel.startsWith("https://")) {
-        const parsedUrl = new URL(rawLabel);
-        normalizedPath = parsedUrl.pathname + parsedUrl.search;
-      }
-    } catch {
-      normalizedPath = rawLabel;
-    }
-
-    if (normalizedPath === "/rezervace" || normalizedPath.startsWith("/rezervace?")) {
-      return sum + row.nb_hits;
-    }
-
-    return sum;
-  }, 0);
-}
-
 export async function getMatomoReportingHealth(): Promise<MatomoReportingHealth> {
   if (!getMatomoConfig()) {
     return {
@@ -424,10 +391,9 @@ export async function getMatomoReportingHealth(): Promise<MatomoReportingHealth>
 
 export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
   try {
-    const [visitsSummary, bookingGoal, pageUrls, events, referrers, campaigns, searchEngines, socials] = await Promise.all([
+    const [visitsSummary, bookingGoal, events, referrers, campaigns, searchEngines, socials] = await Promise.all([
       fetchVisits(),
       fetchBookingGoal(),
-      fetchPageUrls(),
       fetchEvents(),
       fetchReferrers(),
       fetchCampaigns(),
@@ -437,19 +403,21 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
 
     const visits = visitsSummary.nb_visits;
     const funnel = {
-      viewed: getEventCount(events, bookingFunnelLabels.started, bookingFunnelLegacyAliases.started) || getBookingFlowPageviewCount(pageUrls),
-      service: getEventCount(events, bookingFunnelLabels.service, bookingFunnelLegacyAliases.service),
-      term: getEventCount(events, bookingFunnelLabels.term, bookingFunnelLegacyAliases.term),
-      contact: getEventCount(events, bookingFunnelLabels.contact, bookingFunnelLegacyAliases.contact),
-      submitted: getEventCount(events, bookingFunnelLabels.submitted, bookingFunnelLegacyAliases.submitted),
-      created: getEventCount(events, bookingFunnelLabels.created, bookingFunnelLegacyAliases.created),
+      viewed: getFunnelVisitCount(events, BOOKING_FUNNEL_ACTIONS.viewed),
+      service: getFunnelVisitCount(events, BOOKING_FUNNEL_ACTIONS.service),
+      term: getFunnelVisitCount(events, BOOKING_FUNNEL_ACTIONS.term),
+      contact: getFunnelVisitCount(events, BOOKING_FUNNEL_ACTIONS.contact),
+      submitted: getFunnelVisitCount(events, BOOKING_FUNNEL_ACTIONS.submitted),
+      created: getFunnelVisitCount(events, BOOKING_FUNNEL_ACTIONS.created),
     };
-    const conversions = bookingGoal.nb_conversions;
-    const contactStepStarted = getEventCount(
-      events,
-      bookingContactQualityLabels.started,
-      bookingFunnelLegacyAliases.contact,
+    const funnelTrackingActive = events.some((event) =>
+      event.nb_visits !== null &&
+      Object.values(BOOKING_FUNNEL_ACTIONS).some((action) =>
+        event.label === action || event.label === `Rezervační průchod / ${action}`
+      ),
     );
+    const conversions = bookingGoal.nb_conversions;
+    const contactStepStarted = getEventCount(events, bookingContactQualityLabels.started);
     const contactFieldFocus = getEventCount(events, bookingContactQualityLabels.fieldFocus);
     const contactFieldInputStarted = getEventCount(events, bookingContactQualityLabels.fieldInputStarted);
     const contactFieldError = getEventCount(events, bookingContactQualityLabels.fieldError);
@@ -471,6 +439,7 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
       topSource: sources[0]?.label ?? (topReferrer ? mapReferrerTypeLabel(topReferrer.label) : ""),
       sources,
       funnel,
+      funnelTrackingActive,
       contactStepQuality: {
         started: contactStepStarted,
         fieldFocus: contactFieldFocus,
