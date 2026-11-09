@@ -1,6 +1,7 @@
 import "server-only";
 
 import { env } from "@/config/env";
+import { buildSourceRows, mapReferrerTypeLabel } from "./matomo-sources";
 
 export type MatomoVisits = { nb_visits: number };
 export type MatomoEvent = { label: string; nb_events: number };
@@ -109,7 +110,9 @@ type MatomoMethod =
   | "Events.getAction"
   | "Goals.get"
   | "Referrers.getReferrerType"
-  | "Referrers.getCampaigns";
+  | "Referrers.getCampaigns"
+  | "Referrers.getSearchEngines"
+  | "Referrers.getSocials";
 
 type MatomoApiErrorPayload = {
   result: string;
@@ -287,147 +290,6 @@ function getEventCount(events: MatomoEvent[], fullLabel: string, legacyFullLabel
     .reduce((sum, event) => sum + event.nb_events, 0);
 }
 
-function mapReferrerTypeLabel(label: string) {
-  const normalizedLabel = label.trim().toLowerCase();
-
-  if (normalizedLabel.includes("campaign")) {
-    return "Kampaně";
-  }
-
-  if (normalizedLabel.includes("social")) {
-    return "Instagram";
-  }
-
-  if (normalizedLabel.includes("website") || normalizedLabel.includes("websites")) {
-    return "Firmy";
-  }
-
-  if (normalizedLabel.includes("search")) {
-    return "Google";
-  }
-
-  if (normalizedLabel.includes("direct")) {
-    return "Přímý vstup";
-  }
-
-  return label.trim() || "Ostatní";
-}
-
-function mapCampaignLabel(label: string) {
-  const trimmedLabel = label.trim();
-  const normalizedLabel = trimmedLabel.toLowerCase();
-
-  if (
-    normalizedLabel === "ig" ||
-    normalizedLabel === "insta" ||
-    normalizedLabel.includes("instagram") ||
-    normalizedLabel.includes("social")
-  ) {
-    return "Instagram";
-  }
-
-  if (
-    normalizedLabel === "firmy" ||
-    normalizedLabel === "firma" ||
-    normalizedLabel.includes("firmy") ||
-    normalizedLabel.includes("website") ||
-    normalizedLabel.includes("catalog")
-  ) {
-    return "Firmy";
-  }
-
-  if (
-    normalizedLabel === "google" ||
-    normalizedLabel === "gads" ||
-    normalizedLabel.includes("google") ||
-    normalizedLabel.includes("search")
-  ) {
-    return "Google";
-  }
-
-  if (normalizedLabel === "direct" || normalizedLabel.includes("direct")) {
-    return "Přímý vstup";
-  }
-
-  if (normalizedLabel === "offline" || normalizedLabel.includes("offline")) {
-    return "Offline";
-  }
-
-  return null;
-}
-
-function buildSourceRows(
-  referrers: MatomoReferrer[],
-  campaigns: MatomoCampaign[],
-): DashboardAnalyticsSource[] {
-  const sourceMetrics = new Map<string, { visits: number; conversions: number }>();
-  const mappedCampaignRows = campaigns
-    .map((campaign) => ({
-      label: mapCampaignLabel(campaign.label),
-      visits: campaign.nb_visits,
-      conversions: campaign.nb_conversions,
-    }))
-    .filter(
-      (campaign): campaign is { label: string; visits: number; conversions: number } =>
-        campaign.label !== null,
-    );
-  const totalMappedCampaignVisits = mappedCampaignRows.reduce((sum, campaign) => sum + campaign.visits, 0);
-  const totalCampaignVisits = campaigns.reduce((sum, campaign) => sum + campaign.nb_visits, 0);
-  const unknownCampaignVisits = Math.max(0, totalCampaignVisits - totalMappedCampaignVisits);
-  const totalMappedCampaignConversions = mappedCampaignRows.reduce((sum, campaign) => sum + campaign.conversions, 0);
-  const totalCampaignConversions = campaigns.reduce((sum, campaign) => sum + campaign.nb_conversions, 0);
-  const unknownCampaignConversions = Math.max(0, totalCampaignConversions - totalMappedCampaignConversions);
-  const rows = referrers
-    .filter((referrer) => !referrer.label.trim().toLowerCase().includes("campaign"))
-    .map((referrer) => ({
-      label: mapReferrerTypeLabel(referrer.label),
-      visits: referrer.nb_visits,
-      conversions: referrer.nb_conversions,
-    }));
-
-  if (mappedCampaignRows.length > 0) {
-    rows.push(...mappedCampaignRows);
-  }
-
-  if (unknownCampaignVisits > 0) {
-    rows.push({
-      label: "Kampaně",
-      visits: unknownCampaignVisits,
-      conversions: unknownCampaignConversions,
-    });
-  }
-
-  for (const row of rows) {
-    const current = sourceMetrics.get(row.label) ?? { visits: 0, conversions: 0 };
-    current.visits += row.visits;
-    current.conversions += row.conversions;
-    sourceMetrics.set(row.label, current);
-  }
-
-  const sources = [...sourceMetrics.entries()]
-    .map(([label, metrics]) => ({
-      label,
-      ...metrics,
-    }))
-    .sort((left, right) => right.visits - left.visits);
-
-  const visibleSources = sources.slice(0, 4);
-  const otherSources = sources.slice(4);
-
-  if (otherSources.length === 0) {
-    return visibleSources;
-  }
-
-  return [
-    ...visibleSources,
-    {
-      label: "Ostatní",
-      visits: otherSources.reduce((sum, source) => sum + source.visits, 0),
-      conversions: otherSources.reduce((sum, source) => sum + source.conversions, 0),
-    },
-  ];
-}
-
 export async function fetchVisits(): Promise<MatomoVisits> {
   return normalizeVisitsPayload(await fetchMatomoJson("VisitsSummary.get"));
 }
@@ -467,6 +329,34 @@ export async function fetchCampaigns(): Promise<MatomoCampaign[]> {
     nb_visits: toFiniteNumber(row.nb_visits),
     nb_conversions: toFiniteNumber(row.nb_conversions ?? row[`goal_${BOOKING_GOAL_ID}_nb_conversions`]),
   }));
+}
+
+export async function fetchSearchEngines(): Promise<MatomoReferrer[]> {
+  return normalizeRows(
+    await fetchMatomoJson("Referrers.getSearchEngines", {
+      idGoal: BOOKING_GOAL_ID,
+      filter_limit: "100",
+    }),
+    (row) => ({
+      label: String(row.label ?? ""),
+      nb_visits: toFiniteNumber(row.nb_visits),
+      nb_conversions: toFiniteNumber(row.nb_conversions ?? row[`goal_${BOOKING_GOAL_ID}_nb_conversions`]),
+    }),
+  );
+}
+
+export async function fetchSocials(): Promise<MatomoReferrer[]> {
+  return normalizeRows(
+    await fetchMatomoJson("Referrers.getSocials", {
+      idGoal: BOOKING_GOAL_ID,
+      filter_limit: "100",
+    }),
+    (row) => ({
+      label: String(row.label ?? ""),
+      nb_visits: toFiniteNumber(row.nb_visits),
+      nb_conversions: toFiniteNumber(row.nb_conversions ?? row[`goal_${BOOKING_GOAL_ID}_nb_conversions`]),
+    }),
+  );
 }
 
 function getBookingFlowPageviewCount(pageUrls: MatomoPageUrl[]) {
@@ -534,13 +424,15 @@ export async function getMatomoReportingHealth(): Promise<MatomoReportingHealth>
 
 export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
   try {
-    const [visitsSummary, bookingGoal, pageUrls, events, referrers, campaigns] = await Promise.all([
+    const [visitsSummary, bookingGoal, pageUrls, events, referrers, campaigns, searchEngines, socials] = await Promise.all([
       fetchVisits(),
       fetchBookingGoal(),
       fetchPageUrls(),
       fetchEvents(),
       fetchReferrers(),
       fetchCampaigns(),
+      fetchSearchEngines(),
+      fetchSocials(),
     ]);
 
     const visits = visitsSummary.nb_visits;
@@ -565,7 +457,7 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
       (top, referrer) => (!top || referrer.nb_visits > top.nb_visits ? referrer : top),
       null,
     );
-    const sources = buildSourceRows(referrers, campaigns);
+    const sources = buildSourceRows(referrers, campaigns, searchEngines, socials);
     const focusRate = contactStepStarted > 0 ? Math.round((contactFieldFocus / contactStepStarted) * 10000) / 100 : 0;
     const inputRate =
       contactStepStarted > 0 ? Math.round((contactFieldInputStarted / contactStepStarted) * 10000) / 100 : 0;

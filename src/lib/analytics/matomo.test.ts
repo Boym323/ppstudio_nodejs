@@ -120,3 +120,69 @@ test("getDashboardAnalytics derives booking funnel viewed step from booking page
     errorRate: 25,
   });
 });
+
+test("getDashboardAnalytics rozlišuje zdroje a ověřuje jejich konverze přes Matomo", async () => {
+  global.fetch = (async (input: RequestInfo | URL) => {
+    const url = new URL(typeof input === "string" ? input : input.toString());
+    const method = url.searchParams.get("method");
+    const withGoal = method?.startsWith("Referrers.") || method === "Goals.get";
+
+    if (withGoal) {
+      assert.equal(url.searchParams.get("idGoal"), "1");
+    }
+
+    const data: Record<string, unknown> = {
+      "VisitsSummary.get": { nb_visits: 14 },
+      "Goals.get": { nb_conversions: 4, conversion_rate: 28.57, revenue: 0 },
+      "Actions.getPageUrls": [],
+      "Events.getAction": [],
+      "Referrers.getReferrerType": [
+        { label: "Campaigns", nb_visits: 8, nb_conversions: 2 },
+        { label: "Search Engines", nb_visits: 4, nb_conversions: 1 },
+        { label: "Social Networks", nb_visits: 2, nb_conversions: 1 },
+      ],
+      "Referrers.getCampaigns": [
+        { label: "sklik_search_ppstudio_v4_data", nb_visits: 5, nb_conversions: 2 },
+        { label: "ppstudio_kosmetika_2026_10", nb_visits: 3, nb_conversions: 0 },
+      ],
+      "Referrers.getSearchEngines": [
+        { label: "Google", nb_visits: 3, nb_conversions: 1 },
+        { label: "Seznam", nb_visits: 1, nb_conversions: 0 },
+      ],
+      "Referrers.getSocials": [
+        { label: "Facebook", nb_visits: 2, nb_conversions: 1 },
+      ],
+    };
+    if (method === "Referrers.getSearchEngines" || method === "Referrers.getSocials") {
+      assert.equal(url.searchParams.get("filter_limit"), "100");
+    }
+    return new Response(JSON.stringify(data[method ?? ""] ?? []), { status: 200 });
+  }) as typeof fetch;
+
+  const { getDashboardAnalytics } = await import("./matomo");
+  const dashboard = await getDashboardAnalytics();
+
+  assert.equal(dashboard.visits, 14);
+  assert.deepEqual(dashboard.sources.find((row) => row.label === "Sklik"), {
+    label: "Sklik",
+    visits: 5,
+    conversions: 2,
+  });
+  assert.deepEqual(dashboard.sources.find((row) => row.label === "Kampaně – neurčeno"), {
+    label: "Kampaně – neurčeno",
+    visits: 3,
+    conversions: 0,
+  });
+  assert.deepEqual(dashboard.sources.find((row) => row.label === "Google (vyhledávač)"), {
+    label: "Google (vyhledávač)",
+    visits: 3,
+    conversions: 1,
+  });
+  assert.deepEqual(dashboard.sources.find((row) => row.label === "Facebook (sociální síť)"), {
+    label: "Facebook (sociální síť)",
+    visits: 2,
+    conversions: 1,
+  });
+  assert.equal(dashboard.sources.reduce((sum, row) => sum + row.visits, 0), 14);
+  assert.equal(dashboard.sources.reduce((sum, row) => sum + row.conversions, 0), 4);
+});

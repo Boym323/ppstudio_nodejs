@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Analytika v administraci nyní odděluje skutečné vyhledávače a sociální sítě, správně rozpoznává jednoznačně označené kampaně Skliku, Google Ads a Meta Ads a neznámé kampaně nepřipisuje chybně konkrétní platformě. Při neúplných údajích Matomo zachovává ověřené souhrny návštěv a konverzí bez dvojího započtení.
+
 ## [3.41.0] - 2026-11-05
 
 ### Přidáno
