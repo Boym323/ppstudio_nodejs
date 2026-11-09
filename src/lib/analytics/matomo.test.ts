@@ -20,7 +20,7 @@ afterEach(() => {
   global.fetch = originalFetch;
 });
 
-test("getDashboardAnalytics derives booking funnel viewed step from booking pageviews", async () => {
+test("getDashboardAnalytics counts unique visits for ordered funnel events rather than legacy event totals", async () => {
   global.fetch = (async (input: RequestInfo | URL) => {
     const rawUrl = typeof input === "string" ? input : input.toString();
     const url = new URL(rawUrl);
@@ -38,6 +38,12 @@ test("getDashboardAnalytics derives booking funnel viewed step from booking page
     if (method === "Events.getAction") {
       return new Response(
         JSON.stringify([
+          { label: "01 Otevření rezervace", nb_events: 14, nb_visits: 9 },
+          { label: "02 Vybraná služba", nb_events: 13, nb_visits: 8 },
+          { label: "03 Vybraný termín", nb_events: 9, nb_visits: 5 },
+          { label: "04 Kontaktní krok", nb_events: 6, nb_visits: 4 },
+          { label: "05 Odeslání rezervace", nb_events: 4, nb_visits: 3 },
+          { label: "06 Vytvořená rezervace", nb_events: 3, nb_visits: 2 },
           { label: "Rezervace / Služba vybrána", nb_events: 8 },
           { label: "Rezervace / Služba předvyplněna", nb_events: 3 },
           { label: "Rezervace / Datum vybráno", nb_events: 6 },
@@ -99,8 +105,9 @@ test("getDashboardAnalytics derives booking funnel viewed step from booking page
   const { getDashboardAnalytics } = await import("./matomo");
   const analytics = await getDashboardAnalytics();
 
-  assert.equal(analytics.funnel.viewed, 10);
-  assert.equal(analytics.funnel.service, 11);
+  assert.equal(analytics.funnelTrackingActive, true);
+  assert.equal(analytics.funnel.viewed, 9);
+  assert.equal(analytics.funnel.service, 8);
   assert.equal(analytics.funnel.term, 5);
   assert.equal(analytics.funnel.contact, 4);
   assert.equal(analytics.funnel.submitted, 3);
@@ -183,6 +190,36 @@ test("getDashboardAnalytics rozlišuje zdroje a ověřuje jejich konverze přes 
     visits: 2,
     conversions: 1,
   });
+  assert.equal(dashboard.funnelTrackingActive, false);
+  assert.deepEqual(dashboard.funnel, {
+    viewed: 0, service: 0, term: 0, contact: 0, submitted: 0, created: 0,
+  });
   assert.equal(dashboard.sources.reduce((sum, row) => sum + row.visits, 0), 14);
   assert.equal(dashboard.sources.reduce((sum, row) => sum + row.conversions, 0), 4);
+});
+
+test("old funnel events without nb_visits do not masquerade as unique visits", async () => {
+  global.fetch = (async (input: RequestInfo | URL) => {
+    const method = new URL(typeof input === "string" ? input : input.toString()).searchParams.get("method");
+    const data: Record<string, unknown> = {
+      "VisitsSummary.get": { nb_visits: 3 },
+      "Goals.get": { nb_conversions: 1, conversion_rate: 33.33, revenue: 0 },
+      "Events.getAction": [
+        { label: "Rezervace / Služba vybrána", nb_events: 15 },
+        { label: "Rezervační průchod / 01 Otevření rezervace", nb_events: 5 },
+      ],
+      "Referrers.getReferrerType": [],
+      "Referrers.getCampaigns": [],
+      "Referrers.getSearchEngines": [],
+      "Referrers.getSocials": [],
+    };
+    return new Response(JSON.stringify(data[method ?? ""] ?? []), { status: 200 });
+  }) as typeof fetch;
+
+  const { getDashboardAnalytics } = await import("./matomo");
+  const analytics = await getDashboardAnalytics();
+  assert.equal(analytics.funnelTrackingActive, false);
+  assert.deepEqual(analytics.funnel, {
+    viewed: 0, service: 0, term: 0, contact: 0, submitted: 0, created: 0,
+  });
 });
