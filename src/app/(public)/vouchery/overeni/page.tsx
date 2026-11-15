@@ -88,7 +88,7 @@ export default async function VoucherVerificationPage({
             Ověření dárkového poukazu
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-8 text-[var(--color-muted)]">
-            Naskenovaný poukaz si zde můžete ověřit. Pokud se kód nepředvyplnil, zadejte ho ručně z dárkového poukazu. Ověření pouze čte stav poukazu a nic z něj neodečítá.
+            Zadejte kód svého dárkového poukazu a ověřte jeho platnost. Kód najdete přímo na poukazu nebo v jeho QR kódu. Ověřením se hodnota poukazu nemění a poukaz se neuplatní.
           </p>
 
           <div className="mt-8 rounded-[calc(var(--radius-panel)-0.25rem)] border border-black/8 bg-white/86 p-5 shadow-[var(--shadow-panel)] sm:p-6">
@@ -115,10 +115,6 @@ export default async function VoucherVerificationPage({
             </form>
 
             <VerificationResult result={result} studioMessageHref={studioMessageHref} adminActivation={adminActivation} />
-
-            <p className="mt-6 border-t border-black/8 pt-5 text-sm leading-6 text-[var(--color-muted)]">
-              Veřejné ověření nezobrazuje kupujícího, e-mail, interní poznámky, historii čerpání, rezervace ani technická ID.
-            </p>
           </div>
         </div>
       </Container>

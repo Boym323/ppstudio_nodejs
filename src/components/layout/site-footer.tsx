@@ -31,7 +31,7 @@ export async function SiteFooter({ compact = false }: SiteFooterProps) {
               {salonProfile.name}
             </p>
             <p className={compact ? "mt-2 max-w-[28ch] text-sm leading-6 text-[var(--color-muted)]" : "mt-3 max-w-[28ch] text-sm leading-6 text-[var(--color-muted)]"}>
-              Komorní studio pro péči o pleť a výraz s osobním přístupem, bez zbytečného spěchu.
+              Péče o pleť, řasy a obočí.
             </p>
           </div>
 

@@ -6,6 +6,12 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Změněno
+
+- Stránka dárkových voucherů nově uvádí jejich šestiměsíční platnost, možnosti platby a předání i pravidla postupného čerpání hodnoty a doplatku dražší služby.
+- FAQ nyní jasněji rozlišuje přijetí žádosti a potvrzení rezervace, popisuje samoobslužnou změnu termínu a přesněji uvádí pravidla pro první návštěvu, citlivou pleť, zpoždění a pozdní storno.
+- Rezervační formulář nyní srozumitelněji popisuje dostupné termíny, ověření voucheru a následné čerpání; závěrečné obrazovky jasně rozlišují přijetí žádosti od finálního potvrzení termínu.
+
 ### Opraveno
 
 - Analytika v administraci nyní odděluje skutečné vyhledávače a sociální sítě, správně rozpoznává jednoznačně označené kampaně Skliku, Google Ads a Meta Ads a neznámé kampaně nepřipisuje chybně konkrétní platformě. Při neúplných údajích Matomo zachovává ověřené souhrny návštěv a konverzí bez dvojího započtení.

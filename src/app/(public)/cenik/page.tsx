@@ -4,7 +4,7 @@ import { getPublicPricingCatalog } from "@/features/public/lib/public-services";
 
 export const metadata = buildPageMetadata({
   title: 'Ceník',
-  description: 'Projděte si ceny a délku kosmetických ošetření, péče o řasy a obočí, masáží, depilace i líčení.',
+  description: 'Ceny i délku všech ošetření najdete v ceníku.',
   path: '/cenik',
 });
 

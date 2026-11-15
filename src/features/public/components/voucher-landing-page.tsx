@@ -34,7 +34,7 @@ Děkuji.`);
     <div className="pb-8 sm:pb-12">
       <PublicHero
         eyebrow="Dárkové vouchery"
-        title="Darujte chvíli, která bude jen její"
+        title="Darujte krásu, péči a chvíli odpočinku"
         description="Voucher můžete vybrat na konkrétní službu nebo na částku, kterou si určíte. A pokud si nejste jistí, s výběrem vám ráda pomůžu."
         primaryCta={{ href: voucherMailHref, label: "Chci dárkový voucher" }}
         secondaryCta={{ href: "/vouchery/overeni", label: "Už voucher máte? Ověřit platnost", variant: "text" }}
@@ -85,8 +85,8 @@ Děkuji.`);
       <section className="py-10 sm:py-14 lg:py-16">
         <Container className="space-y-8 sm:space-y-10">
           <SectionHeading
-            eyebrow="Nejčastěji darované"
-            title="Oblíbená péče jako dárek."
+            eyebrow="Tipy na oblíbená ošetření"
+            title="Vyberte péči, kterou chcete darovat."
             description="Pokud chcete darovat konkrétní ošetření, můžete začít některou z těchto služeb."
           />
           <div className="grid gap-4 lg:grid-cols-3">
@@ -122,7 +122,7 @@ Děkuji.`);
                 },
                 {
                   step: "2. Voucher připravím",
-                  text: "Každý voucher má vlastní kód, platnost uvedenou přímo na voucheru a lze jej připravit jako PDF.",
+                  text: "Po zaplacení je PDF voucher dostupný obratem. Každý voucher má vlastní kód a přesné datum platnosti uvedené přímo na voucheru.",
                 },
                 {
                   step: "3. Voucher jednoduše využijete",
@@ -146,7 +146,11 @@ Děkuji.`);
             <div className="mt-6 space-y-3">
               {[
                 { question: "Může být voucher bez přesně vybrané služby?", answer: "Ano. Voucher lze vystavit také na hodnotu a konkrétní péči vybrat později." },
-                { question: "Jak dlouho voucher platí?", answer: "Konkrétní datum platnosti je vždy uvedeno přímo na voucheru." },
+                { question: "Jak dlouho voucher platí?", answer: "Voucher platí 6 měsíců. Přesné datum, do kdy jej můžete využít, najdete přímo na voucheru." },
+                { question: "Jak rychle bude voucher připravený?", answer: "PDF voucher je dostupný obratem po zaplacení. Jeho zaslání e-mailem domluvíme při objednávce." },
+                { question: "Mohu si tištěný voucher vyzvednout ve studiu?", answer: "Ano, tištěný voucher si můžete po domluvě vyzvednout přímo ve studiu." },
+                { question: "Jak lze voucher zaplatit?", answer: "Voucher můžete zaplatit hotově nebo bankovním převodem." },
+                { question: "Lze hodnotový voucher čerpat postupně nebo použít na dražší službu?", answer: "Ano. Hodnotu lze čerpat postupně při více návštěvách. Pokud cena služby převýší zbývající hodnotu voucheru, rozdíl doplatíte." },
                 { question: "Jak poznám, že je voucher platný?", answer: "Každý voucher má vlastní kód, jehož stav lze bezpečně ověřit online. Ověření voucher nijak nečerpá." },
                 { question: "Jak se voucher používá?", answer: <>Při <Link href="/rezervace?source=voucher" className="underline decoration-[var(--color-accent)] underline-offset-4 hover:text-[var(--color-foreground)]">online rezervaci</Link> můžete uvést jeho kód. Samotné uplatnění proběhne při návštěvě studia.</> },
               ].map((item) => (

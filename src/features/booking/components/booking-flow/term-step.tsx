@@ -106,7 +106,7 @@ export function BookingTermStep({
 
       {!selectedService ? (
         <div className="rounded-3xl border border-dashed border-black/10 bg-[var(--color-surface)]/20 px-5 py-6 text-sm text-[var(--color-muted)]">
-          Nejprve vyberte službu. Pak zobrazíme jen kompatibilní termíny.
+          Nejprve vyberte službu. Poté vám ukážeme volné termíny, které jí vyhovují.
         </div>
       ) : selectableTimeOptions.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-black/10 bg-[var(--color-surface)]/20 px-5 py-6">

@@ -37,7 +37,7 @@ export function StudioHero({ photo }: { photo: PublicStudioPhoto | null }) {
               Klidné místo pro vaši péči
             </h1>
             <p className="max-w-[42rem] text-[15px] leading-7 text-[var(--color-muted)] sm:text-[1.1rem] sm:leading-8">
-              Podívejte se, jak to ve studiu vypadá ještě před první návštěvou. Čeká vás komorní prostor pro péči o pleť, úpravu výrazu i chvíli klidu bez zbytečného spěchu.
+              Ve studiu ve Zlíně se postarám o vaši pleť i úpravu řas a obočí. Čeká vás příjemné prostředí a péče přizpůsobená tomu, co právě potřebujete.
             </p>
           </div>
 
@@ -237,7 +237,7 @@ export function StudioFinalCta() {
             <div>
               <p className="text-eyebrow text-[#dbc2a5]">Rezervace</p>
               <h2 className="mt-3 max-w-xl font-display text-[2.35rem] leading-[1.02] sm:text-[3.2rem]">
-                Až budete připravená, vyberte si termín.
+                Vyberte si termín své návštěvy.
               </h2>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -246,7 +246,7 @@ export function StudioFinalCta() {
                 tracking={{ kind: 'reservation', location: 'studio', page: 'studio' }}
                 className="inline-flex min-h-13 items-center justify-center rounded-full bg-white px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:bg-[#f8f2eb] sm:text-sm"
               >
-                Rezervovat termín
+                Vybrat termín
               </TrackedLink>
               <TrackedLink
                 href="/kontakt"

@@ -174,7 +174,7 @@ export function buildTrustMetrics(cancellationHours: number, serviceDurationRang
     {
       value: '1:1',
       label: 'Soukromá péče',
-      description: 'Termíny jsou vedené tak, aby měla klientka klid, soukromí a dostatek času bez spěchu.',
+      description: 'Na každou návštěvu si vyhrazuji dostatek času, abyste si péči užila v klidu a soukromí.',
     },
     {
       value: formatServiceDurationRange(serviceDurationRange),
@@ -244,9 +244,8 @@ export const homepageContent = {
   eyebrow: 'Kosmetika Zlín',
   title: 'Kosmetika ve Zlíně',
   description:
-    'Dopřejte si chvíli péče, která se přizpůsobí vaší pleti i tomu, co právě potřebujete. Společně vybereme ošetření, ve kterém se budete cítit dobře.',
+    'Dopřejte si profesionální péči o pleť, řasy a obočí v příjemném prostředí PP Studia ve Zlíně. Každé ošetření přizpůsobuji vašim individuálním potřebám, abyste odcházela spokojená, odpočatá a s pocitem krásně opečované pleti.',
   benefits: ['Příjemné prostředí', 'Individuální přístup', 'Online rezervace 24/7'],
-  ctaNote: 'Rychlé online objednání, nejdřív potvrzení přijetí požadavku e-mailem.',
   logoImage: {
     src: '/brand/ppstudio-logo.png',
     alt: 'PP Studio logo',
@@ -418,7 +417,7 @@ export function buildFaqSections(cancellationHours: number, serviceDurationRange
         {
           question: 'Jak funguje rezervace termínu?',
           answer:
-            'Volné termíny vypisuji průběžně a v rezervačním přehledu uvidíte jen časy, které jsou opravdu k dispozici. Po odeslání rezervace dostanete e-mailem potvrzení, že studio váš požadavek přijalo. Finální potvrzení termínu následuje až po kontrole ve studiu.',
+            'Volné termíny vypisuji průběžně a v rezervačním přehledu uvidíte jen časy, které jsou opravdu k dispozici. První e-mail potvrzuje přijetí vaší žádosti, nikoli ještě samotný termín. Rezervaci potvrdím po kontrole ve studiu.',
         },
         {
           question: 'Mohu se objednat i bez přesného výběru služby?',
@@ -428,17 +427,19 @@ export function buildFaqSections(cancellationHours: number, serviceDurationRange
         {
           question: 'Kdy mi přijde potvrzení rezervace?',
           answer:
-            'Po odeslání rezervace dostanete zprávu, že studio váš požadavek přijalo. Finální potvrzení přijde po kontrole termínu, obvykle co nejdříve během provozního dne.',
+            'Nejprve vám přijde e-mail o přijetí žádosti. Termín je potvrzený až ve chvíli, kdy vám po kontrole pošlu finální potvrzení, obvykle co nejdříve během provozního dne.',
         },
         {
           question: 'Mohu rezervaci změnit?',
           answer:
-            'Ano. Jakmile víte, že vám termín nevyhovuje, ozvěte se mi prosím co nejdříve a zkusíme spolu najít jiný čas. Čím dříve dáte vědět, tím snáz se podaří termín upravit.',
+            'Ano. Po potvrzení termínu můžete využít odkaz pro správu rezervace v e-mailu, pokud je u vaší rezervace dostupný. Případně mě kontaktujte co nejdříve a domluvíme se na změně.',
+          linkLabel: 'Kontaktovat studio',
+          linkHref: '/kontakt',
         },
         {
           question: 'Jak poznám, kterou službu rezervovat jako první?',
           answer:
-            'Pokud řešíte hlavně pleť, obvykle dává smysl začít službou z kategorie kosmetických ošetření. Pokud vás víc zajímá upravený výraz bez velké každodenní práce, bývá vhodným začátkem lash lifting nebo laminace obočí. Když si nejste jistá, vyberte nejbližší variantu a na místě péči společně doladíme.',
+            'Pokud jdete na kosmetiku poprvé a nejste si jistá výběrem, Skin Balance je vhodná základní varianta. Při návštěvě péči společně přizpůsobíme aktuálnímu stavu pleti.',
         },
         {
           question: 'Mohu si rezervovat lash lifting nebo laminaci obočí i jako první návštěvu?',
@@ -485,7 +486,7 @@ export function buildFaqSections(cancellationHours: number, serviceDurationRange
         {
           question: 'Je lepší přijít na kosmetiku bez make-upu?',
           answer:
-            'Není to nutné. Pokud přijdete nalíčená, vše potřebné před ošetřením šetrně odlíčím. U lash liftingu a úpravy obočí ale bývá příjemnější přijít ideálně bez výrazného očního make-upu nebo mastných produktů kolem očí.',
+            'Není to nutné, před ošetřením vás šetrně odlíčím. U lash liftingu a úpravy obočí je ale lepší přijít bez výrazného očního make-upu a mastných produktů kolem očí.',
         },
       ],
     },
@@ -500,11 +501,6 @@ export function buildFaqSections(cancellationHours: number, serviceDurationRange
             serviceDurationRange
               ? `Podle zvolené služby obvykle počítejte přibližně s ${serviceDurationRange.minMinutes} až ${serviceDurationRange.maxMinutes} minutami. Orientační délku vždy uvidíte už při výběru termínu.`
               : 'Délka závisí na zvolené službě. Orientační délku vždy uvidíte už při výběru termínu.',
-        },
-        {
-          question: 'Můžu přijít nalíčená?',
-          answer:
-            'Ano, klidně přijďte tak, jak běžně chodíte. Před ošetřením vše potřebné šetrně odlíčím.',
         },
         {
           question: 'Co si vzít s sebou?',
@@ -533,7 +529,7 @@ export function buildFaqSections(cancellationHours: number, serviceDurationRange
         {
           question: 'Jaký je rozdíl mezi korejským a klasickým lash liftingem?',
           answer:
-            'Klasický lash lifting řasy natáčí na silikonové formě a fixuje je do oblouku. Korejský lash lifting pracuje šetrněji s vlastními řasami od kořínků a umožňuje přesněji přizpůsobit natočení jejich délce a směru růstu. V PP Studiu nyní nabízím už jen korejský lash lifting.',
+            'Obě metody natočí a zvýrazní vaše vlastní řasy, liší se postupem a způsobem natočení. Korejský lash lifting umožňuje přizpůsobit výsledek délce a směru růstu řas. V PP Studiu nyní nabízím korejskou variantu.',
         },
         {
           question: 'Jaký je rozdíl mezi lash liftingem a prodlužováním řas?',
@@ -570,7 +566,7 @@ export function buildFaqSections(cancellationHours: number, serviceDurationRange
         {
           question: 'Je kosmetické ošetření vhodné pro citlivou pleť?',
           answer:
-            'Ano, jen je potřeba citlivost zohlednit už při konzultaci. Pokud víte o reakcích, alergiích nebo aktuálním podráždění, řekneme si to předem a zvolím jemnější postup i vhodné přípravky.',
+            'Vhodnost konkrétního ošetření závisí na aktuálním stavu pokožky. Pokud máte citlivou pleť, alergie nebo podráždění, řekněte mi to předem a společně zvolíme vhodný postup. Při výrazném podráždění může být lepší návštěvu odložit.',
         },
         {
           question: 'Je kosmetické ošetření vhodné i pro problematickou nebo aknózní pleť?',
@@ -592,7 +588,7 @@ export function buildFaqSections(cancellationHours: number, serviceDurationRange
         {
           question: 'Co když se opozdím?',
           answer:
-            'Když to půjde, počkám na vás. Při větším zpoždění ale může být potřeba službu zkrátit nebo domluvit jiný termín, aby nenavazovaly další rezervace.',
+            'Dejte mi prosím vědět co nejdříve. Při pozdním příchodu může být potřeba službu zkrátit, aby nenavazovaly další rezervace; cena přitom zůstává stejná.',
         },
         {
           question: 'Jak probíhá platba?',
@@ -622,7 +618,7 @@ export function buildFaqSections(cancellationHours: number, serviceDurationRange
       items: [
         {
           question: 'Jak je to se storno podmínkami?',
-          answer: `Pokud by se vám termín nehodil, můžete ho upravit nebo zrušit nejpozději ${cancellationHours} hodin předem.`,
+          answer: `Rezervaci můžete změnit nebo zrušit nejpozději ${cancellationHours} hodin předem. Pokud potřebujete zrušit termín později, dejte mi vědět co nejdříve; storno poplatek nyní neúčtuji.`,
           linkLabel: 'Zobrazit storno podmínky',
           linkHref: '/storno-podminky',
         },

@@ -25,7 +25,7 @@ Automaticky generovaný blok Next.js výše neupravuj ručně. Jeho požadavek n
 
 ## Vývojové větve a pull requesty
 
-- Standardní implementační změny připravuj na samostatné větvi založené z aktuálního `main`; do `main` necommituj přímo, pokud to uživatel výslovně nepožaduje. Před zahájením zkontroluj aktuální větev a nezasahuj do rozpracovaných nesouvisejících změn.
+- Standardní implementační změny prováděj přímo na větvi `main`. Před zahájením ověř, že jsi na `main`, a zkontroluj stav pracovního stromu; nezasahuj do rozpracovaných nesouvisejících změn. Jinou větev použij pouze tehdy, když o ni uživatel výslovně požádá.
 - V pull requestu stručně popiš účel, dotčené části, provedené kontroly, případné netestované scénáře a dopad na databázi, e-maily či nasazení. U produkční změny přidej odpovídající bod `CHANGELOG.md` / `Unreleased`, pokud pravidla níže neurčují výjimku.
 - Před odevzdáním ověř diff (včetně `git diff --check`) a stav CI na přesném commitu PR. Selhání relevantní CI kontroly neopomíjej; oprav příčinu nebo jasně uveď blokující stav. Přechodně zelený či rozpracovaný běh neoznačuj za úspěšný.
 - PR neslučuj a produkci nenasazuj bez výslovného pokynu. Příprava větve, commitu nebo PR není povolením k nasazení.

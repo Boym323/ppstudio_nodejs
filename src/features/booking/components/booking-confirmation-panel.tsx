@@ -96,14 +96,14 @@ export function BookingConfirmationPanel({
           Co bude následovat
         </p>
         <div className="mt-2.5 max-w-2xl space-y-1 text-[0.95rem] leading-6 text-[var(--color-foreground)]/82">
-          <p>Potvrzení vám zašleme e-mailem.</p>
+          <p>Nejprve vám e-mailem potvrdím přijetí žádosti. Závazné potvrzení termínu vám pošlu po kontrole.</p>
           <p>Pokud bude potřeba něco upřesnit, ozveme se.</p>
         </div>
       </section>
 
       <section className="rounded-[1.25rem] border border-[var(--color-accent-soft)]/35 bg-white p-4 shadow-[var(--shadow-panel)] sm:p-5">
         <p className="max-w-2xl text-[0.95rem] font-medium leading-6 text-[var(--color-foreground)]">
-          Termín je pro vás nyní rezervovaný a není potřeba dělat žádné další kroky.
+          Termín máte předběžně rezervovaný. Počkejte prosím na finální potvrzení e-mailem.
         </p>
       </section>
 

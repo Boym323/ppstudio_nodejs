@@ -236,7 +236,7 @@ export function ContactMapPreviewCard({ address, href }: ContactMapPreviewCardPr
       <div className="flex flex-col gap-3 p-4 sm:p-5">
         <div className="flex flex-col gap-1.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
           <p className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--color-accent)]">
-            Jak se k nám dostanete
+            Jak se dostanete do studia
           </p>
           <p className="font-display text-[1.25rem] leading-[1.08] text-[var(--color-foreground)] sm:text-[1.45rem]">
             {address}
@@ -244,7 +244,7 @@ export function ContactMapPreviewCard({ address, href }: ContactMapPreviewCardPr
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-md text-[14px] leading-6 text-[var(--color-muted)]">
-            Otevřete trasu v Google Maps a dorazíte bez zbytečného hledání.
+            Otevřete si trasu do studia v Google Maps.
           </p>
           <span className="inline-flex min-h-10 shrink-0 items-center justify-center self-start rounded-full border border-black/10 bg-[var(--color-surface)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] transition group-hover:border-black/20 group-hover:bg-[#f5ede4] sm:self-auto">
             Otevřít mapu
@@ -277,40 +277,40 @@ const PARKING_TIPS: ParkingTip[] = [
     badge: 'Nejlevnější',
     name: 'Hradská',
     walk: '3-6 min pěšky',
-    price: '90-120 min: 36 Kč',
+    price: '90–120 min: 36 Kč',
     note: 'Dobrá volba, pokud nevadí krátká procházka.',
     detail: '15 min zdarma · do 60 min 12 Kč',
     hoursLabel: 'Zpoplatněno',
-    hoursValue: 'Po-Pá 8:00-19:00, So 7:00-13:00',
+    hoursValue: 'Po–Pá 8:00–19:00, So 7:00–13:00',
     href: 'https://maps.app.goo.gl/ngkfx7mtddd64nAw8',
   },
   {
     badge: 'Kompromis',
     name: 'Gahurova',
     walk: '3-5 min pěšky',
-    price: '90-120 min: 40 Kč',
-    note: 'Praktická varianta v centru s dobrým poměrem cena / vzdálenost.',
+    price: '90–120 min: 40 Kč',
+    note: 'Praktická varianta v centru s dobrým poměrem ceny a vzdálenosti.',
     detail: 'do 30 min 20 Kč · do 60 min 30 Kč',
     hoursLabel: 'Zpoplatněno',
-    hoursValue: 'Po-Pá 7:00-19:00, So 7:00-13:00',
+    hoursValue: 'Po–Pá 7:00–19:00, So 7:00–13:00',
     href: 'https://www.google.com/maps/place/Z%C3%A1chytn%C3%A9+parkovi%C5%A1t%C4%9B+Gahurova/@49.2248533,17.6588611,783m/data=!3m1!1e3!4m6!3m5!1s0x471373523e523039:0xb29a3531ed94329d!8m2!3d49.2248534!4d17.6615557!16s%2Fg%2F11cr_r_36l?entry=ttu&g_ep=EgoyMDI2MDQyOS4wIKXMDSoASAFQAw%3D%3D',
   },
   {
     badge: 'Nejblíže',
     name: 'Sadová',
     walk: '1-2 min pěšky',
-    price: '90-120 min: 90 Kč',
+    price: '90–120 min: 90 Kč',
     note: 'Nejbližší, ale dražší varianta.',
     detail: 'do 30 min 30 Kč · do 60 min 60 Kč',
     hoursLabel: 'Zpoplatněno',
-    hoursValue: 'Po-Ne 7:00-21:00',
+    hoursValue: 'Po–Ne 7:00–21:00',
     href: 'https://maps.app.goo.gl/AJcwaGwLPvt8QV6g6',
   },
   {
     badge: 'Kryté',
     name: 'Kongresové centrum Zlín',
     walk: '4-6 min pěšky',
-    price: '90-120 min: obvykle 70 Kč ve všední den přes den',
+    price: '90–120 min: obvykle 70 Kč ve všední den přes den',
     note: 'Podzemní parkování vhodné při špatném počasí a běžné denní návštěvě.',
     detail: 'do 30 min zdarma · večer 20 Kč/h · víkend 25 Kč/h',
     hoursLabel: 'Otevřeno',
@@ -333,7 +333,7 @@ export function ContactParkingInfoCard({ parkingRateHref, congressParkingHref }:
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">Parkování</p>
           <p className="max-w-3xl text-[15px] leading-6 text-[var(--color-muted)]">
             Pokud přijedete autem, v okolí salonu najdete několik možností v docházkové vzdálenosti. Pro běžnou
-            návštěvu kolem 90-120 minut doporučuji vybírat podle toho, jestli chcete parkovat nejlevněji, nejblíže,
+            návštěvu kolem 90–120 minut doporučuji vybírat podle toho, jestli chcete parkovat nejlevněji, nejblíže,
             nebo v krytém parkovišti.
           </p>
         </div>
@@ -428,11 +428,11 @@ export function QuickContactCard({
   return (
     <div className="flex h-full flex-col rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-7">
       <div className="rounded-[calc(var(--radius-panel)-0.55rem)] border border-[#eadfd2] bg-[#fdf9f4] p-5">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">Provozovatel</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">Provozovatelka</p>
         <p className="mt-2 font-display text-[1.9rem] leading-[1.04] text-[var(--color-foreground)]">{operatorName}</p>
         <div className="mt-4 grid gap-3 border-t border-[#eadfd2] pt-4 sm:grid-cols-2">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">IČ</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent)]">IČO</p>
             <p className="mt-1 text-sm leading-6 text-[var(--color-muted)]">{operatorId}</p>
           </div>
           <div>

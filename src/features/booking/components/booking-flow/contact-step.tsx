@@ -204,7 +204,7 @@ export function BookingContactStep({
             autoComplete="tel"
           />
           <p id="booking-contact-phone-hint" className="text-xs text-[var(--color-muted)]">
-            Hodí se, když bude potřeba rychlá domluva k termínu.
+            Telefon využiji, pokud bude potřeba rychle upřesnit rezervaci.
           </p>
           {phoneError ? (
             <p id="booking-contact-phone-error" aria-live="polite" className={errorClassName}>
@@ -250,13 +250,13 @@ export function BookingContactStep({
         <div className="space-y-3 rounded-2xl border border-[var(--color-accent-soft)]/45 bg-[var(--color-surface)]/28 p-4 sm:col-span-2">
           <div>
             <p className="text-sm font-semibold text-[var(--color-foreground)]">
-              Nevyužíváte dárkový poukaz?
+              Máte dárkový poukaz?
             </p>
             <p
               id="booking-contact-voucher-code-hint"
               className="mt-1 text-xs leading-5 text-[var(--color-muted)]"
             >
-              Kód poukazu je volitelný. Poukaz bude ověřen a uplatněn až při návštěvě v salonu.
+              Kód je nepovinný. Při rezervaci ověřím jeho platnost a vhodnost pro vybranou službu; čerpání zaznamenám až při návštěvě.
             </p>
           </div>
           <div className="space-y-2">

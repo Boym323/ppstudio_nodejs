@@ -212,7 +212,7 @@ export function BookingSummarySidebar({
         </div>
 
         <div className="mt-4 rounded-3xl border border-black/6 bg-white/80 p-4 text-sm leading-6 text-[var(--color-muted)] sm:mt-6 sm:p-5">
-          Před odesláním si prosím zkontrolujte službu, termín a kontakt. Potvrzení pošleme e-mailem.
+          Před odesláním si prosím zkontrolujte službu, termín a kontakt. Po odeslání vám e-mailem potvrdím přijetí žádosti. Termín bude závazný až po mém finálním potvrzení.
         </div>
 
         {serverState.status === "error" && serverState.suggestedStep ? (
