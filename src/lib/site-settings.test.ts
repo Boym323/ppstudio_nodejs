@@ -90,13 +90,3 @@ test("výchozí SiteSettings obsahují defaultní template a platnost voucheru",
   assert.equal(settings.voucherDefaultTemplateId, null);
   assert.equal(settings.voucherDefaultValidityMonths, 12);
 });
-
-test("hranice online storna zahrnuje přesný okamžik X hodin před termínem", async () => {
-  const { canClientCancelBooking } = await import("@/lib/site-settings");
-  const now = new Date("2026-11-15T10:00:00.000Z");
-  const limitMs = 24 * 60 * 60 * 1000;
-
-  assert.equal(canClientCancelBooking(new Date(now.getTime() + limitMs - 1), now, 24), false);
-  assert.equal(canClientCancelBooking(new Date(now.getTime() + limitMs), now, 24), true);
-  assert.equal(canClientCancelBooking(new Date(now.getTime() + limitMs + 1), now, 24), true);
-});

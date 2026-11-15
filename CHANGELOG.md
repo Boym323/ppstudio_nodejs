@@ -8,7 +8,6 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
-- Obchodní podmínky upřesňují reklamace, odpovědnost, souhlas se změnou sjednané ceny, práva při nákupu na dálku a mimosoudní řešení sporů u ČOI; veřejné informace o stornu sjednocují stanovenou lhůtu.
 - Veřejné texty služeb používají konkrétnější popisy a přirozenější češtinu, dárková nabídka jednotně používá označení „poukaz“ a veřejné texty dávají přednost studiu. Datová úprava zachovává ručně změněné texty.
 
 - Stránka dárkových voucherů nově uvádí jejich šestiměsíční platnost, možnosti platby a předání i pravidla postupného čerpání hodnoty a doplatku dražší služby.
