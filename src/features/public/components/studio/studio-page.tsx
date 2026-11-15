@@ -65,7 +65,8 @@ export function StudioHero({ photo }: { photo: PublicStudioPhoto | null }) {
               src={photo.imageUrl}
               alt={photo.altText}
               fill
-              sizes="(min-width: 1024px) 46vw, 100vw"
+              sizes="(min-width: 1280px) 569px, (min-width: 1024px) calc((100vw - 108px) * 0.485), (min-width: 640px) calc(100vw - 48px), calc(100vw - 40px)"
+              style={{ objectPosition: `${photo.focalPointX ?? 50}% ${photo.focalPointY ?? 50}%` }}
               className="object-cover object-center"
               priority
             />
@@ -122,6 +123,14 @@ function getGalleryImageAspectClassName(index: number, total: number) {
   return 'aspect-[4/3] sm:aspect-[16/11] lg:aspect-[7/6]';
 }
 
+export function getGalleryImageSizes(index: number, total: number) {
+  const columns = total === 1 ? 12 : total === 2 || total === 4 ? 6 : total === 3 ? (index === 0 ? 6 : 3) : total === 5 && index === 0 ? 8 : 4;
+  const desktopWidth = columns === 12 ? '1216px' : columns === 8 ? '804px' : columns === 6 ? '598px' : columns === 3 ? '289px' : '392px';
+  const desktopFluid = columns === 12 ? 'calc(100vw - 64px)' : columns === 8 ? 'calc((100vw - 74px) * 2 / 3)' : columns === 6 ? 'calc((100vw - 84px) / 2)' : columns === 3 ? 'calc((100vw - 124px) / 4)' : 'calc((100vw - 104px) / 3)';
+  const fullTablet = total === 1 || ((total === 3 || total === 5) && index === 0);
+  return `(min-width: 1280px) ${desktopWidth}, (min-width: 1024px) ${desktopFluid}, (min-width: 640px) ${fullTablet ? 'calc(100vw - 48px)' : 'calc((100vw - 64px) / 2)'}, calc(100vw - 40px)`;
+}
+
 export function StudioGallery({ photos }: { photos: PublicStudioPhoto[] }) {
   if (photos.length === 0) {
     return null;
@@ -147,7 +156,8 @@ export function StudioGallery({ photos }: { photos: PublicStudioPhoto[] }) {
                   src={photo.imageUrl}
                   alt={photo.altText}
                   fill
-                  sizes="(min-width: 1024px) 62vw, (min-width: 640px) 50vw, 100vw"
+                  sizes={getGalleryImageSizes(index, photos.length)}
+                  style={{ objectPosition: `${photo.focalPointX ?? 50}% ${photo.focalPointY ?? 50}%` }}
                   className="object-cover object-center transition duration-500 hover:scale-[1.025]"
                 />
                 <div className={getGalleryImageAspectClassName(index, photos.length)} />

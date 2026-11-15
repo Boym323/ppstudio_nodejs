@@ -59,6 +59,8 @@ type ContactHeroProps = {
     alt: string;
     width: number;
     height: number;
+    focalPointX?: number;
+    focalPointY?: number;
   } | null;
 };
 
@@ -155,6 +157,7 @@ export function ContactHero({ title, description, phone, email, instagramUrl, ph
                 alt={photo.alt}
                 fill
                 sizes="(min-width: 1024px) 44vw, (min-width: 640px) 88vw, 100vw"
+                style={{ objectPosition: `${photo.focalPointX ?? 50}% ${photo.focalPointY ?? 50}%` }}
                 loading="eager"
                 className="object-cover object-center"
               />

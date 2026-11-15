@@ -176,6 +176,7 @@ export function buildServiceJsonLd(service: Service, profile: BusinessProfile) {
         url: pageUrl,
         name: service.name,
         description: service.seoDescription || service.intro || service.description,
+        ...(service.heroImage ? { image: buildAbsoluteSiteUrl(service.heroImage.src) } : {}),
         serviceType: service.category,
         inLanguage: "cs-CZ",
         provider: buildLocalBusinessNode(profile),

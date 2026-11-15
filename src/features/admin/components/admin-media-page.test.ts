@@ -18,7 +18,7 @@ function findProp(value: unknown, name: string): unknown[] {
   return [...(node.props && name in node.props ? [node.props[name]] : []), ...findProp(node.props?.children, name)];
 }
 
-test('Media Library zachová filtry, ale odkazy Studio a Certifikáty jsou kanonické', async () => {
+test('Media Library odděluje správu souborů a umístění na webu', async () => {
   setTestEnv();
   const { prisma } = await import('@/lib/prisma');
   const mediaAsset = prisma.mediaAsset as unknown as {
@@ -47,23 +47,23 @@ test('Media Library zachová filtry, ale odkazy Studio a Certifikáty jsou kanon
       isPublished: false,
     });
     assert.deepEqual(groupByCalls, [{ by: ['isPublished'], where: { deletionRequestedAt: null }, _count: { _all: true } }, { by: ['isPublished'], where: { deletionRequestedAt: null }, _count: { _all: true } }, { by: ['isPublished'], where: { deletionRequestedAt: null }, _count: { _all: true } }]);
-    assert.deepEqual((published.props as { stats: unknown }).stats, [{ label: 'Celkem', value: '6', tone: 'default' }, { label: 'Publikováno', value: '4', tone: 'accent' }, { label: 'Skryto', value: '2', tone: 'muted' }]);
+    assert.deepEqual((published.props as { stats: unknown }).stats, [{ label: 'Souborů celkem', value: '6', tone: 'default' }, { label: 'Publikováno', value: '4', tone: 'accent' }, { label: 'Nepublikováno', value: '2', tone: 'muted' }]);
     assert.ok(findProp(published, 'returnTo').includes('/admin/media?collection=CERTIFICATES'));
-    assert.ok(findProp(library, 'href').includes('/admin/media?collection=STUDIO_GALLERY'));
-    assert.ok(findProp(library, 'href').includes('/admin/media?collection=CERTIFICATES'));
+    assert.ok(findProp(library, 'href').includes('/admin/media?view=placements'));
     const source = await readFile(new URL('./admin-media-page.tsx', import.meta.url), 'utf8');
     assert.match(source, /if \(canonicalUrl\) redirect\(canonicalUrl\);/);
-    assert.match(source, /const search = managedCollection \? '' : raw\('q'\)/);
-    assert.match(source, /const usageFilter = managedCollection \? 'ALL'/);
-    assert.match(source, /const publicationFilter = managedCollection \? 'ALL'/);
-    assert.match(source, /managedCollection \? Promise\.resolve\(\{ assets: \[\], total: 0, page: 1, pageSize: 48, pageCount: 1 \}\) : listMediaPage/);
+    assert.match(source, /const search = raw\('q'\)/);
+    assert.match(source, /const usageFilter = raw\('usage'\)/);
+    assert.match(source, /const publicationFilter = raw\('publication'\)/);
+    assert.match(source, /library \? listMediaPage\(\{ page, where, sort \}\)/);
     assert.match(source, /publication: publicationFilter === 'ALL' \? undefined : publicationFilter/);
-    assert.match(source, /const returnTo = managedCollection \? collectionHref\(managedCollection\) : href/);
-    assert.match(source, /← Zpět do knihovny médií/);
-    assert.match(source, /managedCollection \? <div[\s\S]*?<MediaUploadDialog area=\{area\} returnTo=\{returnTo\}/);
-    assert.match(source, /collectionHref\(collection\.type\)/);
-    assert.ok(!findProp(published, 'placeholder').includes('Hledat název, soubor nebo alt text'));
-    assert.ok(findProp(library, 'placeholder').includes('Hledat název, soubor nebo alt text'));
+    assert.match(source, /const returnTo = category \? `\$\{base\}\?collection=\$\{category\}`/);
+    assert.match(source, /← Všechna umístění/);
+    assert.match(source, /collectionType=\{category\}/);
+    assert.match(source, /mediaLocations\.map/);
+    assert.match(source, /collection=SERVICE_MEDIA/);
+    assert.ok(!findProp(published, 'placeholder').includes('Název, soubor, služba nebo umístění'));
+    assert.ok(findProp(library, 'placeholder').some((value) => typeof value === 'string' && value.startsWith('Název, soubor, služba nebo umístění')));
   } finally {
     mediaAsset.count = original.count;
     mediaAsset.findMany = original.findMany;
@@ -72,14 +72,14 @@ test('Media Library zachová filtry, ale odkazy Studio a Certifikáty jsou kanon
   }
 });
 
-test('Media Library používá document preview pro certifikáty a neinteraktivní disabled pagination', async () => {
+test('Media Library zachovává náhled certifikátů a přístupné stránkování', async () => {
   const pageSource = await readFile(new URL('./admin-media-page.tsx', import.meta.url), 'utf8');
   const dialogSource = await readFile(new URL('./media-asset-detail-dialog.tsx', import.meta.url), 'utf8');
 
   assert.match(dialogSource, /memberships\.some\(\(membership\) => membership\.type === 'CERTIFICATES'\)/);
   assert.match(dialogSource, /isDocumentStyle \? 'object-contain' : 'object-cover'/);
-  assert.match(pageSource, /<PaginationControl href=\{href\(\{ page: displayPage > 1 \? String\(displayPage - 1\) : undefined \}\)\} disabled=\{displayPage <= 1\}>Předchozí<\/PaginationControl>/);
-  assert.match(pageSource, /<PaginationControl href=\{href\(\{ page: displayPage < pageCount \? String\(displayPage \+ 1\) : undefined \}\)\} disabled=\{displayPage >= pageCount\}>Další<\/PaginationControl>/);
-  assert.match(pageSource, /return disabled \? <span className=\{className\}>\{children\}<\/span> : <Link href=\{href\} className=\{className\}>\{children\}<\/Link>/);
+  assert.match(pageSource, /<PaginationControl href=\{href\(\{ page: String\(mediaPage.page - 1\) \}\)\} disabled=\{mediaPage.page <= 1\}>Předchozí<\/PaginationControl>/);
+  assert.match(pageSource, /<PaginationControl href=\{href\(\{ page: String\(mediaPage.page \+ 1\) \}\)\} disabled=\{mediaPage.page >= mediaPage.pageCount\}>Další<\/PaginationControl>/);
+  assert.match(pageSource, /return disabled \? <span aria-disabled=\"true\" className=\{`\$\{linkClass\} opacity-40`\}>\{children\}<\/span> : <Link href=\{href\} className=\{linkClass\}>\{children\}<\/Link>/);
   assert.doesNotMatch(pageSource, /aria-disabled=\{displayPage/);
 });

@@ -14,6 +14,8 @@ export function PublicHero({
   ctaNote,
   logoImage,
   portraitImage,
+  portraitClassName,
+  portraitObjectPosition,
   primaryCta,
   secondaryCta,
   aside,
@@ -25,7 +27,9 @@ export function PublicHero({
   benefits?: string[];
   ctaNote?: string;
   logoImage?: { src: string; alt: string; width: number; height: number };
-  portraitImage?: { src: string; alt: string; width: number; height: number };
+  portraitImage?: { src: string; alt: string; width?: number; height?: number };
+  portraitClassName?: string;
+  portraitObjectPosition?: string;
   primaryCta?: { href: string; label: string };
   secondaryCta?: { href: string; label: string; variant?: "button" | "text" };
   aside?: ReactNode;
@@ -34,7 +38,7 @@ export function PublicHero({
 
   return (
     <section className="relative isolate overflow-hidden border-b border-black/5 bg-[radial-gradient(circle_at_top_left,rgba(226,205,182,0.5),transparent_32%),linear-gradient(180deg,#f8f2eb_0%,#f5ede4_48%,#f8f3ed_100%)]">
-      <Container className="grid gap-6 py-7 sm:gap-10 sm:py-16 lg:grid-cols-[1.08fr_0.92fr] lg:items-stretch lg:py-24">
+      <Container className="grid gap-6 py-7 sm:gap-10 sm:py-16 lg:grid-cols-[1.08fr_0.92fr] lg:items-center lg:py-24">
         <div className="space-y-5 sm:space-y-7">
           <div className="space-y-3">
             {!isHomepageStyle ? (
@@ -103,16 +107,18 @@ export function PublicHero({
             <p className="max-w-2xl text-[13px] leading-6 text-[var(--color-muted)] sm:text-sm">{ctaNote}</p>
           ) : null}
         </div>
-        <div className="flex">
+        <div className="flex items-center">
           {portraitImage ? (
-            <div className="relative w-full overflow-hidden rounded-[calc(var(--radius-panel)-0.25rem)] border border-white/80 bg-white/70 shadow-[var(--shadow-panel)] backdrop-blur">
+            <div className={`relative w-full overflow-hidden rounded-[calc(var(--radius-panel)-0.25rem)] border border-white/80 bg-white/70 shadow-[var(--shadow-panel)] backdrop-blur ${portraitClassName ?? ""}`}>
               <Image
                 src={portraitImage.src}
                 alt={portraitImage.alt}
-                width={portraitImage.width}
-                height={portraitImage.height}
+                fill={Boolean(portraitClassName)}
+                width={portraitClassName ? undefined : portraitImage.width}
+                height={portraitClassName ? undefined : portraitImage.height}
                 sizes="(min-width: 1280px) 560px, (min-width: 1024px) 44vw, (min-width: 640px) 90vw, 100vw"
-                className="h-[16rem] w-full object-cover object-center sm:h-[20rem] lg:h-[24rem]"
+                style={{ objectPosition: portraitObjectPosition }}
+                className={portraitClassName ? "h-full w-full object-cover" : "h-[16rem] w-full object-cover object-center sm:h-[20rem] lg:h-[24rem]"}
                 loading="eager"
               />
             </div>

@@ -42,7 +42,7 @@ function PublicPhotoField({
   const [pickerOpen, setPickerOpen] = useState(false);
 
   return (
-    <div className="block">
+    <div id={name} className="block scroll-mt-24">
       <span className="text-sm font-medium text-white">{label}</span>
       <input type="hidden" name={name} value={value} />
       <div className="mt-2 flex flex-wrap items-center gap-3 rounded-[1.1rem] border border-white/10 bg-black/20 p-3">

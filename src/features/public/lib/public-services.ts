@@ -2,6 +2,7 @@ import { Prisma } from "@/generated/prisma/client";
 
 import { type Service, type ServiceDurationRange } from "@/content/public-site";
 import { prisma } from "@/lib/prisma";
+import { withPublicMediaCacheVersion } from '@/lib/media/public-media-url';
 
 const priceFormatter = new Intl.NumberFormat("cs-CZ", {
   style: "currency",
@@ -23,7 +24,7 @@ type PublicServiceMediaRow = {
   role: "HERO" | "GALLERY";
   sortOrder: number;
   altText: string | null;
-  mediaAsset: { altText: string | null; optimizedUrl: string | null; url: string; thumbnailUrl: string | null };
+  mediaAsset: { altText: string | null; optimizedUrl: string | null; url: string; thumbnailUrl: string | null; focalPointX?: number; focalPointY?: number };
 };
 
 type PublicPricingCategoryRow = Prisma.ServiceCategoryGetPayload<{
@@ -99,7 +100,7 @@ const publicServiceDetailInclude = {
   media: {
     where: { mediaAsset: { is: { isPublished: true, visibility: "PUBLIC", deletionRequestedAt: null } } },
     orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
-    select: { role: true, sortOrder: true, altText: true, mediaAsset: { select: { altText: true, optimizedUrl: true, url: true, thumbnailUrl: true } } },
+    select: { role: true, sortOrder: true, altText: true, mediaAsset: { select: { altText: true, optimizedUrl: true, url: true, thumbnailUrl: true, focalPointX: true, focalPointY: true } } },
   },
 } satisfies Prisma.ServiceInclude;
 
@@ -279,8 +280,10 @@ function buildPlaceholderBrief(service: PublicServiceRow) {
 export function mapService(service: PublicServiceRow & { media?: PublicServiceMediaRow[] }): Service {
   const media = service.media ?? [];
   const image = (item: PublicServiceMediaRow) => ({
-    src: item.mediaAsset.optimizedUrl ?? item.mediaAsset.url,
+    src: withPublicMediaCacheVersion(item.mediaAsset.optimizedUrl ?? item.mediaAsset.url),
     alt: item.altText ?? item.mediaAsset.altText ?? getServiceDisplayName(service),
+    ...(typeof item.mediaAsset.focalPointX === "number" ? { focalPointX: item.mediaAsset.focalPointX } : {}),
+    ...(typeof item.mediaAsset.focalPointY === "number" ? { focalPointY: item.mediaAsset.focalPointY } : {}),
   });
   const hero = media.find((item) => item.role === "HERO");
   return {
@@ -368,7 +371,7 @@ export async function getPublicServices(): Promise<Service[]> {
       media: {
         where: { mediaAsset: { is: { isPublished: true, visibility: "PUBLIC", deletionRequestedAt: null } } },
         orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
-        select: { role: true, sortOrder: true, altText: true, mediaAsset: { select: { altText: true, optimizedUrl: true, url: true, thumbnailUrl: true } } },
+        select: { role: true, sortOrder: true, altText: true, mediaAsset: { select: { altText: true, optimizedUrl: true, url: true, thumbnailUrl: true, focalPointX: true, focalPointY: true } } },
       },
     },
   });

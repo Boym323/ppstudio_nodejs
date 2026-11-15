@@ -30,8 +30,8 @@ export type Service = {
   placeholderAssetBrief: string;
   seoTitle?: string;
   seoDescription: string;
-  heroImage?: { src: string; alt: string };
-  galleryImages?: Array<{ src: string; alt: string }>;
+  heroImage?: { src: string; alt: string; focalPointX?: number; focalPointY?: number };
+  galleryImages?: Array<{ src: string; alt: string; focalPointX?: number; focalPointY?: number }>;
 };
 
 export type FaqItem = {

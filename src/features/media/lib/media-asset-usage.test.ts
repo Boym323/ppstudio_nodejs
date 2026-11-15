@@ -56,9 +56,9 @@ test('getMediaAssetUsage vrátí použití v SiteSettings, MediaCollectionItem i
   mutableServiceMedia.findMany = async (args) => {
     assert.deepEqual(args, {
       where: { mediaAssetId: { in: ['media-used'] } },
-      select: { id: true, mediaAssetId: true, role: true, service: { select: { name: true, slug: true } } },
+      select: { id: true, serviceId: true, mediaAssetId: true, role: true, service: { select: { name: true, slug: true } } },
     });
-    return [{ id: 'service-media', mediaAssetId: 'media-used', role: 'HERO', service: { name: 'Lash lifting', slug: 'lash-lifting' } }];
+    return [{ id: 'service-media', serviceId: 'service-id', mediaAssetId: 'media-used', role: 'HERO', service: { name: 'Lash lifting', slug: 'lash-lifting' } }];
   };
 
   try {
@@ -71,7 +71,7 @@ test('getMediaAssetUsage vrátí použití v SiteSettings, MediaCollectionItem i
         { source: 'SiteSettings', recordId: 'site-settings', field: 'homePortraitMediaId' },
         { source: 'SiteSettings', recordId: 'site-settings', field: 'aboutPortraitMediaId' },
         { source: 'MediaCollectionItem', recordId: 'collection-item', field: 'REFERENCES' },
-        { source: 'ServiceMedia', recordId: 'service-media', field: 'HERO:Lash lifting:lash-lifting' },
+        { source: 'ServiceMedia', recordId: 'service-media', serviceId: 'service-id', field: 'HERO:Lash lifting:lash-lifting' },
       ],
     });
   } finally {

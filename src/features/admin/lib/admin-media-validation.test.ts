@@ -6,7 +6,7 @@ import { getManagedCollectionCanonicalUrl, getMediaRedirectUrl, updateMediaMetad
 test('schémata metadat a publikace přijímají nezávislé payloady', () => {
   assert.deepEqual(
     updateMediaMetadataSchema.parse({ area: 'owner', assetId: 'clh2g4m9e0000l7089a8z0x2b', title: 'Titulek', altText: 'Popis' }),
-    { area: 'owner', assetId: 'clh2g4m9e0000l7089a8z0x2b', title: 'Titulek', altText: 'Popis' },
+    { area: 'owner', assetId: 'clh2g4m9e0000l7089a8z0x2b', title: 'Titulek', altText: 'Popis', focalPointX: 50, focalPointY: 50 },
   );
   assert.deepEqual(
     updateMediaPublicationSchema.parse({ area: 'owner', assetId: 'clh2g4m9e0000l7089a8z0x2b', isPublished: 'true' }),
@@ -23,7 +23,7 @@ test('managed collection odstraní knihovní parametry a zachová flash', () => 
     getManagedCollectionCanonicalUrl('salon', { collection: 'CERTIFICATES', q: 'x', usage: 'USED', publication: 'HIDDEN', page: '2', flash: 'media-upload-success' }),
     '/admin/provoz/media?collection=CERTIFICATES&flash=media-upload-success',
   );
-  assert.equal(getManagedCollectionCanonicalUrl('owner', { collection: 'REFERENCES', q: 'x' }), null);
+  assert.equal(getManagedCollectionCanonicalUrl('owner', { collection: 'REFERENCES', q: 'x' }), '/admin/media?collection=REFERENCES');
   assert.equal(getManagedCollectionCanonicalUrl('owner', { collection: 'CERTIFICATES' }), null);
 });
 

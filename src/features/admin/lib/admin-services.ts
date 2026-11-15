@@ -7,6 +7,7 @@ import {
   type ServiceListSortValue,
   type ServiceListStatusValue,
 } from "@/features/admin/lib/admin-service-validation";
+import { getAdminMediaPreviewUrl } from "@/features/admin/lib/admin-media-validation";
 import { prisma } from "@/lib/prisma";
 
 const formatDateTime = new Intl.DateTimeFormat("cs-CZ", {
@@ -323,7 +324,7 @@ export async function getAdminServicesPageData(
               role: true,
               sortOrder: true,
               altText: true,
-              mediaAsset: { select: { id: true, title: true, fileName: true, altText: true, thumbnailUrl: true, optimizedUrl: true, url: true } },
+              mediaAsset: { select: { id: true, title: true, fileName: true, altText: true, isPublished: true, thumbnailUrl: true, optimizedUrl: true, url: true } },
             },
           },
           slugAliases: {
@@ -356,8 +357,11 @@ export async function getAdminServicesPageData(
           ...item,
           mediaAsset: {
             ...item.mediaAsset,
-            thumbnailPublicUrl: item.mediaAsset.thumbnailUrl ?? item.mediaAsset.optimizedUrl ?? item.mediaAsset.url,
-            publicUrl: item.mediaAsset.optimizedUrl ?? item.mediaAsset.url,
+            thumbnailPublicUrl: item.mediaAsset.isPublished
+              ? item.mediaAsset.thumbnailUrl ?? item.mediaAsset.optimizedUrl ?? item.mediaAsset.url
+              : null,
+            publicUrl: item.mediaAsset.isPublished ? item.mediaAsset.optimizedUrl ?? item.mediaAsset.url : null,
+            adminPreviewUrl: item.mediaAsset.isPublished ? null : getAdminMediaPreviewUrl(area, item.mediaAsset.id),
           },
         })),
         slugAliases: selectedService.slugAliases.map((alias) => ({

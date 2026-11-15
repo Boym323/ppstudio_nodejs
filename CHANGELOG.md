@@ -6,8 +6,32 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Přidáno
+
+- Média mají nastavitelné ohnisko fotografie v administraci; veřejné karty, detail služby, portréty, kontakt i galerie studia podle něj sjednocují ořez při změně velikosti obrazovky. Detail média nabízí náhledy různých poměrů podle použití fotografie.
+- Administrace médií má samostatný přehled fotografického pokrytí služeb s hlavní fotografií, počtem snímků galerie, stavem publikace a upozorněním na chybějící hero. Z detailu služby lze nahrát fotografii přímo do HERO nebo GALLERY.
+- Veřejné karty služeb, homepage a detail služby používají publikované hlavní fotografie, galerie a obrázek ve sdílených Open Graph/Twitter metadatech.
+
+### Změněno
+
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
+- Odkaz „Spravovat fotografie“ v knihovně médií otevírá přímo fotografie vybrané služby s návratem do přehledu; po nahrání snímku zůstává správa fotografií otevřená.
+- Media Library podporuje hromadné nahrávání, náhledy více souborů a individuální souhrn částečných selhání. Nové uploady zůstávají skryté, dokud obsluha výslovně nepotvrdí publikaci; přidán je také volitelný alt text.
+- Hlavní fotografie služby se v jejím detailu zobrazí přímo v pravém panelu úvodní sekce místo samostatného velkého bloku pod hero.
+
+### Zabezpečení
+
+- Kombinace hledání a filtru Použitá/Nepoužitá se skládá přes explicitní `AND` podmínky, takže jednotlivé Prisma `OR` větve se navzájem nepřepisují. Veřejné renderování nadále vyžaduje `PUBLIC`, `isPublished` a neoznačené smazání.
+- Administrace nyní zachovává cache konzistenci i po částečně úspěšném batch uploadu, atomicky nahrazuje HERO vazbu při souběžném uploadu a umožňuje autorizovaně nastavit alt text jednotlivé vazby `ServiceMedia`.
+
 ### Opraveno
 
+- Galerie studia a portrét O mně načítají rozlišení podle skutečné šířky fotografie; studio a kontakt při chybějící optimalizované variantě použijí dostupný originál se správnými rozměry.
+- Zrušení publikace média se ověřuje také před optimalizační cache obrázků. Nové veřejné odkazy obcházejí dřívější roční cache a obrázky vyžadují opětovné ověření při dalším načtení.
+
+- Fotografie služeb volí rozlišení podle skutečné šířky karet a galerie včetně mobilů, přehled i detail používají stejný poměr rámečku a středový ořez; hero text a fotografie se na desktopu vertikálně zarovnávají a na užších šířkách fotografie nepřebíjí celý obsah. Změny fotografií služeb obnovují také homepage.
+
+- Hromadný upload médií pojme všech osm povolených souborů po 8 MB. Správa fotografií služeb otevírá detail i na mobilu, po uploadu zobrazuje aktuální hlavní fotografii a při jejím nahrazení nepřebírá alt text původního snímku.
 - Analytika v administraci nyní odděluje skutečné vyhledávače a sociální sítě, správně rozpoznává jednoznačně označené kampaně Skliku, Google Ads a Meta Ads a neznámé kampaně nepřipisuje chybně konkrétní platformě. Při neúplných údajích Matomo zachovává ověřené souhrny návštěv a konverzí bez dvojího započtení.
 
 ## [3.41.0] - 2026-11-05
@@ -18,6 +42,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Technické události zobrazují popis a kód přímo v řádku bez rozbalování, rozlišují úspěšné, neúspěšné a zablokované operace a u ověření voucherů uvádějí, zda proběhlo na veřejné stránce nebo v rezervaci. Nová ověření ukládají a zobrazují konkrétní důvod odmítnutí, například vypršelou platnost, vyčerpaný voucher nebo nesoulad služby. Přehled neopakuje obecné štítky systému a na desktopu věnuje více místa podrobnostem.
 
 ## [3.40.0] - 2026-11-05
@@ -36,6 +61,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Filtry rezervací mají sjednocenou výšku a vzhled polí, přehlednější rozbalovací panel a kompaktní akce; počet výsledků je vedle vyhledávání.
 
 - KPI přehled odděluje hlavní výsledky od rozbalovacích analýz, zpřesňuje názvy tržeb a výhledu a vynechává samostatnou platební sekci. Průběžný měsíc porovnává se stejnou částí minulého měsíce a do očekávaných návštěv zahrnuje i potvrzené rezervace bez ceny.
@@ -82,6 +108,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Vlastník může sloučit duplicitní klientské profily po porovnání obou profilů a výběru jména a telefonu. Formulář jasně uvádí, jaké jméno bude po sloučení na zachovaném profilu, a předvolí ponechání jeho současného jména. Systém ověřuje aktuálnost náhledu, zachovává audit a historii komunikace, obnoví odkazy dotčených rezervací a chrání archivovaný profil před opětovným použitím. Doručené náhradní potvrzení včetně jeho opakovaného odeslání uzavírá související incidenty původních zpráv, i když jejich selhání dorazí dodatečně.
 
 ## [3.38.3] - 2026-11-01
@@ -107,12 +134,14 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Release používá bezpečnou generovanou Turbopack/SWC kompilační cache s kontrolou integrity, omezením velikosti, izolací prostředí a seed worktree pro reuse mezi různými staging cestami; deployment identita se při běžné změně nemění na invalidátor cache a zůstává správně zapsaná ve výsledném artefaktu. Poškození cache vyvolá nejvýše jeden čistý retry buildu, `--no-cache` cache přeskočí a příprava oprávnění nového release probíhá před odstávkou služeb.
 
 ## [3.38.0] - 2026-10-27
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - E2E shardy v GitHub Actions běží v oficiálním Playwright Docker image připnutém na verzi z lockfilu, bez opakovaného APT stahování; připojení k PostgreSQL službě přes hostname `postgres` povolují testovací bezpečnostní kontroly jen ve vymezeném CI prostředí a pro izolovanou DB.
 - Statistiky voucherů se načítají jedním agregovaným dotazem, platnost používá indexovatelná UTC časová rozmezí s korektními pražskými DST hranicemi a stránkování podporuje odpovídající složený index.
 - Vyhledávání klientek a voucherů používá PostgreSQL trigramové GIN indexy pro časté podřetězcové dotazy přes jména, kontaktní údaje, kódy a názvy služeb.
@@ -145,6 +174,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - E2E joby CI používají Ubuntu 24.04 kvůli nestabilním instalacím Playwright systémových závislostí na Ubuntu 26.04; instalace prohlížečů má samostatný sedmiminutový limit a při chybě vypíše diagnostiku prostředí.
 - Administrační Události deduplikují voucherové completion audity přímo v PostgreSQL pomocí `NOT EXISTS`; historie se načítá pouze v omezeném stránkovaném prefixu bez rozsáhlých podmínek `OR` a bez přenosu celé auditní historie do paměti.
 - Stránka GDPR uvádí právní identitu správce shodně s obchodními podmínkami.
@@ -160,6 +190,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Audit přechodu na ESLint 10.13.0 odhalil, že používané pluginy React, import a jsx-a11y zatím nedeklarují kompatibilitu s ESLint 10; projekt proto bezpečně zůstává na ESLint 9.39.5 do vydání kompatibilních verzí.
 - Administrativní tabulky používají novou generaci TanStack Table se zachováním zobrazení dat a řazení KPI.
 - Nástroje a integrační testy načítají proměnné prostředí přes `dotenv` 18.0.9 při zachování stávajícího `dotenv/config` rozhraní.
@@ -200,6 +231,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Klientské rezervační e-maily doporučují přesun rezervace výrazným tlačítkem „Změnit termín“, storno zobrazují jako vedlejší odkaz a informaci o kalendáři jako stručnou poznámku.
 
 ## [3.35.0] - 2026-10-18
@@ -210,6 +242,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Události v administraci mají úspornější historii změn a přehlednější tabulky; technický přehled standardně skrývá úspěšná zpracování rezervačního formuláře, která lze zobrazit filtrem. Změny veřejného obsahu služeb používají srozumitelné názvy a seznam e-mailů neopakuje název služby uvedený v předmětu.
 
 - Veřejná rezervace zrychluje výpočet doporučených termínů a automatického oběda opakovaným využitím již vypočtených kontextů a hodnocení bez změny dostupnosti, pořadí ani pravidel rezervace.
@@ -234,6 +267,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - E-maily v Událostech mají badge podle skutečného stavu Resend webhooků (odesláno, doručeno, zpožděno, nedoručeno nebo uzavřený incident). Záložka E-maily počítá aktivní doručovací incidenty bez duplicitních resendů. Historie změn vypisuje podrobnosti přímo a má úspornější časovou osu.
 
 - Události v administraci mají čitelnější denní časovou osu s vizuálním rozlišením stavů, přehlednější karty, počty změn po dnech a výraznější upozornění. Mobilní záložky jsou dostupné bez horizontálního posouvání; desktopové filtry jsou kompaktnější, počty záznamů mají správné české tvary a stránkování se ukazuje jen při více stránkách.
@@ -260,6 +294,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - QR kód v editoru voucherů má nenápadné značky os místo překrývajícího rámečku a úchytů. Jeho střed lze umístit kliknutím do čistého podkladu a změna velikosti zachovává vystředění v mezích voucheru.
 
 - Editor voucherových šablon umožňuje přesné zadání pozice v milimetrech od levého horního rohu finálního ořezu, vystředění prvků a jemné posuny šipkami; při tažení zobrazuje aktuální pozici a rozlišuje ořez, spadávku i orientační bezpečnou zónu. Uložené souřadnice a vykreslení PDF zůstávají zachované.
@@ -295,6 +330,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - KPI přehled zvýrazňuje hlavní výkon salonu, spojuje skutečné a očekávané tržby i návštěvy, seskupuje klientky, storna a platby a uvádí přesná srovnávací období. Obsazenost ukazuje využité a dostupné hodiny i případný přesah kapacity; nová metrika zaplnění celého měsíce zahrnuje i budoucí potvrzené rezervace. Storna a no-show se hodnotí podle míry a chybějící kapacita se nezobrazuje jako nulová obsazenost. Karty a tabulky se přizpůsobují mobilnímu zobrazení bez přetékání stránky a zbytečně vysokých prázdných bloků; u výhledu zůstává viditelné srovnání skutečnosti i chybějící ceny rezervací.
 - Administrace nyní umožňuje samostatně a auditovaně měnit veřejný slug služby; přejmenování služby samo o sobě URL nemění, staré adresy se trvale zachovají jako historické aliasy a kolize se službami i aliasy se odmítnou.
 - DB integration runner nyní na čisté lokální PostgreSQL automaticky a bezpečně připraví idempotentní voucher fixtures; voucher teardown uklízí i částečně vytvořené bookingy před odstraněním klienta.
@@ -356,6 +392,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Rámečky aktivních oblastí ve voucherovém editoru jsou nyní tenčí, bez překrývající výplně a s menšími rohovými úchyty, takže méně zakrývají podklad při pozicování.
 - Uzamčený náhled publikovaných voucherových šablon nyní umožňuje zobrazit placeholdery podle technických souřadnic layoutu pro hodnotu, službu i předtištěný voucher.
 - Výběr vzhledu při tvorbě tiskové série nyní zobrazuje náhled každé voucherové šablony.
@@ -382,6 +419,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Voucher Template Layout Editor nyní umožňuje OWNERům upravovat typografii textových oblastí včetně velikosti, minimální velikosti, řádkování, řezu a zarovnání; hodnoty se validují a ukládají do draft layoutu.
 - Voucher Template Layout Editor nyní zobrazuje ve VALUE, SERVICE, VALIDITY a CODE oblastech lokální preview fixture texty s live typografií, fittingem, baseline pozicí a přepínačem běžného/dlouhého SERVICE názvu; preview data se do layoutu neukládají.
 - Live preview Voucher Template Layout Editoru nyní vykresluje fitted text skutečným Canvasem v Noto Sans podle společné `baselineMm` transformace; víceřádkový SERVICE kopíruje baseline posledního řádku a `lineHeightMm` PDF rendereru.
@@ -464,6 +502,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Sekce Události má jednodušší záložky, přehled problémů k vyřešení, historii seskupenou podle data a kompaktní e-mailové i technické záznamy. Pokročilé filtry a technické údaje jsou sbalené; prázdné výsledky rozlišují aktivní filtry.
 - Provozní Přehled upřednostňuje dnešní klientky, umožňuje potvrzení a dokončení návštěvy s úhradou přímo v dialogu a dokončené návštěvy seskupuje do rozbalovacího seznamu. Upozornění a rychlé akce popisují další krok, týdenní souhrn se neopakuje a webová analytika je ve Statistikách.
 
@@ -488,6 +527,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Test webhooků Svix nyní vytváří časové razítko dynamicky, takže ověření zůstává stabilní i při běhu v různých časech.
 
 ## [3.26.1] - 2026-08-31
@@ -498,6 +538,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - GitHub CI nyní v existujícím mobilním shardování spouští také booking E2E coverage přes Playwright WebKit na profilu iPhone 15.
 - E2E build artefakt v GitHub CI už nepřenáší nepotřebnou Turbopack cache, takže navazující browser shardy stahují výrazně menší balík.
 - Databázové integrační testy už mezi izolovanými procesy nečekají na timeout neaktivního PostgreSQL poolu, takže GitHub CI dokončí testovací fázi výrazně rychleji.
@@ -610,6 +651,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - CI E2E běhy nyní používají zapisovatelný izolovaný adresář pro lokální média, takže testy uploadu nejsou závislé na právech checkoutu runneru.
 
 ### Opraveno
@@ -655,6 +697,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Výběr médií v kolekcích, referencích, službách a nastavení se nyní načítá až po otevření dialogu, vyhledává a stránkuje serverově a neposílá do administračních stránek celou publikovanou Media Library.
 - Pořadí fotografií Studio a Certifikátů se v Media Library nyní upravuje srozumitelnými tlačítky Nahoru a Dolů místo ručního zadávání čísla; přesun bezpečně zachovává jednoznačné pořadí kolekce.
 - Uživatelské texty administrace médií nyní používají běžnou češtinu (médium, použití a zařazení) místo interní technické terminologie.
@@ -695,6 +738,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.22.9` po doplnění regresního testu obnovy rezervace.
 
 ## [3.22.8] - 2026-08-23
@@ -714,6 +758,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.22.6` kvůli opravám obnovy dostupnosti při stornu, odmítnutí a ručním přesunu rezervací.
 
 ### Opraveno
@@ -739,6 +784,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Databázové integrační testy už v CI neběží duplicitně a zaseknutý produkční build skončí v samostatném časovém limitu.
 - CI nyní hledá unit testy přes Node.js, Playwright browser instaluje přímo v každém E2E shardu a sdílí jeden E2E build přes artifact.
 
@@ -752,6 +798,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Produkční build nyní používá nový generátor `prisma-client` s CommonJS module formatem; Prisma Client se generuje do aplikačního zdrojového stromu před buildem a runtime webu i e-mailového workeru používají jednotný klient.
 
 ### Zabezpečení
@@ -762,12 +809,14 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.22.1` kvůli zpřesnění integračních testů obnovování rezervací při použití paddingu slotu.
 
 ## [3.22.0] - 2026-08-16
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.22.0` kvůli zpětně kompatibilnímu rozšíření obnovování archivovaných termínů a zpracování rezervací.
 
 ### Opraveno
@@ -784,6 +833,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.21.0` kvůli zpětně kompatibilnímu rozšíření správy e-mailových incidentů a administrativních filtrů.
 
 ### Opraveno
@@ -799,6 +849,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.20.0` kvůli zpětně kompatibilnímu rozšíření administrativních událostí, auditů a filtrování e-mailových incidentů.
 
 ### Opraveno
@@ -814,6 +865,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.19.0` kvůli zpětně kompatibilnímu rozšíření administrace o ruční uzavření historických e-mailových incidentů.
 
 ### Opraveno
@@ -825,6 +877,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.18.0` kvůli zpětně kompatibilnímu rozšíření zpracování a sledování e-mailových delivery webhooků.
 
 ### Opraveno
@@ -852,6 +905,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.17.2` kvůli analytickým, bezpečnostním a provozním opravám.
 
 ### Zabezpečení
@@ -882,6 +936,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Denní režim automatického oběda AUTO/OFF je nyní provozní oprávnění planneru: mohou jej měnit role OWNER i SALON při správě volných termínů, zatímco globální přepínač automatického oběda zůstává pouze v OWNER nastavení.
 - Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.17.0` kvůli zpětně kompatibilnímu rozšíření plánovače a rezervací o automatický oběd.
 
@@ -897,6 +952,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Všechny produkční HTML e-maily (booking, administrace i voucher) nyní renderuje React Email; plain text, akční/ověřovací URL, ICS/PDF přílohy i delivery infrastruktura s EmailLogem, workery, retry/locking a providery zůstávají beze změny. Vývoj podporují interaktivní `email:dev` preview a regresní `email:previews` přes aplikační renderer.
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.16.5` kvůli dokončení migrace produkčních e-mailových šablon.
 
@@ -904,6 +960,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Ruční vytvoření a přesun rezervace nyní používají přístupné Radix drawery se spolehlivým ovládáním fokusu, klávesou Escape a ergonomičtějším rozložením dlouhých formulářů.
 - Detail kategorie a desktopový detail služby v administraci nyní používají přístupné Radix drawery se správným focusem, klávesou Escape a zavíráním do původního pohledu seznamu.
 - Obnovení uloženého stavu planneru při zahození více neuložených úprav nyní používá přístupný Radix potvrzovací dialog s bezpečným výchozím focusem na zrušení akce.
@@ -924,6 +981,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.16.3` kvůli opravám Matomo pageviewů a obnovování volných termínů po stornu rezervace.
 
 ## [3.16.2] - 2026-08-09
@@ -934,12 +992,14 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.16.2` kvůli opravám Matomo pageviewů a rezervačního CTA.
 
 ## [3.16.1] - 2026-08-09
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Fallback snapshot nastavení webu je provozní stav serveru a již se nesleduje ve verzování, takže jeho automatická aktualizace z databáze nevytváří nechtěné změny pracovního stromu.
 - Browserové E2E ověření používá vlastní produkční build i TypeScript konfiguraci, takže může běžet současně s vývojovým serverem bez zásahu do jeho HMR cache nebo pracovního stromu; instalace závislostí má ověřitelný registry preflight a explicitní fallback konfiguraci.
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.16.1` kvůli opravám souběžných administrativních úprav a stabilitě provozu.
@@ -967,6 +1027,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Běžné zrušení rezervace a vytvoření voucheru se v provozních událostech zobrazují jako informace; technický panel přesněji nese název „E-mailová fronta“ a vyhledávací nápověda odpovídá aktuálnímu pohledu.
 - Administrativní změny účtů, voucherů, služeb a SiteSettings mají doménové neměnné before/after logy s autorem, transakčním zápisem, serverovým OWNER/SALON omezením a minimalizací PII; cenový audit služby zůstává bez duplicit.
 - Přehled „Události a logy“ nově lépe rozlišuje provozní, e-mailové a bezpečnostní záznamy pomocí stavových štítků, přehledného panelu Pozornost, kompaktnějších filtrů a čitelnějších mobilních karet.
@@ -976,6 +1037,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Veřejný rezervační funnel v Matomo používá jednotné české události `Rezervace` od skutečného zahájení až po backendem vytvořenou rezervaci; konverze se deduplikuje podle interního ID rezervace, ukládá jen technický slug služby a stávající Goal „Rezervace vytvořena“ dál používá událost `Vytvořena`. První vyplnění e-mailu, telefonu i poznámky se samostatně a bez obsahu polí měří pro vyhodnocení kontaktního kroku.
 - Veřejný web má na mobilu kompaktní sticky hlavičku s přímou cestou k rezervaci a přístupným vysouvacím menu; na rezervační stránce ji nahrazuje návrat na web.
 - Rezervace s platně předvybranou službou nyní místo celého katalogu ukazuje stručné shrnutí služby a rovnou výběr termínu; službu lze kdykoli rozbalit a změnit.
@@ -999,12 +1061,14 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.14.2`.
 
 ## [3.14.1] - 2026-08-07
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Stránka dárkových voucherů má kratší a přehlednější cestu k jejich vystavení, jasněji rozlišuje voucher na službu a hodnotu, přesněji popisuje jeho využití při rezervaci a méně zvýrazňuje ověření existujícího voucheru.
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.14.1`.
 
@@ -1012,6 +1076,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Meta Pixel nyní měří rezervační funnel jako `ViewContent` → `BookingServiceSelected` → `BookingDateSelected` → `BookingTimeSelected` → `InitiateCheckout` → `BookingContactStarted` → `Schedule`; zastaralé události `AddToCart` a `Lead` se už pro rezervace neposílají.
 - PageView Meta Pixelu se při SPA navigaci porovnává s bezprostředně předchozí cestou, takže se správně změří i návrat na původní stránku bez duplicit.
 - Release příprava pro produkční nasazení: projektová verze navýšena na minor `3.14.0`.
@@ -1032,6 +1097,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - FAQ nově vysvětluje rozdíl mezi korejským a klasickým lash liftingem a uvádí, že studio nabízí již jen korejskou variantu.
 - Veřejné Matomo měření používá Heartbeat Timer s minimálním intervalem 15 sekund, takže přesněji zachytí délku návštěv bez vytváření dalších pageview.
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.13.5`.
@@ -1045,6 +1111,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Aktualizovány patchové a minor verze produkčních i vývojových závislostí, včetně Next.js, Reactu, Playwrightu a Svixu.
 - Kontrola changelogu už neběží jako blokující job GitHub Actions; požadavek na její posouzení zůstává v pull request šabloně.
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.13.4`.
@@ -1072,6 +1139,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.13.3`.
 
 ## [3.13.2] - 2026-08-01
@@ -1090,6 +1158,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.13.2`.
 
 ## [3.13.1] - 2026-08-01
@@ -1105,6 +1174,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Správa médií odděluje knihovnu od umístění na webu. Přidává kompaktní seznam a mřížku, filtrování a řazení souborů, přímé odkazy na jejich použití, individuální názvy při hromadném nahrání a potvrzené hromadné akce publikace či mazání nepoužitých souborů. Upload do kolekce může soubor atomicky publikovat a zařadit; neveřejný soubor zůstane dohledatelný v knihovně.
 - Release příprava pro produkční nasazení: projektová verze navýšena na patch `3.13.1`.
 
 ## [3.13.0] - 2026-07-30

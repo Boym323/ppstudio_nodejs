@@ -28,6 +28,11 @@ async function resolveSessionClaims(request: NextRequest) {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  if (pathname === '/_next/image') {
+    const { checkPublicMediaImageAccess } = await import('@/lib/media/public-media-image-access');
+    return checkPublicMediaImageAccess(request);
+  }
+
   if (pathname === ADMIN_LOGIN_PATH) {
     return NextResponse.next();
   }
@@ -94,5 +99,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/_next/image"],
 };

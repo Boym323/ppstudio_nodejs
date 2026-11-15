@@ -40,7 +40,7 @@ export async function GET(
     return new NextResponse(Uint8Array.from(file), {
       headers: {
         'Content-Type': variant.mimeType,
-        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': 'public, max-age=0, must-revalidate',
         'Content-Length': String(variant.size),
         'Content-Disposition': `inline; filename="${variant.storagePath.split('/').pop() ?? asset.fileName}"`,
         'X-Content-Type-Options': 'nosniff',

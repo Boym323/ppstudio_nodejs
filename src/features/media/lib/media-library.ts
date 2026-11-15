@@ -1,4 +1,4 @@
-import { MediaAssetVisibility, MediaStorageProvider } from '@/generated/prisma/browser';
+import { MediaAssetVisibility, MediaStorageProvider, type MediaCollectionType } from '@/generated/prisma/browser';
 import type { Prisma } from '@/generated/prisma/client';
 
 import { buildMediaPublicUrl } from '@/lib/media/media-config';
@@ -96,7 +96,8 @@ function mediaAssetData(input: MediaUploadInput, prepared: PreparedMediaUpload) 
     visibility, storageProvider,
     originalFilename: validatedFile.originalFilename, fileName: preparedFile.storedFilename,
     mimeType: preparedFile.mimeType, extension: preparedFile.extension, size: preparedFile.sizeBytes,
-    width: normalizedOriginal.width, height: normalizedOriginal.height, altText: normalizeMediaText(input.altText),
+    width: normalizedOriginal.width, height: normalizedOriginal.height,
+    altText: normalizeMediaText(input.altText),
     title: normalizeMediaText(input.title), storagePath: preparedFile.storagePath,
     url: buildMediaPublicUrl(preparedFile.storagePath), optimizedStoragePath: optimizedVariant?.storagePath ?? null,
     optimizedUrl: optimizedVariant ? buildMediaPublicUrl(optimizedVariant.storagePath) : null, optimizedMimeType: optimizedVariant?.mimeType ?? null,
@@ -107,11 +108,20 @@ function mediaAssetData(input: MediaUploadInput, prepared: PreparedMediaUpload) 
   };
 }
 
-export async function createMedia(input: MediaUploadInput) {
+export async function createMedia(input: MediaUploadInput, collectionType?: MediaCollectionType) {
+  if (collectionType && !input.isPublished) throw new Error('MEDIA_COLLECTION_REQUIRES_PUBLICATION');
   const prepared = await prepareAndWriteMediaUpload(input);
 
   try {
-    const asset = await createMediaAsset(mediaAssetData(input, prepared));
+    const data = mediaAssetData(input, prepared);
+    const asset = collectionType ? await prisma.$transaction(async (tx) => {
+      const collection = await tx.mediaCollection.upsert({ where: { type: collectionType }, create: { type: collectionType }, update: {} });
+      await tx.$queryRaw`SELECT "id" FROM "MediaCollection" WHERE "id" = ${collection.id} FOR UPDATE`;
+      const created = await tx.mediaAsset.create({ data });
+      const last = await tx.mediaCollectionItem.aggregate({ where: { collectionId: collection.id }, _max: { sortOrder: true } });
+      await tx.mediaCollectionItem.create({ data: { collectionId: collection.id, mediaAssetId: created.id, isVisible: true, sortOrder: (last._max.sortOrder ?? -1) + 1 } });
+      return created;
+    }) : await createMediaAsset(data);
 
     return withPublicUrl(asset);
   } catch (error) {
@@ -125,11 +135,12 @@ export async function listMedia() {
   return assets.map(withPublicUrl);
 }
 
-export async function listMediaPage({ page, pageSize = 48, where }: { page: number; pageSize?: number; where?: Prisma.MediaAssetWhereInput }) {
+export async function listMediaPage({ page, pageSize = 48, where, sort = 'newest' }: { page: number; pageSize?: number; where?: Prisma.MediaAssetWhereInput; sort?: 'newest' | 'oldest' | 'name' | 'size' }) {
   const total = await prisma.mediaAsset.count({ where });
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(Math.max(1, page), pageCount);
-  const assets = await prisma.mediaAsset.findMany({ where, orderBy: [{ createdAt: 'desc' }, { id: 'asc' }], skip: (safePage - 1) * pageSize, take: pageSize });
+  const orderBy: Prisma.MediaAssetOrderByWithRelationInput[] = sort === 'name' ? [{ title: { sort: 'asc', nulls: 'last' } }, { originalFilename: 'asc' }, { id: 'asc' }] : sort === 'size' ? [{ size: 'desc' }, { id: 'asc' }] : [{ createdAt: sort === 'oldest' ? 'asc' : 'desc' }, { id: 'asc' }];
+  const assets = await prisma.mediaAsset.findMany({ where, orderBy, skip: (safePage - 1) * pageSize, take: pageSize });
   return { assets: assets.map(withPublicUrl), total, page: safePage, pageSize, pageCount };
 }
 
@@ -148,6 +159,8 @@ export async function updateMedia(
   input: {
     title?: string | null;
     altText?: string | null;
+    focalPointX?: number;
+    focalPointY?: number;
     isPublished?: boolean;
   },
 ) {
@@ -156,6 +169,8 @@ export async function updateMedia(
     ...(input.altText !== undefined
       ? { altText: normalizeMediaText(input.altText) }
       : {}),
+    ...(input.focalPointX !== undefined ? { focalPointX: input.focalPointX } : {}),
+    ...(input.focalPointY !== undefined ? { focalPointY: input.focalPointY } : {}),
     ...(input.isPublished !== undefined ? { isPublished: input.isPublished } : {}),
   };
 

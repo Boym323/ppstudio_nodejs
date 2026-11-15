@@ -47,6 +47,8 @@ export async function ContactPage() {
                 alt: heroPhoto.altText,
                 width: heroPhoto.width ?? 1280,
                 height: heroPhoto.height ?? 960,
+                focalPointX: heroPhoto.focalPointX,
+                focalPointY: heroPhoto.focalPointY,
               }
             : null
         }

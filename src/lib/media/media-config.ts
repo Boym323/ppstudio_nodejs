@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { MediaAssetVisibility } from '@/generated/prisma/browser';
 
 import { mediaStorageRoot } from '@/config/env';
+export { mediaUploadPolicy } from '@/lib/media/media-upload-policy';
 
 export const MEDIA_PUBLIC_BASE_PATH = '/media';
 export const MEDIA_PUBLIC_SCOPE_SEGMENT = 'public';
@@ -14,15 +15,6 @@ export const mediaRootDirectoryMap = {
   PUBLIC: 'public',
   PRIVATE: 'private',
 } satisfies Record<MediaAssetVisibility, string>;
-
-export const mediaUploadPolicy = {
-  maxFileSizeBytes: 8 * 1024 * 1024,
-  allowedMimeTypes: new Map([
-    ['image/jpeg', ['jpg', 'jpeg']],
-    ['image/png', ['png']],
-    ['image/webp', ['webp']],
-  ]),
-};
 
 export function getMediaStorageRoot() {
   return mediaStorageRoot;

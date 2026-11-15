@@ -7,11 +7,13 @@ export function buildPageMetadata({
   description,
   path,
   absoluteTitle = false,
+  image,
 }: {
   title: string;
   description: string;
   path: string;
   absoluteTitle?: boolean;
+  image?: { url: string; alt: string };
 }): Metadata {
   const canonicalPath = path === "/" ? "/" : path.replace(/\/+$/, "");
   const absoluteUrl = new URL(canonicalPath, siteConfig.canonicalUrl).toString();
@@ -30,20 +32,18 @@ export function buildPageMetadata({
       siteName: siteConfig.name,
       locale: siteConfig.locale,
       type: "website",
-      images: [
-        {
-          url: "/brand/ppstudio-og-logo.png",
-          width: 1200,
-          height: 630,
-          alt: siteConfig.name,
-        },
-      ],
+      images: [image ?? {
+        url: "/brand/ppstudio-og-logo.png",
+        width: 1200,
+        height: 630,
+        alt: siteConfig.name,
+      }],
     },
     twitter: {
       card: "summary_large_image",
       title: metadataTitle,
       description,
-      images: ["/brand/ppstudio-og-logo.png"],
+      images: [image?.url ?? "/brand/ppstudio-og-logo.png"],
     },
   };
 }

@@ -6,6 +6,7 @@ export type MediaAssetUsageReference = {
   source: string;
   recordId: string;
   field: string;
+  serviceId?: string;
 };
 
 export type MediaAssetUsage = {
@@ -35,7 +36,7 @@ export async function getMediaAssetUsageBatch(ids: string[], db: Prisma.Transact
     }),
     db.serviceMedia.findMany({
       where: { mediaAssetId: { in: uniqueIds } },
-      select: { id: true, mediaAssetId: true, role: true, service: { select: { name: true, slug: true } } },
+      select: { id: true, serviceId: true, mediaAssetId: true, role: true, service: { select: { name: true, slug: true } } },
     }),
   ]);
 
@@ -47,7 +48,7 @@ export async function getMediaAssetUsageBatch(ids: string[], db: Prisma.Transact
     }
   }
   for (const item of collectionItems) usages.get(item.mediaAssetId)?.references.push({ source: 'MediaCollectionItem', recordId: item.id, field: item.collection.type });
-  for (const item of serviceItems) usages.get(item.mediaAssetId)?.references.push({ source: 'ServiceMedia', recordId: item.id, field: `${item.role}:${item.service.name}:${item.service.slug}` });
+  for (const item of serviceItems) usages.get(item.mediaAssetId)?.references.push({ source: 'ServiceMedia', recordId: item.id, serviceId: item.serviceId, field: `${item.role}:${item.service.name}:${item.service.slug}` });
   for (const usage of usages.values()) usage.isUsed = usage.references.length > 0;
   return usages;
 }

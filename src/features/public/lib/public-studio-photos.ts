@@ -9,6 +9,7 @@ import {
   getPublicMediaCollectionItems,
 } from '@/features/public/lib/public-media-relations';
 import { getMediaStorageAdapter } from '@/lib/media/media-storage';
+import { withPublicMediaCacheVersion } from '@/lib/media/public-media-url';
 
 export type PublicStudioPhoto = PublicImageAsset;
 
@@ -25,9 +26,11 @@ function mapStudioAsset(
     id: asset.id,
     title: asset.title,
     altText: altTextOverride ?? asset.altText ?? STUDIO_ALT_FALLBACK,
-    imageUrl: asset.optimizedUrl ?? asset.url,
+    imageUrl: withPublicMediaCacheVersion(asset.optimizedUrl ?? asset.url),
     width: asset.optimizedWidth ?? asset.width,
     height: asset.optimizedHeight ?? asset.height,
+    focalPointX: asset.focalPointX ?? 50,
+    focalPointY: asset.focalPointY ?? 50,
   };
 }
 
@@ -65,15 +68,15 @@ async function filterAvailableAssets<
   const availableAssets = await Promise.all(
     items.map(async (item) => {
       const asset = item.mediaAsset;
-      const candidatePaths = [asset.optimizedStoragePath, asset.storagePath].filter(
-        (candidate): candidate is string => Boolean(candidate),
-      );
+      const storage = getMediaStorageAdapter(asset.storageProvider);
+      if (asset.optimizedStoragePath && asset.optimizedUrl
+        && await storage.fileExists(asset.visibility, asset.optimizedStoragePath)) {
+        return item;
+      }
 
-      for (const storagePath of candidatePaths) {
-        const exists = await getMediaStorageAdapter(asset.storageProvider).fileExists(asset.visibility, storagePath);
-        if (exists) {
-          return item;
-        }
+      if (await storage.fileExists(asset.visibility, asset.storagePath)) {
+        // URL i rozměry musí odpovídat souboru, jehož existenci jsme ověřili.
+        return { ...item, mediaAsset: { ...asset, optimizedUrl: null, optimizedWidth: null, optimizedHeight: null } };
       }
 
       return null;

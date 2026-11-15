@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { connection } from "next/server";
 
 import {
@@ -39,6 +40,7 @@ function TrustStrip({ metrics }: { metrics: TrustMetric[] }) {
 function ServiceCard({ service }: { service: Service }) {
   return (
     <article className="flex h-full flex-col rounded-[var(--radius-panel)] border border-black/6 bg-white p-5 shadow-[var(--shadow-panel)] sm:p-6">
+      {service.heroImage ? <div className="relative -mx-5 -mt-5 mb-5 aspect-[16/9] overflow-hidden rounded-t-[var(--radius-panel)] bg-[var(--color-surface)] sm:-mx-6 sm:-mt-6"><Image src={service.heroImage.src} alt={service.heroImage.alt} fill sizes="(min-width: 1280px) 389px, (min-width: 1024px) calc((100vw - 112px) / 3), (min-width: 640px) calc(100vw - 48px), calc(100vw - 40px)" style={{ objectPosition: `${service.heroImage.focalPointX ?? 50}% ${service.heroImage.focalPointY ?? 50}%` }} className="object-cover"/></div> : <div aria-hidden="true" className="-mx-5 -mt-5 mb-5 h-2 rounded-t-[var(--radius-panel)] bg-[var(--color-surface)] sm:-mx-6 sm:-mt-6" />}
       <p className="w-fit rounded-full bg-[var(--color-surface)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-contrast)]">
         {service.category}
       </p>
@@ -79,6 +81,7 @@ export async function PublicHomePage({
   const homepageServices = featuredServices ?? [];
   const heroContent = {
     ...homepageContent,
+    portraitObjectPosition: `${portrait?.focalPointX ?? 50}% ${portrait?.focalPointY ?? 50}%`,
     portraitImage: portrait
       ? {
           src: portrait.imageUrl,

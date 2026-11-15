@@ -16,12 +16,14 @@ test('listMediaPage stránkuje první, další i neplatnou poslední stránku st
   const originalCount = prisma.mediaAsset.count;
   const originalFindMany = prisma.mediaAsset.findMany;
   const skips: number[] = [];
+  const orders: unknown[] = [];
   const rows = Array.from({ length: 97 }, (_, index) => ({ id: String(index), isPublished: true, url: `/media/${index}`, optimizedUrl: null, thumbnailUrl: null }));
   const mediaAsset = prisma.mediaAsset as unknown as { count: (...args: unknown[]) => unknown; findMany: (...args: unknown[]) => unknown };
   mediaAsset.count = async () => rows.length;
   mediaAsset.findMany = async (rawArgs: unknown) => {
-    const { skip, take } = rawArgs as { skip: number; take: number };
+    const { skip, take, orderBy } = rawArgs as { skip: number; take: number; orderBy: unknown };
     skips.push(skip);
+    orders.push(orderBy);
     return rows.slice(skip, skip + take);
   };
   try {
@@ -32,6 +34,16 @@ test('listMediaPage stránkuje první, další i neplatnou poslední stránku st
     assert.equal(last.page, 3);
     assert.equal(last.assets.length, 1);
     assert.deepEqual(skips, [0, 48, 96]);
+    await listMediaPage({ page: 1, sort: 'newest' });
+    await listMediaPage({ page: 1, sort: 'oldest' });
+    await listMediaPage({ page: 1, sort: 'name' });
+    await listMediaPage({ page: 1, sort: 'size' });
+    assert.deepEqual(orders.slice(3), [
+      [{ createdAt: 'desc' }, { id: 'asc' }],
+      [{ createdAt: 'asc' }, { id: 'asc' }],
+      [{ title: { sort: 'asc', nulls: 'last' } }, { originalFilename: 'asc' }, { id: 'asc' }],
+      [{ size: 'desc' }, { id: 'asc' }],
+    ]);
   } finally {
     mediaAsset.count = originalCount as unknown as (...args: unknown[]) => unknown;
     mediaAsset.findMany = originalFindMany as unknown as (...args: unknown[]) => unknown;

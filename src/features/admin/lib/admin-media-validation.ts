@@ -7,6 +7,8 @@ export const uploadMediaSchema = z.object({
   area: adminAreaSchema,
   title: z.string().trim().max(120, 'Titulek může mít maximálně 120 znaků.').optional(),
   altText: z.string().trim().max(160, 'Alt text může mít maximálně 160 znaků.').optional(),
+  isPublished: z.boolean().default(false),
+  collectionType: z.enum(['STUDIO_GALLERY', 'CERTIFICATES', 'REFERENCES']).optional(),
 });
 
 export const updateMediaMetadataSchema = z.object({
@@ -14,6 +16,8 @@ export const updateMediaMetadataSchema = z.object({
   assetId: z.cuid(),
   title: z.string().trim().max(120, 'Titulek může mít maximálně 120 znaků.').optional(),
   altText: z.string().trim().max(160, 'Alt text může mít maximálně 160 znaků.').optional(),
+  focalPointX: z.coerce.number().min(0).max(100).default(50),
+  focalPointY: z.coerce.number().min(0).max(100).default(50),
 });
 
 export const updateMediaPublicationSchema = z.object({
@@ -40,12 +44,14 @@ type MediaSearchParams = Record<string, string | string[] | undefined>;
 
 export function getManagedCollectionCanonicalUrl(area: AdminArea, searchParams: MediaSearchParams) {
   const collection = typeof searchParams.collection === 'string' ? searchParams.collection : undefined;
-  if (collection !== 'STUDIO_GALLERY' && collection !== 'CERTIFICATES') return null;
+  if (collection !== 'STUDIO_GALLERY' && collection !== 'CERTIFICATES' && collection !== 'REFERENCES') return null;
 
-  if (!['q', 'usage', 'publication', 'page'].some((name) => name in searchParams)) return null;
+  if (!['q', 'usage', 'publication', 'page', 'sort', 'layout', 'location', 'untitled'].some((name) => name in searchParams)) return null;
 
   const query = new URLSearchParams({ collection });
-  if (typeof searchParams.flash === 'string') query.set('flash', searchParams.flash);
+  for (const name of ['flash', 'uploaded', 'failed', 'new']) {
+    if (typeof searchParams[name] === 'string') query.set(name, searchParams[name]);
+  }
   return `${getMediaAdminPath(area)}?${query}`;
 }
 

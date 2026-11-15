@@ -73,6 +73,7 @@ test('public media route serves new images storage paths without MediaType mappi
     const response = await GET(new Request('https://example.com/media/public/images/2026/08/a1b2c3d4e5f6-original.jpg'), mediaRequest('images', ['2026', '08', 'a1b2c3d4e5f6-original.jpg']));
 
     assert.equal(response.status, 200);
+    assert.equal(response.headers.get('cache-control'), 'public, max-age=0, must-revalidate');
     assert.equal(await response.text(), 'jpg');
     assert.equal(findFirstCalls.length, 1);
   });

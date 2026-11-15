@@ -1,6 +1,7 @@
 import { MediaCollectionType } from '@/generated/prisma/browser';
 
 import { getPublicMediaCollectionItems } from '@/features/public/lib/public-media-relations';
+import { withPublicMediaCacheVersion } from '@/lib/media/public-media-url';
 
 export type PublicCertificate = {
   id: string;
@@ -18,7 +19,7 @@ export async function getPublicCertificates(): Promise<PublicCertificate[]> {
     id: asset.id,
     title: asset.title,
     alt: altText ?? asset.altText,
-    imageUrl: asset.optimizedUrl ?? asset.url,
+    imageUrl: withPublicMediaCacheVersion(asset.optimizedUrl ?? asset.url),
     width: asset.optimizedWidth ?? asset.width,
     height: asset.optimizedHeight ?? asset.height,
   }));

@@ -1183,6 +1183,8 @@ model MediaAsset {
   height                 Int?
   altText                String?
   title                  String?
+  focalPointX            Float                 @default(50)
+  focalPointY            Float                 @default(50)
   storagePath            String                @unique
   url                    String
   optimizedStoragePath   String?               @unique

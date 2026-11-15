@@ -73,6 +73,8 @@ function HeroSection({ portrait }: { portrait: PublicImageAsset | null }) {
                 alt={heroImage.alt}
                 width={heroImage.width}
                 height={heroImage.height}
+                sizes="(min-width: 1280px) 483px, (min-width: 1024px) calc((100vw - 104px) * 0.41), (min-width: 640px) calc(100vw - 48px), calc(100vw - 40px)"
+                style={{ objectPosition: `${portrait?.focalPointX ?? 50}% ${portrait?.focalPointY ?? 50}%` }}
                 className="h-[20rem] w-full object-cover object-center sm:h-[26rem] lg:h-[30rem]"
                 priority
               />

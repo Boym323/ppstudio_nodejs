@@ -6,7 +6,7 @@ import type {
   ValidatedMediaFile,
 } from '@/lib/media/media-types';
 
-const pipelineMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const pipelineMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
 
 function getOutputExtension(mimeType: string) {
   switch (mimeType) {
@@ -102,7 +102,10 @@ export async function normalizeOriginalMediaImage(
 
   return buildImageBuffer({
     buffer: file.buffer,
-    mimeType: file.mimeType,
+    // Sharp decodes HEIC/HEIF when libvips has the decoder available, then
+    // stores a browser-friendly JPEG instead of leaving an unsupported
+    // original format in public storage.
+    mimeType: file.mimeType === 'image/heic' || file.mimeType === 'image/heif' ? 'image/jpeg' : file.mimeType,
     quality: 100,
   });
 }

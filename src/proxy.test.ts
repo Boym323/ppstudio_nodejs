@@ -15,6 +15,40 @@ process.env.EMAIL_DELIVERY_MODE ??= "log";
 
 const cookieName = "ppstudio-admin-session";
 
+test('proxy ověřuje publikaci před image cache při každém požadavku včetně legacy URL', async () => {
+  const [{ proxy }, { prisma }] = await Promise.all([import('./proxy'), import('@/lib/prisma')]);
+  const original = prisma.mediaAsset.findFirst;
+  let published = true;
+  let calls = 0;
+  prisma.mediaAsset.findFirst = (async (args: unknown) => {
+    calls++;
+    const query = args as { where: { isPublished: boolean; visibility: string; deletionRequestedAt: null } };
+    assert.equal(query.where.isPublished, true);
+    assert.equal(query.where.visibility, 'PUBLIC');
+    assert.equal(query.where.deletionRequestedAt, null);
+    return published ? { id: 'synthetic-photo' } : null;
+  }) as typeof original;
+  try {
+    for (const path of ['/media/public/images/2026/11/photo.jpg?media-cache=2', '/media/images/2026/11/photo.jpg']) {
+      const request = new NextRequest(`https://example.com/_next/image?url=${encodeURIComponent(path)}&w=640&q=75`);
+      published = true;
+      assert.equal((await proxy(request)).headers.get('x-middleware-next'), '1');
+      published = false;
+      const denied = await proxy(request);
+      assert.equal(denied.status, 404);
+      assert.equal(denied.headers.get('cache-control'), 'no-store');
+    }
+    assert.equal(calls, 4);
+    const staticImage = await proxy(new NextRequest('https://example.com/_next/image?url=%2Flogo.png&w=640&q=75'));
+    assert.equal(staticImage.headers.get('x-middleware-next'), '1');
+    const invalid = await proxy(new NextRequest('https://example.com/_next/image?url=%2Fmedia%2Fprivate%2F2026%2F11%2Fphoto.jpg&w=640&q=75'));
+    assert.equal(invalid.status, 400);
+    assert.equal(calls, 4);
+  } finally {
+    prisma.mediaAsset.findFirst = original;
+  }
+});
+
 async function createValidSessionToken(expiresIn = "1h", sessionStartedAt?: number) {
   const secret = new TextEncoder().encode(process.env.ADMIN_SESSION_SECRET);
   const token = new SignJWT({

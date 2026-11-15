@@ -12,6 +12,15 @@ Stručný kontext aktuální implementace Media Library.
 - Originál je reprezentovaný poli `storagePath`/`url` a jeho metadata.
 - Volitelné varianty jsou `optimized` a `thumbnail`, každá se storage cestou,
   URL, MIME typem, rozměry a velikostí.
+- `focalPointX` a `focalPointY` (0–100, výchozí 50/50) určují ohnisko pro
+  responzivní ořez; administrace je nastavuje na detailu média a veřejné
+  obrázky ho používají přes `object-position`.
+- Veřejné karty, portréty, kontakt a studio používají výřez přes `object-fit: cover`
+  s uloženým ohniskem; výchozí 50/50 zachovává dosavadní středový ořez;
+  originální soubor ani uložené varianty se tím nemění.
+- Detail média v administraci umožňuje přepínat orientační náhledy poměrů
+  používaných na webu a předvolí poměr podle aktuálního použití. Proměnlivé
+  poměry portrétů a studia závisí na šířce obrazovky; certifikáty se neořezávají.
 
 ## Access
 
@@ -19,6 +28,16 @@ Stručný kontext aktuální implementace Media Library.
   alias `/media/[kind]/[[...path]]`.
 - Veřejný handler vydá pouze asset s `PUBLIC`, `isPublished: true` a
   `deletionRequestedAt: null`; stejná podmínka platí pro originál i varianty.
+- Veřejné soubory vracejí `public, max-age=0, must-revalidate` a Next Image
+  má `minimumCacheTTL: 0`. Proxy před `/_next/image` znovu ověřuje veřejnou
+  dostupnost lokálních médií, takže ani stará optimalizační cache nevydá
+  zneveřejněný asset. Statické obrázky mimo `/media/` kontrolu nevyžadují.
+- Veřejné mapování přidává `media-cache=2`, aby nové stránky obešly dříve
+  vydané roční cache; uložené URL ani soubory se nemění. Dříve stažené kopie
+  ve starých prohlížečích nelze zpětně odvolat. Kontrola v proxy přidává
+  jeden DB dotaz na požadavek optimalizovaného média.
+- Studio a kontakt při nedostupné optimalizované variantě použijí URL
+  i rozměry existujícího originálu; chybějící soubory se vynechají.
 - Unpublished asset nemá veřejnou URL. Autorizovaný admin jej může previewovat
   přes `/api/admin/media/[area]/[assetId]/preview`.
 - Admin preview vyžaduje přístup k media sekci a používá `owner` nebo `salon`.
@@ -33,7 +52,12 @@ Stručný kontext aktuální implementace Media Library.
   `createdAt desc, id asc`.
 - Hledání je case-insensitive přes titulek, název souboru, původní název a
   alt text.
+- Knihovna nabízí seznam nebo mřížku, stránkované hledání podle metadat, názvu služby a názvů umístění, filtry použití, publikace, konkrétního umístění a chybějícího názvu a řazení podle data, názvu nebo velikosti. Hromadné publikování je idempotentní; hromadné mazání zachovává usage guard každého média.
+- Pohled „Umístění na webu“ odděluje přiřazení fotografií stránek a služeb od správy souborů. U médií přehled i detail ukazují skutečné vazby s přímým odkazem na jejich správu. Publikace a viditelnost zařazení jsou samostatné stavy.
 - Filtry rozlišují všechna, použitá a nepoužitá média a také kolekci.
+- Přehled `collection=SERVICE_MEDIA` odkazuje přímo na samostatnou správu
+  fotografií služby přes `view=photos&serviceId=…` v příslušné admin oblasti.
+  Tento pohled má návrat do přehledu a zachovává se i po uploadu.
 - Filtry Studio a Certifikáty otevírají správu celé dané kolekce nezávisle na ostatních filtrech knihovny; grid se v tomto pohledu nezobrazuje duplicitně.
 - Usage se zjišťuje hromadně přes `getMediaAssetUsageBatch`.
 - `returnTo` zachovává aktuální media route, query kontext a po akci přidává
@@ -42,8 +66,13 @@ Stručný kontext aktuální implementace Media Library.
 - Správa Studio a Certifikátů má vlastní kanonickou URL `collection=<typ>`;
   knihovní parametry `q`, `usage`, `publication` a `page` se z ní odstraňují,
   přičemž `flash` po serverové akci zůstává zachovaný.
+- `MediaUploadDialog` umožňuje při hromadném uploadu vlastní název a alt text pro každý soubor; výchozí název se odvodí z názvu souboru. Z konkrétní kolekce lze publikovaný asset při vytvoření atomicky zařadit na konec kolekce; nezaškrtnutý upload zůstává dohledatelný jako neveřejný soubor.
 - `MediaUploadDialog` je pouze UI formulář nad existující serverovou upload
   pipeline (`uploadMediaAction` → `createMedia` → validace, zpracování a zápis).
+- Nové admin uploady jsou ve výchozím stavu neveřejné (`isPublished=false`) a
+  publikace je samostatný vědomý krok. Knihovna podporuje více souborů v jednom
+  formuláři, souhrn částečných selhání a HEIC/HEIF převod do JPEG variant při
+  dostupném dekodéru Sharp.
 
 ## Admin picker
 
@@ -97,3 +126,5 @@ Stručný kontext aktuální implementace Media Library.
 - Admin stránka, akce a dialogy: `src/features/admin/components/admin-media-page.tsx`,
   `src/features/admin/actions/media-actions.ts`, `src/features/admin/components/media-asset-detail-dialog.tsx`
   a `src/features/admin/components/media-upload-dialog.tsx`.
+- Přehled fotografického pokrytí služeb: `src/features/admin/components/service-media-overview.tsx`;
+  přímý upload z detailu služby používá `uploadServiceMediaAction`.

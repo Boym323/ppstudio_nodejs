@@ -2,6 +2,7 @@ import {
   getPublicAboutPortraitAsset,
   getPublicHomePortraitAsset,
 } from '@/features/public/lib/public-media-relations';
+import { withPublicMediaCacheVersion } from '@/lib/media/public-media-url';
 
 export type PublicImageAsset = {
   id: string;
@@ -10,6 +11,8 @@ export type PublicImageAsset = {
   imageUrl: string;
   width: number | null;
   height: number | null;
+  focalPointX?: number;
+  focalPointY?: number;
 };
 
 function mapPublicImageAsset(
@@ -20,9 +23,11 @@ function mapPublicImageAsset(
     id: asset.id,
     title: asset.title,
     altText: asset.altText ?? asset.title ?? fallbackAltText,
-    imageUrl: asset.optimizedUrl ?? asset.url,
+    imageUrl: withPublicMediaCacheVersion(asset.optimizedUrl ?? asset.url),
     width: asset.optimizedWidth ?? asset.width,
     height: asset.optimizedHeight ?? asset.height,
+    focalPointX: asset.focalPointX ?? 50,
+    focalPointY: asset.focalPointY ?? 50,
   };
 }
 

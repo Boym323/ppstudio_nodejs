@@ -1,5 +1,6 @@
 'use server';
 
+import { z } from 'zod';
 import { MediaCollectionType } from '@/generated/prisma/browser';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -23,9 +24,10 @@ function flashUrl(area: 'owner' | 'salon', returnTo: FormDataEntryValue | null, 
 }
 
 function revalidateMediaPaths(area: 'owner' | 'salon') {
-  for (const path of [getMediaAdminPath(area), '/admin', '/admin/provoz', '/', '/kontakt', '/studio', '/o-mne', '/o-salonu']) {
+  for (const path of [getMediaAdminPath(area), '/admin', '/admin/provoz', '/', '/kontakt', '/studio', '/o-mne', '/o-salonu', '/sluzby', '/admin/sluzby', '/admin/provoz/sluzby', '/admin/nastaveni']) {
     revalidatePath(path);
   }
+  revalidatePath('/sluzby/[slug]', 'page');
 }
 
 function mapUploadErrorToFlash(error: unknown) {
@@ -53,6 +55,8 @@ export async function uploadMediaAction(formData: FormData) {
     area: formData.get('area'),
     title: formData.get('title'),
     altText: formData.get('altText'),
+    isPublished: formData.get('isPublished') === 'true',
+    collectionType: formData.get('collectionType') || undefined,
   });
 
   if (!parsed.success) {
@@ -61,25 +65,55 @@ export async function uploadMediaAction(formData: FormData) {
 
   await requireAdminSectionAccess(parsed.data.area, 'media');
 
-  const file = formData.get('file');
+  const files = formData.getAll('files').filter((file): file is File => file instanceof File && file.size > 0);
+  const legacyFile = formData.get('file');
+  if (legacyFile instanceof File && legacyFile.size > 0) files.push(legacyFile);
 
-  if (!(file instanceof File) || file.size <= 0) {
+  if (!files.length) {
     redirect(flashUrl(parsed.data.area, formData.get('returnTo'), 'media-upload-missing-file'));
   }
-
-  try {
-    await createMedia({
-      file,
-      isPublished: true,
-      title: normalizeOptionalText(parsed.data.title),
-      altText: normalizeOptionalText(parsed.data.altText),
-    });
-  } catch (error) {
-    redirect(flashUrl(parsed.data.area, formData.get('returnTo'), mapUploadErrorToFlash(error)));
+  if (files.length > 8) {
+    redirect(flashUrl(parsed.data.area, formData.get('returnTo'), 'media-upload-too-many'));
   }
 
+  const metadata = files.map((_, index) => uploadMediaSchema.safeParse({
+    ...parsed.data,
+    title: formData.get(`title.${index}`) ?? parsed.data.title,
+    altText: formData.get(`altText.${index}`) ?? parsed.data.altText,
+  }));
+  if (metadata.some((item) => !item.success)) redirect(flashUrl(parsed.data.area, formData.get('returnTo'), 'media-upload-invalid-payload'));
+
+  const uploadedIds: string[] = [];
+  let failed = 0;
+  let firstError: unknown;
+  for (const [index, file] of files.entries()) {
+    const item = metadata[index];
+    if (!item.success) continue;
+    try {
+      const asset = await createMedia({
+        file,
+        isPublished: parsed.data.isPublished,
+        title: normalizeOptionalText(item.data.title),
+        altText: normalizeOptionalText(item.data.altText),
+      }, parsed.data.isPublished ? parsed.data.collectionType : undefined);
+      uploadedIds.push(asset.id);
+    } catch (error) {
+      failed += 1;
+      firstError ??= error;
+    }
+  }
+  if (!uploadedIds.length) redirect(flashUrl(parsed.data.area, formData.get('returnTo'), mapUploadErrorToFlash(firstError)));
   revalidateMediaPaths(parsed.data.area);
-  redirect(flashUrl(parsed.data.area, formData.get('returnTo'), 'media-upload-success'));
+  const addedToCollection = parsed.data.collectionType && parsed.data.isPublished;
+  const destination = addedToCollection
+    ? `${getMediaAdminPath(parsed.data.area)}?collection=${parsed.data.collectionType}`
+    : getMediaAdminPath(parsed.data.area);
+  const flash = failed ? 'media-upload-partial' : addedToCollection ? 'media-upload-collection-success' : parsed.data.collectionType ? 'media-upload-collection-draft' : 'media-upload-success';
+  const redirectUrl = new URL(flashUrl(parsed.data.area, destination, flash), 'http://media-return.invalid');
+  redirectUrl.searchParams.set('uploaded', String(uploadedIds.length));
+  redirectUrl.searchParams.set('failed', String(failed));
+  redirectUrl.searchParams.set('new', uploadedIds.join(','));
+  redirect(`${redirectUrl.pathname}?${redirectUrl.searchParams}`);
 }
 
 export async function replaceMediaAction(formData: FormData) {
@@ -156,6 +190,8 @@ export async function updateMediaMetadataAction(formData: FormData) {
     assetId: formData.get('assetId'),
     title: formData.get('title'),
     altText: formData.get('altText'),
+    focalPointX: formData.get('focalPointX'),
+    focalPointY: formData.get('focalPointY'),
   });
 
   if (!parsed.success) {
@@ -167,6 +203,8 @@ export async function updateMediaMetadataAction(formData: FormData) {
   await updateMedia(parsed.data.assetId, {
     title: normalizeOptionalText(parsed.data.title),
     altText: normalizeOptionalText(parsed.data.altText),
+    focalPointX: parsed.data.focalPointX,
+    focalPointY: parsed.data.focalPointY,
   });
 
   revalidateMediaPaths(parsed.data.area);
@@ -216,4 +254,48 @@ export async function deleteMediaAction(formData: FormData) {
 
   revalidateMediaPaths(parsed.data.area);
   redirect(flashUrl(parsed.data.area, formData.get('returnTo'), 'media-delete-success'));
+}
+
+const bulkMediaSchema = z.object({
+  area: z.enum(['owner', 'salon']),
+  assetIds: z.array(z.cuid()).min(1).max(48),
+  operation: z.enum(['publish', 'unpublish', 'delete']),
+  confirmed: z.literal('true'),
+});
+
+export async function bulkMediaAction(formData: FormData) {
+  const parsed = bulkMediaSchema.safeParse({ area: formData.get('area'), assetIds: [...new Set(formData.getAll('assetId'))], operation: formData.get('operation'), confirmed: formData.get('confirmed') });
+  if (!parsed.success) throw new Error('Neplatná hromadná akce médií. Obnovte stránku a vyberte soubory znovu.');
+  const { area, assetIds, operation } = parsed.data;
+  await requireAdminSectionAccess(area, 'media');
+  let changed = 0;
+  let skipped = 0;
+  if (operation === 'delete') {
+    // Každé smazání používá stejný transakční usage guard jako detail média.
+    for (const id of assetIds) {
+      try {
+        await deleteMedia(id);
+        changed += 1;
+      } catch (error) {
+        if (error instanceof Error && ['MEDIA_ASSET_IN_USE', 'MEDIA_ASSET_NOT_FOUND'].includes(error.message)) skipped += 1;
+        else {
+          revalidateMediaPaths(area);
+          throw error;
+        }
+      }
+    }
+  } else {
+    // Jediný atomický UPDATE, opakované odeslání je idempotentní.
+    const result = await prisma.mediaAsset.updateMany({
+      where: { id: { in: assetIds }, visibility: 'PUBLIC', deletionRequestedAt: null, isPublished: operation !== 'publish' },
+      data: { isPublished: operation === 'publish' },
+    });
+    changed = result.count;
+    skipped = assetIds.length - changed;
+  }
+  revalidateMediaPaths(area);
+  const url = new URL(flashUrl(area, formData.get('returnTo'), 'media-bulk-success'), 'http://media-return.invalid');
+  url.searchParams.set('changed', String(changed));
+  url.searchParams.set('skipped', String(skipped));
+  redirect(`${url.pathname}?${url.searchParams}`);
 }

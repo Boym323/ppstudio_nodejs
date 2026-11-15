@@ -8,30 +8,28 @@ type MediaUploadDropzoneProps = {
   name: string;
   accept: string;
   supportedTypes: string;
+  multiple?: boolean;
+  onFilesChange?: (files: File[]) => void;
 };
 
-export function MediaUploadDropzone({ name, accept, supportedTypes }: MediaUploadDropzoneProps) {
+export function MediaUploadDropzone({ name, accept, supportedTypes, multiple = false, onFilesChange }: MediaUploadDropzoneProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const inputId = useId();
 
-  function syncSelectedFile() {
-    setSelectedFile(inputRef.current?.files?.[0] ?? null);
+  function syncSelectedFiles() {
+    const files = Array.from(inputRef.current?.files ?? []);
+    setSelectedFiles(files);
+    onFilesChange?.(files);
   }
 
-  const previewUrl = useMemo(() => {
-    if (!selectedFile || !['image/avif', 'image/gif', 'image/jpeg', 'image/png', 'image/webp'].includes(selectedFile.type)) {
-      return null;
-    }
+  const previewUrls = useMemo(() => selectedFiles.slice(0, 6).map((file) => {
+    if (!file.type.startsWith('image/') || file.type === 'image/heic' || file.type === 'image/heif') return null;
+    return encodeURI(URL.createObjectURL(file));
+  }), [selectedFiles]);
 
-    const objectUrl = URL.createObjectURL(selectedFile);
-    return encodeURI(objectUrl);
-  }, [selectedFile]);
-
-  useEffect(() => () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-  }, [previewUrl]);
+  useEffect(() => () => previewUrls.forEach((url) => { if (url) URL.revokeObjectURL(url); }), [previewUrls]);
 
   return (
     <div className="space-y-2">
@@ -51,7 +49,7 @@ export function MediaUploadDropzone({ name, accept, supportedTypes }: MediaUploa
           }
 
           inputRef.current.files = event.dataTransfer.files;
-          syncSelectedFile();
+          syncSelectedFiles();
         }}
         className={
           isDragging
@@ -67,17 +65,11 @@ export function MediaUploadDropzone({ name, accept, supportedTypes }: MediaUploa
         </p>
         <p className="mt-1 text-xs text-white/56">{supportedTypes}</p>
         <p className="mt-4 min-h-5 text-sm text-[var(--color-accent-soft)]">
-          {selectedFile?.name ?? 'Zatím není vybraný žádný soubor'}
+          {selectedFiles.length ? `${selectedFiles.length} soubor${selectedFiles.length === 1 ? '' : 'ů'}: ${selectedFiles.slice(0, 2).map((file) => file.name).join(', ')}${selectedFiles.length > 2 ? '…' : ''}` : 'Zatím není vybraný žádný soubor'}
         </p>
       </label>
 
-      {previewUrl ? (
-        <img
-          src={previewUrl}
-          alt="Náhled vybraného obrázku"
-          className="max-h-52 w-full rounded-[1.1rem] border border-white/10 object-contain"
-        />
-      ) : null}
+      {previewUrls.some(Boolean) ? <div className="grid grid-cols-3 gap-2">{previewUrls.map((url, index) => url ? <img key={url} src={url} alt={`Náhled souboru ${index + 1}`} className="aspect-square w-full rounded-[.8rem] border border-white/10 object-cover"/> : null)}</div> : null}
 
       <input
         ref={inputRef}
@@ -85,7 +77,8 @@ export function MediaUploadDropzone({ name, accept, supportedTypes }: MediaUploa
         type="file"
         name={name}
         accept={accept}
-        onChange={syncSelectedFile}
+        onChange={syncSelectedFiles}
+        multiple={multiple}
         className="sr-only"
       />
     </div>

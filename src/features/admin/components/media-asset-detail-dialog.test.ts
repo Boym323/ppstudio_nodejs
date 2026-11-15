@@ -9,7 +9,10 @@ test('detail média Media Library používá Dialog mimo kartu a potvrzuje odstr
 
   assert.match(source, /<Dialog\.Root>/);
   assert.match(source, /<Dialog\.Content className="max-w-5xl/);
-  assert.doesNotMatch(source, /<details/);
+  assert.match(source, /Náhledy ořezu/);
+  assert.match(source, /preview && hasCroppedPlacement/);
+  assert.match(source, /hasCroppedPlacement \? <fieldset/);
+  assert.match(source, /<details/);
   assert.match(source, /<AlertDialog\.Root>/);
   assert.match(source, /Odstraní se médium .* Tuto operaci nelze vrátit/);
   assert.match(source, /Tuto operaci nelze vrátit/);

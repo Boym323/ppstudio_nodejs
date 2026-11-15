@@ -22,7 +22,7 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command: `npm run start -- --hostname 127.0.0.1 --port ${port}`,
+    command: `PPSTUDIO_NEXT_DIST_DIR=.next-e2e npm run start -- --hostname 127.0.0.1 --port ${port}`,
     url: baseURL,
     reuseExistingServer: process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === "1",
     timeout: 120_000,

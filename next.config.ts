@@ -40,6 +40,14 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/*": ["src/features/vouchers/bootstrap-assets/**/*"],
   },
+  // Publikace médií se ověřuje před každým požadavkem v proxy, i při zásahu cache.
+  images: {
+    minimumCacheTTL: 0,
+    localPatterns: [
+      { pathname: "**", search: "" },
+      { pathname: "/media/**", search: "?media-cache=2" },
+    ],
+  },
   // PDF preview rendering needs the native Skia binding and PDF.js Node runtime.
   serverExternalPackages: ["@napi-rs/canvas", "pdfjs-dist"],
   allowedDevOrigins: ["192.168.0.143", "ppstudio.cz", "www.ppstudio.cz","192.168.0.150"],
@@ -55,9 +63,9 @@ const nextConfig: NextConfig = {
     // přímo do HTML než čekat na blokující CSS požadavky.
     inlineCss: true,
     serverActions: {
-      // Media uploads are validated to 8 MB in app code, but multipart form
-      // overhead would still hit the lower Next.js default request limit.
-      bodySizeLimit: "10mb",
+      // Eight 8 MB files plus multipart overhead; app-level validation still
+      // runs per file before Sharp allocates processing buffers.
+      bodySizeLimit: "66mb",
     },
   },
   async headers() {

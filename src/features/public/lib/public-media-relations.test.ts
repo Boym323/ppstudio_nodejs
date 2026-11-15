@@ -69,7 +69,7 @@ test('certifikáty čte z visible a publikovaných membershipů kolekce v jejich
 
     assert.deepEqual(certificates.map(({ id }) => id), ['certificate-1', 'certificate-2']);
     assert.equal(certificates[0].alt, 'Alt z membershipu');
-    assert.equal(certificates[1].imageUrl, '/media/public/certificate-2-optimized.jpg');
+    assert.equal(certificates[1].imageUrl, '/media/public/certificate-2-optimized.jpg?media-cache=2');
   } finally {
     mutableItems.findMany = originalFindMany as unknown as (...args: unknown[]) => unknown;
   }
@@ -139,6 +139,60 @@ test('singulární veřejná média používají odpovídající SiteSettings re
     assert.equal((await getPublicAboutPortraitAsset())?.id, 'about');
   } finally {
     mutableSettings.findUnique = originalFindUnique as unknown as (...args: unknown[]) => unknown;
+  }
+});
+
+test('studio a kontakt vracejí existující variantu včetně rozměrů a ohniska', async () => {
+  const [{ prisma }, { localMediaStorage }, { getPublicStudioPhotos, getPrimaryPublicContactPhoto }] = await Promise.all([
+    import('@/lib/prisma'), import('@/lib/media/local-media-storage'), import('./public-studio-photos'),
+  ]);
+  const findMany = prisma.mediaCollectionItem.findMany;
+  const findUnique = prisma.siteSettings.findUnique;
+  const fileExists = localMediaStorage.fileExists;
+  const optimized = buildAsset('optimized', { focalPointX: 25, focalPointY: 75 });
+  const fallback = buildAsset('fallback');
+  const missing = buildAsset('missing');
+  prisma.mediaCollectionItem.findMany = (async () => [optimized, fallback, missing].map((mediaAsset) => ({ mediaAsset, altText: null }))) as unknown as typeof findMany;
+  prisma.siteSettings.findUnique = (async () => ({ contactPhotoMedia: fallback })) as unknown as typeof findUnique;
+  localMediaStorage.fileExists = async (_visibility, storagePath) => ['optimized-optimized.jpg', 'fallback-original.jpg'].includes(storagePath);
+  try {
+    const photos = await getPublicStudioPhotos();
+    assert.deepEqual(photos.map(({ id }) => id), ['optimized', 'fallback']);
+    assert.equal(photos[0].imageUrl, '/media/public/optimized-optimized.jpg?media-cache=2');
+    assert.equal(photos[0].width, 900);
+    assert.equal(photos[0].focalPointX, 25);
+    assert.equal(photos[0].focalPointY, 75);
+    assert.equal(photos[1].imageUrl, '/media/public/fallback-original.jpg?media-cache=2');
+    assert.equal(photos[1].width, 1200);
+    assert.equal(photos[1].height, 900);
+    assert.equal(photos[1].focalPointX, 50);
+    const contact = await getPrimaryPublicContactPhoto();
+    assert.equal(contact?.imageUrl, photos[1].imageUrl);
+    assert.equal(contact?.width, 1200);
+  } finally {
+    prisma.mediaCollectionItem.findMany = findMany;
+    prisma.siteSettings.findUnique = findUnique;
+    localMediaStorage.fileExists = fileExists;
+  }
+});
+
+test('portréty předají uložené ohnisko a pro starší data použijí střed', async () => {
+  const { prisma } = await import('@/lib/prisma');
+  const original = prisma.siteSettings.findUnique;
+  prisma.siteSettings.findUnique = (async () => ({
+    homePortraitMedia: buildAsset('home', { focalPointX: 20, focalPointY: 80 }),
+    aboutPortraitMedia: buildAsset('about'),
+  })) as unknown as typeof original;
+  try {
+    const { getPrimaryPublicHomePortrait, getPrimaryPublicAboutPortrait } = await import('./public-media');
+    const home = await getPrimaryPublicHomePortrait();
+    const about = await getPrimaryPublicAboutPortrait();
+    assert.equal(home?.focalPointX, 20);
+    assert.equal(home?.focalPointY, 80);
+    assert.equal(about?.focalPointX, 50);
+    assert.equal(about?.focalPointY, 50);
+  } finally {
+    prisma.siteSettings.findUnique = original;
   }
 });
 

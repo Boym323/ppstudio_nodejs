@@ -1,3 +1,4 @@
+import Link from "next/link";
 import * as Dialog from "@/components/ui/dialog";
 import { AdminPageShell, AdminPanel } from "@/features/admin/components/admin-page-shell";
 import {
@@ -21,7 +22,9 @@ function buildListQueryString(searchParams?: Record<string, string | string[] | 
       value.length > 0 &&
       key !== "serviceId" &&
       key !== "mobileDetail" &&
-      key !== "mode"
+      key !== "mode" &&
+      key !== "view" &&
+      key !== "mediaFlash"
     ) {
       params.set(key, value);
     }
@@ -42,6 +45,7 @@ export async function AdminServicesPage({
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
   const data = await getAdminServicesPageData(area, searchParams);
+  const mediaFlash = typeof searchParams?.mediaFlash === "string" ? searchParams.mediaFlash : undefined;
   const queryString = buildListQueryString(searchParams);
   const returnTo = buildReturnTo(data.currentPath, queryString);
   const createHref = `${returnTo}${queryString ? "&" : "?"}mode=create${data.filters.mobileDetail === "1" ? "&mobileDetail=1" : ""}`;
@@ -62,6 +66,41 @@ export async function AdminServicesPage({
       : data.selectedService
         ? `Kategorie ${data.selectedService.category.name} • ${data.selectedService.durationMinutes} min • ${formatServicePrice(data.selectedService.priceFromCzk)}`
         : "Vyberte službu ze seznamu vlevo.";
+
+  if (searchParams?.view === "photos") {
+    const mediaPath = area === "owner" ? "/admin/media" : "/admin/provoz/media";
+    const service = data.selectedService;
+    return (
+      <AdminPageShell
+        eyebrow="Fotografie služeb"
+        title={service ? `Fotografie: ${service.name}` : "Služba nebyla nalezena"}
+        description="Spravujte hlavní fotografii a galerii služby."
+        denseIntro
+        headerActions={
+          <Link href={`${mediaPath}?collection=SERVICE_MEDIA`} className="inline-flex min-h-11 items-center rounded-full border border-white/12 px-4 py-2 text-sm text-white hover:bg-white/5">
+            Zpět na fotografie služeb
+          </Link>
+        }
+      >
+        {mediaFlash ? <p role="status" className="mb-4 rounded-xl border border-white/12 px-4 py-3 text-sm text-white/80">{mediaFlash === "success" ? "Fotografie byla nahraná a přiřazená ke službě." : mediaFlash === "missing-file" ? "Vyberte prosím fotografii." : "Fotografii se nepodařilo nahrát. Zkuste to prosím znovu."}</p> : null}
+        {service ? (
+          <div className="mx-auto max-w-4xl space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+              <p className="text-white/60">{service.category.name} · {service.name}</p>
+              <Link href={`${data.currentPath}?serviceId=${encodeURIComponent(service.id)}&mobileDetail=1`} className="inline-flex min-h-11 items-center text-[var(--color-accent-soft)] hover:underline">Upravit údaje služby</Link>
+            </div>
+            <ServiceMediaSection
+              key={service.id}
+              area={area}
+              serviceId={service.id}
+              hero={service.media.find((item) => item.role === "HERO") ?? null}
+              gallery={service.media.filter((item) => item.role === "GALLERY")}
+            />
+          </div>
+        ) : <p className="text-sm text-white/60">Vraťte se do přehledu a vyberte službu.</p>}
+      </AdminPageShell>
+    );
+  }
 
   const detailContent =
     data.filters.mode === "create" ? (
@@ -169,6 +208,7 @@ export async function AdminServicesPage({
       slimStats
       compact={area === "salon"}
     >
+      {mediaFlash ? <p role="status" aria-live="polite" className="mb-4 rounded-[1rem] border border-[var(--color-accent)]/30 bg-[rgba(190,160,120,0.1)] px-4 py-3 text-sm text-[var(--color-accent-soft)]">{mediaFlash === "success" ? "Fotografie byla nahraná a přiřazená ke službě." : mediaFlash === "missing-file" ? "Vyberte prosím fotografii." : "Fotografii se nepodařilo nahrát. Zkuste to prosím znovu."}</p> : null}
       <div className="xl:hidden">
         {showMobileDetail ? (
           <AdminPanel

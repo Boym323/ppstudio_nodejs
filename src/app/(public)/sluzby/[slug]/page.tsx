@@ -27,6 +27,7 @@ export async function generateMetadata({ params }: { params: PageParams }): Prom
     title: resolution.service.seoTitle ?? resolution.service.name,
     description: resolution.service.seoDescription,
     path: `/sluzby/${resolution.service.slug}`,
+    image: resolution.service.heroImage ? { url: resolution.service.heroImage.src, alt: resolution.service.heroImage.alt } : undefined,
   });
 }
 

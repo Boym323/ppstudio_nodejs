@@ -49,5 +49,19 @@ test('membership veřejných kolekcí autorizovaně odmítá jen nové neveřejn
   assert.match(membershipAction, /if \(!membership\) redirect\(flashUrl\(area, formData\.get\('returnTo'\), 'media-membership-asset-not-public'\)\)/);
   assert.match(membershipAction, /if \(action === 'remove'\) \{[\s\S]*mediaCollectionItem\.deleteMany/);
   assert.match(membershipAction, /redirect\(flashUrl\(area, formData\.get\('returnTo'\), 'media-membership-success'\)\)/);
-  assert.match(pageSource, /'media-membership-asset-not-public': 'Vybrané médium musí být publikované, než jej lze přidat do kolekce\.'/);
+  assert.match(pageSource, /'media-membership-asset-not-public': 'Před přidáním do kolekce médium publikujte\.'/);
+});
+
+
+test('hromadné akce médií autorizují, validují počet a zachovávají ochranu mazání', async () => {
+  const source = await actionSource();
+  const bulkAction = source.slice(source.indexOf('export async function bulkMediaAction'));
+
+  assert.match(bulkAction, /bulkMediaSchema\.safeParse/);
+  assert.match(source, /assetIds: z\.array\(z\.cuid\(\)\)\.min\(1\)\.max\(48\)/);
+  assert.match(bulkAction, /requireAdminSectionAccess\(area, 'media'\)/);
+  assert.match(bulkAction, /await deleteMedia\(id\)/);
+  assert.match(bulkAction, /MEDIA_ASSET_IN_USE/);
+  assert.match(bulkAction, /mediaAsset\.updateMany/);
+  assert.match(bulkAction, /data: \{ isPublished: operation === 'publish' \}/);
 });
