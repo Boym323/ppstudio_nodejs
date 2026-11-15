@@ -14,10 +14,10 @@ export async function VoucherLandingPage({
 } = {}) {
   await connection();
   const salonProfile = await getPublicSalonProfile();
-  const voucherMailSubject = encodeURIComponent("Mám zájem o dárkový voucher");
+  const voucherMailSubject = encodeURIComponent("Mám zájem o dárkový poukaz");
   const voucherMailBody = encodeURIComponent(`Dobrý den,
 
-mám zájem o dárkový voucher.
+mám zájem o dárkový poukaz.
 
 Voucher bych chtěl/a:
 
@@ -33,11 +33,11 @@ Děkuji.`);
   return (
     <div className="pb-8 sm:pb-12">
       <PublicHero
-        eyebrow="Dárkové vouchery"
+        eyebrow="Dárkové poukazy"
         title="Darujte krásu, péči a chvíli odpočinku"
-        description="Voucher můžete vybrat na konkrétní službu nebo na částku, kterou si určíte. A pokud si nejste jistí, s výběrem vám ráda pomůžu."
-        primaryCta={{ href: voucherMailHref, label: "Chci dárkový voucher" }}
-        secondaryCta={{ href: "/vouchery/overeni", label: "Už voucher máte? Ověřit platnost", variant: "text" }}
+        description="Poukaz můžete vybrat na konkrétní službu nebo na částku, kterou si určíte. A pokud si nejste jistí, s výběrem vám ráda pomůžu."
+        primaryCta={{ href: voucherMailHref, label: "Chci dárkový poukaz" }}
+        secondaryCta={{ href: "/vouchery/overeni", label: "Už poukaz máte? Ověřit platnost", variant: "text" }}
         aside={(
           <VoucherHeroAside
             email={salonProfile.email}
@@ -52,13 +52,13 @@ Děkuji.`);
         <Container className="space-y-8 sm:space-y-10">
           <SectionHeading
             eyebrow="Vyberte způsob"
-            title="Voucher podle toho, kolik volnosti chcete nechat."
+            title="Poukaz podle toho, kolik volnosti chcete nechat."
           />
           <div className="grid gap-5 lg:grid-cols-2">
             {[
               {
                 title: "Na konkrétní službu",
-                description: "Pokud přesně víte, čím chcete udělat radost, vystavím voucher přímo na vybranou službu.",
+                description: "Pokud přesně víte, čím chcete udělat radost, vystavím poukaz přímo na vybranou službu.",
               },
               {
                 title: "Na libovolnou hodnotu",
@@ -77,7 +77,7 @@ Děkuji.`);
             ))}
           </div>
           <p className="text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">
-            Nevíte, kterou variantu vybrat? U první návštěvy bývá nejpraktičtější hodnotový voucher.
+            Nevíte, kterou variantu vybrat? U první návštěvy bývá nejpraktičtější poukaz na hodnotu.
           </p>
         </Container>
       </section>
@@ -113,24 +113,24 @@ Děkuji.`);
       <section className="py-10 sm:py-14 lg:py-16">
         <Container className="grid gap-6 lg:grid-cols-[0.98fr_1.02fr]">
           <div className="rounded-[var(--radius-panel)] border border-black/6 bg-white p-6 shadow-[var(--shadow-panel)] sm:p-8">
-            <SectionHeading eyebrow="Jak voucher získáte" title="Jednoduše a osobně." />
+            <SectionHeading eyebrow="Jak poukaz získáte" title="Jednoduše a osobně." />
             <ol className="mt-8 grid gap-4">
               {[
                 {
                   step: "1. Vyberete službu nebo hodnotu",
-                  text: "Pokud si nejste jistí, stačí napsat, pro koho voucher vybíráte. S vhodnou variantou ráda poradím.",
+                  text: "Pokud si nejste jistí, stačí napsat, pro koho poukaz vybíráte. S vhodnou variantou ráda poradím.",
                 },
                 {
                   step: "2. Voucher připravím",
-                  text: "Po zaplacení je PDF voucher dostupný obratem. Každý voucher má vlastní kód a přesné datum platnosti uvedené přímo na voucheru.",
+                  text: "Po zaplacení je poukaz v PDF dostupný obratem. Každý poukaz má vlastní kód a přesné datum platnosti uvedené přímo na něm.",
                 },
                 {
                   step: "3. Voucher jednoduše využijete",
-                  text: "Při rezervaci můžete uvést, že chcete voucher využít. Samotné uplatnění proběhne při návštěvě studia.",
+                  text: "Při rezervaci můžete uvést, že chcete poukaz využít. Uplatníte ho při návštěvě studia.",
                 },
                 {
                   step: "4. Platnost ověříte online",
-                  text: "Pomocí kódu lze kdykoli bezpečně zkontrolovat stav voucheru bez jeho čerpání.",
+                  text: "Pomocí kódu můžete kdykoli bezpečně zkontrolovat stav poukazu, aniž byste ho čerpali.",
                 },
               ].map((item) => (
                 <li key={item.step} className="rounded-[calc(var(--radius-panel)-0.45rem)] border border-black/6 bg-[var(--color-surface)] p-5">
@@ -142,17 +142,17 @@ Děkuji.`);
           </div>
 
           <div className="rounded-[var(--radius-panel)] border border-black/6 bg-[linear-gradient(180deg,#f8f1e8_0%,#f4eadf_100%)] p-6 shadow-[var(--shadow-panel)] sm:p-8">
-            <SectionHeading eyebrow="Časté otázky" title="To podstatné k voucheru na jednom místě." />
+            <SectionHeading eyebrow="Časté otázky" title="To podstatné k poukazu na jednom místě." />
             <div className="mt-6 space-y-3">
               {[
-                { question: "Může být voucher bez přesně vybrané služby?", answer: "Ano. Voucher lze vystavit také na hodnotu a konkrétní péči vybrat později." },
-                { question: "Jak dlouho voucher platí?", answer: "Voucher platí 6 měsíců. Přesné datum, do kdy jej můžete využít, najdete přímo na voucheru." },
-                { question: "Jak rychle bude voucher připravený?", answer: "PDF voucher je dostupný obratem po zaplacení. Jeho zaslání e-mailem domluvíme při objednávce." },
-                { question: "Mohu si tištěný voucher vyzvednout ve studiu?", answer: "Ano, tištěný voucher si můžete po domluvě vyzvednout přímo ve studiu." },
-                { question: "Jak lze voucher zaplatit?", answer: "Voucher můžete zaplatit hotově nebo bankovním převodem." },
-                { question: "Lze hodnotový voucher čerpat postupně nebo použít na dražší službu?", answer: "Ano. Hodnotu lze čerpat postupně při více návštěvách. Pokud cena služby převýší zbývající hodnotu voucheru, rozdíl doplatíte." },
-                { question: "Jak poznám, že je voucher platný?", answer: "Každý voucher má vlastní kód, jehož stav lze bezpečně ověřit online. Ověření voucher nijak nečerpá." },
-                { question: "Jak se voucher používá?", answer: <>Při <Link href="/rezervace?source=voucher" className="underline decoration-[var(--color-accent)] underline-offset-4 hover:text-[var(--color-foreground)]">online rezervaci</Link> můžete uvést jeho kód. Samotné uplatnění proběhne při návštěvě studia.</> },
+                { question: "Může být poukaz bez přesně vybrané služby?", answer: "Ano. Poukaz vystavím také na hodnotu a konkrétní péči vyberete později." },
+                { question: "Jak dlouho poukaz platí?", answer: "Poukaz platí 6 měsíců. Přesné datum, do kdy jej můžete využít, najdete přímo na něm." },
+                { question: "Jak rychle bude poukaz připravený?", answer: "Poukaz v PDF je dostupný obratem po zaplacení. Jeho zaslání e-mailem domluvíme při objednávce." },
+                { question: "Mohu si tištěný poukaz vyzvednout ve studiu?", answer: "Ano, tištěný poukaz si můžete po domluvě vyzvednout přímo ve studiu." },
+                { question: "Jak lze poukaz zaplatit?", answer: "Poukaz můžete zaplatit hotově nebo bankovním převodem." },
+                { question: "Lze poukaz na hodnotu čerpat postupně nebo použít na dražší službu?", answer: "Ano. Hodnotu lze čerpat postupně při více návštěvách. Pokud cena služby převýší zbývající hodnotu poukazu, rozdíl doplatíte." },
+                { question: "Jak poznám, že je poukaz platný?", answer: "Každý poukaz má vlastní kód, jehož stav můžete bezpečně ověřit online. Ověřením poukaz nečerpáte." },
+                { question: "Jak se poukaz používá?", answer: <>Při <Link href="/rezervace?source=voucher" className="underline decoration-[var(--color-accent)] underline-offset-4 hover:text-[var(--color-foreground)]">online rezervaci</Link> můžete uvést jeho kód. Uplatníte ho při návštěvě studia.</> },
               ].map((item) => (
                 <details key={item.question} className="rounded-[calc(var(--radius-panel)-0.5rem)] border border-black/8 bg-white/65 px-5 py-4">
                   <summary className="cursor-pointer list-none pr-6 font-medium text-[var(--color-foreground)]">{item.question}</summary>
@@ -168,14 +168,14 @@ Děkuji.`);
         <Container>
           <div className="rounded-[var(--radius-panel)] border border-black/6 bg-[linear-gradient(180deg,#f8f1e8_0%,#f4eadf_100%)] p-6 shadow-[var(--shadow-panel)] sm:p-8">
             <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent)]">Dárek podle vašeho přání</p>
-            <h2 className="mt-4 font-display text-[2.2rem] leading-[1.04] text-[var(--color-foreground)] sm:text-5xl">Chcete připravit dárkový voucher?</h2>
+            <h2 className="mt-4 font-display text-[2.2rem] leading-[1.04] text-[var(--color-foreground)] sm:text-5xl">Chcete připravit dárkový poukaz?</h2>
             <p className="mt-4 max-w-2xl text-[15px] leading-7 text-[var(--color-muted)] sm:text-base">Napište mi, jestli máte představu o konkrétní službě nebo hodnotě. Pokud si nejste jistí, vhodnou variantu spolu jednoduše vybereme.</p>
             <div className="mt-6 flex flex-col items-start gap-4">
               <ActionLink href={voucherMailHref} trackingLocation="voucher-final" trackingPage="vouchery" className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--color-foreground)] px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#2c221d]">
-                Chci dárkový voucher
+                Chci dárkový poukaz
               </ActionLink>
               <ActionLink href="/vouchery/overeni" trackingLocation="voucher-final" trackingPage="vouchery" className="text-sm font-medium text-[var(--color-accent-contrast)] underline decoration-[var(--color-accent)] underline-offset-4 transition hover:text-[var(--color-foreground)]">
-                Už voucher máte? Ověřit platnost →
+                Už poukaz máte? Ověřit platnost →
               </ActionLink>
             </div>
           </div>

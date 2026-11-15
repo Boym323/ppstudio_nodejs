@@ -142,9 +142,9 @@ export async function PublicHomePage({
               </div>
             </div>
             <div className="mt-6 rounded-[calc(var(--radius-panel)-0.45rem)] border border-[#d8c9b8] bg-[#f7efe5] p-5 sm:p-6">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent-contrast)]">Dárkové vouchery</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--color-accent-contrast)]">Dárkové poukazy</p>
               <p className="mt-3 text-[15px] leading-7 text-[var(--color-accent-contrast)] sm:text-base">
-                Pokud hledáte péči jako dárek, voucher lze vystavit na konkrétní službu i podle individuální domluvy.
+                Pokud chcete darovat péči, vystavím dárkový poukaz na konkrétní službu nebo na částku podle vašeho přání.
               </p>
               <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                 <ActionLink
@@ -153,7 +153,7 @@ export async function PublicHomePage({
                   trackingPage="home"
                   className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-foreground)] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#2c221d]"
                 >
-                  Zobrazit vouchery
+                  Zobrazit dárkové poukazy
                 </ActionLink>
                 <ActionLink
                   href="/vouchery/overeni"

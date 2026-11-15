@@ -8,6 +8,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Změněno
 
+- Veřejné texty služeb používají konkrétnější popisy a přirozenější češtinu, dárková nabídka jednotně používá označení „poukaz“ a veřejné texty dávají přednost studiu. Datová úprava zachovává ručně změněné texty.
+
 - Stránka dárkových voucherů nově uvádí jejich šestiměsíční platnost, možnosti platby a předání i pravidla postupného čerpání hodnoty a doplatku dražší služby.
 - FAQ nyní jasněji rozlišuje přijetí žádosti a potvrzení rezervace, popisuje samoobslužnou změnu termínu a přesněji uvádí pravidla pro první návštěvu, citlivou pleť, zpoždění a pozdní storno.
 - Rezervační formulář nyní srozumitelněji popisuje dostupné termíny, ověření voucheru a následné čerpání; závěrečné obrazovky jasně rozlišují přijetí žádosti od finálního potvrzení termínu.

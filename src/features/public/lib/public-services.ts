@@ -122,7 +122,7 @@ function getCategoryLabel(category: { name?: string | null } | null) {
     return fallbackLabel;
   }
 
-  return "Služby salonu";
+  return "Služby studia";
 }
 
 function buildServiceIntro(service: PublicServiceRow) {
@@ -131,7 +131,7 @@ function buildServiceIntro(service: PublicServiceRow) {
   return (
     service.publicIntro ??
     service.description ??
-    `Klidná péče pro službu ${serviceName.toLowerCase()}, navržená tak, aby byla srozumitelná i při rychlém rozhodnutí.`
+    `Při službě ${serviceName.toLowerCase()} se zaměřím na to, co právě potřebujete. Předem vám vysvětlím průběh i možnosti péče.`
   );
 }
 
@@ -141,7 +141,7 @@ function buildServiceDetail(service: PublicServiceRow) {
   return (
     service.description ??
     service.publicIntro ??
-    `Služba ${serviceName.toLowerCase()} je připravená jako pečlivě vedená návštěva s důrazem na komfort a jasný výsledek.`
+    `Při službě ${serviceName.toLowerCase()} nejprve probereme vaše přání a potom zvolím vhodný postup. Průběh i doporučení přizpůsobím konkrétní návštěvě.`
   );
 }
 
@@ -158,7 +158,7 @@ function buildIdealFor(service: PublicServiceRow) {
       return [
         "pleť, která potřebuje vyčistit, zklidnit nebo podpořit rovnováhu",
         "návštěvu zvolenou podle aktuální kondice pleti",
-        `${serviceName.toLowerCase()} jako pravidelnou péči i promyšlený restart`,
+        `${serviceName.toLowerCase()} jako pravidelnou péči o pleť`,
       ];
     case "Řasy a obočí":
     case "Barvení a úprava":
@@ -171,7 +171,7 @@ function buildIdealFor(service: PublicServiceRow) {
       return [
         "chvíle, kdy potřebujete uvolnit napětí a zpomalit",
         "péči zaměřenou na odlehčení a regeneraci",
-        `${serviceName.toLowerCase()} jako pečující reset během náročnějšího období`,
+        `${serviceName.toLowerCase()}, když si chcete odpočinout a uvolnit napětí`,
       ];
     case "Líčení":
       return [
@@ -247,7 +247,7 @@ function buildResults(service: PublicServiceRow) {
     case "Řasy a obočí":
     case "Barvení a úprava":
       return [
-        "čistší rám obličeje a jistější výraz",
+        "výraznější řasy a obočí",
         `služba s délkou ${service.durationMinutes} minut a cenou ${formatPrice(service.priceFromCzk)}`,
         "snazší každodenní úprava bez zbytečné námahy",
       ];
@@ -259,7 +259,7 @@ function buildResults(service: PublicServiceRow) {
       ];
     case "Líčení":
       return [
-        "look, který sedí příležitosti i vašemu stylu",
+        "líčení přizpůsobené příležitosti i vašemu stylu",
         `služba s délkou ${service.durationMinutes} minut a cenou ${formatPrice(service.priceFromCzk)}`,
         "větší jistota v tom, jak působíte",
       ];
@@ -273,7 +273,7 @@ function buildResults(service: PublicServiceRow) {
 }
 
 function buildPlaceholderBrief(service: PublicServiceRow) {
-  return `Autentický detail ${getServiceDisplayName(service).toLowerCase()} v prostoru salonu, jemné světlo, čisté prostředí a minimum stock vzhledu.`;
+  return `Detail služby ${getServiceDisplayName(service).toLowerCase()} v PP Studiu, přirozené světlo a prostředí, ve kterém probíhá návštěva.`;
 }
 
 export function mapService(service: PublicServiceRow & { media?: PublicServiceMediaRow[] }): Service {

@@ -92,7 +92,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "podle domluvy barvení řas nebo obočí",
     ],
     results: [
-      "výživnější a opečovanější pocit pleti",
+      "pocit vyživené a hebké pleti",
       "svěžejší a odpočatější vzhled",
       "větší komfort pleti po ošetření",
     ],
@@ -186,8 +186,8 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
     ],
     results: [
       "opečovanější a svěžejší vzhled pleti",
-      "podporu hydratovanějšího pocitu",
-      "intenzivnější kosmetický zážitek než u základního ošetření",
+      "pocit hydratované pleti",
+      "intenzivní kosmetickou péči",
     ],
     goodToKnow: [
       "před ošetřením je potřeba vyloučit podráždění a kontraindikace",
@@ -203,7 +203,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
     detailIntro:
       "Student Treatment je určený pro mladou pleť, která často řeší nečistoty, mastnější partie nebo nejistotu v domácí péči. Cílem je šetrné ošetření a srozumitelné doporučení, ne složitá rutina.",
     idealFor: [
-      "věk přibližně 15 až 20 let",
+      "věk přibližně 15–20 let",
       "ucpané póry nebo nečistoty",
       "první kosmetické ošetření",
       "klientky a klienty, kteří nevědí, jak o pleť doma pečovat",
@@ -248,7 +248,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
     ],
     results: [
       "svěžejší a opečovanější vzhled pleti",
-      "podporu komfortu a hydratovanějšího pocitu",
+      "pocit hydratované pleti",
       "intenzivnější péči v jedné návštěvě",
     ],
     goodToKnow: [
@@ -283,7 +283,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "přirozený upravený efekt bez prodlužování",
     ],
     goodToKnow: [
-      "efekt obvykle vydrží 4 až 6 týdnů",
+      "efekt obvykle vydrží 4–6 týdnů",
       "prvních 24 hodin řasy nenamáčejte",
       "vyhněte se páře, sauně a mastným produktům v okolí očí",
       "na návštěvu přijďte ideálně bez řasenky",
@@ -310,7 +310,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
     ],
     results: [
       "uhlazenější a plnější vzhled obočí",
-      "čistší rám obličeje",
+      "upravený tvar obočí",
       "jednodušší každodenní úpravu",
     ],
     goodToKnow: [
@@ -364,7 +364,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
       "chvíle, kdy se cítíte unaveně nebo napjatě",
       "klientky, které chtějí relaxační péči",
       "pocit těžšího nebo unaveného obličeje",
-      "jemný reset během náročnějšího období",
+      "chvíli odpočinku během náročnějšího období",
     ],
     includes: [
       "krátkou domluvu očekávání",
@@ -600,7 +600,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
   "denni-liceni": {
     cardIntro: "Lehké denní líčení pro přirozeně upravený vzhled do práce i na schůzku.",
     detailIntro:
-      "Denní líčení je vhodné, když chcete působit svěže, upraveně a přirozeně. Výsledný look přizpůsobím vašemu typu, příležitosti i tomu, v čem se cítíte dobře.",
+      "Denní líčení přizpůsobím vaší pleti, příležitosti i tomu, v čem se cítíte dobře. Výsledek bude působit svěže a přirozeně.",
     idealFor: [
       "práci, schůzku nebo běžný den",
       "přirozené, ne příliš výrazné líčení",
@@ -635,7 +635,7 @@ export const serviceCopyOverrides: Record<string, ServiceCopyOverride> = {
     idealFor: [
       "ples, večírek nebo oslavu",
       "focení nebo speciální příležitost",
-      "výraznější, ale stále kultivovaný look",
+      "výraznější líčení, které odpovídá příležitosti",
       "líčení sladěné s oblečením a typem události",
     ],
     includes: [

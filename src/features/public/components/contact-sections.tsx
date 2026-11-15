@@ -332,7 +332,7 @@ export function ContactParkingInfoCard({ parkingRateHref, congressParkingHref }:
         <div className="min-w-0 space-y-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">Parkování</p>
           <p className="max-w-3xl text-[15px] leading-6 text-[var(--color-muted)]">
-            Pokud přijedete autem, v okolí salonu najdete několik možností v docházkové vzdálenosti. Pro běžnou
+            Pokud přijedete autem, v okolí studia najdete několik možností v docházkové vzdálenosti. Pro běžnou
             návštěvu kolem 90–120 minut doporučuji vybírat podle toho, jestli chcete parkovat nejlevněji, nejblíže,
             nebo v krytém parkovišti.
           </p>
