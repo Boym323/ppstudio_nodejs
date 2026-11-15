@@ -246,7 +246,7 @@ function resolveCancellationState(
   if (!canClientCancelBooking(token.booking.scheduledStartsAt, new Date(), cancellationHours)) {
     return {
       status: "not_cancellable",
-      message: `Online storno už není dostupné méně než ${cancellationHours} hodin před termínem. Kontaktujte prosím salon.`,
+      message: `Online storno už není dostupné méně než ${cancellationHours} hodin před termínem. Kontaktujte prosím studio.`,
       ...details,
     };
   }

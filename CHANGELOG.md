@@ -11,6 +11,7 @@ Formát je inspirovaný Keep a Changelog.
 - Stránka dárkových voucherů nově uvádí jejich šestiměsíční platnost, možnosti platby a předání i pravidla postupného čerpání hodnoty a doplatku dražší služby.
 - FAQ nyní jasněji rozlišuje přijetí žádosti a potvrzení rezervace, popisuje samoobslužnou změnu termínu a přesněji uvádí pravidla pro první návštěvu, citlivou pleť, zpoždění a pozdní storno.
 - Rezervační formulář nyní srozumitelněji popisuje dostupné termíny, ověření voucheru a následné čerpání; závěrečné obrazovky jasně rozlišují přijetí žádosti od finálního potvrzení termínu.
+- Storno stránka a obchodní podmínky jednoznačně vymezují hranici pro bezplatnou změnu či zrušení včetně přesného okamžiku uplynutí lhůty a používají jednotné označení studia.
 
 ### Opraveno
 

@@ -637,7 +637,7 @@ export function buildCancellationPageContent(input: {
     intro: 'Zde najdete podmínky pro změnu a zrušení rezervace v PP Studiu.',
     ctaPrompt: 'Potřebujete změnit termín?',
     contactCardTitle: 'Jak zrušit rezervaci',
-    contactCardDescription: 'Rezervaci můžete zrušit telefonicky, e-mailem nebo přes odkaz v potvrzení rezervace a reminderu.',
+    contactCardDescription: 'Rezervaci můžete zrušit telefonicky, e-mailem nebo přes odkaz v potvrzovacím e-mailu a v připomínce rezervace.',
     contactCardNote: 'Jakmile víte, že termín nevyužijete, dejte mi vědět co nejdříve. Uvolněný čas mohu nabídnout další klientce.',
     contactItems: [
       {
@@ -655,7 +655,7 @@ export function buildCancellationPageContent(input: {
     summaryCards: [
       {
         title: 'Včasné zrušení',
-        value: `Více než ${input.cancellationHours} h předem`,
+        value: `Nejméně ${input.cancellationHours} h předem`,
         description: 'Zrušení nebo změna termínu je bez poplatku.',
       },
       {
@@ -675,12 +675,12 @@ export function buildCancellationPageContent(input: {
         eyebrow: '1. Co udělat',
         title: 'Jak zrušit nebo změnit rezervaci',
         paragraphs: [
-          'Pro změnu nebo zrušení termínu mě můžete kontaktovat telefonicky nebo e-mailem. Rezervaci lze zrušit také přes odkaz, který posílám v potvrzení rezervace a v reminderu před termínem.',
+          'Pro změnu nebo zrušení termínu mě můžete kontaktovat telefonicky nebo e-mailem. Rezervaci lze upravit také přes odkaz v potvrzovacím e-mailu a v připomínce rezervace.',
         ],
         items: [
           `telefon: ${input.phone}`,
           `e-mail: ${input.email}`,
-          'odkaz pro zrušení nebo úpravu najdete také v potvrzení rezervace a v reminderu',
+          'odkaz pro změnu nebo zrušení najdete také v potvrzovacím e-mailu a v připomínce rezervace',
           'čím dříve se ozvete, tím snáz nabídnu náhradní termín nebo uvolním místo další klientce',
         ],
       },
@@ -689,14 +689,14 @@ export function buildCancellationPageContent(input: {
         eyebrow: '2. Termín',
         title: 'Zrušení a změna termínu',
         paragraphs: [
-          `Při zrušení nebo přesunu více než ${input.cancellationHours} hodin před začátkem termínu je změna bez omezení.`,
+          `Rezervaci můžete bez omezení změnit nebo zrušit nejpozději ${input.cancellationHours} hodin před začátkem termínu.`,
           `Pokud potřebujete termín zrušit méně než ${input.cancellationHours} hodin předem, dejte mi prosím vědět co nejdříve. Storno poplatek nyní neúčtuji, ale pozdní změna mi obvykle už neumožní nabídnout termín další klientce.`,
         ],
         note: 'Vyhrazený čas držím pouze pro vaši návštěvu. Pozdní zrušení už obvykle nedokážu obsadit jinou rezervací.',
       },
       {
         id: 'nedostaveni-se',
-        eyebrow: '3. No-show',
+        eyebrow: '3. Nedostavení se',
         title: 'Nedostavení se bez omluvy',
         paragraphs: [
           'Pokud na potvrzený termín nepřijdete a nedáte mi předem vědět, beru to jako nevyužitý rezervovaný čas.',
@@ -724,9 +724,9 @@ export function buildCancellationPageContent(input: {
       {
         id: 'zruseni-ze-strany-salonu',
         eyebrow: '6. Provoz studia',
-        title: 'Zrušení ze strany salonu',
+        title: 'Zrušení ze strany studia',
         paragraphs: [
-          'Pokud musím termín zrušit z důvodu nemoci, provozní kolize nebo technického problému, ozvu se vám co nejdříve.',
+          'Pokud musím termín zrušit kvůli nemoci, nečekané provozní situaci nebo technickému problému, ozvu se vám co nejdříve.',
           'V takové situaci vždy nabídnu náhradní termín nebo jiný nejbližší možný postup podle aktuální kapacity.',
         ],
       },
@@ -746,14 +746,14 @@ export function buildLegalContent(cancellationHours: number) {
           eyebrow: 'Změna rezervace',
           title: 'Zrušení a změna termínu',
           paragraphs: [
-            `Rezervaci je možné zrušit nebo přesunout více než ${cancellationHours} hodin před začátkem termínu bez omezení.`,
+            `Rezervaci lze bez omezení zrušit nebo přesunout nejpozději ${cancellationHours} hodin před začátkem termínu.`,
             `Pokud klientka ruší termín méně než ${cancellationHours} hodin předem, studio žádá o co nejrychlejší informaci. Storno poplatek se v tuto chvíli automaticky neuplatňuje.`,
           ],
-          note: 'Pro změnu nebo zrušení termínu lze využít kontakt na studio i odkaz zaslaný v potvrzení rezervace nebo v reminderu.',
+          note: 'Pro změnu nebo zrušení termínu lze využít kontakt na studio i odkaz v potvrzovacím e-mailu nebo v připomínce rezervace.',
         },
         {
           id: 'nedostaveni-se',
-          eyebrow: 'No-show',
+          eyebrow: 'Nedostavení se',
           title: 'Nedostavení se',
           paragraphs: [
             'Pokud se klientka na potvrzený termín bez omluvy nedostaví, vzniká studiu nevyužitý rezervovaný čas.',
