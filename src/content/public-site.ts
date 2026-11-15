@@ -618,7 +618,7 @@ export function buildFaqSections(cancellationHours: number, serviceDurationRange
       items: [
         {
           question: 'Jak je to se storno podmínkami?',
-          answer: `Rezervaci můžete změnit nebo zrušit nejpozději ${cancellationHours} hodin předem. Pokud potřebujete zrušit termín později, dejte mi vědět co nejdříve; storno poplatek nyní neúčtuji.`,
+          answer: `Rezervaci můžete online změnit nebo zrušit nejpozději ${cancellationHours} hodin před začátkem termínu. Pokud je do termínu méně času, zavolejte nebo napište studiu; storno poplatek nyní neúčtuji.`,
           linkLabel: 'Zobrazit storno podmínky',
           linkHref: '/storno-podminky',
         },
@@ -661,7 +661,7 @@ export function buildCancellationPageContent(input: {
       {
         title: 'Pozdní storno',
         value: `Méně než ${input.cancellationHours} h předem`,
-        description: 'Prosím o co nejrychlejší informaci. Pozdní zrušení komplikuje obsazení uvolněného času.',
+        description: 'Storno poplatek nyní neúčtuji. Dejte mi prosím co nejdříve vědět telefonicky nebo e-mailem.',
       },
       {
         title: 'Nedostavení se',
@@ -689,7 +689,7 @@ export function buildCancellationPageContent(input: {
         eyebrow: '2. Termín',
         title: 'Zrušení a změna termínu',
         paragraphs: [
-          `Rezervaci můžete bez omezení změnit nebo zrušit nejpozději ${input.cancellationHours} hodin před začátkem termínu.`,
+          `Rezervaci můžete bez storno poplatku změnit nebo zrušit nejpozději ${input.cancellationHours} hodin před začátkem termínu.`,
           `Pokud potřebujete termín zrušit méně než ${input.cancellationHours} hodin předem, dejte mi prosím vědět co nejdříve. Storno poplatek nyní neúčtuji, ale pozdní změna mi obvykle už neumožní nabídnout termín další klientce.`,
         ],
         note: 'Vyhrazený čas držím pouze pro vaši návštěvu. Pozdní zrušení už obvykle nedokážu obsadit jinou rezervací.',
@@ -746,8 +746,8 @@ export function buildLegalContent(cancellationHours: number) {
           eyebrow: 'Změna rezervace',
           title: 'Zrušení a změna termínu',
           paragraphs: [
-            `Rezervaci lze bez omezení zrušit nebo přesunout nejpozději ${cancellationHours} hodin před začátkem termínu.`,
-            `Pokud klientka ruší termín méně než ${cancellationHours} hodin předem, studio žádá o co nejrychlejší informaci. Storno poplatek se v tuto chvíli automaticky neuplatňuje.`,
+            `Rezervaci lze bez storno poplatku zrušit nebo přesunout nejpozději ${cancellationHours} hodin před začátkem termínu.`,
+            `Pokud klientka ruší termín méně než ${cancellationHours} hodin předem, studio žádá o co nejrychlejší informaci. Storno poplatek nyní neúčtuji.`,
           ],
           note: 'Pro změnu nebo zrušení termínu lze využít kontakt na studio i odkaz v potvrzovacím e-mailu nebo v připomínce rezervace.',
         },
@@ -765,7 +765,7 @@ export function buildLegalContent(cancellationHours: number) {
     terms: {
       title: 'Obchodní podmínky',
       intro:
-        'Tyto obchodní podmínky upravují rezervaci a poskytování služeb v PP Studiu. Najdete zde informace o objednání, storno podmínkách a průběhu služeb.',
+        'Pravidla rezervace a poskytování kosmetických služeb v PP Studiu, včetně storna, plateb, reklamací a řešení spotřebitelských sporů.',
       sections: [
         {
           id: 'poskytovatel-sluzeb',
@@ -795,8 +795,8 @@ export function buildLegalContent(cancellationHours: number) {
           eyebrow: '3. Změna a zrušení rezervace',
           title: 'Storno a přesun termínu',
           paragraphs: [
-            `Rezervaci je možné zrušit nebo přesunout nejpozději ${cancellationHours} hodin před začátkem termínu. Nejrychlejší je využít kontaktní údaje studia nebo storno odkaz, pokud byl u rezervace zaslán.`,
-            `Při zrušení méně než ${cancellationHours} hodin předem, při opakovaném pozdním rušení nebo při nedostavení se bez omluvy může studio požadovat zálohu na další rezervaci nebo další termín nepotvrdit.`,
+            `Rezervaci lze bez storno poplatku zrušit nebo přesunout nejpozději ${cancellationHours} hodin před začátkem termínu, prostřednictvím odkazu ze zprávy o rezervaci nebo po domluvě se studiem.`,
+            `Při zrušení méně než ${cancellationHours} hodin před termínem prosím kontaktujte studio telefonicky nebo e-mailem. Storno poplatek nyní neúčtuji. Při opakovaném pozdním rušení nebo nedostavení se bez omluvy může studio u další rezervace předem sjednat zálohu nebo novou rezervaci nepotvrdit.`,
           ],
           note:
             'Pokud se dostanete do nenadálé situace, ozvěte se co nejdříve. Cílem je najít férové řešení a zároveň chránit vyhrazený čas studia.',
@@ -806,7 +806,7 @@ export function buildLegalContent(cancellationHours: number) {
           eyebrow: '4. Cena a platba',
           title: 'Aktuální ceny a úhrada služeb',
           paragraphs: [
-            'Ceny služeb se řídí aktuálním ceníkem zveřejněným na webu nebo sděleným při objednání. U časově náročnějších nebo individuálně upravených služeb může být cena upřesněna před zahájením ošetření.',
+            'Ceny služeb vycházejí z ceníku zveřejněného na webu nebo z ceny sdělené při objednání. Pokud je cena označena jako orientační nebo se má změnit rozsah ošetření, studio klientku předem informuje o navrhované konečné ceně; změna již sjednané ceny vyžaduje její souhlas.',
             'Úhrada probíhá po poskytnutí služby způsobem, který studio v danou chvíli umožňuje. Pokud je u konkrétní rezervace požadována záloha, klientka o tom bude informována předem.',
           ],
           items: [
@@ -833,8 +833,8 @@ export function buildLegalContent(cancellationHours: number) {
           eyebrow: '6. Zdravotní stav a odpovědnost',
           title: 'Informace důležité pro bezpečné ošetření',
           paragraphs: [
-            'Klientka je povinna před zahájením služby pravdivě informovat studio o zdravotních omezeních, alergiích, kožních problémech, těhotenství nebo jiných skutečnostech, které mohou mít vliv na průběh ošetření.',
-            'Studio nenese odpovědnost za komplikace nebo nespokojenost se službou, pokud klientka podstatné informace zamlčela nebo nedodržela následná doporučení po ošetření.',
+            'Klientka by měla před zahájením ošetření pravdivě upozornit na jí známé alergie, zdravotní omezení, kožní potíže, těhotenství nebo jiné okolnosti, které mohou ovlivnit bezpečnost či vhodnost zvolené služby.',
+            'Při posouzení příčin případných komplikací se přihlíží také k tomu, zda klientka sdělila podstatné informace a dodržela doporučení následné péče. Tím nejsou nijak omezena její zákonná práva ani odpovědnost studia za vlastní pochybení.',
           ],
           note:
             'Pokud si nejste jistá vhodností služby, doporučuji se ozvat ještě před rezervací. Krátká konzultace často předejde zbytečnému zklamání i zdravotnímu riziku.',
@@ -842,32 +842,51 @@ export function buildLegalContent(cancellationHours: number) {
         {
           id: 'reklamace',
           eyebrow: '7. Reklamace',
-          title: 'Jak řešit nespokojenost nebo výhrady',
+          title: 'Reklamace kosmetických služeb',
           paragraphs: [
-            'Pokud nejste s průběhem nebo výsledkem služby spokojená, kontaktujte studio bez zbytečného odkladu. Reklamace se řeší individuálně s ohledem na charakter služby a okolnosti konkrétní návštěvy.',
-            'Studio se zavazuje reklamaci posoudit v přiměřené lhůtě a navrhnout další postup, například kontrolní návštěvu, úpravu výsledku nebo jiné férové řešení podle povahy situace.',
+            'Reklamaci služby lze uplatnit v provozovně PP Studia, e-mailem nebo telefonicky na kontaktech uvedených na této stránce. Sdělte, v čem spatřujete vadu poskytnuté služby a jaký způsob vyřízení požadujete. Přiložení fotografie může posouzení usnadnit, není však podmínkou pro přijetí reklamace.',
+            'Při uplatnění reklamace studio vydá potvrzení o datu jejího přijetí, jejím obsahu a požadovaném způsobu vyřízení. O reklamaci rozhodne ihned, ve složitých případech do tří pracovních dnů; do této lhůty se nezapočítává přiměřená doba potřebná k odbornému posouzení vady. Vyrozumění o reklamaci a jejím vyřízení zašleme na e-mailovou adresu nebo telefonní číslo uvedené při rezervaci, případně na jiný kontakt dohodnutý se zákaznicí.',
+            'Reklamace včetně případného odstranění vady bude vyřízena a zákaznice o tom bude prokazatelně informována nejpozději do 30 dnů od uplatnění, pokud se výslovně nedohodneme na delší lhůtě. Studio vydá potvrzení o datu a způsobu vyřízení nebo písemné odůvodnění zamítnutí reklamace.',
           ],
           items: [
-            'pro rychlé vyřízení doporučuji připojit popis problému a případně aktuální fotografii',
-            'reklamaci je vhodné uplatnit e-mailem nebo telefonicky přes kontakty uvedené na této stránce',
+            'práva z vadného plnění se řídí občanským zákoníkem; podle povahy vady může jít o nápravu, přiměřenou slevu nebo další zákonný nárok',
+            'k vyřízení může být potřebná přiměřená součinnost klientky, například umožnění posouzení výsledku služby',
           ],
+          note: 'Uvedený postup neomezuje zákonná práva spotřebitelky.',
         },
         {
           id: 'darkove-poukazy',
           eyebrow: '8. Dárkové poukazy',
           title: 'Podmínky použití poukazů',
           paragraphs: [
-            'Pokud studio vydá dárkový poukaz, lze jej využít pouze v době jeho platnosti a za podmínek uvedených na poukazu nebo při jeho vystavení.',
-            'Dárkový poukaz nelze směnit za hotovost. Pokud není dohodnuto jinak, nevyčerpaná hodnota se neproplácí a po uplynutí platnosti poukaz bez náhrady zaniká.',
+            'Podmínky použití dárkového poukazu, zejména jeho typ, hodnota nebo služba a doba platnosti, se řídí informacemi poskytnutými při jeho pořízení a uvedenými na poukazu.',
+            'Poukaz není standardně směnitelný za hotovost. Po uplynutí sjednané doby platnosti jej zpravidla nelze čerpat. Tím nejsou dotčena zákonná práva spotřebitelky, včetně případného práva odstoupit od smlouvy při koupi poukazu na dálku.',
+          ],
+        },
+        {
+          id: 'smlouvy-na-dalku',
+          eyebrow: '9. Smlouvy uzavřené na dálku',
+          title: 'Informace o odstoupení od smlouvy',
+          paragraphs: [
+            'U smluv uzavřených na dálku, například při nákupu poukazu online, může spotřebitelce za podmínek stanovených zákonem náležet právo odstoupit od smlouvy ve 14denní lhůtě. U služeb mohou platit zákonné výjimky nebo zvláštní pravidla, pokud má být služba poskytnuta před uplynutím této lhůty. Pouhé sjednání konkrétního termínu kosmetického ošetření zde samo o sobě nepovažujeme za důvod k vyloučení práva na odstoupení; rozhoduje právní povaha konkrétní služby a smlouvy.',
+            'Před uzavřením smlouvy na dálku studio poskytne spotřebitelce zákonné informace o právu na odstoupení, případné výjimce a postupu. Zákonná práva spotřebitelky nejsou těmito obchodními podmínkami omezena.',
+          ],
+        },
+        {
+          id: 'mimosoudni-reseni-sporu',
+          eyebrow: '10. Mimosoudní řešení sporů',
+          title: 'Jak postupovat při spotřebitelském sporu',
+          paragraphs: [
+            'Případný spor se vždy nejprve pokusíme vyřešit přímo se zákaznicí. Pokud se spor ze smlouvy o poskytování služeb nepodaří vyřešit dohodou, může spotřebitelka podat návrh na mimosoudní řešení sporu u České obchodní inspekce (ČOI). Informace o postupu a aktuální kontaktní údaje jsou na https://coi.gov.cz/informace-o-adr/. Návrh lze podat prostřednictvím formuláře dostupného z této stránky. Návrh je třeba podat nejpozději do jednoho roku od chvíle, kdy spotřebitelka uplatnila svůj nárok u studia poprvé.',
           ],
         },
         {
           id: 'zaverecna-ustanoveni',
-          eyebrow: '9. Závěrečná ustanovení',
+          eyebrow: '11. Závěrečná ustanovení',
           title: 'Platnost a změny podmínek',
           paragraphs: [
-            'Tyto obchodní podmínky nabývají účinnosti dne 23. 4. 2026. Studio si vyhrazuje právo je přiměřeně aktualizovat, pokud se změní provozní nastavení, rezervační proces nebo zákonné požadavky.',
-            'Pro konkrétní rezervaci vždy platí znění obchodních podmínek účinné v den potvrzení daného termínu, pokud se studio s klientkou výslovně nedohodne jinak.',
+            'Studio může obchodní podmínky aktualizovat pro budoucí rezervace, zejména pokud se změní provozní pravidla nebo právní předpisy. Pozdější znění však samo o sobě nemění již uzavřené smlouvy.',
+            'Pro potvrzenou rezervaci se použije znění obchodních podmínek, které bylo součástí ujednání při jejím potvrzení, pokud se studio s klientkou výslovně nedohodne jinak. Zákonná práva spotřebitelky tím nejsou dotčena.',
           ],
         },
       ],

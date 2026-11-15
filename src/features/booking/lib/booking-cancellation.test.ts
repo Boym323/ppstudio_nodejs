@@ -63,7 +63,7 @@ test("public cancellation state allows eligible bookings and blocks used voucher
   t.mock.module("@/lib/site-settings", {
     exports: {
       canClientCancelBooking: (scheduledStartsAt: Date, now: Date, cancellationHours: number) =>
-        scheduledStartsAt.getTime() - now.getTime() > cancellationHours * 60 * 60 * 1000,
+        scheduledStartsAt.getTime() - now.getTime() >= cancellationHours * 60 * 60 * 1000,
       getBookingPolicySettings: async () => ({ cancellationHours: 24 }),
       getEmailBrandingSettings: async () => ({}),
     },
