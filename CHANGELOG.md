@@ -6,9 +6,11 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.42.0] - 2026-11-25
+
 ### Změněno
 
-- Veřejné texty služeb používají konkrétnější popisy a přirozenější češtinu, dárková nabídka jednotně používá označení „poukaz“ a veřejné texty dávají přednost studiu. Datová úprava zachovává ručně změněné texty.
+- Veřejné texty služeb používají konkrétnější popisy a přirozenější češtinu, dárková nabídka jednotně používá označení „poukaz“ a veřejné texty dávají přednost studiu.
 
 - Stránka dárkových poukazů zobrazuje výchozí platnost z administrace, možnosti platby a předání i pravidla postupného čerpání hodnoty a doplatku dražší služby.
 - FAQ nyní jasněji rozlišuje přijetí žádosti a potvrzení rezervace, popisuje samoobslužnou změnu termínu a přesněji uvádí pravidla pro první návštěvu, citlivou pleť, zpoždění a pozdní storno.
