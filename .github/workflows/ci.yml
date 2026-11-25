@@ -281,7 +281,7 @@ jobs:
     needs: e2e-build
     runs-on: ubuntu-24.04
     container:
-      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      image: mcr.microsoft.com/playwright:v1.65.0-noble
       options: --ipc=host
     timeout-minutes: 30
     # GitHub container jobs reach service containers via their service name.
@@ -331,7 +331,7 @@ jobs:
         env:
           BROWSER_ENGINE: chromium
         run: |
-          node -e 'const fs = require("node:fs"); const pw = require("playwright"); if (require("playwright/package.json").version !== "1.64.1") throw new Error("Playwright image/package version mismatch"); const exe = pw[process.env.BROWSER_ENGINE].executablePath(); if (!fs.existsSync(exe)) throw new Error("Missing Playwright browser: " + exe);'
+          node -e 'const fs = require("node:fs"); const pw = require("playwright"); if (require("playwright/package.json").version !== "1.65.0") throw new Error("Playwright image/package version mismatch"); const exe = pw[process.env.BROWSER_ENGINE].executablePath(); if (!fs.existsSync(exe)) throw new Error("Missing Playwright browser: " + exe);'
 
       - name: E2E Chromium (shard 1/2)
         run: PPSTUDIO_NEXT_DIST_DIR=.next-e2e npx playwright test --fully-parallel --project=chromium --shard=1/2
@@ -349,7 +349,7 @@ jobs:
     needs: e2e-build
     runs-on: ubuntu-24.04
     container:
-      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      image: mcr.microsoft.com/playwright:v1.65.0-noble
       options: --ipc=host
     timeout-minutes: 30
     # GitHub container jobs reach service containers via their service name.
@@ -399,7 +399,7 @@ jobs:
         env:
           BROWSER_ENGINE: chromium
         run: |
-          node -e 'const fs = require("node:fs"); const pw = require("playwright"); if (require("playwright/package.json").version !== "1.64.1") throw new Error("Playwright image/package version mismatch"); const exe = pw[process.env.BROWSER_ENGINE].executablePath(); if (!fs.existsSync(exe)) throw new Error("Missing Playwright browser: " + exe);'
+          node -e 'const fs = require("node:fs"); const pw = require("playwright"); if (require("playwright/package.json").version !== "1.65.0") throw new Error("Playwright image/package version mismatch"); const exe = pw[process.env.BROWSER_ENGINE].executablePath(); if (!fs.existsSync(exe)) throw new Error("Missing Playwright browser: " + exe);'
 
       - name: E2E Chromium (shard 2/2)
         run: PPSTUDIO_NEXT_DIST_DIR=.next-e2e npx playwright test --fully-parallel --project=chromium --shard=2/2
@@ -417,7 +417,7 @@ jobs:
     needs: e2e-build
     runs-on: ubuntu-24.04
     container:
-      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      image: mcr.microsoft.com/playwright:v1.65.0-noble
       options: --ipc=host
     timeout-minutes: 30
     # GitHub container jobs reach service containers via their service name.
@@ -475,7 +475,7 @@ jobs:
         env:
           BROWSER_ENGINE: ${{ matrix.browser.engine }}
         run: |
-          node -e 'const fs = require("node:fs"); const pw = require("playwright"); if (require("playwright/package.json").version !== "1.64.1") throw new Error("Playwright image/package version mismatch"); const exe = pw[process.env.BROWSER_ENGINE].executablePath(); if (!fs.existsSync(exe)) throw new Error("Missing Playwright browser: " + exe);'
+          node -e 'const fs = require("node:fs"); const pw = require("playwright"); if (require("playwright/package.json").version !== "1.65.0") throw new Error("Playwright image/package version mismatch"); const exe = pw[process.env.BROWSER_ENGINE].executablePath(); if (!fs.existsSync(exe)) throw new Error("Missing Playwright browser: " + exe);'
 
       - name: E2E mobile browser (shard 1/2)
         run: PPSTUDIO_NEXT_DIST_DIR=.next-e2e npx playwright test --fully-parallel --project=${{ matrix.browser.project }} --shard=1/2
@@ -493,7 +493,7 @@ jobs:
     needs: e2e-build
     runs-on: ubuntu-24.04
     container:
-      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      image: mcr.microsoft.com/playwright:v1.65.0-noble
       options: --ipc=host
     timeout-minutes: 30
     # GitHub container jobs reach service containers via their service name.
@@ -551,7 +551,7 @@ jobs:
         env:
           BROWSER_ENGINE: ${{ matrix.browser.engine }}
         run: |
-          node -e 'const fs = require("node:fs"); const pw = require("playwright"); if (require("playwright/package.json").version !== "1.64.1") throw new Error("Playwright image/package version mismatch"); const exe = pw[process.env.BROWSER_ENGINE].executablePath(); if (!fs.existsSync(exe)) throw new Error("Missing Playwright browser: " + exe);'
+          node -e 'const fs = require("node:fs"); const pw = require("playwright"); if (require("playwright/package.json").version !== "1.65.0") throw new Error("Playwright image/package version mismatch"); const exe = pw[process.env.BROWSER_ENGINE].executablePath(); if (!fs.existsSync(exe)) throw new Error("Missing Playwright browser: " + exe);'
 
       - name: E2E mobile browser (shard 2/2)
         run: PPSTUDIO_NEXT_DIST_DIR=.next-e2e npx playwright test --fully-parallel --project=${{ matrix.browser.project }} --shard=2/2
