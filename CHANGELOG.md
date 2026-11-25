@@ -10,7 +10,7 @@ Formát je inspirovaný Keep a Changelog.
 
 - Veřejné texty služeb používají konkrétnější popisy a přirozenější češtinu, dárková nabídka jednotně používá označení „poukaz“ a veřejné texty dávají přednost studiu. Datová úprava zachovává ručně změněné texty.
 
-- Stránka dárkových voucherů nově uvádí jejich šestiměsíční platnost, možnosti platby a předání i pravidla postupného čerpání hodnoty a doplatku dražší služby.
+- Stránka dárkových poukazů zobrazuje výchozí platnost z administrace, možnosti platby a předání i pravidla postupného čerpání hodnoty a doplatku dražší služby.
 - FAQ nyní jasněji rozlišuje přijetí žádosti a potvrzení rezervace, popisuje samoobslužnou změnu termínu a přesněji uvádí pravidla pro první návštěvu, citlivou pleť, zpoždění a pozdní storno.
 - Rezervační formulář nyní srozumitelněji popisuje dostupné termíny, ověření voucheru a následné čerpání; závěrečné obrazovky jasně rozlišují přijetí žádosti od finálního potvrzení termínu.
 - Storno stránka a obchodní podmínky jednoznačně vymezují hranici pro bezplatnou změnu či zrušení včetně přesného okamžiku uplynutí lhůty a používají jednotné označení studia.
@@ -18,6 +18,10 @@ Formát je inspirovaný Keep a Changelog.
 ### Opraveno
 
 - Analytika v administraci nyní odděluje skutečné vyhledávače a sociální sítě, správně rozpoznává jednoznačně označené kampaně Skliku, Google Ads a Meta Ads a neznámé kampaně nepřipisuje chybně konkrétní platformě. Při neúplných údajích Matomo zachovává ověřené souhrny návštěv a konverzí bez dvojího započtení.
+
+### Zabezpečení
+
+- Next.js a závislost Effect používaná konfigurací Prisma byly aktualizovány na verze s bezpečnostními opravami.
 
 ## [3.41.0] - 2026-11-05
 

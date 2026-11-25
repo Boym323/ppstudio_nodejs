@@ -63,6 +63,7 @@ function revalidateSettingsPaths() {
     "/faq",
     "/storno-podminky",
     "/rezervace",
+    "/vouchery",
   ]) {
     revalidatePath(path);
   }
