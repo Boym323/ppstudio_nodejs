@@ -4,7 +4,7 @@ import { connection } from "next/server";
 import { services, type Service } from "@/content/public-site";
 import { Container } from "@/components/ui/container";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { getPublicSalonProfile } from "@/lib/site-settings";
+import { getPublicSalonProfile, getSiteSettings } from "@/lib/site-settings";
 import { ActionLink, PublicHero } from "@/features/public/components/public-page-primitives";
 
 export async function VoucherLandingPage({
@@ -14,6 +14,8 @@ export async function VoucherLandingPage({
 } = {}) {
   await connection();
   const salonProfile = await getPublicSalonProfile();
+  const { voucherDefaultValidityMonths } = await getSiteSettings();
+  const validityUnit = voucherDefaultValidityMonths === 1 ? "měsíc" : voucherDefaultValidityMonths <= 4 ? "měsíce" : "měsíců";
   const voucherMailSubject = encodeURIComponent("Mám zájem o dárkový poukaz");
   const voucherMailBody = encodeURIComponent(`Dobrý den,
 
@@ -146,7 +148,7 @@ Děkuji.`);
             <div className="mt-6 space-y-3">
               {[
                 { question: "Může být poukaz bez přesně vybrané služby?", answer: "Ano. Poukaz vystavím také na hodnotu a konkrétní péči vyberete později." },
-                { question: "Jak dlouho poukaz platí?", answer: "Poukaz platí 6 měsíců. Přesné datum, do kdy jej můžete využít, najdete přímo na něm." },
+                { question: "Jak dlouho poukaz platí?", answer: `Poukaz standardně platí ${voucherDefaultValidityMonths} ${validityUnit}. Přesné datum platnosti najdete přímo na poukazu.` },
                 { question: "Jak rychle bude poukaz připravený?", answer: "Poukaz v PDF je dostupný obratem po zaplacení. Jeho zaslání e-mailem domluvíme při objednávce." },
                 { question: "Mohu si tištěný poukaz vyzvednout ve studiu?", answer: "Ano, tištěný poukaz si můžete po domluvě vyzvednout přímo ve studiu." },
                 { question: "Jak lze poukaz zaplatit?", answer: "Poukaz můžete zaplatit hotově nebo bankovním převodem." },
