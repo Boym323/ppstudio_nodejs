@@ -42,7 +42,7 @@ Když pro vybranou službu nejsou publikované volné termíny, nabídni kontakt
 
 Ověř, že neplatný e-mail zabrání přechodu k souhrnu a vytvoření rezervace, zobrazí českou validační chybu a ponechá klientku v kontaktním kroku. Použij pouze syntetická data a testovací transport.
 
-## 11. Texty metadat veřejných stránek
+## 11. Texty metadat veřejných stránek - hotovo
 
 Uprav titulky a popisy ceníku, katalogu služeb a kontaktu tak, aby přirozeně uváděly PP Studio ve Zlíně. Zachovej canonical URL, sitemap a stávající pravidla pro citlivé rezervační cesty.
 

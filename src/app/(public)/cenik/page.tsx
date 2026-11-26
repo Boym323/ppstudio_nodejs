@@ -4,7 +4,7 @@ import { getPublicPricingCatalog } from "@/features/public/lib/public-services";
 
 export const metadata = buildPageMetadata({
   title: 'Ceník',
-  description: 'Ceny i délku všech ošetření najdete v ceníku.',
+  description: 'Kolik stojí ošetření v PP Studiu ve Zlíně a kolik času si na něj vyhradit? Prohlédněte si kompletní ceník služeb.',
   path: '/cenik',
 });
 

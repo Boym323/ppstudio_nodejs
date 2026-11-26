@@ -2,8 +2,8 @@ import { ServicesPage, buildPageMetadata } from '@/features/public/components/pu
 import { getPublicServices } from '@/features/public/lib/public-services';
 
 export const metadata = buildPageMetadata({
-  title: 'Naše služby',
-  description: 'Prohlédněte si kosmetická ošetření, péči o řasy a obočí, masáže, depilaci i líčení. U každé služby najdete podrobnosti, cenu a délku.',
+  title: 'Služby',
+  description: 'Kosmetická ošetření, péče o řasy a obočí, masáže, depilace i líčení. Vyberte si službu v PP Studiu ve Zlíně.',
   path: '/sluzby',
 });
 

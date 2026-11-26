@@ -3,7 +3,7 @@ import { ContactPage } from '@/features/public/components/contact-page';
 
 export const metadata = buildPageMetadata({
   title: 'Kontakt',
-  description: 'Ráda vám poradím s výběrem služby nebo odpovím na vaše otázky. Zavolejte, napište e-mail nebo se ozvěte přes Instagram.',
+  description: 'Kde najdete PP Studio ve Zlíně a jak se mi ozvat? Zavolejte, napište e-mail nebo zprávu na Instagram. Ráda vám poradím.',
   path: '/kontakt',
 });
 
