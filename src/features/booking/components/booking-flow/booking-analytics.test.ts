@@ -5,6 +5,7 @@ import {
   formatBookingMatomoSlotName,
   formatSuggestedSlotSelectionMatomoName,
   formatSuggestedSlotsDisplayedMatomoName,
+  formatUnavailableServiceMatomoName,
   getSuggestedSlotPosition,
   getSuggestedSlotsDisplayKey,
   getVisibleSuggestedSlots,
@@ -13,6 +14,7 @@ import {
   shouldTrackSuggestedSlotsDisplay,
   shouldTrackBookingServiceSelectedForPrefill,
   shouldTrackBookingTimeSelection,
+  shouldTrackUnavailableService,
 } from "./booking-analytics";
 
 test("isBookingTermConflictErrorCode recognizes booking conflict style submit failures", () => {
@@ -124,4 +126,27 @@ test("výběr doporučení používá canonical key a vrací 1-based pozici", ()
 test("shouldTrackBookingServiceSelectedForPrefill skips duplicate funnel event for prefilled service", () => {
   assert.equal(shouldTrackBookingServiceSelectedForPrefill(true), false);
   assert.equal(shouldTrackBookingServiceSelectedForPrefill(false), true);
+});
+
+test("nedostupná služba se změří jen jednou pro výběr a až po obnově", () => {
+  const base = {
+    lastTrackedServiceId: null,
+    selectedServiceId: "service-1",
+    hasSelectableTimeOptions: false,
+    hasTimeFilterCandidates: false,
+    isRestoringDraft: false,
+    isRefreshingCatalog: false,
+  };
+
+  assert.equal(shouldTrackUnavailableService({ ...base, isRestoringDraft: true }), false);
+  assert.equal(shouldTrackUnavailableService({ ...base, isRefreshingCatalog: true }), false);
+  assert.equal(shouldTrackUnavailableService({ ...base, hasTimeFilterCandidates: true }), false);
+  // Dostupnost počítá všechny časy služby; prázdný výsledek aktuálního výběru dne
+  // tedy nesmí být zaměněn za službu bez termínů.
+  assert.equal(shouldTrackUnavailableService({ ...base, hasSelectableTimeOptions: true }), false);
+  assert.equal(shouldTrackUnavailableService({ ...base, lastTrackedServiceId: "service-1" }), false);
+  assert.equal(shouldTrackUnavailableService(base), true);
+  assert.equal(shouldTrackUnavailableService({ ...base, selectedServiceId: "" }), false);
+  assert.equal(formatUnavailableServiceMatomoName("korejsky-lash-lifting"), "korejsky-lash-lifting");
+  assert.equal(formatUnavailableServiceMatomoName("jana@example.com"), "unknown-service");
 });

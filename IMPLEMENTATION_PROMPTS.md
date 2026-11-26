@@ -22,7 +22,7 @@ Uprav dashboard Matomo tak, aby pageviewy rezervace byly samostatně od návšt�
 
 V rezervačním formuláři umožni filtrovat doporučené dostupné časy podle pražského času: dopoledne před 12:00, odpoledne 12:00–16:59 a večer od 17:00. Umožni zobrazit další termíny a ukaž prázdný stav filtru. Nulový výsledek filtru nesmí být měřen jako nedostupnost služby. Doplň cílené testy.
 
-## 6. Měření skutečně nedostupné služby
+## 6. Měření skutečně nedostupné služby - hotovo
 
 Pokud vybraná služba nemá žádný skutečně dostupný termín, odešli jednou pro daný výběr neosobní Matomo událost s veřejným slugem služby. Událost neposílej během obnovy formuláře nebo katalogu ani při prázdném výsledku časového filtru. Doplň testy.
 

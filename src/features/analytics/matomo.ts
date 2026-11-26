@@ -8,6 +8,7 @@ export type BookingEventAction =
   | "Datum vybráno"
   | "Čas vybrán"
   | "Doporučené termíny zobrazeny"
+  | "Služba bez volných termínů"
   | "Doporučený termín vybrán"
   | "Kontakt zahájen"
   | "Kontaktní pole zahájeno"

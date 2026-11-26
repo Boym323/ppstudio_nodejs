@@ -28,11 +28,13 @@ import { BookingContactStep } from "./booking-flow/contact-step";
 import { shouldTrackContactFieldInput } from "./booking-flow/contact-analytics";
 import {
   formatBookingMatomoSlotName,
+  formatUnavailableServiceMatomoName,
   formatSuggestedSlotSelectionMatomoName,
   formatSuggestedSlotsDisplayedMatomoName,
   getSuggestedSlotPosition,
   getSuggestedSlotsDisplayKey,
   getVisibleSuggestedSlots,
+  shouldTrackUnavailableService,
   isBookingTermConflictErrorCode,
   shouldTrackBookingDateSelection,
   shouldTrackSuggestedSlotsDisplay,
@@ -152,6 +154,8 @@ export function BookingFlow({
   const lastTrackedDateKeyRef = useRef<string | null>(null);
   const lastTrackedTimeOptionKeyRef = useRef<string | null>(null);
   const lastTrackedSuggestedSlotsDisplayKeyRef = useRef<string | null>(null);
+  const lastUnavailableServiceIdRef = useRef<string | null>(null);
+  const observedUnavailableServiceIdRef = useRef(selectedServiceId);
   const catalogRefreshRequestRef = useRef(0);
   const voucherValidationRequestRef = useRef(0);
   const lastVoucherValidationServiceIdRef = useRef(selectedServiceId);
@@ -570,7 +574,7 @@ export function BookingFlow({
     });
   }, [currentCatalog.slots, selectedService, selectedServiceId]);
 
-  const availableTimeOptions = useMemo(() => {
+  const timeFilterCandidates = useMemo(() => {
     if (!selectedService) {
       return [];
     }
@@ -580,20 +584,27 @@ export function BookingFlow({
       ? getAutoLunchBoundaryStartCandidates(currentCatalog.scheduleOptimization)
       : [];
 
-    const options = availableSlots.flatMap((slot) => buildSlotTimeOptions(
+    return availableSlots.flatMap((slot) => buildSlotTimeOptions(
       slot,
       selectedService.durationMinutes,
       selectedService.cleanupBlockMinutes,
       autoLunchBoundaryStartCandidates,
     ));
+  }, [availableSlots, currentCatalog.scheduleOptimization, selectedService]);
 
-    return filterTimeOptionsForAutoLunch(options, {
+  const availableTimeOptions = useMemo(() => {
+    if (!selectedService) {
+      return [];
+    }
+
+    const capacity = availableSlots.every((slot) => slot.capacity === 1) ? 1 : 2;
+    return filterTimeOptionsForAutoLunch(timeFilterCandidates, {
       serviceDurationMinutes: selectedService.durationMinutes,
       cleanupBlockMinutes: selectedService.cleanupBlockMinutes,
       capacity,
       scheduleOptimization: currentCatalog.scheduleOptimization,
     });
-  }, [availableSlots, currentCatalog.scheduleOptimization, selectedService]);
+  }, [availableSlots, currentCatalog.scheduleOptimization, selectedService, timeFilterCandidates]);
 
   const selectedTimeOptionCandidate = selectedTimeOptionKey
     ? availableTimeOptions.find((option) => option.key === selectedTimeOptionKey)
@@ -620,6 +631,27 @@ export function BookingFlow({
     () => availableTimeOptions.filter((option) => !option.isDisabled),
     [availableTimeOptions],
   );
+
+  useEffect(() => {
+    if (observedUnavailableServiceIdRef.current !== selectedServiceId) {
+      observedUnavailableServiceIdRef.current = selectedServiceId;
+      lastUnavailableServiceIdRef.current = null;
+    }
+
+    if (!selectedService || !shouldTrackUnavailableService({
+      lastTrackedServiceId: lastUnavailableServiceIdRef.current,
+      selectedServiceId,
+      hasSelectableTimeOptions: selectableTimeOptions.length > 0,
+      hasTimeFilterCandidates: timeFilterCandidates.length > 0,
+      isRestoringDraft,
+      isRefreshingCatalog,
+    })) {
+      return;
+    }
+
+    lastUnavailableServiceIdRef.current = selectedServiceId;
+    trackBookingEvent("Služba bez volných termínů", formatUnavailableServiceMatomoName(selectedService.slug));
+  }, [isRefreshingCatalog, isRestoringDraft, selectableTimeOptions.length, selectedService, selectedServiceId, timeFilterCandidates.length]);
 
   const suggestedSlots = useMemo(
     () => {

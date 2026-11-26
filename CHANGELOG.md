@@ -9,6 +9,7 @@ Formát je inspirovaný Keep a Changelog.
 ### Přidáno
 
 - Kliknutí na rezervační CTA v hlavičce, mobilní variantě hlavičky, kontaktní liště, ověření poukazu a návratu ze storna se nyní měří v Matomo bez odesílání citlivých údajů.
+- Výběr služby bez dostupného termínu se jednou za výběr anonymně zaznamená v Matomo pod veřejným slugem služby.
 
 ### Opraveno
 
