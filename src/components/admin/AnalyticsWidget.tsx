@@ -8,6 +8,7 @@ export type AnalyticsDashboardData = {
   reportingStatus: "ok" | "partial" | "disabled" | "blocked" | "error";
   reportingMessage?: string;
   bookingEventsAvailable?: boolean;
+  bookingPageviewsAvailable?: boolean;
   periodLabel: string;
   visits: number;
   conversions: number;
@@ -78,6 +79,7 @@ export function isAnalyticsDashboardData(value: unknown): value is AnalyticsDash
     Number.isFinite(candidate.conversions) &&
     Number.isFinite(candidate.conversionRate) &&
     Number.isFinite(candidate.bookingPageviews) &&
+    (candidate.bookingPageviewsAvailable === undefined || typeof candidate.bookingPageviewsAvailable === "boolean") &&
     (candidate.bookingEventsAvailable === undefined || typeof candidate.bookingEventsAvailable === "boolean") &&
     ["ok", "partial", "disabled", "blocked", "error"].includes(String(candidate.reportingStatus)) &&
     (candidate.reportingMessage === undefined || typeof candidate.reportingMessage === "string") &&
@@ -122,13 +124,15 @@ function AnalyticsRow({
   value,
 }: {
   label: string;
-  value: number;
+  value: number | null;
 }) {
   return (
     <div className="rounded-lg border border-white/8 bg-black/18 px-3 py-2">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs font-medium text-white/50">{label}</p>
-        <p className="text-sm font-semibold tracking-tight text-white">{formatNumber(value)}</p>
+        <p className="text-sm font-semibold tracking-tight text-white">
+          {value === null ? "Nedostupné" : formatNumber(value)}
+        </p>
       </div>
     </div>
   );
@@ -263,7 +267,7 @@ export function AnalyticsWidget({
           <div className="mt-3 space-y-3">
             {state.data.reportingStatus === "partial" ? (
               <div className="rounded-lg border border-amber-300/18 bg-amber-400/10 px-3 py-3 text-sm text-amber-50">
-                {state.data.reportingMessage || "Některé počty rezervačních událostí mohou být neúplné."}
+                {state.data.reportingMessage || "Některé údaje o rezervacích mohou být neúplné."}
               </div>
             ) : null}
             <div className="grid grid-cols-3 gap-2">
@@ -293,7 +297,10 @@ export function AnalyticsWidget({
                     událostní řádky počítají návštěvy s danou událostí.
                   </p>
                   <div className="grid gap-2">
-                    <AnalyticsRow label="Zobrazení stránky rezervace" value={state.data.bookingPageviews} />
+                    <AnalyticsRow
+                      label="Zobrazení stránky rezervace"
+                      value={state.data.bookingPageviewsAvailable === false ? null : state.data.bookingPageviews}
+                    />
                     {state.data.bookingEventsAvailable !== false && (
                       <>
                         <AnalyticsRow label="Rezervace zahájena" value={state.data.bookingActivity.started} />

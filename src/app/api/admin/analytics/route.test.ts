@@ -129,6 +129,7 @@ test("GET keeps the legacy funnel alongside the new metrics", async () => {
     getMatomoReportingHealth: async () => ({ status: "ok" }),
     getDashboardAnalytics: async () => ({
       reportingStatus: "partial",
+      reportingMessage: "Zobrazené počty mohou být nižší než skutečné.",
       periodLabel: "Dnes", visits: 10, conversions: 1, conversionRate: 10,
       topSource: "Přímý vstup", sources: [], bookingPageviews: 5, bookingActivity,
       contactStepQuality: {

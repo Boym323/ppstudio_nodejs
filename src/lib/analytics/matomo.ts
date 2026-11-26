@@ -25,7 +25,9 @@ export type MatomoReportingHealth = {
 
 export type DashboardAnalytics = {
   reportingStatus: "ok" | "partial" | "error";
+  reportingMessage?: string;
   bookingEventsAvailable?: boolean;
+  bookingPageviewsAvailable?: boolean;
   periodLabel: string;
   visits: number;
   conversions: number;
@@ -54,6 +56,7 @@ export type DashboardAnalytics = {
 
 const MATOMO_REVALIDATE_SECONDS = 300;
 const BOOKING_GOAL_ID = "1";
+const BOOKING_EVENT_CATEGORY = "Rezervace";
 const DASHBOARD_ANALYTICS_PERIOD_LABEL = "Dnes";
 const DEFAULT_VISITS: MatomoVisits = { nb_visits: 0 };
 const DEFAULT_DASHBOARD_ANALYTICS: DashboardAnalytics = {
@@ -111,7 +114,7 @@ const bookingContactQualityLabels = {
 type MatomoMethod =
   | "VisitsSummary.get"
   | "Actions.getPageUrls"
-  | "Events.getAction"
+  | "Events.getCategory"
   | "Goals.get"
   | "Referrers.getReferrerType"
   | "Referrers.getCampaigns"
@@ -296,11 +299,11 @@ async function getEventCount(events: MatomoEvent[], fullLabel: string, legacyFul
     return { count: lowerBound, partial: false };
   }
 
-  // Jeden segment se sjednocením akcí na úrovni návštěvy. Součty řádků
-  // Events.getAction by započítaly návštěvu s oběma akcemi dvakrát.
+  // Jeden segment počítá návštěvu s oběma akcemi jen jednou.
+  const actionSegment = [...labels].map((label) => `eventAction==${encodeURIComponent(label)}`).join(",");
   const result = await fetchMatomoJson("VisitsSummary.get", {
     columns: "nb_visits",
-    segment: [...labels].map((label) => `eventAction==${encodeURIComponent(label)}`).join(","),
+    segment: `eventCategory==${encodeURIComponent(BOOKING_EVENT_CATEGORY)};${actionSegment}`,
   });
   const count = normalizeVisitsPayload(result).nb_visits;
   return { count: Math.max(lowerBound, count), partial: count < lowerBound };
@@ -311,10 +314,18 @@ export async function fetchVisits(): Promise<MatomoVisits> {
 }
 
 export async function fetchEvents(): Promise<MatomoEvent[] | null> {
-  const payload = await fetchMatomoJson("Events.getAction", { filter_limit: "-1" });
+  const payload = await fetchMatomoJson("Events.getCategory", {
+    expanded: "1",
+    secondaryDimension: "eventAction",
+    filter_limit: "-1",
+  });
   if (!Array.isArray(payload)) return null;
 
-  return normalizeRows(payload, (row) => ({
+  const category = payload.find((row) => row?.label === BOOKING_EVENT_CATEGORY);
+  if (!category) return [];
+  if (!Array.isArray(category.subtable)) return null;
+
+  return normalizeRows(category.subtable, (row) => ({
     label: String(row.label ?? ""),
     nb_visits: toFiniteNumber(row.nb_visits),
   }));
@@ -324,14 +335,16 @@ export async function fetchBookingGoal(): Promise<MatomoGoal> {
   return normalizeGoalPayload(await fetchMatomoJson("Goals.get", { idGoal: BOOKING_GOAL_ID }));
 }
 
-export async function fetchPageUrls(): Promise<MatomoPageUrl[]> {
-  return normalizeRows(
-    await fetchMatomoJson("Actions.getPageUrls", { flat: "1", filter_limit: "-1", showColumns: "label,nb_hits" }),
-    (row) => ({
-      label: String(row.label ?? ""),
-      nb_hits: toFiniteNumber(row.nb_hits),
-    }),
-  );
+export async function fetchPageUrls(): Promise<MatomoPageUrl[] | null> {
+  const payload = await fetchMatomoJson("Actions.getPageUrls", {
+    flat: "1", filter_limit: "-1", showColumns: "label,nb_hits",
+  });
+  if (!Array.isArray(payload)) return null;
+
+  return normalizeRows(payload, (row) => ({
+    label: String(row.label ?? ""),
+    nb_hits: toFiniteNumber(row.nb_hits),
+  }));
 }
 
 export async function fetchReferrers(): Promise<MatomoReferrer[]> {
@@ -386,18 +399,17 @@ function getBookingFlowPageviewCount(pageUrls: MatomoPageUrl[]) {
       return sum;
     }
 
-    let normalizedPath = rawLabel;
+    let pathname = rawLabel.split(/[?#]/, 1)[0];
 
     try {
       if (rawLabel.startsWith("http://") || rawLabel.startsWith("https://")) {
-        const parsedUrl = new URL(rawLabel);
-        normalizedPath = parsedUrl.pathname + parsedUrl.search;
+        pathname = new URL(rawLabel).pathname;
       }
     } catch {
-      normalizedPath = rawLabel;
+      return sum;
     }
 
-    if (normalizedPath === "/rezervace" || normalizedPath.startsWith("/rezervace?")) {
+    if (pathname === "/rezervace" || pathname === "/rezervace/") {
       return sum + row.nb_hits;
     }
 
@@ -455,7 +467,7 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
     ]);
 
     const visits = visitsSummary.nb_visits;
-    const bookingPageviews = getBookingFlowPageviewCount(pageUrls);
+    const bookingPageviews = getBookingFlowPageviewCount(pageUrls ?? []);
     const events = eventReport ?? [];
     const eventCounts = await Promise.all([
       getEventCount(events, bookingEventLabels.started, bookingFunnelLegacyAliases.started),
@@ -483,9 +495,22 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
       contactStepStarted > 0 ? Math.round((contactFieldInputStarted / contactStepStarted) * 10000) / 100 : 0;
     const errorRate = contactStepStarted > 0 ? Math.round((contactFieldError / contactStepStarted) * 10000) / 100 : 0;
 
+    const reportingMessages = [];
+    if (pageUrls === null) {
+      reportingMessages.push("Matomo teď neposkytuje počet zobrazení stránky rezervace.");
+    }
+    if (eventReport === null) {
+      reportingMessages.push("Matomo teď neposkytuje údaje o rezervačních událostech a kvalitě kontaktního kroku.");
+    }
+    if (eventCounts.some(({ partial }) => partial)) {
+      reportingMessages.push("Matomo nevrátilo sjednocené počty pro některé rezervační události. Zobrazené počty mohou být nižší než skutečné.");
+    }
+
     return {
       bookingEventsAvailable: eventReport !== null,
-      reportingStatus: eventReport === null || eventCounts.some(({ partial }) => partial) ? "partial" : "ok",
+      bookingPageviewsAvailable: pageUrls !== null,
+      reportingStatus: reportingMessages.length > 0 ? "partial" : "ok",
+      reportingMessage: reportingMessages.join(" ") || undefined,
       periodLabel: DASHBOARD_ANALYTICS_PERIOD_LABEL,
       visits,
       conversions,

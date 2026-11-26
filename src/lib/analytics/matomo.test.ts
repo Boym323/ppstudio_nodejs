@@ -22,6 +22,7 @@ afterEach(() => {
 
 test("getDashboardAnalytics odděluje pageviewy a počítá události z návštěv, ne z počtu událostí", async () => {
   let segmentAvailable = true;
+  let pageUrlsAvailable = true;
   global.fetch = (async (input: RequestInfo | URL) => {
     const rawUrl = typeof input === "string" ? input : input.toString();
     const url = new URL(rawUrl);
@@ -31,6 +32,7 @@ test("getDashboardAnalytics odděluje pageviewy a počítá události z návšt�
       const segment = url.searchParams.get("segment");
       if (segment) {
         assert.equal(url.searchParams.get("columns"), "nb_visits");
+        assert.match(segment, /^eventCategory==Rezervace;/);
         assert.match(segment, /eventAction==Slu%C5%BEba%20vybr%C3%A1na/);
         assert.match(segment, /,eventAction==Slu%C5%BEba%20p%C5%99edvypln%C4%9Bna/);
         return segmentAvailable
@@ -45,23 +47,25 @@ test("getDashboardAnalytics odděluje pageviewy a počítá události z návšt�
       );
     }
 
-    if (method === "Events.getAction") {
-      return new Response(
-        JSON.stringify([
-          { label: "Rezervace / Rezervace zahájena", nb_visits: 7, nb_events: 100 },
+    if (method === "Events.getCategory") {
+      assert.equal(url.searchParams.get("expanded"), "1");
+      assert.equal(url.searchParams.get("secondaryDimension"), "eventAction");
+      return Response.json([
+        { label: "Správa rezervace", subtable: [{ label: "Čas vybrán", nb_visits: 8 }] },
+        { label: "Rezervace", subtable: [
+          { label: "Rezervace zahájena", nb_visits: 7, nb_events: 100 },
           { label: "Rezervace / Služba vybrána", nb_visits: 5, nb_events: 8 },
           { label: "Rezervace / Služba předvyplněna", nb_visits: 2, nb_events: 3 },
           { label: "Rezervace / Datum vybráno", nb_visits: 4, nb_events: 6 },
-          { label: "Rezervace / Čas vybrán", nb_visits: 3, nb_events: 5 },
+          { label: "Čas vybrán", nb_visits: 3, nb_events: 5 },
           { label: "Rezervace / Odeslána rezervace", nb_visits: 2, nb_events: 3 },
           { label: "Rezervace / Vytvořena", nb_visits: 1, nb_events: 2 },
           { label: "Rezervace / Kontakt zahájen", nb_visits: 4, nb_events: 40 },
           { label: "Rezervace / Kontakt pole fokus", nb_visits: 3, nb_events: 30 },
           { label: "Rezervace / Kontaktní pole zahájeno", nb_visits: 2, nb_events: 20 },
           { label: "Rezervace / Kontakt pole chyba", nb_visits: 1, nb_events: 10 },
-        ]),
-        { status: 200 },
-      );
+        ] },
+      ]);
     }
 
     if (method === "Goals.get") {
@@ -79,12 +83,13 @@ test("getDashboardAnalytics odděluje pageviewy a počítá události z návšt�
 
     if (method === "Actions.getPageUrls") {
       assert.equal(url.searchParams.get("flat"), "1");
+      if (!pageUrlsAvailable) return Response.json({ result: "error", message: "Report unavailable" });
 
       return new Response(
         JSON.stringify([
           { label: "/rezervace", nb_hits: 4 },
-          { label: "/rezervace?service=lash-lifting", nb_hits: 3 },
-          { label: "https://ppstudio.cz/rezervace?placement=Facebook_Mobile_Reels", nb_hits: 3 },
+          { label: "/rezervace/?service=lash-lifting", nb_hits: 3 },
+          { label: "https://ppstudio.cz/rezervace/?placement=Facebook_Mobile_Reels", nb_hits: 3 },
           { label: "/rezervace/storno/[token]", nb_hits: 99 },
         ]),
         { status: 200 },
@@ -140,6 +145,14 @@ test("getDashboardAnalytics odděluje pageviewy a počítá události z návšt�
   assert.equal(partialAnalytics.reportingStatus, "partial");
   assert.equal(partialAnalytics.bookingActivity.service, 5);
   assert.equal(partialAnalytics.conversions, 3);
+
+  segmentAvailable = true;
+  pageUrlsAvailable = false;
+  const withoutPageviews = await getDashboardAnalytics();
+  assert.equal(withoutPageviews.reportingStatus, "partial");
+  assert.equal(withoutPageviews.bookingPageviewsAvailable, false);
+  assert.match(withoutPageviews.reportingMessage ?? "", /počet zobrazení stránky rezervace/);
+  assert.deepEqual(withoutPageviews.bookingActivity, analytics.bookingActivity);
 });
 
 test("getDashboardAnalytics rozlišuje zdroje a ověřuje jejich konverze přes Matomo", async () => {
@@ -156,7 +169,7 @@ test("getDashboardAnalytics rozlišuje zdroje a ověřuje jejich konverze přes 
       "VisitsSummary.get": { nb_visits: 14 },
       "Goals.get": { nb_conversions: 4, conversion_rate: 28.57, revenue: 0 },
       "Actions.getPageUrls": [],
-      "Events.getAction": [],
+      "Events.getCategory": [],
       "Referrers.getReferrerType": [
         { label: "Campaigns", nb_visits: 8, nb_conversions: 2 },
         { label: "Search Engines", nb_visits: 4, nb_conversions: 1 },
