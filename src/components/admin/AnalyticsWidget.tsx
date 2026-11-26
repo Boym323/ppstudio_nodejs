@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 export type AnalyticsDashboardData = {
   reportingStatus: "ok" | "partial" | "disabled" | "blocked" | "error";
   reportingMessage?: string;
+  bookingGoalAvailable?: boolean;
   bookingEventsAvailable?: boolean;
   bookingPageviewsAvailable?: boolean;
   periodLabel: string;
@@ -80,6 +81,7 @@ export function isAnalyticsDashboardData(value: unknown): value is AnalyticsDash
     Number.isFinite(candidate.conversionRate) &&
     Number.isFinite(candidate.bookingPageviews) &&
     (candidate.bookingPageviewsAvailable === undefined || typeof candidate.bookingPageviewsAvailable === "boolean") &&
+    (candidate.bookingGoalAvailable === undefined || typeof candidate.bookingGoalAvailable === "boolean") &&
     (candidate.bookingEventsAvailable === undefined || typeof candidate.bookingEventsAvailable === "boolean") &&
     ["ok", "partial", "disabled", "blocked", "error"].includes(String(candidate.reportingStatus)) &&
     (candidate.reportingMessage === undefined || typeof candidate.reportingMessage === "string") &&
@@ -272,8 +274,8 @@ export function AnalyticsWidget({
             ) : null}
             <div className="grid grid-cols-3 gap-2">
               <AnalyticsMetric label="návštěv" value={formatNumber(state.data.visits)} />
-              <AnalyticsMetric label="konverze cíle" value={formatNumber(state.data.conversions)} />
-              <AnalyticsMetric label="míra" value={formatPercent(state.data.conversionRate)} />
+              <AnalyticsMetric label="konverze cíle" value={state.data.bookingGoalAvailable === false ? "Nedostupné" : formatNumber(state.data.conversions)} />
+              <AnalyticsMetric label="míra" value={state.data.bookingGoalAvailable === false ? "Nedostupné" : formatPercent(state.data.conversionRate)} />
             </div>
 
             <details className="group rounded-lg border border-white/8 bg-black/16 px-3 py-2">

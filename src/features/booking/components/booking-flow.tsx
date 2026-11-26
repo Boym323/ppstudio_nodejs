@@ -1,6 +1,7 @@
 "use client";
 
 import { AvailabilitySlotServiceRestrictionMode } from "@/generated/prisma/browser";
+import Link from "next/link";
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 
 import { createPublicBookingAction } from "@/features/booking/actions/create-public-booking";
@@ -1124,10 +1125,16 @@ export function BookingFlow({
         <p className="text-eyebrow text-[var(--color-accent)]">Rezervace</p>
         <div className="space-y-4">
           <h1 className="heading-section text-[var(--color-foreground)]">
-            Vyberte si termín, který vám nejlépe vyhovuje.
+            {currentCatalog.slots.length === 0
+              ? "Momentálně nejsou vypsané volné termíny."
+              : "Vyberte si termín, který vám nejlépe vyhovuje."}
           </h1>
           <p className="text-body max-w-2xl text-[var(--color-muted)]">
-            Rezervace zabere jen chvilku. Nejdřív zvolíte službu, potom nejbližší termín a nakonec doplníte kontakt.
+            {currentCatalog.slots.length === 0 ? (
+              <>Pro domluvu termínu <Link href="/kontakt" className="underline underline-offset-4">kontaktujte studio</Link>.</>
+            ) : (
+              "Rezervace zabere jen chvilku. Nejdřív zvolíte službu, potom nejbližší termín a nakonec doplníte kontakt."
+            )}
           </p>
         </div>
       </div>

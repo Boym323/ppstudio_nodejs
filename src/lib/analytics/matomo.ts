@@ -26,6 +26,7 @@ export type MatomoReportingHealth = {
 export type DashboardAnalytics = {
   reportingStatus: "ok" | "partial" | "error";
   reportingMessage?: string;
+  bookingGoalAvailable?: boolean;
   bookingEventsAvailable?: boolean;
   bookingPageviewsAvailable?: boolean;
   periodLabel: string;
@@ -331,8 +332,9 @@ export async function fetchEvents(): Promise<MatomoEvent[] | null> {
   }));
 }
 
-export async function fetchBookingGoal(): Promise<MatomoGoal> {
-  return normalizeGoalPayload(await fetchMatomoJson("Goals.get", { idGoal: BOOKING_GOAL_ID }));
+export async function fetchBookingGoal(): Promise<MatomoGoal | null> {
+  const payload = await fetchMatomoJson("Goals.get", { idGoal: BOOKING_GOAL_ID });
+  return payload === null ? null : normalizeGoalPayload(payload);
 }
 
 export async function fetchPageUrls(): Promise<MatomoPageUrl[] | null> {
@@ -483,7 +485,7 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
     const [started, service, term, contact, submitted, created, contactFieldFocus, contactFieldInputStarted, contactFieldError] =
       eventCounts.map(({ count }) => count);
     const bookingActivity = { started, service, term, contact, submitted, created };
-    const conversions = bookingGoal.nb_conversions;
+    const conversions = bookingGoal?.nb_conversions ?? 0;
     const contactStepStarted = contact;
     const topReferrer = referrers.reduce<MatomoReferrer | null>(
       (top, referrer) => (!top || referrer.nb_visits > top.nb_visits ? referrer : top),
@@ -496,6 +498,9 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
     const errorRate = contactStepStarted > 0 ? Math.round((contactFieldError / contactStepStarted) * 10000) / 100 : 0;
 
     const reportingMessages = [];
+    if (bookingGoal === null) {
+      reportingMessages.push("Matomo teď neposkytuje počet konverzí rezervačního cíle ani konverzní míru.");
+    }
     if (pageUrls === null) {
       reportingMessages.push("Matomo teď neposkytuje počet zobrazení stránky rezervace.");
     }
@@ -507,6 +512,7 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
     }
 
     return {
+      bookingGoalAvailable: bookingGoal !== null,
       bookingEventsAvailable: eventReport !== null,
       bookingPageviewsAvailable: pageUrls !== null,
       reportingStatus: reportingMessages.length > 0 ? "partial" : "ok",
@@ -514,7 +520,7 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
       periodLabel: DASHBOARD_ANALYTICS_PERIOD_LABEL,
       visits,
       conversions,
-      conversionRate: bookingGoal.conversion_rate || (visits > 0 ? Math.round((conversions / visits) * 10000) / 100 : 0),
+      conversionRate: bookingGoal?.conversion_rate || (visits > 0 ? Math.round((conversions / visits) * 10000) / 100 : 0),
       topSource: sources[0]?.label ?? (topReferrer ? mapReferrerTypeLabel(topReferrer.label) : ""),
       sources,
       bookingPageviews,
