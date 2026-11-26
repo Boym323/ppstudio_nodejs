@@ -146,7 +146,7 @@ export function buildSafeMatomoPath(pathname: string, searchParams?: SearchParam
   }
 
   const safeSearchParams = new URLSearchParams();
-  const sensitiveKeys = /token|email|e-mail|mail|phone|telefon|tel|name|jmeno|client|note|poznam/i;
+  const sensitiveKeys = /^(?:code|voucher)$|token|email|e-mail|mail|phone|telefon|tel|name|jmeno|client|note|poznam/i;
 
   searchParams.forEach((value, key) => {
     if (sensitiveKeys.test(key) || sensitivePathValuePattern.test(value)) {

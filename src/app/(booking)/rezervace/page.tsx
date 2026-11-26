@@ -32,6 +32,7 @@ export async function generateMetadata({
 
   return {
     ...reservationMetadata,
+    ...(resolvedSearchParams.voucher ? { referrer: "no-referrer" as const } : {}),
     robots: {
       index: false,
       follow: true,

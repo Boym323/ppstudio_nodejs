@@ -123,6 +123,15 @@ test("buildSafeMatomoPath removes sensitive query params and rewrites token rout
   );
 });
 
+test("analytická URL odstraní kód poukazu při ověření i při přechodu do rezervace", () => {
+  const params = new URLSearchParams("code=PP-2026-ABCDEF&utm_source=mailing");
+  assert.equal(buildSafeMatomoPath("/vouchery/overeni", params), "/vouchery/overeni?utm_source=mailing");
+
+  const bookingParams = new URLSearchParams("voucher=PP-2026-ABCDEF&source=voucher&service=pece");
+  assert.equal(buildSafeMatomoPath("/rezervace", bookingParams), "/rezervace?source=voucher&service=pece");
+  assert.equal(bookingParams.get("voucher"), "PP-2026-ABCDEF");
+});
+
 test("trackMatomoEvent allows safe storno actions but still blocks raw token paths", () => {
   setMatomoConfigured();
 

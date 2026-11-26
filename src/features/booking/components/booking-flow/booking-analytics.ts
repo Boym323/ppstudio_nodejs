@@ -70,14 +70,12 @@ export function shouldTrackUnavailableService(input: {
   lastTrackedServiceId: string | null;
   selectedServiceId: string;
   hasSelectableTimeOptions: boolean;
-  hasTimeFilterCandidates: boolean;
   isRestoringDraft: boolean;
   isRefreshingCatalog: boolean;
 }) {
   return Boolean(
     input.selectedServiceId
     && !input.hasSelectableTimeOptions
-    && !input.hasTimeFilterCandidates
     && !input.isRestoringDraft
     && !input.isRefreshingCatalog
     && input.lastTrackedServiceId !== input.selectedServiceId,

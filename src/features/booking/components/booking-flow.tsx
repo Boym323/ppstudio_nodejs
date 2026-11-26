@@ -122,7 +122,7 @@ export function BookingFlow({
   const [isServiceStepHighlighted, setIsServiceStepHighlighted] = useState(false);
   const [isTermStepHighlighted, setIsTermStepHighlighted] = useState(false);
   const [isContactStepHighlighted, setIsContactStepHighlighted] = useState(false);
-  const [visibleSuggestedSlotsLimit, setVisibleSuggestedSlotsLimit] = useState(MOBILE_SUGGESTED_SLOTS_LIMIT);
+  const [visibleSuggestedSlotsLimit, setVisibleSuggestedSlotsLimit] = useState(0);
   const [touchedFields, setTouchedFields] = useState<Record<ContactFieldKey, boolean>>({
     fullName: false,
     email: false,
@@ -570,7 +570,7 @@ export function BookingFlow({
     });
   }, [currentCatalog.slots, selectedService, selectedServiceId]);
 
-  const timeFilterCandidates = useMemo(() => {
+  const availableTimeOptions = useMemo(() => {
     if (!selectedService) {
       return [];
     }
@@ -580,27 +580,20 @@ export function BookingFlow({
       ? getAutoLunchBoundaryStartCandidates(currentCatalog.scheduleOptimization)
       : [];
 
-    return availableSlots.flatMap((slot) => buildSlotTimeOptions(
+    const options = availableSlots.flatMap((slot) => buildSlotTimeOptions(
       slot,
       selectedService.durationMinutes,
       selectedService.cleanupBlockMinutes,
       autoLunchBoundaryStartCandidates,
     ));
-  }, [availableSlots, currentCatalog.scheduleOptimization, selectedService]);
 
-  const availableTimeOptions = useMemo(() => {
-    if (!selectedService) {
-      return [];
-    }
-
-    const capacity = availableSlots.every((slot) => slot.capacity === 1) ? 1 : 2;
-    return filterTimeOptionsForAutoLunch(timeFilterCandidates, {
+    return filterTimeOptionsForAutoLunch(options, {
       serviceDurationMinutes: selectedService.durationMinutes,
       cleanupBlockMinutes: selectedService.cleanupBlockMinutes,
       capacity,
       scheduleOptimization: currentCatalog.scheduleOptimization,
     });
-  }, [availableSlots, currentCatalog.scheduleOptimization, selectedService, timeFilterCandidates]);
+  }, [availableSlots, currentCatalog.scheduleOptimization, selectedService]);
 
   const selectedTimeOptionCandidate = selectedTimeOptionKey
     ? availableTimeOptions.find((option) => option.key === selectedTimeOptionKey)
@@ -638,7 +631,6 @@ export function BookingFlow({
       lastTrackedServiceId: lastUnavailableServiceIdRef.current,
       selectedServiceId,
       hasSelectableTimeOptions: selectableTimeOptions.length > 0,
-      hasTimeFilterCandidates: timeFilterCandidates.length > 0,
       isRestoringDraft,
       isRefreshingCatalog,
     })) {
@@ -647,7 +639,7 @@ export function BookingFlow({
 
     lastUnavailableServiceIdRef.current = selectedServiceId;
     trackBookingEvent("Služba bez volných termínů", formatUnavailableServiceMatomoName(selectedService.slug));
-  }, [isRefreshingCatalog, isRestoringDraft, selectableTimeOptions.length, selectedService, selectedServiceId, timeFilterCandidates.length]);
+  }, [isRefreshingCatalog, isRestoringDraft, selectableTimeOptions.length, selectedService, selectedServiceId]);
 
   const suggestedSlots = useMemo(
     () => {

@@ -133,14 +133,12 @@ test("nedostupná služba se změří jen jednou pro výběr a až po obnově", 
     lastTrackedServiceId: null,
     selectedServiceId: "service-1",
     hasSelectableTimeOptions: false,
-    hasTimeFilterCandidates: false,
     isRestoringDraft: false,
     isRefreshingCatalog: false,
   };
 
   assert.equal(shouldTrackUnavailableService({ ...base, isRestoringDraft: true }), false);
   assert.equal(shouldTrackUnavailableService({ ...base, isRefreshingCatalog: true }), false);
-  assert.equal(shouldTrackUnavailableService({ ...base, hasTimeFilterCandidates: true }), false);
   // Dostupnost počítá všechny časy služby; prázdný výsledek aktuálního výběru dne
   // tedy nesmí být zaměněn za službu bez termínů.
   assert.equal(shouldTrackUnavailableService({ ...base, hasSelectableTimeOptions: true }), false);

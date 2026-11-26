@@ -535,19 +535,32 @@ test.describe("rezervační toky", () => {
   });
 
   test("nedostupná služba nabídne kontakt a změnu na dostupnou službu", async ({ page }) => {
-    const unavailable = await createPublicBookingFixture();
+    const unavailable = await createManagedBookingFixture();
     fixtures.push(unavailable);
     const available = await createPublicBookingFixture();
     fixtures.push(available);
 
+    await page.route("**/matomo.js", (route) => route.fulfill({ contentType: "application/javascript", body: "" }));
+    await installMatomoSpy(page);
+    const booking = await prisma.booking.findUniqueOrThrow({
+      where: { id: unavailable.bookingId },
+      select: { slotId: true, scheduledEndsAt: true },
+    });
+    await prisma.availabilitySlot.update({
+      where: { id: booking.slotId },
+      data: { endsAt: booking.scheduledEndsAt },
+    });
     await prisma.availabilitySlot.updateMany({
-      where: { publicNote: { contains: unavailable.runId } },
+      where: { publicNote: { contains: unavailable.runId }, id: { not: booking.slotId } },
       data: { status: AvailabilitySlotStatus.DRAFT },
     });
 
-    await page.goto(`/rezervace?service=${unavailable.serviceSlug}`);
+    await page.goto(`/rezervace?service=${unavailable.serviceSlug}`, { waitUntil: "domcontentloaded" });
     await expect(page.getByText("Pro tuto službu teď není publikovaný volný termín", { exact: false })).toBeVisible();
     await expect(page.getByRole("link", { name: "Kontaktovat studio" })).toHaveAttribute("href", "/kontakt");
+    await expect.poll(() => getMatomoCalls(page)).toContainEqual([
+      "trackEvent", "Rezervace", "Služba bez volných termínů", unavailable.serviceSlug,
+    ]);
     await page.getByRole("button", { name: "Změnit službu" }).last().click();
     await page.getByRole("button", { name: new RegExp(available.categoryName) }).click();
     await page.getByRole("button", { name: new RegExp(available.serviceName) }).click();
@@ -673,6 +686,36 @@ test.describe("rezervační toky", () => {
     expect(bookingRequests.every((request) => request.params.idsite === "1")).toBe(true);
     expect(bookingRequests.every((request) => request.params._id === "e2e-visitor-id")).toBe(true);
     expect(events.every((request) => request.params.new_visit === undefined)).toBe(true);
+  });
+
+  test("desktop při hydrataci změří zobrazení doporučených termínů právě jednou", async ({ page }) => {
+    const fixture = await createPublicBookingFixture();
+    fixtures.push(fixture);
+    await page.route("**/matomo.js", (route) => route.fulfill({ contentType: "application/javascript", body: "" }));
+    await installMatomoSpy(page);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const hydrationErrors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error" && /hydration|did not match/i.test(message.text())) {
+        hydrationErrors.push(message.text());
+      }
+    });
+    page.on("pageerror", (error) => {
+      if (/hydration|did not match/i.test(error.message)) hydrationErrors.push(error.message);
+    });
+
+    await page.goto(`/rezervace?service=${fixture.serviceSlug}`);
+    const suggestedSection = page.getByRole("heading", { name: "Doporučené termíny" }).locator("xpath=ancestor::section[1]");
+    await expect(suggestedSection.getByRole("button")).toHaveCount(6);
+    await suggestedSection.getByRole("button").last().click();
+    await expect.poll(() => getMatomoCalls(page)).toContainEqual([
+      "trackEvent", "Rezervace", "Doporučený termín vybrán", expect.stringMatching(/\| pozice 6$/),
+    ]);
+    const impressions = (await getMatomoCalls(page)).filter((call) =>
+      call[0] === "trackEvent" && call[2] === "Doporučené termíny zobrazeny",
+    );
+    expect(impressions).toEqual([["trackEvent", "Rezervace", "Doporučené termíny zobrazeny", fixture.serviceSlug]]);
+    expect(hydrationErrors).toEqual([]);
   });
 
   test("Matomo rozlišuje klik na doporučenou kartu od stejného času z kalendáře", async ({ page }) => {

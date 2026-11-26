@@ -27,6 +27,7 @@ import { getPublicSalonProfile } from "@/lib/site-settings";
 
 export const metadata: Metadata = {
   title: "Ověření dárkového poukazu",
+  referrer: "no-referrer",
   description: "Veřejné ověření platnosti dárkového poukazu PP Studio.",
   robots: {
     index: false,
