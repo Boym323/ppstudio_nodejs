@@ -24,6 +24,7 @@ test("bezpečnostní hlavičky obsahují základ pro neprodukční prostředí",
 
   assert.deepEqual(headers.map((header) => header.key), globalHeaderKeys);
   assert.ok(headers.some((header) => header.key === "X-Content-Type-Options" && header.value === "nosniff"));
+  assert.equal(headers.find((header) => header.key === "Referrer-Policy")?.value, "strict-origin-when-cross-origin");
   assert.ok(!headers.some((header) => header.key === "Strict-Transport-Security"));
 });
 

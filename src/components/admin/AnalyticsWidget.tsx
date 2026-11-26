@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 export type AnalyticsDashboardData = {
-  reportingStatus: "ok" | "disabled" | "blocked" | "error";
+  reportingStatus: "ok" | "partial" | "disabled" | "blocked" | "error";
   reportingMessage?: string;
   periodLabel: string;
   visits: number;
@@ -77,7 +77,7 @@ export function isAnalyticsDashboardData(value: unknown): value is AnalyticsDash
     Number.isFinite(candidate.conversions) &&
     Number.isFinite(candidate.conversionRate) &&
     Number.isFinite(candidate.bookingPageviews) &&
-    ["ok", "disabled", "blocked", "error"].includes(String(candidate.reportingStatus)) &&
+    ["ok", "partial", "disabled", "blocked", "error"].includes(String(candidate.reportingStatus)) &&
     (candidate.reportingMessage === undefined || typeof candidate.reportingMessage === "string") &&
     typeof candidate.periodLabel === "string" &&
     typeof candidate.topSource === "string" &&
@@ -253,12 +253,17 @@ export function AnalyticsWidget({
       ) : null}
 
       {enabled && state.status === "ready" ? (
-        state.data.reportingStatus !== "ok" ? (
+        state.data.reportingStatus !== "ok" && state.data.reportingStatus !== "partial" ? (
           <div className="mt-3 rounded-lg border border-amber-300/18 bg-amber-400/10 px-3 py-3 text-sm text-amber-50">
             {state.data.reportingMessage || "Matomo reporting není teď dostupný."}
           </div>
         ) : (
           <div className="mt-3 space-y-3">
+            {state.data.reportingStatus === "partial" ? (
+              <div className="rounded-lg border border-amber-300/18 bg-amber-400/10 px-3 py-3 text-sm text-amber-50">
+                {state.data.reportingMessage || "Některé počty rezervačních událostí mohou být neúplné."}
+              </div>
+            ) : null}
             <div className="grid grid-cols-3 gap-2">
               <AnalyticsMetric label="návštěv" value={formatNumber(state.data.visits)} />
               <AnalyticsMetric label="konverze cíle" value={formatNumber(state.data.conversions)} />

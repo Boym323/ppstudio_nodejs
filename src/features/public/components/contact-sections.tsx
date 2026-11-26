@@ -102,7 +102,7 @@ export function ContactHero({ title, description, phone, email, instagramUrl, ph
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <TrackedLink
               href="/rezervace"
-              tracking={{ kind: 'reservation', location: 'kontakt', page: 'kontakt' }}
+              tracking={{ kind: 'reservation', location: 'hero', page: 'kontakt' }}
               className="inline-flex min-h-13 items-center justify-center rounded-full bg-[var(--color-foreground)] px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-[#2c221d] sm:text-sm"
             >
               Rezervovat termín
@@ -504,7 +504,6 @@ export function ContactMobileStickyCTA({ phone, email }: ContactMobileStickyCTAP
         <TrackedLink
           href="/rezervace"
           tracking={{ kind: 'reservation', location: 'sticky CTA', page: 'kontakt' }}
-          trackReservationClick
           className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full bg-[var(--color-foreground)] px-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white"
         >
           Rezervovat

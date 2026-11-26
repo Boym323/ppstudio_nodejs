@@ -21,12 +21,22 @@ afterEach(() => {
 });
 
 test("getDashboardAnalytics odděluje pageviewy a počítá události z návštěv, ne z počtu událostí", async () => {
+  let segmentAvailable = true;
   global.fetch = (async (input: RequestInfo | URL) => {
     const rawUrl = typeof input === "string" ? input : input.toString();
     const url = new URL(rawUrl);
     const method = url.searchParams.get("method");
 
     if (method === "VisitsSummary.get") {
+      const segment = url.searchParams.get("segment");
+      if (segment) {
+        assert.equal(url.searchParams.get("columns"), "nb_visits");
+        assert.match(segment, /eventAction==Slu%C5%BEba%20vybr%C3%A1na/);
+        assert.match(segment, /,eventAction==Slu%C5%BEba%20p%C5%99edvypln%C4%9Bna/);
+        return segmentAvailable
+          ? Response.json({ value: 6 })
+          : Response.json({ result: "error", message: "Segment unavailable" });
+      }
       return new Response(
         JSON.stringify({
           nb_visits: 10,
@@ -100,10 +110,11 @@ test("getDashboardAnalytics odděluje pageviewy a počítá události z návšt�
   const { getDashboardAnalytics } = await import("./matomo");
   const analytics = await getDashboardAnalytics();
 
+  assert.equal(analytics.reportingStatus, "ok");
   assert.equal(analytics.bookingPageviews, 10);
   assert.deepEqual(analytics.bookingActivity, {
     started: 7,
-    service: 7,
+    service: 6,
     term: 3,
     contact: 4,
     submitted: 2,
@@ -123,6 +134,12 @@ test("getDashboardAnalytics odděluje pageviewy a počítá události z návšt�
     inputRate: 50,
     errorRate: 25,
   });
+
+  segmentAvailable = false;
+  const partialAnalytics = await getDashboardAnalytics();
+  assert.equal(partialAnalytics.reportingStatus, "partial");
+  assert.equal(partialAnalytics.bookingActivity.service, 5);
+  assert.equal(partialAnalytics.conversions, 3);
 });
 
 test("getDashboardAnalytics rozlišuje zdroje a ověřuje jejich konverze přes Matomo", async () => {

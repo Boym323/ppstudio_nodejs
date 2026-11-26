@@ -42,7 +42,7 @@ export function PricingHero() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <TrackedLink
               href="/rezervace"
-              tracking={{ kind: "reservation", location: "ceník", page: "cenik" }}
+              tracking={{ kind: "reservation", location: "hero", page: "cenik" }}
               className="inline-flex min-h-13 items-center justify-center rounded-full bg-[var(--color-foreground)] px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white shadow-[0_12px_30px_rgba(24,19,16,0.14)] hover:bg-[#2b221d]"
             >
               Vybrat termín
@@ -140,7 +140,7 @@ export function PricingItem({ item }: { item: PublicPricingCategory["items"][num
         </p>
         <TrackedLink
           href={item.ctaHref}
-          tracking={{ kind: "reservation", location: "ceník", page: "cenik" }}
+          tracking={{ kind: "reservation", location: "řádek", detail: item.slug, page: "cenik" }}
           className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#eadbcc] bg-[#fbf3e9] px-5 text-sm font-medium text-[var(--color-foreground)] hover:border-[#dfc8af] hover:bg-[#f8ecdd] lg:min-w-[9.5rem]"
         >
           Vybrat termín
@@ -190,7 +190,7 @@ export function PricingGridSection({ category }: { category: PublicPricingCatego
               </div>
               <TrackedLink
                 href={item.ctaHref}
-                tracking={{ kind: "reservation", location: "ceník", page: "cenik" }}
+                tracking={{ kind: "reservation", location: "karta", detail: item.slug, page: "cenik" }}
                 className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#eadbcc] bg-[#fbf3e9] px-5 text-sm font-medium text-[var(--color-foreground)] hover:border-[#dfc8af] hover:bg-[#f8ecdd]"
               >
                 Vybrat termín

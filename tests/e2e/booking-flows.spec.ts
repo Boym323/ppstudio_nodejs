@@ -335,17 +335,20 @@ async function installMatomoRequestSpy(page: Page) {
           let endpoint = '';
           let siteId = '';
           let customUrl = '';
+          let referrer = document.referrer;
           const visitorId = 'e2e-visitor-id';
 
           const emit = (params) => {
             const image = new Image();
-            image.src = endpoint + '?' + new URLSearchParams({
+            const payload = new URLSearchParams({
               idsite: siteId,
               rec: '1',
               _id: visitorId,
               url: customUrl,
+              urlref: referrer,
               ...params,
             }).toString();
+            image.src = endpoint + '?' + payload;
           };
 
           const handle = (command) => {
@@ -353,6 +356,7 @@ async function installMatomoRequestSpy(page: Page) {
               case 'setTrackerUrl': endpoint = command[1]; break;
               case 'setSiteId': siteId = command[1]; break;
               case 'setCustomUrl': customUrl = command[1]; break;
+              case 'setReferrerUrl': referrer = command[1]; break;
               case 'trackPageView': emit({ action_name: document.title }); break;
               case 'trackEvent': emit({ e_c: command[1], e_a: command[2], e_n: command[3] || '' }); break;
               default: break;
@@ -655,6 +659,43 @@ test.describe("rezervační toky", () => {
     expect(matomoRequests.every((request) => request.endpoint === "https://matomo.example.test/matomo.php")).toBe(true);
     expect(matomoRequests.every((request) => request.params.idsite === "1")).toBe(true);
     expect(matomoRequests.every((request) => request.params._id === "e2e-visitor-id")).toBe(true);
+  });
+
+  test("Matomo měří homepage CTA jednou a zachovává kampaňové parametry", async ({ page }) => {
+    const requests = await installMatomoRequestSpy(page);
+    await page.goto("/?utm_source=facebook&utm_medium=paid_social&code=PP-E2E-SAMPLE&custom=someone%40example.test", {
+      referer: "https://example.test/private-token?email=someone%40example.test",
+    });
+
+    const trackedUrl = "/?utm_source=facebook&utm_medium=paid_social";
+    await expect.poll(() => requests.some(({ params }) => params.url === trackedUrl)).toBe(true);
+    await page.locator("main").getByRole("link", { name: "Rezervovat termín", exact: true }).click();
+    await expect(page).toHaveURL(/\/rezervace\?source=homepage$/);
+    await expect.poll(() => requests.filter(({ params }) => params.e_a === "Rezervace klik")).toHaveLength(1);
+
+    const click = requests.find(({ params }) => params.e_a === "Rezervace klik");
+    expect(click?.params).toMatchObject({
+      url: trackedUrl,
+      urlref: "https://example.test/",
+      e_n: "homepage | hero",
+    });
+    expect(JSON.stringify(requests)).not.toMatch(/PP-E2E-SAMPLE|private-token|someone(?:@|%40)/i);
+  });
+
+  test("Matomo rozlišuje rezervaci z ceníku podle umístění a služby", async ({ page }) => {
+    const fixture = await createPublicBookingFixture();
+    fixtures.push(fixture);
+    const requests = await installMatomoRequestSpy(page);
+
+    await page.goto("/cenik");
+    await expect.poll(() => requests.some(({ params }) => params.url === "/cenik")).toBe(true);
+    const service = page.locator("article").filter({ has: page.getByRole("heading", { name: fixture.serviceName }) });
+    await service.getByRole("link", { name: "Vybrat termín" }).click();
+    await expect(page).toHaveURL(new RegExp(`/rezervace\\?service=${fixture.serviceSlug}&source=price_list$`));
+    await expect.poll(() => requests
+      .filter(({ params }) => params.e_a === "Rezervace klik")
+      .map(({ params }) => params.e_n),
+    ).toEqual([expect.stringMatching(new RegExp(String.raw`^cenik \| (řádek|karta) \| ${fixture.serviceSlug}$`))]);
   });
 
   test("Matomo keeps the first booking pageview and prefilled booking events in one visit", async ({ page }) => {
@@ -1306,6 +1347,7 @@ test.describe("rezervační toky", () => {
     const fixture = await createPublicBookingFixture();
     fixtures.push(fixture);
 
+    const matomoRequests = await installMatomoRequestSpy(page);
     await installMetaPixelSpy(page);
     await page.route("**/fbevents.js", async (route) => {
       await route.fulfill({
@@ -1325,6 +1367,10 @@ test.describe("rezervační toky", () => {
     await expect(page).toHaveURL(
       new RegExp(`/rezervace\\?service=${fixture.serviceSlug}&source=service_detail$`),
     );
+    await expect.poll(() => matomoRequests
+      .filter(({ params }) => params.e_a === "Rezervace klik")
+      .map(({ params }) => params.e_n),
+    ).toEqual([`service_detail | hero | ${fixture.serviceSlug}`]);
     await expectMetaPixelEvent(page, "trackCustom:BookingServiceSelected");
     await expect.poll(async () => getMetaPixelEventNames(page)).not.toContain("track:AddToCart");
     await expect.poll(async () => getMetaPixelEventNames(page)).not.toContain("track:InitiateCheckout");
@@ -1370,6 +1416,7 @@ test.describe("rezervační toky", () => {
   test("veřejný návštěvník bezpečně ověří kód voucheru", async ({ page }) => {
     const fixture = await createPublicVoucherFixture();
     fixtures.push(fixture);
+    const requests = await installMatomoRequestSpy(page);
 
     await page.goto(`/vouchery/overeni?code=${fixture.voucherCode}`);
 
@@ -1382,6 +1429,15 @@ test.describe("rezervační toky", () => {
     await expect(page.getByText(fixture.voucherCode ?? "")).toBeVisible();
     await expect(page.getByText("secret.example.test")).toHaveCount(0);
     await expect(page.getByText("E2E tajná poznámka")).toHaveCount(0);
+
+    await expect.poll(() => requests.some(({ params }) => params.url === "/vouchery/overeni")).toBe(true);
+    await page.getByRole("main").getByRole("link", { name: "Rezervovat termín", exact: true })
+      .evaluate((link: HTMLAnchorElement) => window.location.assign(link.href));
+    await expect(page).toHaveURL(/\/rezervace\?voucher=/);
+    expect(await page.evaluate(() => document.referrer)).toBe("");
+    await expect.poll(() => requests.some(({ params }) => params.url === "/rezervace?source=voucher"
+      && params.urlref === "")).toBe(true);
+    expect(JSON.stringify(requests)).not.toContain(fixture.voucherCode!);
   });
 
   test("klient zruší rezervaci pomocí veřejného tokenu a odešle pouze bezpečné události Matomo", async ({ page }) => {

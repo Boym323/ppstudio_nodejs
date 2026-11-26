@@ -193,6 +193,15 @@ Odpověď:
   "conversionRate": 3.25,
   "topSource": "Instagram",
   "sources": [],
+  "bookingPageviews": 0,
+  "bookingActivity": {
+    "started": 0,
+    "service": 0,
+    "term": 0,
+    "contact": 0,
+    "submitted": 0,
+    "created": 0
+  },
   "funnel": {
     "viewed": 0,
     "service": 0,
@@ -214,24 +223,20 @@ Odpověď:
 ```
 
 Poznámky:
-- při chybě Matomo reportingu endpoint vrací bezpečný fallback s `reportingStatus != ok`, ale stále HTTP `200`
+- při nedostupném Matomo reportingu endpoint vrací bezpečný fallback a HTTP `200`. Částečný report zachovává dostupná data.
 - endpoint nesmí vracet PII ani `token_auth`
 - route má `revalidate = 300`
 
 Vysvětlení polí:
-- `reportingStatus`: stav Matomo reportingu; `ok` znamená validní data, jiná hodnota značí fallback nebo problém reportingu.
+- `reportingStatus`: stav Matomo reportingu. `ok` znamená validní data. Při stavu `partial` chybí sjednocený počet pro některé události a použije se nejvyšší známý počet z jednoho řádku jako dolní mez. Ostatní stavy označují fallback nebo nedostupný reporting.
+- `bookingPageviews` je počet zobrazení stránky rezervace. `bookingActivity` uvádí počty návštěv s jednotlivými událostmi. Kroky mají samostatné agregáty a mohou se překrývat.
+- `funnel` zachovává původní kontrakt pro stávající klienty. `viewed` odpovídá `bookingActivity.started`, při nule přebírá `bookingPageviews`. Ostatní hodnoty přebírá z `bookingActivity`. Kompatibilní pole je přítomné i v odpovědi s nulovým fallbackem.
 - `periodLabel`: lidský popisek období, za které jsou čísla počítaná.
 - `visits`: počet návštěv ve sledovaném období.
 - `conversions`: počet konverzí Matomo Goal `idGoal=1` ve sledovaném období.
 - `conversionRate`: konverzní poměr Matomo Goal `idGoal=1`; při chybějící zpracované metrice se dopočítá z návštěv a konverzí cíle.
 - `topSource`: hlavní zdroj návštěv v business-friendly názvu.
 - `sources`: detailnější rozpad návštěv a skutečných konverzí Goal `idGoal=1` podle zdrojů; nejde o poměrový odhad.
-- `funnel.viewed`: počet pageview zobrazení veřejného booking flow `/rezervace`; backend ho skládá z Matomo page URL reportu, ne z custom eventu.
-- `funnel.service`: počet průchodů krokem výběru služby.
-- `funnel.term`: počet průchodů krokem skutečně vybraného termínu; interně vychází z eventu `Rezervace / Čas vybrán`.
-- `funnel.contact`: počet vstupů do kontaktního kroku; interně vychází z eventu `Rezervace / Kontakt zahájen`.
-- `funnel.submitted`: počet submit pokusů veřejné rezervace před server action zpracováním.
-- `funnel.created`: počet klientských eventů `Rezervace / Vytvořena`; slouží jako technický konec funnelu a nemusí se rovnat `conversions` z Matomo Goal.
 - `contactStepQuality.started`: kolikrát uživatelka vstoupila do kontaktního kroku.
 - `contactStepQuality.fieldFocus`: kolikrát dostalo fokus první relevantní kontaktní pole.
 - `contactStepQuality.fieldInputStarted`: kolikrát uživatelka skutečně začala psát do kontaktního pole.

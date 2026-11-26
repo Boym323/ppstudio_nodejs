@@ -22,6 +22,7 @@ const analyticsFallback = {
     submitted: 0,
     created: 0,
   },
+  funnel: { viewed: 0, service: 0, term: 0, contact: 0, submitted: 0, created: 0 },
   contactStepQuality: {
     started: 0,
     fieldFocus: 0,
@@ -85,10 +86,16 @@ export function createAdminAnalyticsRouteApi(
 
         const analytics = await dependencies.getDashboardAnalytics();
 
+        const { started, ...steps } = analytics.bookingActivity;
+        const reportingMessage = analytics.reportingStatus === "partial"
+          ? "Matomo nevrátilo sjednocené počty pro některé rezervační události. Zobrazené počty mohou být nižší než skutečné."
+          : undefined;
+
         return NextResponse.json(
           {
             ...analytics,
-            reportingStatus: "ok",
+            funnel: { viewed: started || analytics.bookingPageviews, ...steps },
+            reportingMessage,
           },
           { status: 200 },
         );

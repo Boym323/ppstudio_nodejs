@@ -205,6 +205,7 @@ export function ServiceDetailPage({ service }: { service: Service }) {
         primaryCta={{ href: `/rezervace?service=${encodeURIComponent(service.slug)}`, label: 'Rezervovat službu' }}
         secondaryCta={{ href: '/sluzby', label: 'Zpět na všechny služby' }}
         trackingPage="service_detail"
+        trackingDetail={service.slug}
       />
       {service.heroImage ? <section className="bg-[#f8f2eb] pb-2"><Container><div className="relative aspect-[16/7] overflow-hidden rounded-[var(--radius-panel)] bg-[var(--color-surface)]"><Image src={service.heroImage.src} alt={service.heroImage.alt} fill className="object-cover" sizes="(min-width: 1280px) 1200px, 100vw" priority /></div></Container></section> : null}
       <section className="py-10 sm:py-14 lg:py-16">

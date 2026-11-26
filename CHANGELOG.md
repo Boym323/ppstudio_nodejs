@@ -8,7 +8,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Zabezpečení
 
-- Analytické URL při ověření poukazu a přechodu do rezervace vynechávají kód poukazu.
+- Matomo z odkazující URL dostává jen původ webu, takže nepřebírá cestu, kód poukazu ani další citlivé parametry.
 
 ### Změněno
 
@@ -16,14 +16,14 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Přidáno
 
-- Kliknutí na rezervační CTA v hlavičce, mobilní variantě hlavičky, kontaktní liště, ověření poukazu a návratu ze storna se nyní měří v Matomo bez odesílání citlivých údajů.
+- Matomo zaznamená aktivaci rezervačního odkazu podle stránky, umístění a případně služby. Měření pokrývá i hlavní tlačítka úvodní stránky, ceník a detaily služeb.
 - Výběr služby bez dostupného termínu se jednou za výběr anonymně zaznamená v Matomo pod veřejným slugem služby i při plné obsazenosti nebo blokaci všech časů pravidlem pro oběd.
 
 ### Opraveno
 
 - Rezervační formulář při hydrataci zachovává stejný počet doporučených termínů a na desktopu měří jejich první zobrazení jen jednou. Zpráva o obnově konceptu již neposouvá formulář.
 - Rezervace umožňuje vybrat jinou službu nebo kontaktovat studio i při nulové dostupnosti termínů.
-- Analytický dashboard odděluje zobrazení stránky rezervace od návštěv s rezervačními událostmi, události počítá podle návštěv a výslovně je označuje jako nezávislé agregáty; konverze nadále vycházejí z Matomo cíle.
+- Analytický dashboard odděluje zobrazení stránky rezervace od návštěv s rezervačními událostmi a výslovně je označuje jako nezávislé agregáty. Historické a současné názvy událostí se nepřičítají dvakrát. Pokud jejich sjednocený počet chybí, dashboard upozorní na neúplná data. Konverze nadále vycházejí z Matomo cíle a administrační API vrací pole `funnel`.
 - Zdroj zahájení rezervace se nyní přiřazuje podle stránky a CTA, včetně katalogu služeb, kontaktu, studia a FAQ; předvybraná služba ani UTM parametry jej nemění.
 
 ## [3.42.0] - 2026-11-25

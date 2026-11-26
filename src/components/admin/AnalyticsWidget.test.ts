@@ -33,6 +33,7 @@ test("isAnalyticsDashboardData přijme payload s contactStepQuality", () => {
   } satisfies Record<string, unknown>;
 
   assert.equal(isAnalyticsDashboardData(payload), true);
+  assert.equal(isAnalyticsDashboardData({ ...payload, reportingStatus: "partial" }), true);
 });
 
 test("isAnalyticsDashboardData odmítne payload bez contactStepQuality", () => {

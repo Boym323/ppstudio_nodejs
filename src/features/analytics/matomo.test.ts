@@ -3,6 +3,7 @@ import test, { after, afterEach } from "node:test";
 
 import {
   buildSafeMatomoPath,
+  buildSafeMatomoReferrer,
   claimMatomoPageview,
   ensureMatomoTrackingPath,
   trackBookingEvent,
@@ -132,6 +133,18 @@ test("analytická URL odstraní kód poukazu při ověření i při přechodu do
   assert.equal(bookingParams.get("voucher"), "PP-2026-ABCDEF");
 });
 
+test("analytická URL zachová atribuční parametry a vyřadí citlivé hodnoty podle původních pravidel", () => {
+  const params = new URLSearchParams("service=lash-lifting&source=homepage&utm_source=facebook&email=jana%40example.com&note=private");
+  assert.equal(buildSafeMatomoPath("/rezervace", params), "/rezervace?service=lash-lifting&source=homepage&utm_source=facebook");
+});
+
+test("Matomo referrer zachová jen původ HTTP(S)", () => {
+  assert.equal(buildSafeMatomoReferrer("https://example.test/vouchery/overeni?code=SYNTHETIC#private"), "https://example.test/");
+  assert.equal(buildSafeMatomoReferrer(""), "");
+  assert.equal(buildSafeMatomoReferrer("file:///private"), "");
+  assert.equal(buildSafeMatomoReferrer("invalid"), "");
+});
+
 test("trackMatomoEvent allows safe storno actions but still blocks raw token paths", () => {
   setMatomoConfigured();
 
@@ -209,11 +222,12 @@ test("trackBookingEvent keeps the Čas vybrán funnel action with the detailed s
   ]);
 });
 
-test("ensureMatomoTrackingPath bootstraps safe token route without pageview", () => {
+test("ensureMatomoTrackingPath bootstraps token route without pageview", () => {
   setMatomoConfigured();
 
   const calls: unknown[][] = [];
   setMockWindow({
+    document: { referrer: "https://example.test/vouchery/overeni?code=SYNTHETIC" } as Document,
     _paq: {
       push(payload: unknown[]) {
         calls.push(payload);
@@ -227,6 +241,7 @@ test("ensureMatomoTrackingPath bootstraps safe token route without pageview", ()
   assert.deepEqual(calls, [
     ["setTrackerUrl", "https://matomo.example.com/matomo.php"],
     ["setSiteId", "1"],
+    ["setReferrerUrl", "https://example.test/"],
     ["enableHeartBeatTimer", 15],
     ["enableLinkTracking"],
     ["setCustomUrl", "/rezervace/storno/[token]"],

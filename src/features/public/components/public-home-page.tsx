@@ -91,7 +91,7 @@ export async function PublicHomePage({
 
   return (
     <div className="pb-8 sm:pb-12">
-      <PublicHero {...heroContent} />
+      <PublicHero {...heroContent} trackingPage="homepage" />
       <TrustStrip metrics={trustMetrics} />
 
       <section className="py-10 sm:py-14 lg:py-16">

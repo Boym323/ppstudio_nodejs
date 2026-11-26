@@ -154,7 +154,7 @@ Děkuji.`);
                 { question: "Jak lze poukaz zaplatit?", answer: "Poukaz můžete zaplatit hotově nebo bankovním převodem." },
                 { question: "Lze poukaz na hodnotu čerpat postupně nebo použít na dražší službu?", answer: "Ano. Hodnotu lze čerpat postupně při více návštěvách. Pokud cena služby převýší zbývající hodnotu poukazu, rozdíl doplatíte." },
                 { question: "Jak poznám, že je poukaz platný?", answer: "Každý poukaz má vlastní kód, jehož stav můžete bezpečně ověřit online. Ověřením poukaz nečerpáte." },
-                { question: "Jak se poukaz používá?", answer: <>Při <Link href="/rezervace?source=voucher" className="underline decoration-[var(--color-accent)] underline-offset-4 hover:text-[var(--color-foreground)]">online rezervaci</Link> můžete uvést jeho kód. Uplatníte ho při návštěvě studia.</> },
+                { question: "Jak se poukaz používá?", answer: <>Při <ActionLink href="/rezervace" trackingPage="voucher" trackingLocation="FAQ" className="underline decoration-[var(--color-accent)] underline-offset-4 hover:text-[var(--color-foreground)]">online rezervaci</ActionLink> můžete uvést jeho kód. Uplatníte ho při návštěvě studia.</> },
               ].map((item) => (
                 <details key={item.question} className="rounded-[calc(var(--radius-panel)-0.5rem)] border border-black/8 bg-white/65 px-5 py-4">
                   <summary className="cursor-pointer list-none pr-6 font-medium text-[var(--color-foreground)]">{item.question}</summary>

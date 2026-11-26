@@ -45,6 +45,7 @@ test("GET returns independent booking aggregates and contactStepQuality when rep
   assert.equal(response.status, 200);
   assert.equal(payload.reportingStatus, "blocked");
   assert.equal(payload.bookingPageviews, 0);
+  assert.deepEqual(payload.funnel, { viewed: 0, service: 0, term: 0, contact: 0, submitted: 0, created: 0 });
   assert.deepEqual(payload.bookingActivity, {
     started: 0,
     service: 0,
@@ -116,4 +117,34 @@ test("GET notifies owner when analytics backend throws unexpected error", async 
     adminUserId: "admin-2",
     role: AdminRole.SALON,
   });
+});
+
+test("GET keeps the legacy funnel alongside the new metrics", async () => {
+  const { createAdminAnalyticsRouteApi } = await import("./admin-analytics-route-api");
+  const bookingActivity = { started: 0, service: 3, term: 2, contact: 2, submitted: 1, created: 1 };
+  const api = createAdminAnalyticsRouteApi({
+    getSession: async () => ({
+      sub: "admin-1", role: AdminRole.OWNER, email: "owner@example.com", name: "Owner", iat: 1, exp: 999999,
+    }),
+    getMatomoReportingHealth: async () => ({ status: "ok" }),
+    getDashboardAnalytics: async () => ({
+      reportingStatus: "partial",
+      periodLabel: "Dnes", visits: 10, conversions: 1, conversionRate: 10,
+      topSource: "Přímý vstup", sources: [], bookingPageviews: 5, bookingActivity,
+      contactStepQuality: {
+        started: 2, fieldFocus: 2, fieldInputStarted: 2, fieldError: 0, focusRate: 100, inputRate: 100, errorRate: 0,
+      },
+    }),
+    notifySystemError: async () => { throw new Error("Unexpected notification"); },
+    logAnalyticsError: () => { throw new Error("Unexpected error"); },
+  });
+
+  const response = await api.GET();
+  const payload = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(payload.reportingStatus, "partial");
+  assert.match(payload.reportingMessage, /mohou být nižší/);
+  assert.equal(payload.bookingPageviews, 5);
+  assert.deepEqual(payload.bookingActivity, bookingActivity);
+  assert.deepEqual(payload.funnel, { viewed: 5, service: 3, term: 2, contact: 2, submitted: 1, created: 1 });
 });

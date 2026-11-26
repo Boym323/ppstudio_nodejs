@@ -24,6 +24,7 @@ export type MatomoReportingHealth = {
 };
 
 export type DashboardAnalytics = {
+  reportingStatus: "ok" | "partial" | "error";
   periodLabel: string;
   visits: number;
   conversions: number;
@@ -55,6 +56,7 @@ const BOOKING_GOAL_ID = "1";
 const DASHBOARD_ANALYTICS_PERIOD_LABEL = "Dnes";
 const DEFAULT_VISITS: MatomoVisits = { nb_visits: 0 };
 const DEFAULT_DASHBOARD_ANALYTICS: DashboardAnalytics = {
+  reportingStatus: "error",
   periodLabel: DASHBOARD_ANALYTICS_PERIOD_LABEL,
   visits: 0,
   conversions: 0,
@@ -100,7 +102,6 @@ const bookingFunnelLegacyAliases = {
 } as const;
 
 const bookingContactQualityLabels = {
-  started: "Rezervace / Kontakt zahájen",
   fieldFocus: "Rezervace / Kontakt pole fokus",
   fieldInputStarted: "Rezervace / Kontaktní pole zahájeno",
   fieldError: "Rezervace / Kontakt pole chyba",
@@ -204,9 +205,8 @@ function normalizeVisitsPayload(payload: unknown): MatomoVisits {
     return DEFAULT_VISITS;
   }
 
-  return {
-    nb_visits: toFiniteNumber((payload as Record<string, unknown>).nb_visits),
-  };
+  const { nb_visits, value } = payload as Record<string, unknown>;
+  return { nb_visits: toFiniteNumber(nb_visits ?? value) };
 }
 
 function normalizeGoalPayload(payload: unknown): MatomoGoal {
@@ -283,13 +283,26 @@ async function fetchMatomoJson(
   return payload;
 }
 
-function getEventCount(events: MatomoEvent[], fullLabel: string, legacyFullLabels: readonly string[] = []) {
-  const candidateLabels = [fullLabel, ...legacyFullLabels];
-  const candidateActionLabels = candidateLabels.map((label) => label.split(" / ")[1] ?? label);
+async function getEventCount(events: MatomoEvent[], fullLabel: string, legacyFullLabels: readonly string[] = []) {
+  const labels = new Set([fullLabel, ...legacyFullLabels].flatMap((label) => [
+    label,
+    label.split(" / ")[1] ?? label,
+  ]));
+  const matchingEvents = events.filter((event) => labels.has(event.label) && event.nb_visits > 0);
+  const lowerBound = Math.max(0, ...matchingEvents.map((event) => event.nb_visits));
 
-  return events
-    .filter((event) => candidateLabels.includes(event.label) || candidateActionLabels.includes(event.label))
-    .reduce((sum, event) => sum + event.nb_visits, 0);
+  if (new Set(matchingEvents.map((event) => event.label)).size < 2) {
+    return { count: lowerBound, partial: false };
+  }
+
+  // Jeden segment se sjednocením akcí na úrovni návštěvy. Součty řádků
+  // Events.getAction by započítaly návštěvu s oběma akcemi dvakrát.
+  const result = await fetchMatomoJson("VisitsSummary.get", {
+    columns: "nb_visits",
+    segment: [...labels].map((label) => `eventAction==${encodeURIComponent(label)}`).join(","),
+  });
+  const count = normalizeVisitsPayload(result).nb_visits;
+  return { count: Math.max(lowerBound, count), partial: count < lowerBound };
 }
 
 export async function fetchVisits(): Promise<MatomoVisits> {
@@ -439,23 +452,22 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
 
     const visits = visitsSummary.nb_visits;
     const bookingPageviews = getBookingFlowPageviewCount(pageUrls);
-    const bookingActivity = {
-      started: getEventCount(events, bookingEventLabels.started, bookingFunnelLegacyAliases.started),
-      service: getEventCount(events, bookingEventLabels.service, bookingFunnelLegacyAliases.service),
-      term: getEventCount(events, bookingEventLabels.term, bookingFunnelLegacyAliases.term),
-      contact: getEventCount(events, bookingEventLabels.contact, bookingFunnelLegacyAliases.contact),
-      submitted: getEventCount(events, bookingEventLabels.submitted, bookingFunnelLegacyAliases.submitted),
-      created: getEventCount(events, bookingEventLabels.created, bookingFunnelLegacyAliases.created),
-    };
+    const eventCounts = await Promise.all([
+      getEventCount(events, bookingEventLabels.started, bookingFunnelLegacyAliases.started),
+      getEventCount(events, bookingEventLabels.service, bookingFunnelLegacyAliases.service),
+      getEventCount(events, bookingEventLabels.term, bookingFunnelLegacyAliases.term),
+      getEventCount(events, bookingEventLabels.contact, bookingFunnelLegacyAliases.contact),
+      getEventCount(events, bookingEventLabels.submitted, bookingFunnelLegacyAliases.submitted),
+      getEventCount(events, bookingEventLabels.created, bookingFunnelLegacyAliases.created),
+      getEventCount(events, bookingContactQualityLabels.fieldFocus),
+      getEventCount(events, bookingContactQualityLabels.fieldInputStarted),
+      getEventCount(events, bookingContactQualityLabels.fieldError),
+    ]);
+    const [started, service, term, contact, submitted, created, contactFieldFocus, contactFieldInputStarted, contactFieldError] =
+      eventCounts.map(({ count }) => count);
+    const bookingActivity = { started, service, term, contact, submitted, created };
     const conversions = bookingGoal.nb_conversions;
-    const contactStepStarted = getEventCount(
-      events,
-      bookingContactQualityLabels.started,
-      bookingFunnelLegacyAliases.contact,
-    );
-    const contactFieldFocus = getEventCount(events, bookingContactQualityLabels.fieldFocus);
-    const contactFieldInputStarted = getEventCount(events, bookingContactQualityLabels.fieldInputStarted);
-    const contactFieldError = getEventCount(events, bookingContactQualityLabels.fieldError);
+    const contactStepStarted = contact;
     const topReferrer = referrers.reduce<MatomoReferrer | null>(
       (top, referrer) => (!top || referrer.nb_visits > top.nb_visits ? referrer : top),
       null,
@@ -467,6 +479,7 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
     const errorRate = contactStepStarted > 0 ? Math.round((contactFieldError / contactStepStarted) * 10000) / 100 : 0;
 
     return {
+      reportingStatus: eventCounts.some(({ partial }) => partial) ? "partial" : "ok",
       periodLabel: DASHBOARD_ANALYTICS_PERIOD_LABEL,
       visits,
       conversions,

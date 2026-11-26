@@ -24,7 +24,6 @@ declare global {
     _paq?: Array<unknown[]>;
     __matomoTrackerConfigured?: boolean;
     __matomoTrackedPath?: string;
-    __matomoBootstrapPath?: string;
     __matomoLastPageviewPath?: string;
   }
 }
@@ -38,6 +37,38 @@ type SearchParamsLike = {
   size: number;
   forEach(callback: (value: string, key: string) => void): void;
 };
+
+const pageLabels: ReadonlyMap<string, string> = new Map([
+  ["/", "homepage"],
+  ["/cenik", "cenik"],
+  ["/sluzby", "sluzby"],
+  ["/sluzby/[slug]", "service_detail"],
+  ["/kontakt", "kontakt"],
+  ["/studio", "studio"],
+  ["/o-salonu", "studio"],
+  ["/o-mne", "o-mne"],
+  ["/faq", "faq"],
+  ["/vouchery", "voucher"],
+  ["/vouchery/overeni", "voucher"],
+  ["/rezervace", "rezervace"],
+  ["/gdpr", "gdpr"],
+  ["/storno-podminky", "storno-podminky"],
+  ["/obchodni-podminky", "obchodni-podminky"],
+]);
+
+export function getMatomoPageLabel(pathname: string | null) {
+  return pageLabels.get(getSafeMatomoPathname(pathname ?? "/")) ?? "other";
+}
+
+function getSafeMatomoPathname(pathname: string) {
+  const path = pathname.replace(/\/$/, "") || "/";
+  if (pageLabels.has(path)) return path;
+  if (path.startsWith("/sluzby/")) return "/sluzby/[slug]";
+  if (path.startsWith("/rezervace/storno/")) return "/rezervace/storno/[token]";
+  if (path.startsWith("/rezervace/sprava/")) return "/rezervace/sprava/[token]";
+  if (path.startsWith("/rezervace/akce/")) return "/rezervace/akce/[intent]/[token]";
+  return "/ostatni";
+}
 
 export function isMatomoConfigured() {
   return (
@@ -129,40 +160,35 @@ export function shouldInitializeMatomoTracking(
 }
 
 export function buildSafeMatomoPath(pathname: string, searchParams?: SearchParamsLike | null) {
-  if (pathname.startsWith("/rezervace/sprava/")) {
-    return "/rezervace/sprava/[token]";
-  }
-
-  if (pathname.startsWith("/rezervace/storno/")) {
-    return "/rezervace/storno/[token]";
-  }
-
-  if (pathname.startsWith("/rezervace/akce/")) {
-    return "/rezervace/akce/[intent]/[token]";
-  }
-
-  if (!searchParams || searchParams.size === 0) {
-    return pathname;
-  }
+  if (pathname.startsWith("/rezervace/sprava/")) return "/rezervace/sprava/[token]";
+  if (pathname.startsWith("/rezervace/storno/")) return "/rezervace/storno/[token]";
+  if (pathname.startsWith("/rezervace/akce/")) return "/rezervace/akce/[intent]/[token]";
+  if (!searchParams || searchParams.size === 0) return pathname;
 
   const safeSearchParams = new URLSearchParams();
   const sensitiveKeys = /^(?:code|voucher)$|token|email|e-mail|mail|phone|telefon|tel|name|jmeno|client|note|poznam/i;
 
   searchParams.forEach((value, key) => {
-    if (sensitiveKeys.test(key) || sensitivePathValuePattern.test(value)) {
-      return;
-    }
-
+    if (sensitiveKeys.test(key) || sensitivePathValuePattern.test(value)) return;
     safeSearchParams.set(key, value);
   });
 
   const queryString = safeSearchParams.toString();
-
   return queryString ? `${pathname}?${queryString}` : pathname;
 }
 
 function isSafeEventLabel(value: string) {
   return !sensitiveEventLabelPattern.test(value);
+}
+
+export function buildSafeMatomoReferrer(referrer: string) {
+  if (!referrer) return "";
+  try {
+    const url = new URL(referrer);
+    return url.protocol === "https:" || url.protocol === "http:" ? `${url.origin}/` : "";
+  } catch {
+    return "";
+  }
 }
 
 export function ensureMatomoTrackingPath(path: string, options?: { trackPageView?: boolean }) {
@@ -181,11 +207,12 @@ export function ensureMatomoTrackingPath(path: string, options?: { trackPageView
       const trackerUrl = normalizeMatomoUrl(process.env.NEXT_PUBLIC_MATOMO_URL ?? "");
       queue.push(["setTrackerUrl", `${trackerUrl}matomo.php`]);
       queue.push(["setSiteId", process.env.NEXT_PUBLIC_MATOMO_SITE_ID ?? ""]);
+      queue.push(["setReferrerUrl", buildSafeMatomoReferrer(window.document.referrer)]);
       queue.push(["enableHeartBeatTimer", 15]);
       queue.push(["enableLinkTracking"]);
     }
 
-    if (window.__matomoTrackedPath !== path) {
+    if (options?.trackPageView || window.__matomoTrackedPath !== path) {
       queue.push(["setCustomUrl", path]);
     }
 
@@ -249,8 +276,8 @@ export function trackBookingEvent(
   trackMatomoEvent("Rezervace", action, name);
 }
 
-export function trackReservationCtaClick(location: string) {
-  trackMatomoEvent("CTA", "Rezervace klik", location);
+export function trackReservationCtaClick(location: string, page: string, detail?: string) {
+  trackMatomoEvent("CTA", "Rezervace klik", [page, location, detail].filter(Boolean).join(" | "));
 }
 
 export function trackContactCtaClick(type: "phone" | "email" | "instagram" | "contact form" | "map", location: string) {

@@ -17,6 +17,7 @@ export function PublicHero({
   primaryCta,
   secondaryCta,
   trackingPage,
+  trackingDetail,
   aside,
 }: {
   eyebrow: string;
@@ -30,6 +31,7 @@ export function PublicHero({
   primaryCta?: { href: string; label: string };
   secondaryCta?: { href: string; label: string; variant?: "button" | "text" };
   trackingPage?: string;
+  trackingDetail?: string;
   aside?: ReactNode;
 }) {
   const isHomepageStyle = Boolean(logoImage && portraitImage);
@@ -81,6 +83,7 @@ export function PublicHero({
                     href={primaryCta.href}
                     trackingLocation="hero"
                     trackingPage={trackingPage ?? eyebrow.toLowerCase()}
+                    trackingDetail={trackingDetail}
                     className="inline-flex min-h-13 items-center justify-center rounded-full bg-[var(--color-foreground)] px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-[#2c221d] sm:text-sm"
                   >
                     {primaryCta.label}
@@ -91,6 +94,7 @@ export function PublicHero({
                     href={secondaryCta.href}
                     trackingLocation="hero"
                     trackingPage={trackingPage ?? eyebrow.toLowerCase()}
+                    trackingDetail={trackingDetail}
                     className={secondaryCta.variant === "text"
                       ? "text-sm font-medium text-[var(--color-accent-contrast)] underline decoration-[var(--color-accent)] underline-offset-4 transition hover:text-[var(--color-foreground)]"
                       : "inline-flex min-h-13 items-center justify-center rounded-full border border-black/10 bg-white/75 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:border-black/20 hover:bg-white sm:text-sm"}
@@ -140,13 +144,15 @@ export function ActionLink({
   href,
   className,
   trackingLocation = "hero",
-  trackingPage = "public",
+  trackingPage,
+  trackingDetail,
   children,
 }: {
   href: string;
   className: string;
   trackingLocation?: string;
   trackingPage?: string;
+  trackingDetail?: string;
   children: ReactNode;
 }) {
   if (href.startsWith("mailto:")) {
@@ -181,11 +187,11 @@ export function ActionLink({
     );
   }
 
-  if (href.startsWith("/rezervace")) {
+  if (/^\/rezervace\/?(?:[?#]|$)/.test(href)) {
     return (
       <TrackedLink
         href={href}
-        tracking={{ kind: "reservation", location: trackingLocation, page: trackingPage }}
+        tracking={{ kind: "reservation", location: trackingLocation, page: trackingPage, detail: trackingDetail }}
         className={className}
       >
         {children}

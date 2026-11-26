@@ -196,7 +196,6 @@ function VerificationResult({
           <TrackedLink
             href={`/rezervace?${bookingSearchParams.toString()}`}
             tracking={{ kind: "reservation", location: "ověření poukazu", page: "voucher" }}
-            trackReservationClick
             className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-foreground)] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#2c221d]"
           >
             Rezervovat termín

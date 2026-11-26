@@ -44,7 +44,7 @@ export function StudioHero({ photo }: { photo: PublicStudioPhoto | null }) {
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <TrackedLink
               href="/rezervace"
-              tracking={{ kind: 'reservation', location: 'studio', page: 'studio' }}
+              tracking={{ kind: 'reservation', location: 'hero', page: 'studio' }}
               className="inline-flex min-h-14 items-center justify-center rounded-full bg-[var(--color-foreground)] px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white shadow-[0_16px_36px_rgba(34,22,12,0.14)] hover:bg-[#2c221d] sm:text-sm"
             >
               Rezervovat termín
@@ -243,7 +243,7 @@ export function StudioFinalCta() {
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <TrackedLink
                 href="/rezervace"
-                tracking={{ kind: 'reservation', location: 'studio', page: 'studio' }}
+                tracking={{ kind: 'reservation', location: 'závěrečná sekce', page: 'studio' }}
                 className="inline-flex min-h-13 items-center justify-center rounded-full bg-white px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:bg-[#f8f2eb] sm:text-sm"
               >
                 Vybrat termín
