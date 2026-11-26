@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Opraveno
+
+- Zdroj zahájení rezervace se nyní přiřazuje podle stránky a CTA, včetně katalogu služeb, kontaktu, studia a FAQ; předvybraná služba ani UTM parametry jej nemění.
+
 ## [3.42.0] - 2026-11-25
 
 ### Změněno

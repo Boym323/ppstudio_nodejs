@@ -11,9 +11,13 @@ export type BookingFlowProps = {
 
 export type BookingEntrySource =
   | "service_detail"
+  | "service_catalog"
   | "price_list"
   | "homepage"
   | "voucher"
+  | "contact"
+  | "studio"
+  | "faq"
   | "direct_booking"
   | "other";
 

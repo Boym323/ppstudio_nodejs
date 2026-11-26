@@ -160,7 +160,7 @@ function VerificationResult({
     );
   }
 
-  const bookingSearchParams = new URLSearchParams({ voucher: result.code });
+  const bookingSearchParams = new URLSearchParams({ voucher: result.code, source: "voucher" });
 
   if (result.type === VoucherType.SERVICE && result.serviceSlug) {
     bookingSearchParams.set("service", result.serviceSlug);
