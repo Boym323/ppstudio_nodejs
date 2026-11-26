@@ -551,7 +551,7 @@ test.describe("rezervační toky", () => {
     await expect(page.getByRole("heading", { name: "Kontaktní údaje" })).toBeVisible();
     await expect(page.getByText("Zadejte platný e-mail.", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Zobrazit souhrn" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Odeslat rezervaci" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Odeslat rezervaci" })).toBeDisabled();
     const slotId = await page.locator('input[name="slotId"]').inputValue();
     expect(await prisma.booking.count({ where: { slotId } })).toBe(0);
   });
