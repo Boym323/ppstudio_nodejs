@@ -6,6 +6,10 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+### Přidáno
+
+- Kliknutí na rezervační CTA v hlavičce, mobilní variantě hlavičky, kontaktní liště, ověření poukazu a návratu ze storna se nyní měří v Matomo bez odesílání citlivých údajů.
+
 ### Opraveno
 
 - Zdroj zahájení rezervace se nyní přiřazuje podle stránky a CTA, včetně katalogu služeb, kontaktu, studia a FAQ; předvybraná služba ani UTM parametry jej nemění.

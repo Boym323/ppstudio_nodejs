@@ -6,11 +6,11 @@ Každý prompt spusť samostatně a dokonči jeho kontrolu před pokračováním
 
 Zpřísni sanitizaci URL odesílaných do Matomo. Zachovávej pouze výslovně povolené parametry kampaní a rezervace, ověřuj bezpečný formát `service` a `source` a odstraňuj hodnoty připomínající osobní údaje nebo kódy poukazů. Zachovej původní navigační URL pro rezervační formulář. Doplň cílené testy.
 
-## 2. Připsání zdroje rezervace
+## 2. Připsání zdroje rezervace - hotovo
 
 Oprav určování `source` při přechodu do rezervace tak, aby vycházelo ze stránky a kontextu CTA, nikoli z přítomnosti předvybrané služby nebo UTM parametrů. Pokryj homepage, detail/katalog služeb, ceník, voucher, kontakt, studio, FAQ a ostatní vstupy. Doplň testy.
 
-## 3. Měření rezervačních CTA
+## 3. Měření rezervačních CTA - hotovo
 
 Přidej měření kliknutí na rezervační CTA přes stávající českou taxonomii Matomo. Zachovej stávající navigaci a obsluhu `onClick`. Zahrň hlavičku a mobilní navigaci, rezervační lištu, ověření poukazu a návrat ze storna. Nepřidávej CTA na homepage, do patičky ani na karty služeb.
 

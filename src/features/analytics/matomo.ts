@@ -248,6 +248,10 @@ export function trackBookingEvent(
   trackMatomoEvent("Rezervace", action, name);
 }
 
+export function trackReservationCtaClick(location: string) {
+  trackMatomoEvent("CTA", "Rezervace klik", location);
+}
+
 export function trackContactCtaClick(type: "phone" | "email" | "instagram" | "contact form" | "map", location: string) {
   trackMatomoEvent("CTA", "Kontakt klik", `${type} ${location}`);
 }

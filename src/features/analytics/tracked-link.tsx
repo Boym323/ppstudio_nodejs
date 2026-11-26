@@ -6,7 +6,7 @@ import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { ObfuscatedEmailLink } from "@/components/ui/obfuscated-email-link";
 import { buildBookingEntryHref } from "@/features/booking/lib/booking-entry-source";
 
-import { trackContactCtaClick } from "./matomo";
+import { trackContactCtaClick, trackReservationCtaClick } from "./matomo";
 
 type Tracking =
   | {
@@ -23,6 +23,7 @@ type Tracking =
 type TrackedLinkProps = Omit<ComponentPropsWithoutRef<typeof Link>, "href" | "onClick"> & {
   href: string;
   tracking: Tracking;
+  trackReservationClick?: boolean;
   children: ReactNode;
 };
 
@@ -38,7 +39,7 @@ function getBookingHref(tracking: Extract<Tracking, { kind: "reservation" }>, hr
   return buildBookingEntryHref(href, tracking.page);
 }
 
-export function TrackedLink({ tracking, children, ...props }: TrackedLinkProps) {
+export function TrackedLink({ tracking, trackReservationClick = false, children, ...props }: TrackedLinkProps) {
   const prefetch = props.prefetch ?? (tracking.kind === "reservation" ? false : undefined);
   const href = tracking.kind === "reservation" ? getBookingHref(tracking, props.href) : props.href;
 
@@ -49,6 +50,9 @@ export function TrackedLink({ tracking, children, ...props }: TrackedLinkProps) 
       prefetch={prefetch}
       onClick={() => {
         trackClick(tracking);
+        if (tracking.kind === "reservation" && trackReservationClick) {
+          trackReservationCtaClick(tracking.location);
+        }
       }}
     >
       {children}

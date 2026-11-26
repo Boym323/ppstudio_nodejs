@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef } from "react";
 
 import { cancelPublicBookingAction } from "@/features/booking/actions/cancel-public-booking";
 import { initialCancelPublicBookingActionState } from "@/features/booking/actions/cancel-public-booking-action-state";
-import { ensureMatomoTrackingPath, trackMatomoEvent } from "@/features/analytics/matomo";
+import { ensureMatomoTrackingPath, trackMatomoEvent, trackReservationCtaClick } from "@/features/analytics/matomo";
 import type { PublicCancellationPageState } from "@/features/booking/lib/booking-cancellation";
 
 type CancellationPanelProps = {
@@ -138,6 +138,7 @@ export function CancellationPanel({ token, initialState }: CancellationPanelProp
         </button>
         <a
           href="/rezervace"
+          onClick={() => trackReservationCtaClick("návrat ze storna")}
           className="inline-flex min-h-13 items-center justify-center rounded-full border border-black/10 bg-white/75 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:border-black/20 hover:bg-white sm:text-sm"
         >
           Zpět na rezervaci

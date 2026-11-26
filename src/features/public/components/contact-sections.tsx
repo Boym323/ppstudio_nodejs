@@ -504,6 +504,7 @@ export function ContactMobileStickyCTA({ phone, email }: ContactMobileStickyCTAP
         <TrackedLink
           href="/rezervace"
           tracking={{ kind: 'reservation', location: 'sticky CTA', page: 'kontakt' }}
+          trackReservationClick
           className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full bg-[var(--color-foreground)] px-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white"
         >
           Rezervovat

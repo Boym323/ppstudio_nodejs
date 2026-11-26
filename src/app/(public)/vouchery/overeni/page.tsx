@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 
 import { Container } from "@/components/ui/container";
+import { TrackedLink } from "@/features/analytics/tracked-link";
 import { normalizeVoucherCode } from "@/features/vouchers/lib/voucher-code";
 import {
   getPublicVoucherAdminActivation,
@@ -191,12 +192,14 @@ function VerificationResult({
           Chcete si domluvit termín pro uplatnění poukazu?
         </p>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-          <Link
+          <TrackedLink
             href={`/rezervace?${bookingSearchParams.toString()}`}
+            tracking={{ kind: "reservation", location: "ověření poukazu", page: "voucher" }}
+            trackReservationClick
             className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--color-foreground)] px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#2c221d]"
           >
             Rezervovat termín
-          </Link>
+          </TrackedLink>
           <a
             href={studioMessageHref}
             className="inline-flex min-h-11 items-center justify-center rounded-full border border-black/12 bg-white px-5 py-3 text-center text-sm font-semibold text-[var(--color-foreground)] transition hover:border-[var(--color-accent)]"
