@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 export type AnalyticsDashboardData = {
   reportingStatus: "ok" | "partial" | "disabled" | "blocked" | "error";
   reportingMessage?: string;
+  bookingEventsAvailable?: boolean;
   periodLabel: string;
   visits: number;
   conversions: number;
@@ -77,6 +78,7 @@ export function isAnalyticsDashboardData(value: unknown): value is AnalyticsDash
     Number.isFinite(candidate.conversions) &&
     Number.isFinite(candidate.conversionRate) &&
     Number.isFinite(candidate.bookingPageviews) &&
+    (candidate.bookingEventsAvailable === undefined || typeof candidate.bookingEventsAvailable === "boolean") &&
     ["ok", "partial", "disabled", "blocked", "error"].includes(String(candidate.reportingStatus)) &&
     (candidate.reportingMessage === undefined || typeof candidate.reportingMessage === "string") &&
     typeof candidate.periodLabel === "string" &&
@@ -292,32 +294,38 @@ export function AnalyticsWidget({
                   </p>
                   <div className="grid gap-2">
                     <AnalyticsRow label="Zobrazení stránky rezervace" value={state.data.bookingPageviews} />
-                    <AnalyticsRow label="Rezervace zahájena" value={state.data.bookingActivity.started} />
-                    <AnalyticsRow label="Služba vybrána" value={state.data.bookingActivity.service} />
-                    <AnalyticsRow label="Čas vybrán" value={state.data.bookingActivity.term} />
-                    <AnalyticsRow label="Kontakt zahájen" value={state.data.bookingActivity.contact} />
-                    <AnalyticsRow label="Odeslána rezervace" value={state.data.bookingActivity.submitted} />
-                    <AnalyticsRow label="Rezervace vytvořena (událost)" value={state.data.bookingActivity.created} />
+                    {state.data.bookingEventsAvailable !== false && (
+                      <>
+                        <AnalyticsRow label="Rezervace zahájena" value={state.data.bookingActivity.started} />
+                        <AnalyticsRow label="Služba vybrána" value={state.data.bookingActivity.service} />
+                        <AnalyticsRow label="Čas vybrán" value={state.data.bookingActivity.term} />
+                        <AnalyticsRow label="Kontakt zahájen" value={state.data.bookingActivity.contact} />
+                        <AnalyticsRow label="Odeslána rezervace" value={state.data.bookingActivity.submitted} />
+                        <AnalyticsRow label="Rezervace vytvořena (událost)" value={state.data.bookingActivity.created} />
+                      </>
+                    )}
                   </div>
                 </div>
 
-                <div className="space-y-2 rounded-lg border border-white/8 bg-black/18 p-3">
-                  <p className="text-sm font-medium text-white">Kvalita kontaktního kroku</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <AnalyticsMetric label="zahájeno" value={formatNumber(state.data.contactStepQuality.started)} />
-                    <AnalyticsMetric label="fokus pole" value={formatNumber(state.data.contactStepQuality.fieldFocus)} />
-                    <AnalyticsMetric
-                      label="začátek vyplnění"
-                      value={formatNumber(state.data.contactStepQuality.fieldInputStarted)}
-                    />
-                    <AnalyticsMetric label="chyba pole" value={formatNumber(state.data.contactStepQuality.fieldError)} />
+                {state.data.bookingEventsAvailable !== false && (
+                  <div className="space-y-2 rounded-lg border border-white/8 bg-black/18 p-3">
+                    <p className="text-sm font-medium text-white">Kvalita kontaktního kroku</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <AnalyticsMetric label="zahájeno" value={formatNumber(state.data.contactStepQuality.started)} />
+                      <AnalyticsMetric label="fokus pole" value={formatNumber(state.data.contactStepQuality.fieldFocus)} />
+                      <AnalyticsMetric
+                        label="začátek vyplnění"
+                        value={formatNumber(state.data.contactStepQuality.fieldInputStarted)}
+                      />
+                      <AnalyticsMetric label="chyba pole" value={formatNumber(state.data.contactStepQuality.fieldError)} />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <AnalyticsMetric label="fokus %" value={formatPercent(state.data.contactStepQuality.focusRate)} />
+                      <AnalyticsMetric label="vyplnění %" value={formatPercent(state.data.contactStepQuality.inputRate)} />
+                      <AnalyticsMetric label="chyba %" value={formatPercent(state.data.contactStepQuality.errorRate)} />
+                    </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <AnalyticsMetric label="fokus %" value={formatPercent(state.data.contactStepQuality.focusRate)} />
-                    <AnalyticsMetric label="vyplnění %" value={formatPercent(state.data.contactStepQuality.inputRate)} />
-                    <AnalyticsMetric label="chyba %" value={formatPercent(state.data.contactStepQuality.errorRate)} />
-                  </div>
-                </div>
+                )}
               </div>
             </details>
           </div>

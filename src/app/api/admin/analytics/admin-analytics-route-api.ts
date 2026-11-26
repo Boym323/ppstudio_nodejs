@@ -87,7 +87,9 @@ export function createAdminAnalyticsRouteApi(
         const analytics = await dependencies.getDashboardAnalytics();
 
         const { started, ...steps } = analytics.bookingActivity;
-        const reportingMessage = analytics.reportingStatus === "partial"
+        const reportingMessage = analytics.bookingEventsAvailable === false
+          ? "Matomo teď neposkytuje údaje o rezervačních událostech a kvalitě kontaktního kroku."
+          : analytics.reportingStatus === "partial"
           ? "Matomo nevrátilo sjednocené počty pro některé rezervační události. Zobrazené počty mohou být nižší než skutečné."
           : undefined;
 

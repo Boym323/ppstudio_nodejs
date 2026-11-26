@@ -228,7 +228,8 @@ Poznámky:
 - route má `revalidate = 300`
 
 Vysvětlení polí:
-- `reportingStatus`: stav Matomo reportingu. `ok` znamená validní data. Při stavu `partial` chybí sjednocený počet pro některé události a použije se nejvyšší známý počet z jednoho řádku jako dolní mez. Ostatní stavy označují fallback nebo nedostupný reporting.
+- `reportingStatus`: stav Matomo reportingu. `ok` znamená validní data. Stav `partial` označuje výpadek reportu událostí nebo chybějící sjednocený počet. Ve druhém případě se použije nejvyšší známý počet z jednoho řádku jako dolní mez. Ostatní stavy označují fallback nebo nedostupný reporting.
+- Při `bookingEventsAvailable: false` obsahují `bookingActivity` a `contactStepQuality` zástupné nuly. Dashboard v takovém případě zobrazí upozornění a příslušné metriky skryje.
 - `bookingPageviews` je počet zobrazení stránky rezervace. `bookingActivity` uvádí počty návštěv s jednotlivými událostmi. Kroky mají samostatné agregáty a mohou se překrývat.
 - `funnel` zachovává původní kontrakt pro stávající klienty. `viewed` odpovídá `bookingActivity.started`, při nule přebírá `bookingPageviews`. Ostatní hodnoty přebírá z `bookingActivity`. Kompatibilní pole je přítomné i v odpovědi s nulovým fallbackem.
 - `periodLabel`: lidský popisek období, za které jsou čísla počítaná.

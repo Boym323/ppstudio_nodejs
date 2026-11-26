@@ -23,7 +23,7 @@ Formát je inspirovaný Keep a Changelog.
 
 - Rezervační formulář při hydrataci zachovává stejný počet doporučených termínů a na desktopu měří jejich první zobrazení jen jednou. Zpráva o obnově konceptu již neposouvá formulář.
 - Rezervace umožňuje vybrat jinou službu nebo kontaktovat studio i při nulové dostupnosti termínů.
-- Analytický dashboard odděluje zobrazení stránky rezervace od návštěv s rezervačními událostmi a výslovně je označuje jako nezávislé agregáty. Historické a současné názvy událostí se nepřičítají dvakrát. Pokud jejich sjednocený počet chybí, dashboard upozorní na neúplná data. Konverze nadále vycházejí z Matomo cíle a administrační API vrací pole `funnel`.
+- Analytický dashboard odděluje zobrazení stránky rezervace od návštěv s rezervačními událostmi a výslovně je označuje jako nezávislé agregáty. Historické a současné názvy událostí se nepřičítají dvakrát. Do počtu zobrazení zahrnuje i varianty rezervační URL za první stovkou řádků reportu. Při výpadku reportu událostí skryje nedostupné metriky a při chybějícím sjednoceném počtu upozorní na neúplná data. Konverze nadále vycházejí z Matomo cíle a administrační API vrací pole `funnel`.
 - Zdroj zahájení rezervace se nyní přiřazuje podle stránky a CTA, včetně katalogu služeb, kontaktu, studia a FAQ; předvybraná služba ani UTM parametry jej nemění.
 
 ## [3.42.0] - 2026-11-25

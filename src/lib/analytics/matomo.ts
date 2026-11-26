@@ -25,6 +25,7 @@ export type MatomoReportingHealth = {
 
 export type DashboardAnalytics = {
   reportingStatus: "ok" | "partial" | "error";
+  bookingEventsAvailable?: boolean;
   periodLabel: string;
   visits: number;
   conversions: number;
@@ -309,8 +310,11 @@ export async function fetchVisits(): Promise<MatomoVisits> {
   return normalizeVisitsPayload(await fetchMatomoJson("VisitsSummary.get"));
 }
 
-export async function fetchEvents(): Promise<MatomoEvent[]> {
-  return normalizeRows(await fetchMatomoJson("Events.getAction"), (row) => ({
+export async function fetchEvents(): Promise<MatomoEvent[] | null> {
+  const payload = await fetchMatomoJson("Events.getAction", { filter_limit: "-1" });
+  if (!Array.isArray(payload)) return null;
+
+  return normalizeRows(payload, (row) => ({
     label: String(row.label ?? ""),
     nb_visits: toFiniteNumber(row.nb_visits),
   }));
@@ -322,7 +326,7 @@ export async function fetchBookingGoal(): Promise<MatomoGoal> {
 
 export async function fetchPageUrls(): Promise<MatomoPageUrl[]> {
   return normalizeRows(
-    await fetchMatomoJson("Actions.getPageUrls", { flat: "1" }),
+    await fetchMatomoJson("Actions.getPageUrls", { flat: "1", filter_limit: "-1", showColumns: "label,nb_hits" }),
     (row) => ({
       label: String(row.label ?? ""),
       nb_hits: toFiniteNumber(row.nb_hits),
@@ -439,7 +443,7 @@ export async function getMatomoReportingHealth(): Promise<MatomoReportingHealth>
 
 export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
   try {
-    const [visitsSummary, bookingGoal, pageUrls, events, referrers, campaigns, searchEngines, socials] = await Promise.all([
+    const [visitsSummary, bookingGoal, pageUrls, eventReport, referrers, campaigns, searchEngines, socials] = await Promise.all([
       fetchVisits(),
       fetchBookingGoal(),
       fetchPageUrls(),
@@ -452,6 +456,7 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
 
     const visits = visitsSummary.nb_visits;
     const bookingPageviews = getBookingFlowPageviewCount(pageUrls);
+    const events = eventReport ?? [];
     const eventCounts = await Promise.all([
       getEventCount(events, bookingEventLabels.started, bookingFunnelLegacyAliases.started),
       getEventCount(events, bookingEventLabels.service, bookingFunnelLegacyAliases.service),
@@ -479,7 +484,8 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
     const errorRate = contactStepStarted > 0 ? Math.round((contactFieldError / contactStepStarted) * 10000) / 100 : 0;
 
     return {
-      reportingStatus: eventCounts.some(({ partial }) => partial) ? "partial" : "ok",
+      bookingEventsAvailable: eventReport !== null,
+      reportingStatus: eventReport === null || eventCounts.some(({ partial }) => partial) ? "partial" : "ok",
       periodLabel: DASHBOARD_ANALYTICS_PERIOD_LABEL,
       visits,
       conversions,
