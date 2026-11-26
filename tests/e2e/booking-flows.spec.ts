@@ -534,6 +534,28 @@ test.describe("rezervační toky", () => {
     fixtures = [];
   });
 
+  test("neplatný e-mail nepustí návštěvnici z kontaktního kroku", async ({ page }) => {
+    const fixture = await createPublicBookingFixture();
+    fixtures.push(fixture);
+
+    await page.goto(`/rezervace?service=${fixture.serviceSlug}`);
+    await expect(page.getByText(fixture.serviceName).first()).toBeVisible();
+    await clickUntilFocused(
+      page.getByRole("button", { name: /^Vybrat termín / }).first(),
+      page.getByLabel("Jméno a příjmení"),
+    );
+    await page.getByLabel("Jméno a příjmení").fill(fixture.clientName);
+    await page.getByRole("textbox", { name: "E-mail" }).fill("neplatny-email");
+    await page.getByRole("button", { name: "Zobrazit souhrn" }).click();
+
+    await expect(page.getByRole("heading", { name: "Kontaktní údaje" })).toBeVisible();
+    await expect(page.getByText("Zadejte platný e-mail.", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Zobrazit souhrn" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Odeslat rezervaci" })).toHaveCount(0);
+    const slotId = await page.locator('input[name="slotId"]').inputValue();
+    expect(await prisma.booking.count({ where: { slotId } })).toBe(0);
+  });
+
   test("veřejný návštěvník vytvoří čekající rezervaci", async ({ page }) => {
     const fixture = await createPublicBookingFixture();
     fixtures.push(fixture);

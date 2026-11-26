@@ -38,7 +38,7 @@ Umožni předat do rezervace termín přes validovaný `startsAt` spolu s vybran
 
 Když pro vybranou službu nejsou publikované volné termíny, nabídni kontaktování studia a změnu služby. Nezaměňuj nedostupnost jedné služby za globální nedostupnost. Ověř chování cíleným testem veřejného rezervačního toku.
 
-## 10. Validace e-mailu v rezervaci
+## 10. Validace e-mailu v rezervaci - hotovo
 
 Ověř, že neplatný e-mail zabrání přechodu k souhrnu a vytvoření rezervace, zobrazí českou validační chybu a ponechá klientku v kontaktním kroku. Použij pouze syntetická data a testovací transport.
 
