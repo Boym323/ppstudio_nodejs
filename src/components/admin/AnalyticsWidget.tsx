@@ -17,8 +17,9 @@ export type AnalyticsDashboardData = {
     visits: number;
     conversions: number;
   }[];
-  funnel: {
-    viewed: number;
+  bookingPageviews: number;
+  bookingActivity: {
+    started: number;
     service: number;
     term: number;
     contact: number;
@@ -58,23 +59,24 @@ export function isAnalyticsDashboardData(value: unknown): value is AnalyticsDash
   }
 
   const candidate = value as Record<string, unknown>;
-  const funnel = candidate.funnel;
+  const bookingActivity = candidate.bookingActivity;
   const contactStepQuality = candidate.contactStepQuality;
 
-  if (!funnel || typeof funnel !== "object" || Array.isArray(funnel)) {
+  if (!bookingActivity || typeof bookingActivity !== "object" || Array.isArray(bookingActivity)) {
     return false;
   }
   if (!contactStepQuality || typeof contactStepQuality !== "object" || Array.isArray(contactStepQuality)) {
     return false;
   }
 
-  const funnelCandidate = funnel as Record<string, unknown>;
+  const bookingActivityCandidate = bookingActivity as Record<string, unknown>;
   const contactStepQualityCandidate = contactStepQuality as Record<string, unknown>;
 
   return (
     Number.isFinite(candidate.visits) &&
     Number.isFinite(candidate.conversions) &&
     Number.isFinite(candidate.conversionRate) &&
+    Number.isFinite(candidate.bookingPageviews) &&
     ["ok", "disabled", "blocked", "error"].includes(String(candidate.reportingStatus)) &&
     (candidate.reportingMessage === undefined || typeof candidate.reportingMessage === "string") &&
     typeof candidate.periodLabel === "string" &&
@@ -89,12 +91,12 @@ export function isAnalyticsDashboardData(value: unknown): value is AnalyticsDash
         Number.isFinite((source as Record<string, unknown>).visits) &&
         Number.isFinite((source as Record<string, unknown>).conversions),
     ) &&
-    Number.isFinite(funnelCandidate.viewed) &&
-    Number.isFinite(funnelCandidate.service) &&
-    Number.isFinite(funnelCandidate.term) &&
-    Number.isFinite(funnelCandidate.contact) &&
-    Number.isFinite(funnelCandidate.submitted) &&
-    Number.isFinite(funnelCandidate.created) &&
+    Number.isFinite(bookingActivityCandidate.started) &&
+    Number.isFinite(bookingActivityCandidate.service) &&
+    Number.isFinite(bookingActivityCandidate.term) &&
+    Number.isFinite(bookingActivityCandidate.contact) &&
+    Number.isFinite(bookingActivityCandidate.submitted) &&
+    Number.isFinite(bookingActivityCandidate.created) &&
     Number.isFinite(contactStepQualityCandidate.started) &&
     Number.isFinite(contactStepQualityCandidate.fieldFocus) &&
     Number.isFinite(contactStepQualityCandidate.fieldInputStarted) &&
@@ -113,7 +115,7 @@ function formatPercent(value: number) {
   return `${percentFormatter.format(value)} %`;
 }
 
-function FunnelStep({
+function AnalyticsRow({
   label,
   value,
 }: {
@@ -277,13 +279,21 @@ export function AnalyticsWidget({
 
                 <SourcesList sources={state.data.sources} />
 
-                <div className="grid gap-2">
-                  <FunnelStep label="Zobrazení" value={state.data.funnel.viewed} />
-                  <FunnelStep label="Služba" value={state.data.funnel.service} />
-                  <FunnelStep label="Termín" value={state.data.funnel.term} />
-                  <FunnelStep label="Kontakt" value={state.data.funnel.contact} />
-                  <FunnelStep label="Odesláno" value={state.data.funnel.submitted} />
-                  <FunnelStep label="Rezervace" value={state.data.funnel.created} />
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-white">Rezervační analytika</p>
+                  <p className="text-xs leading-5 text-white/52">
+                    Jde o nezávislé agregáty, ne sekvenční funnel. Pageviewy měří zobrazení stránky /rezervace;
+                    událostní řádky počítají návštěvy s danou událostí.
+                  </p>
+                  <div className="grid gap-2">
+                    <AnalyticsRow label="Zobrazení stránky rezervace" value={state.data.bookingPageviews} />
+                    <AnalyticsRow label="Rezervace zahájena" value={state.data.bookingActivity.started} />
+                    <AnalyticsRow label="Služba vybrána" value={state.data.bookingActivity.service} />
+                    <AnalyticsRow label="Čas vybrán" value={state.data.bookingActivity.term} />
+                    <AnalyticsRow label="Kontakt zahájen" value={state.data.bookingActivity.contact} />
+                    <AnalyticsRow label="Odeslána rezervace" value={state.data.bookingActivity.submitted} />
+                    <AnalyticsRow label="Rezervace vytvořena (událost)" value={state.data.bookingActivity.created} />
+                  </div>
                 </div>
 
                 <div className="space-y-2 rounded-lg border border-white/8 bg-black/18 p-3">

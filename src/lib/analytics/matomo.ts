@@ -4,7 +4,7 @@ import { env } from "@/config/env";
 import { buildSourceRows, mapReferrerTypeLabel } from "./matomo-sources";
 
 export type MatomoVisits = { nb_visits: number };
-export type MatomoEvent = { label: string; nb_events: number };
+export type MatomoEvent = { label: string; nb_visits: number };
 export type MatomoReferrer = { label: string; nb_visits: number; nb_conversions: number };
 export type MatomoCampaign = { label: string; nb_visits: number; nb_conversions: number };
 export type MatomoPageUrl = { label: string; nb_hits: number };
@@ -30,8 +30,9 @@ export type DashboardAnalytics = {
   conversionRate: number;
   topSource: string;
   sources: DashboardAnalyticsSource[];
-  funnel: {
-    viewed: number;
+  bookingPageviews: number;
+  bookingActivity: {
+    started: number;
     service: number;
     term: number;
     contact: number;
@@ -60,8 +61,9 @@ const DEFAULT_DASHBOARD_ANALYTICS: DashboardAnalytics = {
   conversionRate: 0,
   topSource: "",
   sources: [],
-  funnel: {
-    viewed: 0,
+  bookingPageviews: 0,
+  bookingActivity: {
+    started: 0,
     service: 0,
     term: 0,
     contact: 0,
@@ -79,7 +81,7 @@ const DEFAULT_DASHBOARD_ANALYTICS: DashboardAnalytics = {
   },
 };
 
-const bookingFunnelLabels = {
+const bookingEventLabels = {
   started: "Rezervace / Rezervace zahájena",
   service: "Rezervace / Služba vybrána",
   term: "Rezervace / Čas vybrán",
@@ -287,7 +289,7 @@ function getEventCount(events: MatomoEvent[], fullLabel: string, legacyFullLabel
 
   return events
     .filter((event) => candidateLabels.includes(event.label) || candidateActionLabels.includes(event.label))
-    .reduce((sum, event) => sum + event.nb_events, 0);
+    .reduce((sum, event) => sum + event.nb_visits, 0);
 }
 
 export async function fetchVisits(): Promise<MatomoVisits> {
@@ -297,7 +299,7 @@ export async function fetchVisits(): Promise<MatomoVisits> {
 export async function fetchEvents(): Promise<MatomoEvent[]> {
   return normalizeRows(await fetchMatomoJson("Events.getAction"), (row) => ({
     label: String(row.label ?? ""),
-    nb_events: toFiniteNumber(row.nb_events),
+    nb_visits: toFiniteNumber(row.nb_visits),
   }));
 }
 
@@ -436,13 +438,14 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
     ]);
 
     const visits = visitsSummary.nb_visits;
-    const funnel = {
-      viewed: getEventCount(events, bookingFunnelLabels.started, bookingFunnelLegacyAliases.started) || getBookingFlowPageviewCount(pageUrls),
-      service: getEventCount(events, bookingFunnelLabels.service, bookingFunnelLegacyAliases.service),
-      term: getEventCount(events, bookingFunnelLabels.term, bookingFunnelLegacyAliases.term),
-      contact: getEventCount(events, bookingFunnelLabels.contact, bookingFunnelLegacyAliases.contact),
-      submitted: getEventCount(events, bookingFunnelLabels.submitted, bookingFunnelLegacyAliases.submitted),
-      created: getEventCount(events, bookingFunnelLabels.created, bookingFunnelLegacyAliases.created),
+    const bookingPageviews = getBookingFlowPageviewCount(pageUrls);
+    const bookingActivity = {
+      started: getEventCount(events, bookingEventLabels.started, bookingFunnelLegacyAliases.started),
+      service: getEventCount(events, bookingEventLabels.service, bookingFunnelLegacyAliases.service),
+      term: getEventCount(events, bookingEventLabels.term, bookingFunnelLegacyAliases.term),
+      contact: getEventCount(events, bookingEventLabels.contact, bookingFunnelLegacyAliases.contact),
+      submitted: getEventCount(events, bookingEventLabels.submitted, bookingFunnelLegacyAliases.submitted),
+      created: getEventCount(events, bookingEventLabels.created, bookingFunnelLegacyAliases.created),
     };
     const conversions = bookingGoal.nb_conversions;
     const contactStepStarted = getEventCount(
@@ -470,7 +473,8 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
       conversionRate: bookingGoal.conversion_rate || (visits > 0 ? Math.round((conversions / visits) * 10000) / 100 : 0),
       topSource: sources[0]?.label ?? (topReferrer ? mapReferrerTypeLabel(topReferrer.label) : ""),
       sources,
-      funnel,
+      bookingPageviews,
+      bookingActivity,
       contactStepQuality: {
         started: contactStepStarted,
         fieldFocus: contactFieldFocus,

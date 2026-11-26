@@ -12,6 +12,7 @@ Formát je inspirovaný Keep a Changelog.
 
 ### Opraveno
 
+- Analytický dashboard odděluje zobrazení stránky rezervace od návštěv s rezervačními událostmi, události počítá podle návštěv a výslovně je označuje jako nezávislé agregáty; konverze nadále vycházejí z Matomo cíle.
 - Zdroj zahájení rezervace se nyní přiřazuje podle stránky a CTA, včetně katalogu služeb, kontaktu, studia a FAQ; předvybraná služba ani UTM parametry jej nemění.
 
 ## [3.42.0] - 2026-11-25

@@ -20,7 +20,7 @@ afterEach(() => {
   global.fetch = originalFetch;
 });
 
-test("getDashboardAnalytics derives booking funnel viewed step from booking pageviews", async () => {
+test("getDashboardAnalytics odděluje pageviewy a počítá události z návštěv, ne z počtu událostí", async () => {
   global.fetch = (async (input: RequestInfo | URL) => {
     const rawUrl = typeof input === "string" ? input : input.toString();
     const url = new URL(rawUrl);
@@ -38,16 +38,17 @@ test("getDashboardAnalytics derives booking funnel viewed step from booking page
     if (method === "Events.getAction") {
       return new Response(
         JSON.stringify([
-          { label: "Rezervace / Služba vybrána", nb_events: 8 },
-          { label: "Rezervace / Služba předvyplněna", nb_events: 3 },
-          { label: "Rezervace / Datum vybráno", nb_events: 6 },
-          { label: "Rezervace / Čas vybrán", nb_events: 5 },
-          { label: "Rezervace / Odeslána rezervace", nb_events: 3 },
-          { label: "Rezervace / Vytvořena", nb_events: 2 },
-          { label: "Rezervace / Kontakt zahájen", nb_events: 4 },
-          { label: "Rezervace / Kontakt pole fokus", nb_events: 3 },
-          { label: "Rezervace / Kontaktní pole zahájeno", nb_events: 2 },
-          { label: "Rezervace / Kontakt pole chyba", nb_events: 1 },
+          { label: "Rezervace / Rezervace zahájena", nb_visits: 7, nb_events: 100 },
+          { label: "Rezervace / Služba vybrána", nb_visits: 5, nb_events: 8 },
+          { label: "Rezervace / Služba předvyplněna", nb_visits: 2, nb_events: 3 },
+          { label: "Rezervace / Datum vybráno", nb_visits: 4, nb_events: 6 },
+          { label: "Rezervace / Čas vybrán", nb_visits: 3, nb_events: 5 },
+          { label: "Rezervace / Odeslána rezervace", nb_visits: 2, nb_events: 3 },
+          { label: "Rezervace / Vytvořena", nb_visits: 1, nb_events: 2 },
+          { label: "Rezervace / Kontakt zahájen", nb_visits: 4, nb_events: 40 },
+          { label: "Rezervace / Kontakt pole fokus", nb_visits: 3, nb_events: 30 },
+          { label: "Rezervace / Kontaktní pole zahájeno", nb_visits: 2, nb_events: 20 },
+          { label: "Rezervace / Kontakt pole chyba", nb_visits: 1, nb_events: 10 },
         ]),
         { status: 200 },
       );
@@ -99,12 +100,15 @@ test("getDashboardAnalytics derives booking funnel viewed step from booking page
   const { getDashboardAnalytics } = await import("./matomo");
   const analytics = await getDashboardAnalytics();
 
-  assert.equal(analytics.funnel.viewed, 10);
-  assert.equal(analytics.funnel.service, 11);
-  assert.equal(analytics.funnel.term, 5);
-  assert.equal(analytics.funnel.contact, 4);
-  assert.equal(analytics.funnel.submitted, 3);
-  assert.equal(analytics.funnel.created, 2);
+  assert.equal(analytics.bookingPageviews, 10);
+  assert.deepEqual(analytics.bookingActivity, {
+    started: 7,
+    service: 7,
+    term: 3,
+    contact: 4,
+    submitted: 2,
+    created: 1,
+  });
   assert.equal(analytics.conversions, 3);
   assert.equal(analytics.conversionRate, 30);
   assert.deepEqual(analytics.sources, [

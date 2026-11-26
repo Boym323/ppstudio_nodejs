@@ -12,7 +12,7 @@ process.env.ADMIN_STAFF_EMAIL ??= "staff@example.com";
 process.env.ADMIN_STAFF_PASSWORD ??= "change-me-staff";
 process.env.EMAIL_DELIVERY_MODE ??= "log";
 
-test("GET returns fallback analytics including contactStepQuality when reporting is blocked", async () => {
+test("GET returns independent booking aggregates and contactStepQuality when reporting is blocked", async () => {
   const { createAdminAnalyticsRouteApi } = await import("./admin-analytics-route-api");
 
   const api = createAdminAnalyticsRouteApi({
@@ -44,8 +44,9 @@ test("GET returns fallback analytics including contactStepQuality when reporting
 
   assert.equal(response.status, 200);
   assert.equal(payload.reportingStatus, "blocked");
-  assert.deepEqual(payload.funnel, {
-    viewed: 0,
+  assert.equal(payload.bookingPageviews, 0);
+  assert.deepEqual(payload.bookingActivity, {
+    started: 0,
     service: 0,
     term: 0,
     contact: 0,

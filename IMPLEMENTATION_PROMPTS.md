@@ -14,7 +14,7 @@ Oprav určování `source` při přechodu do rezervace tak, aby vycházelo ze st
 
 Přidej měření kliknutí na rezervační CTA přes stávající českou taxonomii Matomo. Zachovej stávající navigaci a obsluhu `onClick`. Zahrň hlavičku a mobilní navigaci, rezervační lištu, ověření poukazu a návrat ze storna. Nepřidávej CTA na homepage, do patičky ani na karty služeb.
 
-## 4. Správné agregace v analytickém dashboardu
+## 4. Správné agregace v analytickém dashboardu - hotovo
 
 Uprav dashboard Matomo tak, aby pageviewy rezervace byly samostatně od návštěv s událostmi. Událostní metriky počítej z `nb_visits`, nikoli `nb_events`; zobraz „Rezervace zahájena“ a jasně uveď, že jde o nezávislé agregáty, ne sekvenční funnel. Zachovej goal metriky jako autoritativní konverze. Doplň testy.
 

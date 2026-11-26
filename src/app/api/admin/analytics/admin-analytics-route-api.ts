@@ -13,8 +13,9 @@ const analyticsFallback = {
   conversionRate: 0,
   topSource: "—",
   sources: [],
-  funnel: {
-    viewed: 0,
+  bookingPageviews: 0,
+  bookingActivity: {
+    started: 0,
     service: 0,
     term: 0,
     contact: 0,
