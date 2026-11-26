@@ -34,7 +34,7 @@ Zajisti stejný výchozí počet doporučených termínů při serverovém a prv
 
 Umožni předat do rezervace termín přes validovaný `startsAt` spolu s vybranou službou. Po načtení čerstvé dostupnosti termín znovu ověř. Je-li obsazený nebo neplatný, upozorni klientku a nabídni výběr jiného času. Zachovej přednost explicitního termínu před uloženým konceptem. Doplň cílené testy.
 
-## 9. Náhradní cesta při nulové dostupnosti
+## 9. Náhradní cesta při nulové dostupnosti - hotovo
 
 Když pro vybranou službu nejsou publikované volné termíny, nabídni kontaktování studia a změnu služby. Nezaměňuj nedostupnost jedné služby za globální nedostupnost. Ověř chování cíleným testem veřejného rezervačního toku.
 

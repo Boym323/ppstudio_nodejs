@@ -126,7 +126,7 @@ export function BookingTermStep({
               onClick={onReturnToServiceSelection}
               className="inline-flex min-h-11 items-center justify-center rounded-full border border-black/8 px-4 py-2.5 text-sm font-semibold text-[var(--color-foreground)]"
             >
-              Vrátit se k výběru
+              Změnit službu
             </button>
             <Link
               href="/cenik"

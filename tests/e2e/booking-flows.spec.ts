@@ -534,6 +534,27 @@ test.describe("rezervační toky", () => {
     fixtures = [];
   });
 
+  test("nedostupná služba nabídne kontakt a změnu na dostupnou službu", async ({ page }) => {
+    const unavailable = await createPublicBookingFixture();
+    fixtures.push(unavailable);
+    const available = await createPublicBookingFixture();
+    fixtures.push(available);
+
+    await prisma.availabilitySlot.updateMany({
+      where: { publicNote: { contains: unavailable.runId } },
+      data: { status: AvailabilitySlotStatus.DRAFT },
+    });
+
+    await page.goto(`/rezervace?service=${unavailable.serviceSlug}`);
+    await expect(page.getByText("Pro tuto službu teď není publikovaný volný termín", { exact: false })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Kontaktovat studio" })).toHaveAttribute("href", "/kontakt");
+    await page.getByRole("button", { name: "Změnit službu" }).last().click();
+    await page.getByRole("button", { name: new RegExp(available.categoryName) }).click();
+    await page.getByRole("button", { name: new RegExp(available.serviceName) }).click();
+    await expect(page.getByText("Pro tuto službu teď není publikovaný volný termín", { exact: false })).toBeHidden();
+    await expect(page.getByRole("button", { name: /^Vybrat termín / }).first()).toBeVisible();
+  });
+
   test("neplatný e-mail nepustí návštěvnici z kontaktního kroku", async ({ page }) => {
     const fixture = await createPublicBookingFixture();
     fixtures.push(fixture);
