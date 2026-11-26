@@ -27,6 +27,14 @@ export function resolveBookingEntrySource(page: string): BookingEntrySource {
       return "contact";
     case "studio":
       return "studio";
+    case "o-mne":
+      return "about";
+    case "gdpr":
+      return "privacy_policy";
+    case "obchodni-podminky":
+      return "terms_and_conditions";
+    case "storno-podminky":
+      return "cancellation_policy";
     case "faq":
       return "faq";
     default:

@@ -149,13 +149,13 @@ export async function startPublicBookingCancellationAction(formData: FormData) {
   const token = readFormString(formData, "token").trim();
 
   if (!token) {
-    redirect("/rezervace");
+    redirect("/rezervace?source=cancellation_unavailable");
   }
 
   const result = await issuePublicCancellationUrlByManageToken(token);
 
   if (result.status !== "issued") {
-    redirect("/rezervace");
+    redirect("/rezervace?source=cancellation_unavailable");
   }
 
   redirect(result.cancellationUrl);

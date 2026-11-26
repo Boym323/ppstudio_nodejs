@@ -137,7 +137,7 @@ export function CancellationPanel({ token, initialState }: CancellationPanelProp
           Potvrdit storno
         </button>
         <a
-          href="/rezervace"
+          href="/rezervace?source=cancellation"
           onClick={() => trackReservationCtaClick("návrat do rezervace", "storno")}
           className="inline-flex min-h-13 items-center justify-center rounded-full border border-black/10 bg-white/75 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-foreground)] hover:border-black/20 hover:bg-white sm:text-sm"
         >

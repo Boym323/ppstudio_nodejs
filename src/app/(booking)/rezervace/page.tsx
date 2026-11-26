@@ -18,7 +18,9 @@ const reservationMetadata = buildPageMetadata({
 });
 
 const bookingEntrySources = new Set<BookingEntrySource>([
-  "service_detail", "service_catalog", "price_list", "homepage", "voucher", "contact", "studio", "faq", "direct_booking", "other",
+  "service_detail", "service_catalog", "price_list", "homepage", "voucher", "contact", "studio", "faq",
+  "about", "privacy_policy", "terms_and_conditions", "cancellation_policy",
+  "cancellation", "cancellation_unavailable", "direct_booking", "other",
 ]);
 
 export async function generateMetadata({

@@ -18,6 +18,12 @@ export type BookingEntrySource =
   | "contact"
   | "studio"
   | "faq"
+  | "about"
+  | "privacy_policy"
+  | "terms_and_conditions"
+  | "cancellation_policy"
+  | "cancellation_unavailable"
+  | "cancellation"
   | "direct_booking"
   | "other";
 
