@@ -27,6 +27,7 @@ import { clearBookingDraft, readBookingDraft, restoreBookingDraftCatalog, saveBo
 import { BookingContactStep } from "./booking-flow/contact-step";
 import { shouldTrackContactFieldInput } from "./booking-flow/contact-analytics";
 import {
+  bookingEntrySourceLabels,
   formatBookingMatomoSlotName,
   formatUnavailableServiceMatomoName,
   formatSuggestedSlotSelectionMatomoName,
@@ -831,7 +832,7 @@ export function BookingFlow({
     if (bookingStartedTrackedRef.current) return;
 
     bookingStartedTrackedRef.current = true;
-    trackBookingEvent("Rezervace zahájena", bookingEntrySource);
+    trackBookingEvent("Rezervace zahájena", bookingEntrySourceLabels[bookingEntrySource]);
   }, [bookingEntrySource]);
 
   useEffect(() => {

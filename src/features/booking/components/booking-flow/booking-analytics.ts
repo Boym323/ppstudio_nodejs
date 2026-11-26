@@ -2,6 +2,26 @@
 
 import { isPublicBookingAvailabilityError } from "./availability-refresh";
 import { formatSlotTime, getSlotDateKey } from "./helpers";
+import type { BookingEntrySource } from "./types";
+
+export const bookingEntrySourceLabels: Record<BookingEntrySource, string> = {
+  service_detail: "Detail služby",
+  service_catalog: "Katalog služeb",
+  price_list: "Ceník",
+  homepage: "Úvodní stránka",
+  voucher: "Dárkové poukazy",
+  contact: "Kontakt",
+  studio: "Studio",
+  faq: "Časté otázky",
+  about: "O mně",
+  privacy_policy: "Ochrana osobních údajů",
+  terms_and_conditions: "Obchodní podmínky",
+  cancellation_policy: "Storno podmínky",
+  cancellation_unavailable: "Nedostupný storno formulář",
+  cancellation: "Návrat ze storna",
+  direct_booking: "Vstup bez uvedeného zdroje",
+  other: "Ostatní vstupy",
+};
 
 export function isBookingTermConflictErrorCode(errorCode?: string, suggestedStep?: number) {
   return isPublicBookingAvailabilityError(errorCode, suggestedStep);
