@@ -26,7 +26,7 @@ V rezervačním formuláři umožni filtrovat doporučené dostupné časy podle
 
 Pokud vybraná služba nemá žádný skutečně dostupný termín, odešli jednou pro daný výběr neosobní Matomo událost s veřejným slugem služby. Událost neposílej během obnovy formuláře nebo katalogu ani při prázdném výsledku časového filtru. Doplň testy.
 
-## 7. Stabilní vykreslení rezervačního formuláře
+## 7. Stabilní vykreslení rezervačního formuláře - hotovo
 
 Zajisti stejný výchozí počet doporučených termínů při serverovém a prvním klientském vykreslení. Přechodná zpráva o obnově konceptu nesmí při hydrataci posouvat formulář; případnou zprávu zobraz za formulářem. Ověř cíleným regresním testem.
 

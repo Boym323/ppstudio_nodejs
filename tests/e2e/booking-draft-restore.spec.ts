@@ -12,6 +12,25 @@ test.describe("obnova rozpracované rezervace v prohlížeči", () => {
     fixture = null;
   });
 
+  test("desktop hydruje stejný počáteční počet doporučení jako server", async ({ page }) => {
+    fixture = await createPublicBookingFixture();
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const hydrationErrors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error" && /hydration|did not match/i.test(message.text())) {
+        hydrationErrors.push(message.text());
+      }
+    });
+    page.on("pageerror", (error) => {
+      if (/hydration|did not match/i.test(error.message)) hydrationErrors.push(error.message);
+    });
+
+    await page.goto(`/rezervace?service=${fixture.serviceSlug}`);
+    const suggestedSection = page.getByRole("heading", { name: "Doporučené termíny" }).locator("xpath=ancestor::section[1]");
+    await expect(suggestedSection.getByRole("button")).toHaveCount(6);
+    expect(hydrationErrors).toEqual([]);
+  });
+
   test("obnoví skutečný formulář včetně ověřeného termínu po reloadu", async ({ page }) => {
     fixture = await createPublicBookingFixture();
 
@@ -38,6 +57,10 @@ test.describe("obnova rozpracované rezervace v prohlížeči", () => {
     await page.reload();
     await expect(page.getByText("Rozpracované údaje jsme obnovili.", { exact: false })).toBeVisible();
     await expect(form).toHaveAttribute("aria-busy", "false");
+    expect(await form.evaluate((element) => Boolean(
+      element.compareDocumentPosition(document.querySelector('[role="status"]')!)
+        & Node.DOCUMENT_POSITION_FOLLOWING,
+    ))).toBe(true);
     await expect(form).not.toHaveAttribute("inert", "");
     await expect(page.getByLabel("Jméno a příjmení")).toHaveValue(fixture.clientName);
     await expect(page.getByRole("textbox", { name: "E-mail" })).toHaveValue(fixture.clientEmail);
@@ -86,6 +109,10 @@ test.describe("obnova rozpracované rezervace v prohlížeči", () => {
       await page.goto(`/rezervace?service=${fixture.serviceSlug}`);
       const form = page.locator("form[aria-busy]");
       await expect(form).toHaveAttribute("aria-busy", "true");
+      expect(await form.evaluate((element) => Boolean(
+        element.compareDocumentPosition(document.querySelector('[role="status"]')!)
+          & Node.DOCUMENT_POSITION_FOLLOWING,
+      ))).toBe(true);
       await expect.poll(() => intercepted).toBe(1);
 
       // Katalog stále neodpovídá, ale po 5 sekundách musí být UI interaktivní.

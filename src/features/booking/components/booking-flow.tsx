@@ -122,11 +122,7 @@ export function BookingFlow({
   const [isServiceStepHighlighted, setIsServiceStepHighlighted] = useState(false);
   const [isTermStepHighlighted, setIsTermStepHighlighted] = useState(false);
   const [isContactStepHighlighted, setIsContactStepHighlighted] = useState(false);
-  const [visibleSuggestedSlotsLimit, setVisibleSuggestedSlotsLimit] = useState(() => (
-    typeof window !== "undefined" && !window.matchMedia("(max-width: 639px)").matches
-      ? DESKTOP_SUGGESTED_SLOTS_LIMIT
-      : MOBILE_SUGGESTED_SLOTS_LIMIT
-  ));
+  const [visibleSuggestedSlotsLimit, setVisibleSuggestedSlotsLimit] = useState(MOBILE_SUGGESTED_SLOTS_LIMIT);
   const [touchedFields, setTouchedFields] = useState<Record<ContactFieldKey, boolean>>({
     fullName: false,
     email: false,
@@ -1143,12 +1139,6 @@ export function BookingFlow({
         </div>
       </div>
 
-      {isRestoringDraft || draftMessage ? (
-        <p role="status" className="rounded-2xl bg-[var(--color-surface)] p-4 text-sm leading-6 text-[var(--color-foreground)]">
-          {isRestoringDraft ? "Připravuji rezervační formulář…" : draftMessage}
-        </p>
-      ) : null}
-
       <form
         inert={isRestoringDraft}
         aria-busy={isRestoringDraft}
@@ -1396,6 +1386,12 @@ export function BookingFlow({
         />
       )}
       </form>
+
+      {isRestoringDraft || draftMessage ? (
+        <p role="status" className="rounded-2xl bg-[var(--color-surface)] p-4 text-sm leading-6 text-[var(--color-foreground)]">
+          {isRestoringDraft ? "Připravuji rezervační formulář…" : draftMessage}
+        </p>
+      ) : null}
     </>
   );
 }
