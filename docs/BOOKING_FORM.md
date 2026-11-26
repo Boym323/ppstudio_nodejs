@@ -4,7 +4,7 @@
 
 ## Cesty a vstupní data
 
-- Stránka: `/rezervace` → `src/app/(booking)/rezervace/page.tsx`. Server načte `getPublicBookingCatalog()` a profil salonu a vykreslí [`booking-page.tsx`](../src/features/booking/components/booking-page.tsx). Pokud nejsou služby nebo vůbec žádné publikované sloty, ukáže fallback s kontaktem, nikoliv nefunkční formulář.
+- Stránka: `/rezervace` → `src/app/(booking)/rezervace/page.tsx`. Server načte `getPublicBookingCatalog()` a profil salonu a vykreslí [`booking-page.tsx`](../src/features/booking/components/booking-page.tsx). Bez služeb zobrazí kontaktní fallback. Pokud služby existují, formulář zůstává dostupný i bez slotů; po výběru služby bez vhodného času krok Termín nabídne kontakt, změnu služby a ceník. Prázdný katalog slotů zároveň zaznamená událost `Bez termínů`.
 - Parametry: `?service=<slug>` předvybere službu (legacy slug trvale přesměruje na kanonický), `?voucher=<kód>` předvyplní kód voucheru a `?source=<zdroj>` určuje kontext vstupu. Povolené zdroje jsou `service_detail`, `service_catalog`, `price_list`, `homepage`, `voucher`, `contact`, `studio`, `faq`, `about`, `privacy_policy`, `terms_and_conditions`, `cancellation_policy`, `cancellation` (návrat ze stránky storna), `cancellation_unavailable` (přesměrování ze správy rezervace, pokud nelze otevřít storno formulář), `direct_booking` a `other`. Neznámý zdroj se změní na `direct_booking`. Stránka s query parametry má `noindex`.
 - Zdroj dat je PostgreSQL: `ServiceCategory`, `Service`, `AvailabilitySlot`, `AvailabilitySlotService`, `Booking`, `SiteSettings`. Veřejné časy **nejsou kopie admin kalendáře**: počítají se z publikované dostupnosti, rezervací a aktuálních pravidel.
 

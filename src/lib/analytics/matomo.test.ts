@@ -23,6 +23,7 @@ afterEach(() => {
 test("getDashboardAnalytics odděluje pageviewy a počítá události z návštěv, ne z počtu událostí", async () => {
   let segmentAvailable = true;
   let pageUrlsAvailable = true;
+  let goalAvailable = true;
   global.fetch = (async (input: RequestInfo | URL) => {
     const rawUrl = typeof input === "string" ? input : input.toString();
     const url = new URL(rawUrl);
@@ -70,6 +71,7 @@ test("getDashboardAnalytics odděluje pageviewy a počítá události z návšt�
 
     if (method === "Goals.get") {
       assert.equal(url.searchParams.get("idGoal"), "1");
+      if (!goalAvailable) return Response.json({ result: "error", message: "Goal unavailable" });
 
       return new Response(
         JSON.stringify({
@@ -153,6 +155,18 @@ test("getDashboardAnalytics odděluje pageviewy a počítá události z návšt�
   assert.equal(withoutPageviews.bookingPageviewsAvailable, false);
   assert.match(withoutPageviews.reportingMessage ?? "", /počet zobrazení stránky rezervace/);
   assert.deepEqual(withoutPageviews.bookingActivity, analytics.bookingActivity);
+
+  pageUrlsAvailable = true;
+  goalAvailable = false;
+  const withoutGoal = await getDashboardAnalytics();
+  assert.equal(withoutGoal.reportingStatus, "partial");
+  assert.equal(withoutGoal.bookingGoalAvailable, false);
+  assert.equal(withoutGoal.conversions, 0);
+  assert.equal(withoutGoal.conversionRate, 0);
+  assert.match(withoutGoal.reportingMessage ?? "", /počet konverzí rezervačního cíle ani konverzní míru/);
+  assert.equal(withoutGoal.bookingPageviews, analytics.bookingPageviews);
+  assert.deepEqual(withoutGoal.bookingActivity, analytics.bookingActivity);
+  assert.deepEqual(withoutGoal.sources, analytics.sources);
 });
 
 test("getDashboardAnalytics rozlišuje zdroje a ověřuje jejich konverze přes Matomo", async () => {
