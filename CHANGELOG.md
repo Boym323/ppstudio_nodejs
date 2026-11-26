@@ -6,6 +6,8 @@ Formát je inspirovaný Keep a Changelog.
 
 ## [Unreleased]
 
+## [3.43.0] - 2026-11-26
+
 ### Zabezpečení
 
 - Matomo z odkazující URL dostává jen původ webu, takže nepřebírá cestu, kód poukazu ani další citlivé parametry.
@@ -25,7 +27,6 @@ Formát je inspirovaný Keep a Changelog.
 - Při prázdném kalendáři rezervace hned zobrazí upozornění a kontakt na studio. Pokud chybí termín pro vybranou službu, lze vybrat jinou.
 - Analytický dashboard odděluje zobrazení stránky rezervace od návštěv s rezervačními událostmi. Výběr termínu při správě existující rezervace se do nové rezervace nezapočítá a historické a současné názvy událostí se nepřičítají dvakrát. Do počtu zobrazení se zahrnou i URL s koncovým lomítkem a varianty za první stovkou řádků reportu. Při výpadku reportu rezervačního cíle, zobrazení či událostí dashboard označí chybějící údaje jako nedostupné. Při chybějícím sjednoceném počtu událostí upozorní na neúplná data. Konverze nadále vycházejí z Matomo cíle a administrační API vrací pole `funnel`.
 - Zdroj zahájení rezervace se přiřazuje podle stránky a CTA, včetně katalogu služeb, kontaktu, studia a FAQ. Samostatně se měří také vstupy ze stránky O mně, GDPR, obchodních a storno podmínek. Analytika rozlišuje kliknutí zpět ze storna a přesměrování ze správy rezervace při nedostupném storno formuláři. Matomo zobrazuje názvy zdrojů česky. Předvybraná služba ani UTM parametry zdroj nemění.
-
 ## [3.42.0] - 2026-11-25
 
 ### Změněno
